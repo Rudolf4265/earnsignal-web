@@ -79,6 +79,12 @@ Use these constants in Stripe checkout session creation.
 - [ ] `http://app.localhost:3000` behaves as app host.
 - [ ] Redirect behavior matches production rules.
 
+## WWW redirect loop fix
+
+- [ ] `https://www.earnsignalstudio.com/pricing` redirects once to `https://earnsignalstudio.com/pricing`.
+- [ ] `https://www.earnsignalstudio.com/login` redirects to `https://app.earnsignalstudio.com/login` (canonicalization then host routing).
+- [ ] `https://earnsignalstudio.com/login` redirects to `https://app.earnsignalstudio.com/login`.
+
 ## TODOs
 
 - Wire Supabase auth actions/forms on `/login` and `/signup`.

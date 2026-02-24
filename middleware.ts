@@ -7,6 +7,7 @@ const EXCLUDED_PATHS = new Set(["/favicon.ico", "/robots.txt", "/sitemap.xml"]);
 
 const marketingHost = process.env.NEXT_PUBLIC_MARKETING_HOST?.trim() || "earnsignalstudio.com";
 const appHost = process.env.NEXT_PUBLIC_APP_HOST?.trim() || "app.earnsignalstudio.com";
+const marketingWwwHost = `www.${marketingHost}`;
 
 function getRequestHost(request: NextRequest): string {
   return request.headers.get("host")?.split(":")[0] ?? "";
@@ -31,6 +32,13 @@ function redirectToHost(request: NextRequest, host: string): NextResponse {
   return NextResponse.redirect(url);
 }
 
+function redirectToCanonicalMarketingHost(request: NextRequest): NextResponse {
+  const url = request.nextUrl.clone();
+  url.host = marketingHost;
+  url.protocol = marketingHost.includes("localhost") ? "http:" : "https:";
+  return NextResponse.redirect(url, 308);
+}
+
 export function middleware(request: NextRequest): NextResponse {
   const pathname = request.nextUrl.pathname;
 
@@ -39,8 +47,12 @@ export function middleware(request: NextRequest): NextResponse {
   }
 
   const host = getRequestHost(request);
+  if (host === marketingWwwHost) {
+    return redirectToCanonicalMarketingHost(request);
+  }
+
   const isAppHost = host === appHost || host === "app.localhost";
-  const isMarketingHost = host === marketingHost || host === "localhost";
+  const isMarketingHost = host === marketingHost || host === marketingWwwHost || host === "localhost";
 
   if (isAppHost) {
     if (!isAppPath(pathname)) {

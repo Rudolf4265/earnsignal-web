@@ -4,7 +4,7 @@ export default function SignupPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6 py-12">
       <h1 className="text-3xl font-semibold tracking-tight">Create account</h1>
-      <p className="mt-3 text-sm text-zinc-400">TODO: connect Supabase signup + email verification flow.</p>
+      <p className="mt-3 text-sm text-zinc-400">Create your EarnSigma account to get started.</p>
 
       <form className="mt-8 space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">
         <label className="block text-sm">
@@ -16,7 +16,7 @@ export default function SignupPage() {
           <input type="password" placeholder="••••••••" className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm outline-none" />
         </label>
         <button type="button" className="w-full rounded-xl bg-zinc-100 px-4 py-2.5 text-sm font-semibold text-zinc-950">
-          Start free trial (placeholder)
+          Start free trial
         </button>
       </form>
 

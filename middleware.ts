@@ -16,11 +16,21 @@ const ALLOWED_HOSTS = new Set([
   APP_HOST,
   "localhost",
   "app.localhost",
+  "127.0.0.1",
 ]);
+
+const ALLOWED_HOST_SUFFIXES = [".vercel.app", ".earnsigma.com", ".localhost"];
 
 function getRequestHost(request: NextRequest): string {
   const raw = request.headers.get("host") ?? "";
   return raw.split(":")[0]?.trim().toLowerCase();
+}
+
+function isAllowedHost(host: string): boolean {
+  return (
+    ALLOWED_HOSTS.has(host) ||
+    ALLOWED_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix))
+  );
 }
 
 function isExcludedPath(pathname: string): boolean {
@@ -66,14 +76,19 @@ export function middleware(request: NextRequest): NextResponse {
 
   const host = getRequestHost(request);
 
-  // Hard fail unknown hosts (prevents host-header weirdness / caching + SEO issues)
-  if (!ALLOWED_HOSTS.has(host)) {
-    return new NextResponse("Bad Request", { status: 400 });
+  // Allow known hosts plus deployment domains (e.g. Vercel preview URLs).
+  if (!isAllowedHost(host)) {
+    return NextResponse.next();
   }
 
+  const isPreviewHost = host.endsWith(".vercel.app");
   const isAppHost = host === APP_HOST || host === "app.localhost";
   const isMarketingHost =
-    host === MARKETING_HOST || host === MARKETING_ROOT_HOST || host === "localhost";
+    host === MARKETING_HOST ||
+    host === MARKETING_ROOT_HOST ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    isPreviewHost;
 
   // Root → canonical www (keep path/query)
   if (host === MARKETING_ROOT_HOST) {

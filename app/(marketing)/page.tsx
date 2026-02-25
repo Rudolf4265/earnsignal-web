@@ -19,12 +19,12 @@ export default function MarketingHomePage() {
     <MarketingShell>
       <section className="py-18 overflow-visible sm:py-24">
         <Image
-          src="/brand/earnsigma-hero-lockup.png"
+          src="/brand/earnsigma-lockup.svg"
           alt={BRAND_NAME}
           priority
-          width={677}
-          height={135}
-          className="mb-8 h-auto w-full max-w-[300px] sm:max-w-[460px]"
+          width={160}
+          height={40}
+          className="mb-8 h-10 w-auto"
         />
         <p className="mb-6 inline-flex rounded-full border border-zinc-800 bg-zinc-900 px-4 py-1.5 text-xs font-medium tracking-wider text-zinc-300 uppercase">
           Quiet intelligence for creator teams

@@ -1,5 +1,9 @@
+"use client";
+
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BRAND_NAME } from "@/src/lib/brand";
 
 const navLinks = [
   { href: "/app", label: "Dashboard" },
@@ -19,7 +23,19 @@ export function AppShell({
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-10">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-5">
-        <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+        <div className="flex items-center gap-4">
+          <Link href="/" className="inline-flex items-center" aria-label={BRAND_NAME}>
+            <Image
+              src="/brand/earnsigma-lockup.svg"
+              alt={BRAND_NAME}
+              width={140}
+              height={40}
+              priority
+              className="h-8 w-auto"
+            />
+          </Link>
+          <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+        </div>
 
         <nav className="flex flex-wrap gap-3 text-sm">
           {navLinks.map((link) => {

@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { getSession, onAuthStateChange } from "@/src/lib/supabase/session";
 
 const navLinks = [
   { href: "/app", label: "Dashboard" },
@@ -15,16 +16,50 @@ const navLinks = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const token =
-    typeof window === "undefined" ? null : localStorage.getItem("supabase.auth.token");
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
-    if (!token) {
-      router.replace("/login");
-    }
-  }, [router, token]);
+    let isMounted = true;
+    let unsubscribe: (() => void) | null = null;
 
-  if (!token) {
+    const loadSession = async () => {
+      const { data } = await getSession();
+
+      if (!isMounted) {
+        return;
+      }
+
+      const sessionExists = Boolean(data.session);
+      setHasSession(sessionExists);
+      setIsLoadingSession(false);
+
+      if (!sessionExists) {
+        router.replace("/login");
+      }
+    };
+
+    const registerAuthStateListener = async () => {
+      unsubscribe = await onAuthStateChange((_event, session) => {
+        const sessionExists = Boolean(session);
+        setHasSession(sessionExists);
+
+        if (!sessionExists) {
+          router.replace("/login");
+        }
+      });
+    };
+
+    void loadSession();
+    void registerAuthStateListener();
+
+    return () => {
+      isMounted = false;
+      unsubscribe?.();
+    };
+  }, [router]);
+
+  if (isLoadingSession || !hasSession) {
     return null;
   }
 

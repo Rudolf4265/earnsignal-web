@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const APP_ALLOWED_PREFIXES = ["/login", "/signup", "/app"];
+const APP_ALLOWED_PREFIXES = ["/login", "/signup", "/forgot-password", "/auth/callback", "/app"];
 const STATIC_PATH_PREFIXES = ["/_next/", "/brand/", "/fonts/"];
 const STATIC_PATHS = new Set([
   "/favicon.ico",
@@ -100,7 +100,7 @@ export function middleware(request: NextRequest): NextResponse {
     return redirectToHost(request, MARKETING_HOST);
   }
 
-  // App host: allow only app/login/signup. Otherwise send to marketing root.
+  // App host: allow auth utility routes and /app. Otherwise send to marketing root.
   if (isAppHost) {
     if (!isAppPath(pathname)) {
       return redirectToHostRoot(request, MARKETING_HOST);

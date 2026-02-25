@@ -1,9 +1,10 @@
-import { AppShell } from "../../_components/app-shell";
-
 export default function UploadPage() {
   return (
-    <AppShell title="Upload data">
-      <p className="text-zinc-300">Connect your data source to begin generating a revenue intelligence report.</p>
-    </AppShell>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-semibold">Data</h1>
+      <p className="text-gray-400">
+        Connect your data source to begin generating a revenue intelligence report.
+      </p>
+    </div>
   );
 }

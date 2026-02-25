@@ -1,5 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { MarketingShell } from "./_components/marketing-shell";
 import { appBaseUrl } from "@/src/lib/urls";
 
@@ -19,6 +23,20 @@ const features = [
 ];
 
 export default function MarketingHomePage() {
+  const router = useRouter();
+  const token =
+    typeof window === "undefined" ? null : localStorage.getItem("supabase.auth.token");
+
+  useEffect(() => {
+    if (token) {
+      router.replace("/app");
+    }
+  }, [router, token]);
+
+  if (token) {
+    return null;
+  }
+
   return (
     <MarketingShell>
       <section className="py-28 lg:py-36">

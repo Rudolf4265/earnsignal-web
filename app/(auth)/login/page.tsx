@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "../_components/auth-shell";
 import { createClient } from "@/src/lib/supabase/client";
+import { signInWithGoogle } from "@/src/lib/supabase/oauth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,7 +13,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+
+
+  const handleGoogleSignIn = async () => {
+    setError("");
+    setGoogleLoading(true);
+
+    try {
+      await signInWithGoogle();
+    } catch (googleError) {
+      setError(
+        googleError instanceof Error
+          ? googleError.message
+          : "Unable to continue with Google right now. Please try again.",
+      );
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -54,6 +73,20 @@ export default function LoginPage() {
             {error}
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading || loading}
+          className="w-full rounded-xl border border-white/10 bg-navy-950 py-3 text-sm font-medium text-white transition hover:border-white/20 disabled:opacity-50"
+        >
+          <span className="inline-flex items-center justify-center">
+            {googleLoading && (
+              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            )}
+            {googleLoading ? "Connecting..." : "Continue with Google"}
+          </span>
+        </button>
 
         <label className="block text-sm">
           <span className="mb-2 block text-gray-300">Email</span>

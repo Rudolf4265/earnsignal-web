@@ -14,16 +14,22 @@ export default function AuthCallbackPage() {
     let isMounted = true;
 
     const loadSession = async () => {
-      const { data } = await getSession();
+      try {
+        const { data } = await getSession();
 
-      if (!isMounted) {
-        return;
-      }
+        if (!isMounted) {
+          return;
+        }
 
-      if (data.session) {
-        router.replace("/app");
-      } else {
-        setLoading(false);
+        if (data.session) {
+          router.replace("/app");
+        } else {
+          setLoading(false);
+        }
+      } catch {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 

@@ -5,13 +5,22 @@ const APP_ALLOWED_PREFIXES = ["/login", "/signup", "/app"];
 const EXCLUDED_PREFIXES = ["/_next", "/images", "/fonts"];
 const EXCLUDED_PATHS = new Set(["/favicon.ico", "/robots.txt", "/sitemap.xml"]);
 
-// ✅ Canonical Hosts (EarnSigma)
-const marketingHost = "www.earnsigma.com"; // canonical marketing
-const marketingRootHost = "earnsigma.com"; // root redirects to www
-const appHost = "app.earnsigma.com";
+// Canonical hosts (EarnSigma)
+const MARKETING_HOST = "www.earnsigma.com";
+const MARKETING_ROOT_HOST = "earnsigma.com";
+const APP_HOST = "app.earnsigma.com";
+
+const ALLOWED_HOSTS = new Set([
+  MARKETING_HOST,
+  MARKETING_ROOT_HOST,
+  APP_HOST,
+  "localhost",
+  "app.localhost",
+]);
 
 function getRequestHost(request: NextRequest): string {
-  return request.headers.get("host")?.split(":")[0] ?? "";
+  const raw = request.headers.get("host") ?? "";
+  return raw.split(":")[0]?.trim().toLowerCase();
 }
 
 function isExcludedPath(pathname: string): boolean {
@@ -38,8 +47,18 @@ function redirectToHost(request: NextRequest, host: string): NextResponse {
   return NextResponse.redirect(url, 308);
 }
 
+function redirectToHostRoot(request: NextRequest, host: string): NextResponse {
+  const url = request.nextUrl.clone();
+  url.host = host;
+  url.protocol = host.includes("localhost") ? "http:" : "https:";
+  url.pathname = "/";
+  url.search = "";
+  url.hash = "";
+  return NextResponse.redirect(url, 308);
+}
+
 export function middleware(request: NextRequest): NextResponse {
-  const pathname = request.nextUrl.pathname;
+  const { pathname } = request.nextUrl;
 
   if (isExcludedPath(pathname)) {
     return NextResponse.next();
@@ -47,42 +66,44 @@ export function middleware(request: NextRequest): NextResponse {
 
   const host = getRequestHost(request);
 
-  // ✅ Root → Canonical www
-  if (host === marketingRootHost) {
-    return redirectToHost(request, marketingHost);
+  // Hard fail unknown hosts (prevents host-header weirdness / caching + SEO issues)
+  if (!ALLOWED_HOSTS.has(host)) {
+    return new NextResponse("Bad Request", { status: 400 });
   }
 
-  const isAppHost = host === appHost || host === "app.localhost";
+  const isAppHost = host === APP_HOST || host === "app.localhost";
   const isMarketingHost =
-    host === marketingHost ||
-    host === marketingRootHost ||
-    host === "localhost";
+    host === MARKETING_HOST || host === MARKETING_ROOT_HOST || host === "localhost";
 
-  // ✅ App host logic
+  // Root → canonical www (keep path/query)
+  if (host === MARKETING_ROOT_HOST) {
+    return redirectToHost(request, MARKETING_HOST);
+  }
+
+  // App host: allow only app/login/signup. Otherwise send to marketing root.
   if (isAppHost) {
     if (!isAppPath(pathname)) {
-      return redirectToHost(request, marketingHost);
+      return redirectToHostRoot(request, MARKETING_HOST);
     }
     return NextResponse.next();
   }
 
-  // ✅ Marketing host logic
+  // Marketing host: if someone hits an app path, push them to app host.
   if (isMarketingHost) {
     if (isAppPath(pathname)) {
-      return redirectToHost(request, appHost);
+      return redirectToHost(request, APP_HOST);
     }
+
+    // Optional: if you only want a fixed marketing surface, force canonical paths.
+    // If not desired, remove this block and allow Next to 404 naturally.
+    if (!isMarketingPath(pathname)) {
+      return redirectToHostRoot(request, MARKETING_HOST);
+    }
+
     return NextResponse.next();
   }
 
-  // ✅ Fallbacks
-  if (isMarketingPath(pathname)) {
-    return redirectToHost(request, marketingHost);
-  }
-
-  if (isAppPath(pathname)) {
-    return redirectToHost(request, appHost);
-  }
-
+  // With ALLOWED_HOSTS, we should never get here.
   return NextResponse.next();
 }
 

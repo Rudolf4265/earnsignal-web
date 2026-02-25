@@ -3,48 +3,42 @@ import Link from "next/link";
 import { BRAND_NAME } from "@/src/lib/brand";
 import { appBaseUrl } from "@/src/lib/urls";
 
-const footerLinks = [
-  { label: "Pricing", href: "/pricing" },
-  { label: "Example", href: "/example" },
-  { label: "Privacy", href: "/privacy" },
-  { label: "Terms", href: "/terms" },
-];
-
 export function MarketingShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-7">
-        <Link href="/" className="inline-flex items-center" aria-label={BRAND_NAME}>
-          <Image
-            src="/brand/earnsigma-lockup.svg"
-            alt={BRAND_NAME}
-            width={140}
-            height={40}
-            priority
-            className="h-8 w-auto"
-          />
-        </Link>
-        <div className="flex items-center gap-4 text-sm">
-          <Link href="/pricing" className="text-zinc-300 transition hover:text-white">
-            Pricing
+    <div className="min-h-screen bg-navy-950 text-white">
+      <header className="sticky top-0 backdrop-blur-md bg-navy-950/70 border-b border-white/5 z-20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-5 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center" aria-label={BRAND_NAME}>
+            <Image src="/brand/earnsigma-mark.svg" alt={BRAND_NAME} width={36} height={36} priority className="h-9 w-9" />
+            <span className="ml-3 text-base font-semibold tracking-tight text-white">{BRAND_NAME}</span>
           </Link>
-          <a
-            href={`${appBaseUrl}/signup`}
-            className="rounded-full border border-zinc-700 bg-zinc-100 px-4 py-2 font-medium text-zinc-950 transition hover:bg-white"
-          >
-            Start free trial
-          </a>
+          <div className="flex items-center gap-4 text-sm">
+            <Link href="/pricing" className="text-gray-300 transition hover:text-white">
+              Pricing
+            </Link>
+            <Link href="/login" className="text-gray-300 transition hover:text-white">
+              Sign in
+            </Link>
+            <a
+              href={`${appBaseUrl}/signup`}
+              className="inline-flex items-center justify-center rounded-xl bg-brand-blue px-5 py-2.5 font-medium text-white transition hover:opacity-90"
+            >
+              Start free trial
+            </a>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-6 pb-16">{children}</main>
+      <main>{children}</main>
 
-      <footer className="mx-auto mt-16 flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 border-t border-zinc-800 px-6 py-8 text-sm text-zinc-400">
-        {footerLinks.map((link) => (
-          <Link key={link.href} href={link.href} className="transition hover:text-zinc-100">
-            {link.label}
-          </Link>
-        ))}
+      <footer className="border-t border-white/5 py-10 text-sm text-gray-400">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 flex justify-between">
+          <span>© {new Date().getFullYear()} EarnSigma</span>
+          <div className="flex gap-6">
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+          </div>
+        </div>
       </footer>
     </div>
   );

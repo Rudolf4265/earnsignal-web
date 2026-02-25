@@ -1,5 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { MarketingShell } from "./_components/marketing-shell";
+import { BRAND_NAME } from "@/src/lib/brand";
 import { appBaseUrl } from "@/src/lib/urls";
 
 const features = [
@@ -15,7 +17,15 @@ const steps = ["Upload export", "Normalize + model", "View diagnostic"];
 export default function MarketingHomePage() {
   return (
     <MarketingShell>
-      <section className="py-18 sm:py-24">
+      <section className="py-18 overflow-visible sm:py-24">
+        <Image
+          src="/brand/earnsigma-hero-lockup.png"
+          alt={BRAND_NAME}
+          priority
+          width={677}
+          height={135}
+          className="mb-8 h-auto w-full max-w-[300px] sm:max-w-[460px]"
+        />
         <p className="mb-6 inline-flex rounded-full border border-zinc-800 bg-zinc-900 px-4 py-1.5 text-xs font-medium tracking-wider text-zinc-300 uppercase">
           Quiet intelligence for creator teams
         </p>
@@ -23,7 +33,7 @@ export default function MarketingHomePage() {
           Revenue doesn&apos;t plateau randomly.
         </h1>
         <p className="mt-6 max-w-3xl text-lg leading-relaxed text-zinc-300">
-          EarnSignal reveals the structure behind creator revenue—stability, churn velocity, tier migration, and platform risk.
+          {BRAND_NAME} reveals the structure behind creator revenue—stability, churn velocity, tier migration, and platform risk.
         </p>
         <div className="mt-10 flex flex-wrap gap-4">
           <a

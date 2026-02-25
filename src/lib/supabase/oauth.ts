@@ -1,26 +1,29 @@
+"use client";
+
 import { createClient } from "./client";
 
-export async function signInWithGoogle(redirectTo?: string): Promise<void> {
-  let supabase;
-
+export async function signInWithGoogle(opts?: { redirectTo?: string }) {
   try {
-    supabase = await createClient();
-  } catch {
-    throw new Error(
-      "Supabase client not available. Install @supabase/supabase-js and set NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY.",
-    );
-  }
+    const supabase = createClient();
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const finalRedirectTo = redirectTo ?? `${origin}/auth/callback`;
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: finalRedirectTo,
-    },
-  });
+    const redirectTo =
+      opts?.redirectTo ?? `${window.location.origin}/auth/callback`;
 
-  if (error) {
-    throw error;
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (err) {
+    // IMPORTANT: do not mask the real error (env missing, module load, config, etc.)
+    console.error("signInWithGoogle failed:", err);
+    throw err;
   }
 }

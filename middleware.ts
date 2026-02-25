@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const APP_ALLOWED_PREFIXES = ["/login", "/signup", "/forgot-password", "/auth/callback", "/app"];
+const APP_ALLOWED_PREFIXES = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/auth/callback",
+  "/app",
+  "/debug",
+];
 const STATIC_PATH_PREFIXES = ["/_next/", "/brand/", "/fonts/"];
 const STATIC_PATHS = new Set([
   "/favicon.ico",
@@ -122,5 +129,6 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
+  // Keep all /api routes out of host-routing redirects.
   matcher: ["/((?!api|_next/|favicon.ico|.*\\..*).*)"],
 };

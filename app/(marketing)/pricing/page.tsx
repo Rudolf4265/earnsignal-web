@@ -42,7 +42,7 @@ export default function PricingPage() {
         </div>
 
         <p className="mt-10 text-xs text-zinc-500">
-          Stripe placeholders: success URL {stripeSuccessUrl} and cancel URL {stripeCancelUrl}
+          Checkout return URLs are configured for this environment: success {stripeSuccessUrl} and cancel {stripeCancelUrl}
         </p>
       </section>
     </MarketingShell>

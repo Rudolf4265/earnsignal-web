@@ -16,11 +16,12 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-7">
         <Link href="/" className="inline-flex items-center" aria-label={BRAND_NAME}>
           <Image
-            src="/brand/earnsigma-hero-lockup.png"
+            src="/brand/earnsigma-lockup.svg"
             alt={BRAND_NAME}
-            width={677}
-            height={135}
-            className="h-7 w-auto sm:h-8"
+            width={140}
+            height={40}
+            priority
+            className="h-8 w-auto"
           />
         </Link>
         <div className="flex items-center gap-4 text-sm">

@@ -5,7 +5,7 @@ function getRequiredPublicEnv(name: "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SU
 
   if (!value) {
     throw new Error(
-      `Missing ${name}. Set this environment variable in Vercel project settings to enable authentication.`,
+      `Missing ${name}. Set this NEXT_PUBLIC_ variable in Vercel project settings and redeploy, because NEXT_PUBLIC_* values are inlined at build time.`,
     );
   }
 

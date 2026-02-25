@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getSession, onAuthStateChange } from "@/src/lib/supabase/session";
 
 const navLinks = [
@@ -18,12 +18,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [hasSession, setHasSession] = useState(false);
+  const hasSessionRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
     let unsubscribe: (() => void) | null = null;
 
-    const loadSession = async () => {
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const bootSession = async () => {
+      unsubscribe = await onAuthStateChange((_event, session) => {
+        if (!isMounted) {
+          return;
+        }
+
+        const sessionExists = Boolean(session);
+        hasSessionRef.current = sessionExists;
+        setHasSession(sessionExists);
+
+        if (!sessionExists) {
+          router.replace("/login");
+        }
+      });
+
+      await Promise.resolve();
+
       const { data } = await getSession();
 
       if (!isMounted) {
@@ -31,27 +50,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       }
 
       const sessionExists = Boolean(data.session);
+      hasSessionRef.current = sessionExists;
       setHasSession(sessionExists);
       setIsLoadingSession(false);
 
       if (!sessionExists) {
-        router.replace("/login");
+        await wait(50);
+
+        if (isMounted && !hasSessionRef.current) {
+          router.replace("/login");
+        }
       }
     };
 
-    const registerAuthStateListener = async () => {
-      unsubscribe = await onAuthStateChange((_event, session) => {
-        const sessionExists = Boolean(session);
-        setHasSession(sessionExists);
-
-        if (!sessionExists) {
-          router.replace("/login");
-        }
-      });
-    };
-
-    void loadSession();
-    void registerAuthStateListener();
+    void bootSession();
 
     return () => {
       isMounted = false;

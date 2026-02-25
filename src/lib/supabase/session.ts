@@ -1,3 +1,4 @@
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { createClient } from "./client";
 
 export async function getSession() {
@@ -6,7 +7,7 @@ export async function getSession() {
 }
 
 export async function onAuthStateChange(
-  handler: (event: any, session: any | null) => void,
+  handler: (event: AuthChangeEvent, session: Session | null) => void,
 ) {
   const supabase = await createClient();
   const {

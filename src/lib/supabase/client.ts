@@ -1,22 +1,22 @@
-let _client: any | null = null;
+import { createClient as createSupabaseClient, type SupabaseClient } from "@supabase/supabase-js";
 
-function getRequiredPublicEnv(name: "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY") {
+let _client: SupabaseClient | null = null;
+
+function getRequiredPublicEnv(
+  name: "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+) {
   const value = process.env[name];
 
   if (!value) {
     throw new Error(
-      `Missing ${name}. Set this NEXT_PUBLIC_ variable in Vercel project settings and redeploy, because NEXT_PUBLIC_* values are inlined at build time.`,
+      `Missing ${name}. Set this NEXT_PUBLIC_ variable in Vercel project settings and redeploy, because NEXT_PUBLIC_* values are inlined at build time.`
     );
   }
 
   return value;
 }
 
-const dynamicImporter = new Function("specifier", "return import(specifier)") as (
-  specifier: string,
-) => Promise<any>;
-
-export async function createClient() {
+export function createClient(): SupabaseClient {
   if (_client) {
     return _client;
   }
@@ -25,9 +25,6 @@ export async function createClient() {
   const supabaseAnonKey = getRequiredPublicEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
   try {
-    const supabaseModule = await dynamicImporter("@supabase/supabase-js");
-    const createSupabaseClient = supabaseModule.createClient;
-
     _client = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
@@ -37,9 +34,8 @@ export async function createClient() {
     });
 
     return _client;
-  } catch {
-    throw new Error(
-      "Supabase client not available. Install @supabase/supabase-js and set NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY.",
-    );
+  } catch (err) {
+    console.error("Supabase initialization failed:", err);
+    throw err;
   }
 }

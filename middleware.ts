@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const MARKETING_PATHS = new Set(["/", "/pricing", "/example", "/privacy", "/terms"]);
 const APP_ALLOWED_PREFIXES = ["/login", "/signup", "/app"];
 const STATIC_PATH_PREFIXES = ["/_next/", "/brand/", "/fonts/"];
 const STATIC_PATHS = new Set([
@@ -49,9 +48,6 @@ function isStaticPath(pathname: string): boolean {
   );
 }
 
-function isMarketingPath(pathname: string): boolean {
-  return MARKETING_PATHS.has(pathname);
-}
 
 function isAppPath(pathname: string): boolean {
   return APP_ALLOWED_PREFIXES.some(
@@ -116,12 +112,6 @@ export function middleware(request: NextRequest): NextResponse {
   if (isMarketingHost) {
     if (isAppPath(pathname)) {
       return redirectToHost(request, APP_HOST);
-    }
-
-    // Optional: if you only want a fixed marketing surface, force canonical paths.
-    // If not desired, remove this block and allow Next to 404 naturally.
-    if (!isMarketingPath(pathname)) {
-      return redirectToHostRoot(request, MARKETING_HOST);
     }
 
     return NextResponse.next();

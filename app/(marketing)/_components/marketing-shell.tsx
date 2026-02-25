@@ -16,9 +16,12 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             <Link href="/pricing" className="text-gray-300 transition hover:text-white">
               Pricing
             </Link>
-            <Link href="/login" className="text-gray-300 transition hover:text-white">
+            <a
+              href={`${appBaseUrl}/login`}
+              className="text-gray-300 transition hover:text-white"
+            >
               Sign in
-            </Link>
+            </a>
             <a
               href={`${appBaseUrl}/signup`}
               className="inline-flex items-center justify-center rounded-xl bg-brand-blue px-5 py-2.5 font-medium text-white transition hover:opacity-90"

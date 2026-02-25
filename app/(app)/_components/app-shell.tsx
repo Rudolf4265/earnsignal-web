@@ -7,8 +7,9 @@ import { BRAND_NAME } from "@/src/lib/brand";
 
 const navLinks = [
   { href: "/app", label: "Dashboard" },
-  { href: "/app/upload", label: "Start report" },
-  { href: "/app/report/demo", label: "Sample report" },
+  { href: "/app/upload", label: "Data" },
+  { href: "/app/report", label: "Reports" },
+  { href: "/app/settings", label: "Settings" },
 ];
 
 export function AppShell({

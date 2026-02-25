@@ -132,5 +132,12 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/|favicon.ico|.*\\..*).*)"],
+  matcher: [
+    // Run middleware on everything EXCEPT:
+    // - /_next (Next internals)
+    // - /brand (your public brand assets)
+    // - /fonts
+    // - common static files
+    "/((?!_next/|brand/|fonts/|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|webp|gif|ico|css|js|map|txt)$).*)",
+  ],
 };

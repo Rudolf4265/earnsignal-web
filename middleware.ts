@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const MARKETING_PATHS = new Set(["/", "/pricing", "/example", "/privacy", "/terms"]);
-const APP_ALLOWED_PREFIXES = ["/login", "/signup", "/app"];
+const APP_ALLOWED_PREFIXES = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/auth/callback",
+  "/app",
+  "/debug",
+];
 const STATIC_PATH_PREFIXES = ["/_next/", "/brand/", "/fonts/"];
 const STATIC_PATHS = new Set([
   "/favicon.ico",
@@ -49,9 +55,6 @@ function isStaticPath(pathname: string): boolean {
   );
 }
 
-function isMarketingPath(pathname: string): boolean {
-  return MARKETING_PATHS.has(pathname);
-}
 
 function isAppPath(pathname: string): boolean {
   return APP_ALLOWED_PREFIXES.some(
@@ -104,7 +107,7 @@ export function middleware(request: NextRequest): NextResponse {
     return redirectToHost(request, MARKETING_HOST);
   }
 
-  // App host: allow only app/login/signup. Otherwise send to marketing root.
+  // App host: allow auth utility routes and /app. Otherwise send to marketing root.
   if (isAppHost) {
     if (!isAppPath(pathname)) {
       return redirectToHostRoot(request, MARKETING_HOST);
@@ -118,12 +121,6 @@ export function middleware(request: NextRequest): NextResponse {
       return redirectToHost(request, APP_HOST);
     }
 
-    // Optional: if you only want a fixed marketing surface, force canonical paths.
-    // If not desired, remove this block and allow Next to 404 naturally.
-    if (!isMarketingPath(pathname)) {
-      return redirectToHostRoot(request, MARKETING_HOST);
-    }
-
     return NextResponse.next();
   }
 
@@ -132,5 +129,6 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
+  // Keep all /api routes out of host-routing redirects.
   matcher: ["/((?!api|_next/|favicon.ico|.*\\..*).*)"],
 };

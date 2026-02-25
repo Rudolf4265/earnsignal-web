@@ -41,11 +41,18 @@ For local two-host testing, map hosts in `/etc/hosts`:
 
 Configure Supabase Auth with:
 
-- **Site URL**: `https://app.earnsignalstudio.com`
+- **Site URL**: `https://app.earnsigma.com`
 - **Redirect URLs**:
-  - `https://app.earnsignalstudio.com/**`
-  - `https://earnsignalstudio.com/**`
-  - `http://localhost:3000/**`
+  - `https://app.earnsigma.com/auth/callback`
+  - `http://localhost:3000/auth/callback`
+
+### Enable Google OAuth in Supabase
+
+1. Go to **Supabase Dashboard → Authentication → Providers → Google**.
+2. Toggle **Enable sign in with Google** on.
+3. Enter your Google OAuth Client ID and Client Secret.
+4. Confirm the callback URL configured in Google Cloud matches Supabase provider instructions.
+5. Verify the Supabase Auth **Site URL** and **Redirect URLs** above are saved.
 
 ## Stripe URL notes
 

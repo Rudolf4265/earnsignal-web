@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "../_components/auth-shell";
+import { createClient } from "@/src/lib/supabase/client";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const passwordsMismatch = useMemo(
     () => confirmPassword.length > 0 && password !== confirmPassword,
@@ -28,12 +30,40 @@ export default function SignupPage() {
     }
 
     setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
-      router.push("/app");
-    } catch {
-      setError("Unable to create your account right now. Please try again.");
+      const supabase = await createClient();
+      const emailRedirectTo = `${window.location.origin}/auth/callback`;
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo,
+        },
+      });
+
+      if (signUpError) {
+        setError(signUpError.message || "Unable to create your account right now. Please try again.");
+        return;
+      }
+
+      if (data.session) {
+        router.push("/app");
+        return;
+      }
+
+      if (data.user) {
+        setSuccess("Check your email to confirm your account.");
+      }
+    } catch (clientError) {
+      setError(
+        clientError instanceof Error
+          ? clientError.message
+          : "Unable to create your account right now. Please try again.",
+      );
+    } finally {
       setLoading(false);
     }
   };
@@ -47,6 +77,16 @@ export default function SignupPage() {
         {error && (
           <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+            {success}{" "}
+            <Link href="/login" className="underline hover:no-underline">
+              Return to log in
+            </Link>
+            .
           </div>
         )}
 

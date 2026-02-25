@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "../_components/auth-shell";
+import { createClient } from "@/src/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,9 +20,25 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      const supabase = await createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError(signInError.message || "Unable to log you in right now. Please try again.");
+        return;
+      }
+
       router.push("/app");
-    } catch {
-      setError("Unable to log you in right now. Please try again.");
+    } catch (clientError) {
+      setError(
+        clientError instanceof Error
+          ? clientError.message
+          : "Unable to log you in right now. Please try again.",
+      );
+    } finally {
       setLoading(false);
     }
   };

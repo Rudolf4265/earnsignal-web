@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AuthShell from "../../_components/auth-shell";
-import { getSession } from "@/src/lib/supabase/session";
+import { getSession, onAuthStateChange } from "@/src/lib/supabase/session";
+
+const SESSION_RETRY_COUNT = 8;
+const SESSION_RETRY_DELAY_MS = 200;
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -12,18 +15,38 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     let isMounted = true;
+    let unsubscribe: (() => void) | null = null;
+
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const loadSession = async () => {
       try {
-        const { data } = await getSession();
+        unsubscribe = await onAuthStateChange((_event, session) => {
+          if (!isMounted || !session) {
+            return;
+          }
 
-        if (!isMounted) {
-          return;
+          router.replace("/app");
+        });
+
+        for (let attempt = 0; attempt < SESSION_RETRY_COUNT; attempt += 1) {
+          const { data } = await getSession();
+
+          if (!isMounted) {
+            return;
+          }
+
+          if (data.session) {
+            router.replace("/app");
+            return;
+          }
+
+          if (attempt < SESSION_RETRY_COUNT - 1) {
+            await delay(SESSION_RETRY_DELAY_MS);
+          }
         }
 
-        if (data.session) {
-          router.replace("/app");
-        } else {
+        if (isMounted) {
           setLoading(false);
         }
       } catch {
@@ -37,6 +60,7 @@ export default function AuthCallbackPage() {
 
     return () => {
       isMounted = false;
+      unsubscribe?.();
     };
   }, [router]);
 

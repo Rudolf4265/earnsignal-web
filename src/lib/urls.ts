@@ -1,5 +1,5 @@
-const DEFAULT_MARKETING_HOST = "earnsignalstudio.com";
-const DEFAULT_APP_HOST = "app.earnsignalstudio.com";
+const DEFAULT_MARKETING_HOST = "earnsigma.com";
+const DEFAULT_APP_HOST = "app.earnsigma.com";
 
 const marketingHost =
   process.env.NEXT_PUBLIC_MARKETING_HOST?.trim() || DEFAULT_MARKETING_HOST;

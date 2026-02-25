@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import { BRAND_NAME } from "@/src/lib/brand";
 import { appBaseUrl } from "@/src/lib/urls";
 
 const footerLinks = [
@@ -12,8 +14,14 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-7">
-        <Link href="/" className="text-sm font-semibold tracking-[0.14em] text-zinc-200 uppercase">
-          EarnSignal
+        <Link href="/" className="inline-flex items-center" aria-label={BRAND_NAME}>
+          <Image
+            src="/brand/earnsigma-hero-lockup.png"
+            alt={BRAND_NAME}
+            width={677}
+            height={135}
+            className="h-7 w-auto sm:h-8"
+          />
         </Link>
         <div className="flex items-center gap-4 text-sm">
           <Link href="/pricing" className="text-zinc-300 transition hover:text-white">

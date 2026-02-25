@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const MARKETING_PATHS = new Set(["/", "/pricing", "/example", "/privacy", "/terms"]);
 const APP_ALLOWED_PREFIXES = ["/login", "/signup", "/app"];
-const EXCLUDED_PREFIXES = ["/_next", "/images", "/fonts", "/brand/"];
-const EXCLUDED_PATHS = new Set([
+const STATIC_PATH_PREFIXES = ["/_next/", "/brand/", "/fonts/"];
+const STATIC_PATHS = new Set([
   "/favicon.ico",
   "/robots.txt",
   "/sitemap.xml",
@@ -11,7 +11,7 @@ const EXCLUDED_PATHS = new Set([
   "/apple-touch-icon.png",
   "/og.png",
 ]);
-const PATHNAME_WITH_EXTENSION_REGEX = /\.[a-zA-Z0-9]+$/;
+const STATIC_EXTENSION_REGEX = /\.(svg|png|ico|jpg|jpeg|webp|css|js|map|txt)$/i;
 
 // Canonical hosts (EarnSigma)
 const MARKETING_HOST = "www.earnsigma.com";
@@ -41,11 +41,11 @@ function isAllowedHost(host: string): boolean {
   );
 }
 
-function isExcludedPath(pathname: string): boolean {
+function isStaticPath(pathname: string): boolean {
   return (
-    EXCLUDED_PATHS.has(pathname) ||
-    EXCLUDED_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
-    PATHNAME_WITH_EXTENSION_REGEX.test(pathname)
+    STATIC_PATHS.has(pathname) ||
+    STATIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+    STATIC_EXTENSION_REGEX.test(pathname)
   );
 }
 
@@ -79,7 +79,7 @@ function redirectToHostRoot(request: NextRequest, host: string): NextResponse {
 export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
-  if (isExcludedPath(pathname)) {
+  if (isStaticPath(pathname)) {
     return NextResponse.next();
   }
 
@@ -132,5 +132,7 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/|favicon.ico|.*\\..*).*)"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|apple-touch-icon.png|og.png|brand/|fonts/|.*\\.(?:svg|png|ico|jpg|jpeg|webp|css|js|map|txt)$).*)",
+  ],
 };

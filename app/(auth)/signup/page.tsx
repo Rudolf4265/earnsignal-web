@@ -157,13 +157,18 @@ export default function SignupPage() {
 
       <p className="mt-4 text-xs text-gray-500">
         By continuing, you agree to our{" "}
-        <Link href="/terms" className="hover:underline">
+        <a href="https://earnsigma.com/terms" target="_blank" rel="noreferrer" className="hover:underline">
           Terms
-        </Link>{" "}
+        </a>{" "}
         and{" "}
-        <Link href="/privacy" className="hover:underline">
+        <a
+          href="https://earnsigma.com/privacy"
+          target="_blank"
+          rel="noreferrer"
+          className="hover:underline"
+        >
           Privacy Policy
-        </Link>
+        </a>
         .
       </p>
 

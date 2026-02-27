@@ -1,3 +1,5 @@
+import { ApiResponseError, fetchApiJson } from "./http.js";
+
 export type EntitlementFeatures = {
   app?: boolean;
   upload?: boolean;
@@ -19,7 +21,6 @@ export type CheckoutResponse = {
   checkout_url: string;
 };
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
 const ENTITLEMENTS_CACHE_KEY = "earnsignal.entitlements.v1";
 const ENTITLEMENTS_TTL_MS = 60_000;
 const CHECKOUT_ATTEMPT_KEY = "earnsignal.checkout.attempt.v1";
@@ -127,16 +128,10 @@ export async function fetchEntitlements(options?: { forceRefresh?: boolean }): P
 
   inFlightEntitlements = (async () => {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${apiBase}/v1/entitlements`, {
+    const body = await fetchApiJson<Record<string, unknown>>("/v1/entitlements", {
       method: "GET",
       headers,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch entitlements (${response.status})`);
-    }
-
-    const body = (await response.json()) as Record<string, unknown>;
+    }, "billing status");
     const value = normalizeEntitlements(body);
     const fetchedAt = Date.now();
 
@@ -227,20 +222,14 @@ export function clearCheckoutAttempt() {
 }
 
 async function requestCheckout(path: string, headers: Record<string, string>, plan: CheckoutPlan): Promise<CheckoutResponse> {
-  const response = await fetch(`${apiBase}${path}`, {
+  const body = await fetchApiJson<Record<string, unknown>>(path, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...headers,
     },
     body: JSON.stringify({ plan }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to create checkout session (${response.status})`);
-  }
-
-  const body = (await response.json()) as Record<string, unknown>;
+  }, "checkout session");
   const checkoutUrl = extractCheckoutUrl(body);
 
   if (!checkoutUrl) {
@@ -267,8 +256,7 @@ export async function createCheckoutSession(plan: CheckoutPlan): Promise<Checkou
     try {
       return await requestCheckout("/v1/billing/checkout", headers, plan);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Checkout session creation failed";
-      if (!message.includes("(404)") && !message.includes("(405)")) {
+      if (!(err instanceof ApiResponseError) || (err.status !== 404 && err.status !== 405)) {
         throw err;
       }
 

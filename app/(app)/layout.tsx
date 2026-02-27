@@ -7,8 +7,9 @@ import { useEffect, useRef, useState } from "react";
 import { getSession, onAuthStateChange } from "@/src/lib/supabase/session";
 import { decideAppGate } from "@/src/lib/billing/gating";
 import { EntitlementsProvider, useEntitlements } from "./_components/entitlements-provider";
+import { checkIsAdmin } from "@/src/lib/admin/access";
 
-const navLinks = [
+const baseNavLinks = [
   { href: "/app", label: "Dashboard" },
   { href: "/app/upload", label: "Data" },
   { href: "/app/report", label: "Reports" },
@@ -23,6 +24,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
 
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [hasSession, setHasSession] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const hasSessionRef = useRef(false);
 
   useEffect(() => {
@@ -59,6 +61,13 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
       setHasSession(sessionExists);
       setIsLoadingSession(false);
 
+      if (sessionExists) {
+        const allowed = await checkIsAdmin();
+        if (isMounted) {
+          setIsAdmin(allowed);
+        }
+      }
+
       if (!sessionExists) {
         await wait(50);
 
@@ -82,9 +91,15 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
     isLoadingEntitlements,
     isEntitled: Boolean(entitlements?.entitled),
     pathname,
+    isAdmin,
   });
 
   useEffect(() => {
+    if (pathname.startsWith("/app/admin") && !isAdmin) {
+      router.replace("/app");
+      return;
+    }
+
     if (gateDecision === "redirect_login") {
       router.replace("/login");
       return;
@@ -93,7 +108,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
     if (gateDecision === "redirect_billing") {
       router.replace("/app/billing");
     }
-  }, [gateDecision, router]);
+  }, [gateDecision, isAdmin, pathname, router]);
 
   if (gateDecision !== "allow") {
     return (
@@ -108,6 +123,8 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  const navLinks = isAdmin ? [...baseNavLinks, { href: "/app/admin", label: "Admin" }] : baseNavLinks;
 
   return (
     <div className="min-h-screen bg-navy-950 flex text-white">

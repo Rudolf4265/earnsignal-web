@@ -50,23 +50,80 @@ export type GenerateReportResponse = {
   warnings?: string[];
 };
 
+export type UploadStatusResponse = {
+  upload_id?: string;
+  uploadId?: string;
+  status?: string;
+  reason_code?: string;
+  reasonCode?: string;
+  message?: string;
+  report_id?: string;
+  reportId?: string;
+  updated_at?: string;
+  updatedAt?: string;
+};
+
+export class ApiError extends Error {
+  status: number;
+  code: string | null;
+
+  constructor(message: string, status: number, code?: string | null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code ?? null;
+  }
+}
+
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
 
 async function apiFetch<T>(path: string, init: RequestInit): Promise<T> {
+  const authHeaders = await getAuthHeaders();
+
   const response = await fetch(`${apiBase}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders,
       ...(init.headers ?? {}),
     },
   });
 
   if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || `Request failed with status ${response.status}`);
+    const bodyText = await response.text();
+    let message = bodyText || `Request failed with status ${response.status}`;
+    let code: string | null = null;
+
+    try {
+      const body = JSON.parse(bodyText) as { detail?: string; message?: string; code?: string; reason_code?: string };
+      message = body.message ?? body.detail ?? message;
+      code = body.code ?? body.reason_code ?? null;
+    } catch {
+      // keep plain-text message fallback
+    }
+
+    throw new ApiError(message, response.status, code);
   }
 
   return (await response.json()) as T;
+}
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const { createClient } = await import("../supabase/client");
+    const {
+      data: { session },
+    } = await createClient().auth.getSession();
+    const accessToken = session?.access_token;
+
+    return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+  } catch {
+    return {};
+  }
 }
 
 export async function createUploadPresign(payload: PresignRequest): Promise<PresignResponse> {
@@ -127,4 +184,16 @@ export async function generateReport(payload: GenerateReportRequest): Promise<Ge
     report_id: (data.report_id as string) ?? (data.reportId as string),
     warnings: (data.warnings as string[]) ?? undefined,
   };
+}
+
+export async function getUploadStatus(uploadId: string): Promise<UploadStatusResponse> {
+  return apiFetch<UploadStatusResponse>(`/v1/uploads/${encodeURIComponent(uploadId)}/status`, {
+    method: "GET",
+  });
+}
+
+export async function getLatestUploadStatus(): Promise<UploadStatusResponse> {
+  return apiFetch<UploadStatusResponse>("/v1/uploads/latest/status", {
+    method: "GET",
+  });
 }

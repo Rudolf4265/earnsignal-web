@@ -22,9 +22,12 @@ export type CheckoutResponse = {
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
 const ENTITLEMENTS_CACHE_KEY = "earnsignal.entitlements.v1";
 const ENTITLEMENTS_TTL_MS = 60_000;
+const CHECKOUT_ATTEMPT_KEY = "earnsignal.checkout.attempt.v1";
+const CHECKOUT_ATTEMPT_TTL_MS = 20_000;
 
 let memoryCache: { value: EntitlementsResponse; fetchedAt: number } | null = null;
 let inFlightEntitlements: Promise<EntitlementsResponse> | null = null;
+let inFlightCheckout: Promise<CheckoutResponse> | null = null;
 
 export function resetEntitlementsCache() {
   memoryCache = null;
@@ -162,39 +165,125 @@ function extractCheckoutUrl(payload: Record<string, unknown>): string | null {
   return checkoutUrl;
 }
 
-export async function createCheckoutSession(plan: CheckoutPlan): Promise<CheckoutResponse> {
-  const headers = await getAuthHeaders();
-  const endpoints = ["/v1/billing/checkout", "/v1/checkout", "/v1/stripe/checkout"];
-
-  for (const endpoint of endpoints) {
-    const response = await fetch(`${apiBase}${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...headers,
-      },
-      body: JSON.stringify({ plan }),
-    });
-
-    if (response.status === 404) {
-      continue;
+function validateCheckoutUrl(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "https:") {
+      throw new Error("Checkout URL must use HTTPS");
     }
 
-    if (!response.ok) {
-      throw new Error(`Failed to create checkout session (${response.status})`);
-    }
-
-    const body = (await response.json()) as Record<string, unknown>;
-    const checkoutUrl = extractCheckoutUrl(body);
-
-    if (!checkoutUrl) {
-      throw new Error("Checkout URL missing from response");
-    }
-
-    return { checkout_url: checkoutUrl };
+    return parsed.toString();
+  } catch {
+    throw new Error("Invalid checkout URL returned by billing API");
   }
-
-  throw new Error("No checkout endpoint available");
 }
 
-export { extractCheckoutUrl };
+function hasRecentCheckoutAttempt(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const raw = window.sessionStorage.getItem(CHECKOUT_ATTEMPT_KEY);
+  if (!raw) {
+    return false;
+  }
+
+  const parsedTs = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsedTs)) {
+    window.sessionStorage.removeItem(CHECKOUT_ATTEMPT_KEY);
+    return false;
+  }
+
+  if (Date.now() - parsedTs >= CHECKOUT_ATTEMPT_TTL_MS) {
+    window.sessionStorage.removeItem(CHECKOUT_ATTEMPT_KEY);
+    return false;
+  }
+
+  return true;
+}
+
+function setCheckoutAttemptMarker() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.setItem(CHECKOUT_ATTEMPT_KEY, String(Date.now()));
+}
+
+function clearCheckoutAttemptMarker() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.removeItem(CHECKOUT_ATTEMPT_KEY);
+}
+
+export function checkoutAttemptInProgress(): boolean {
+  return hasRecentCheckoutAttempt();
+}
+
+export function clearCheckoutAttempt() {
+  clearCheckoutAttemptMarker();
+}
+
+async function requestCheckout(path: string, headers: Record<string, string>, plan: CheckoutPlan): Promise<CheckoutResponse> {
+  const response = await fetch(`${apiBase}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...headers,
+    },
+    body: JSON.stringify({ plan }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to create checkout session (${response.status})`);
+  }
+
+  const body = (await response.json()) as Record<string, unknown>;
+  const checkoutUrl = extractCheckoutUrl(body);
+
+  if (!checkoutUrl) {
+    throw new Error("Checkout URL missing from response");
+  }
+
+  return { checkout_url: validateCheckoutUrl(checkoutUrl) };
+}
+
+export async function createCheckoutSession(plan: CheckoutPlan): Promise<CheckoutResponse> {
+  if (inFlightCheckout) {
+    return inFlightCheckout;
+  }
+
+  if (hasRecentCheckoutAttempt()) {
+    throw new Error("Checkout is already starting. Please wait a moment.");
+  }
+
+  setCheckoutAttemptMarker();
+
+  inFlightCheckout = (async () => {
+    const headers = await getAuthHeaders();
+
+    try {
+      return await requestCheckout("/v1/billing/checkout", headers, plan);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Checkout session creation failed";
+      if (!message.includes("(404)") && !message.includes("(405)")) {
+        throw err;
+      }
+
+      return requestCheckout("/v1/checkout", headers, plan);
+    }
+  })();
+
+  try {
+    return await inFlightCheckout;
+  } catch (err) {
+    clearCheckoutAttemptMarker();
+    throw err;
+  } finally {
+    inFlightCheckout = null;
+  }
+}
+
+export { extractCheckoutUrl, validateCheckoutUrl };

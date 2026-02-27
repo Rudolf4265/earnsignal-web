@@ -1,4 +1,4 @@
-import { isTerminalUploadStatus, type UploadStatusView } from "./status.ts";
+import { isTerminalUploadStatus, type UploadStatusView } from "./status";
 
 export type UploadPollConfig = {
   initialIntervalMs?: number;

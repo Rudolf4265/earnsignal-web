@@ -2,8 +2,17 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 
-const pollingModuleUrl = pathToFileURL(path.resolve("src/lib/upload/polling.ts")).href;
+const sourcePath = path.resolve("src/lib/upload/polling.ts");
+const tempDir = path.resolve(".tmp-tests");
+const tempPath = path.join(tempDir, `polling-${Date.now()}.ts`);
+
+await mkdir(tempDir, { recursive: true });
+const rewritten = (await readFile(sourcePath, "utf8")).replace('from "./status"', 'from "../src/lib/upload/status.ts"');
+await writeFile(tempPath, rewritten, "utf8");
+
+const pollingModuleUrl = pathToFileURL(tempPath).href;
 
 const { pollUploadStatus, nextUploadPollInterval, UploadPollingCancelledError } = await import(`${pollingModuleUrl}?t=${Date.now()}`);
 

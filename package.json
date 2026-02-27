@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/**/*.test.mjs"
+    "test": "node --experimental-specifier-resolution=node --test tests/**/*.test.mjs && rm -rf .tmp-tests"
   },
   "dependencies": {
     "next": "16.1.6",

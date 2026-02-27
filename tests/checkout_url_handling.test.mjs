@@ -1,36 +1,55 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
-function createSessionStorage() {
+function createWindow(hostname = "app.earnsigma.com") {
   const store = new Map();
   return {
-    getItem: (key) => (store.has(key) ? store.get(key) : null),
-    setItem: (key, value) => store.set(key, String(value)),
-    removeItem: (key) => store.delete(key),
+    location: { hostname, protocol: hostname.includes("localhost") ? "http:" : "https:" },
+    sessionStorage: {
+      getItem: (key) => (store.has(key) ? store.get(key) : null),
+      setItem: (key, value) => store.set(key, String(value)),
+      removeItem: (key) => store.delete(key),
+    },
   };
 }
 
-const moduleUrl = pathToFileURL(path.resolve("src/lib/api/entitlements.ts")).href;
+function jsonResponse(payload, status = 200) {
+  return {
+    status,
+    ok: status >= 200 && status < 300,
+    headers: { get: () => "application/json" },
+    text: async () => JSON.stringify(payload),
+  };
+}
+
+async function buildEntitlementsTestModule(tag) {
+  const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
+  const patched = source.replace('from "./http";', 'from "../src/lib/api/http.ts";');
+  const outDir = path.resolve(".tmp-tests");
+  await mkdir(outDir, { recursive: true });
+  const outFile = path.join(outDir, `entitlements-${tag}.ts`);
+  await writeFile(outFile, patched, "utf8");
+  return pathToFileURL(outFile).href;
+}
 
 test("createCheckoutSession uses only primary endpoint when primary succeeds", async () => {
   const calls = [];
-  global.window = { sessionStorage: createSessionStorage() };
+  global.window = createWindow();
   global.fetch = async (url) => {
     calls.push(String(url));
-    return {
-      status: 200,
-      ok: true,
-      json: async () => ({ checkout_url: "https://checkout.stripe.test/session_123" }),
-    };
+    return jsonResponse({ checkout_url: "https://checkout.stripe.test/session_123" });
   };
 
-  const { createCheckoutSession, clearCheckoutAttempt } = await import(`${moduleUrl}?t=${Date.now()}`);
+  const moduleUrl = await buildEntitlementsTestModule(`primary-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
   const response = await createCheckoutSession("plan_a");
 
   assert.equal(response.checkout_url, "https://checkout.stripe.test/session_123");
-  assert.deepEqual(calls, ["/v1/billing/checkout"]);
+  assert.equal(calls.length, 1);
+  assert.match(calls[0], /^https:\/\/api\.earnsigma\.com\/v1\/billing\/checkout$/);
 
   clearCheckoutAttempt();
   delete global.fetch;
@@ -39,21 +58,18 @@ test("createCheckoutSession uses only primary endpoint when primary succeeds", a
 
 test("createCheckoutSession calls fallback only on 404", async () => {
   const calls = [];
-  global.window = { sessionStorage: createSessionStorage() };
+  global.window = createWindow();
   global.fetch = async (url) => {
     calls.push(String(url));
     if (String(url).endsWith("/v1/billing/checkout")) {
-      return { status: 404, ok: false, json: async () => ({}) };
+      return jsonResponse({}, 404);
     }
 
-    return {
-      status: 200,
-      ok: true,
-      json: async () => ({ url: "https://checkout.stripe.test/session_456" }),
-    };
+    return jsonResponse({ url: "https://checkout.stripe.test/session_456" });
   };
 
-  const { createCheckoutSession, clearCheckoutAttempt } = await import(`${moduleUrl}?t=${Date.now() + 1}`);
+  const moduleUrl = await buildEntitlementsTestModule(`fallback-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
   const response = await createCheckoutSession("plan_a");
 
   assert.equal(response.checkout_url, "https://checkout.stripe.test/session_456");
@@ -68,13 +84,14 @@ test("createCheckoutSession calls fallback only on 404", async () => {
 
 test("createCheckoutSession does not call fallback on 500", async () => {
   const calls = [];
-  global.window = { sessionStorage: createSessionStorage() };
+  global.window = createWindow();
   global.fetch = async (url) => {
     calls.push(String(url));
-    return { status: 500, ok: false, json: async () => ({}) };
+    return jsonResponse({}, 500);
   };
 
-  const { createCheckoutSession, clearCheckoutAttempt } = await import(`${moduleUrl}?t=${Date.now() + 2}`);
+  const moduleUrl = await buildEntitlementsTestModule(`error-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
 
   await assert.rejects(createCheckoutSession("plan_a"), /500/);
   assert.equal(calls.length, 1);
@@ -91,18 +108,15 @@ test("createCheckoutSession in-flight lock dedupes repeated calls", async () => 
     resolveFetch = resolve;
   });
 
-  global.window = { sessionStorage: createSessionStorage() };
+  global.window = createWindow();
   global.fetch = async (url) => {
     calls.push(String(url));
     await blocked;
-    return {
-      status: 200,
-      ok: true,
-      json: async () => ({ checkoutUrl: "https://checkout.stripe.test/session_789" }),
-    };
+    return jsonResponse({ checkoutUrl: "https://checkout.stripe.test/session_789" });
   };
 
-  const { createCheckoutSession, clearCheckoutAttempt } = await import(`${moduleUrl}?t=${Date.now() + 3}`);
+  const moduleUrl = await buildEntitlementsTestModule(`lock-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
 
   const first = createCheckoutSession("plan_a");
   const second = createCheckoutSession("plan_a");

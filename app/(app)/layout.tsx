@@ -142,7 +142,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-navy-950 text-white md:flex">
       <aside className="border-b border-white/5 bg-navy-900 px-4 py-4 md:min-h-screen md:w-64 md:border-b-0 md:border-r md:px-6 md:py-6">
-        <Link href="/" className="mb-6 flex items-center gap-2 md:mb-10">
+        <Link href="/app" className="mb-6 flex items-center gap-2 md:mb-10">
           <Image src="/brand/earnsigma-mark.svg" alt="EarnSigma" width={28} height={28} />
           <span className="font-semibold">EarnSigma</span>
         </Link>

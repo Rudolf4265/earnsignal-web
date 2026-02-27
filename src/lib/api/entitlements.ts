@@ -1,4 +1,4 @@
-import { ApiResponseError, fetchApiJson } from "./http.js";
+import { ApiResponseError, fetchApiJson } from "./http";
 
 export type EntitlementFeatures = {
   app?: boolean;

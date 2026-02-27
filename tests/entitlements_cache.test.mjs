@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 function createWindow(hostname = "app.earnsigma.com") {
@@ -24,7 +25,15 @@ function jsonResponse(payload, status = 200) {
   };
 }
 
-const moduleUrl = pathToFileURL(path.resolve("src/lib/api/entitlements.ts")).href;
+async function buildEntitlementsTestModule(tag) {
+  const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
+  const patched = source.replace('from "./http";', 'from "../src/lib/api/http.ts";');
+  const outDir = path.resolve(".tmp-tests");
+  await mkdir(outDir, { recursive: true });
+  const outFile = path.join(outDir, `entitlements-${tag}.ts`);
+  await writeFile(outFile, patched, "utf8");
+  return pathToFileURL(outFile).href;
+}
 
 test("fetchEntitlements caches response in memory and sessionStorage", async () => {
   let fetchCalls = 0;
@@ -35,7 +44,8 @@ test("fetchEntitlements caches response in memory and sessionStorage", async () 
     return jsonResponse({ plan: "plan_a", status: "active", entitled: true, features: { app: true, upload: true } });
   };
 
-  const { fetchEntitlements, resetEntitlementsCache } = await import(`${moduleUrl}?t=${Date.now()}`);
+  const moduleUrl = await buildEntitlementsTestModule(`cache-${Date.now()}`);
+  const { fetchEntitlements, resetEntitlementsCache } = await import(moduleUrl);
 
   const first = await fetchEntitlements();
   const second = await fetchEntitlements();
@@ -58,7 +68,8 @@ test("fetchEntitlements force refresh bypasses cache", async () => {
     return jsonResponse({ plan: "plan_b", status: "active", entitled: true, features: { app: true } });
   };
 
-  const { fetchEntitlements, resetEntitlementsCache } = await import(`${moduleUrl}?t=${Date.now() + 1}`);
+  const moduleUrl = await buildEntitlementsTestModule(`force-${Date.now()}`);
+  const { fetchEntitlements, resetEntitlementsCache } = await import(moduleUrl);
 
   await fetchEntitlements();
   await fetchEntitlements({ forceRefresh: true });

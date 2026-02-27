@@ -79,7 +79,7 @@ function redirectToHostRoot(request: NextRequest, host: string): NextResponse {
   return NextResponse.redirect(url, 308);
 }
 
-export function middleware(request: NextRequest): NextResponse {
+export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
   if (isStaticPath(pathname)) {

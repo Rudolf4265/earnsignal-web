@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-const moduleUrl = pathToFileURL(path.resolve("src/lib/api/http.js")).href;
+const moduleUrl = pathToFileURL(path.resolve("src/lib/api/http.ts")).href;
 
 function mockResponse({ status = 200, contentType = "application/json", body = "" }) {
   return {

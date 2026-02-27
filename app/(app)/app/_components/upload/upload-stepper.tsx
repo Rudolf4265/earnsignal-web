@@ -18,6 +18,7 @@ import InlineAlert from "./InlineAlert";
 import StepHeader from "./StepHeader";
 import Stepper from "./Stepper";
 import UploadCard from "./UploadCard";
+import { ErrorBanner } from "@/src/components/ui/error-banner";
 
 type Step = "platform" | "file" | "uploading" | "processing" | "done";
 
@@ -98,6 +99,7 @@ export default function UploadStepper() {
   const [processingStatus, setProcessingStatus] = useState<UploadUiStatus | null>(null);
 
   const activeStepIndex = stepOrder.indexOf(step);
+  const progressPct = Math.round(((activeStepIndex + 1) / stepOrder.length) * 100);
   const steps = useMemo(
     () => [
       { id: "platform", label: "Platform" },
@@ -428,23 +430,13 @@ export default function UploadStepper() {
       <Stepper steps={steps} activeIndex={activeStepIndex} />
 
       {error ? (
-        <InlineAlert variant="error" title={error}>
-          <div className="space-y-2">
-            {reasonCode ? <p className="text-xs text-red-100/80">Reason code: {reasonCode}</p> : null}
-            {reasonCode === "session_expired" ? (
-              <Link href="/login" className="inline-flex rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/15">
-                Log in again
-              </Link>
-            ) : null}
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/15"
-                onClick={retryProcessing}
-                disabled={!uploadId || busy}
-              >
-                Try again
-              </button>
+        <ErrorBanner
+          title="Upload needs attention"
+          message={error}
+          retryLabel="Retry status"
+          onRetry={uploadId && !busy ? () => void retryProcessing() : undefined}
+          action={
+            <>
               <button
                 type="button"
                 className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-100 hover:bg-white/5"
@@ -460,10 +452,29 @@ export default function UploadStepper() {
               >
                 Copy diagnostics
               </button>
-            </div>
+            </>
+          }
+        >
+          <div className="space-y-2">
+            {reasonCode ? <p className="text-xs text-red-100/80">Reason code: {reasonCode}</p> : null}
+            {reasonCode === "session_expired" ? (
+              <Link href="/login" className="inline-flex rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/15">
+                Log in again
+              </Link>
+            ) : null}
           </div>
-        </InlineAlert>
+        </ErrorBanner>
       ) : null}
+
+      <div className="space-y-2 rounded-xl border border-white/10 bg-navy-950/80 p-3">
+        <div className="flex items-center justify-between text-xs text-gray-300">
+          <span>Step {activeStepIndex + 1} of {stepOrder.length}</span>
+          <span>{progressPct}%</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="h-full rounded-full bg-gradient-to-r from-brand-blue to-emerald-400 transition-all" style={{ width: `${progressPct}%` }} />
+        </div>
+      </div>
 
       {warnings.length > 0 ? (
         <InlineAlert variant="warn" title="Limited data quality detected">
@@ -584,7 +595,7 @@ export default function UploadStepper() {
                 ? "We’re sending your file securely."
                 : processingStatus === "failed"
                   ? "Processing did not finish successfully."
-                  : "This usually takes under a minute."
+                  : "Most uploads complete within 45–90 seconds. Keep this tab open while we validate your data."
             }
           />
           <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-navy-950 px-4 py-3">

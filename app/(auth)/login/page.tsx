@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import AuthShell from "../_components/auth-shell";
 import { createClient } from "@/src/lib/supabase/client";
 import { signInWithGoogle } from "@/src/lib/supabase/oauth";
+import { ErrorBanner } from "@/src/components/ui/error-banner";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -68,11 +69,7 @@ export default function LoginPage() {
       <p className="mt-2 text-sm text-gray-400">Log in to access your EarnSigma workspace.</p>
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-            {error}
-          </div>
-        )}
+        {error ? <ErrorBanner title="Login failed" message={error} /> : null}
 
         <button
           type="button"

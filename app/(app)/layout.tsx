@@ -8,6 +8,8 @@ import { getSession, onAuthStateChange } from "@/src/lib/supabase/session";
 import { decideAppGate } from "@/src/lib/billing/gating";
 import { EntitlementsProvider, useEntitlements } from "./_components/entitlements-provider";
 import { checkIsAdmin } from "@/src/lib/admin/access";
+import { createClient } from "@/src/lib/supabase/client";
+import { WorkspaceLoadingShell } from "./_components/ui/skeleton";
 
 const baseNavLinks = [
   { href: "/app", label: "Dashboard" },
@@ -25,6 +27,8 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [hasSession, setHasSession] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const hasSessionRef = useRef(false);
 
   useEffect(() => {
@@ -42,6 +46,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
         const sessionExists = Boolean(session);
         hasSessionRef.current = sessionExists;
         setHasSession(sessionExists);
+        setUserEmail(session?.user?.email ?? null);
 
         if (!sessionExists) {
           router.replace("/login");
@@ -59,6 +64,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
       const sessionExists = Boolean(data.session);
       hasSessionRef.current = sessionExists;
       setHasSession(sessionExists);
+      setUserEmail(data.session?.user?.email ?? null);
       setIsLoadingSession(false);
 
       if (sessionExists) {
@@ -110,31 +116,38 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
     }
   }, [gateDecision, isAdmin, pathname, router]);
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+
+    try {
+      const supabase = await createClient();
+      await supabase.auth.signOut();
+    } finally {
+      setIsLoggingOut(false);
+      router.replace("/login");
+    }
+  };
+
   if (gateDecision !== "allow") {
     return (
-      <div className="min-h-screen bg-navy-950 flex items-center justify-center text-white">
-        <div className="rounded-xl border border-white/10 bg-white/5 px-6 py-4 text-sm text-gray-200">
-          {gateDecision === "redirect_billing"
-            ? "Redirecting to billing…"
-            : gateDecision === "redirect_login"
-              ? "Redirecting to login…"
-              : "Loading workspace…"}
-        </div>
-      </div>
+      <WorkspaceLoadingShell
+        title={gateDecision === "redirect_billing" ? "Preparing billing workspace" : "Loading workspace"}
+        subtitle="This should only take a few seconds."
+      />
     );
   }
 
   const navLinks = isAdmin ? [...baseNavLinks, { href: "/app/admin", label: "Admin" }] : baseNavLinks;
 
   return (
-    <div className="min-h-screen bg-navy-950 flex text-white">
-      <aside className="w-64 border-r border-white/5 bg-navy-900 p-6 flex flex-col">
-        <Link href="/" className="flex items-center gap-2 mb-10">
+    <div className="min-h-screen bg-navy-950 text-white md:flex">
+      <aside className="border-b border-white/5 bg-navy-900 px-4 py-4 md:min-h-screen md:w-64 md:border-b-0 md:border-r md:px-6 md:py-6">
+        <Link href="/" className="mb-6 flex items-center gap-2 md:mb-10">
           <Image src="/brand/earnsigma-mark.svg" alt="EarnSigma" width={28} height={28} />
           <span className="font-semibold">EarnSigma</span>
         </Link>
 
-        <nav className="space-y-3 text-sm">
+        <nav className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 md:grid-cols-1 md:space-y-2 md:gap-0">
           {navLinks.map((link) => {
             const isActive = pathname === link.href || (link.href !== "/app" && pathname.startsWith(link.href));
 
@@ -142,7 +155,11 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`block px-3 py-2 rounded-lg transition ${isActive ? "bg-white/10" : "hover:bg-white/5"}`}
+                className={`rounded-lg border px-3 py-2 transition ${
+                  isActive
+                    ? "border-brand-blue/40 bg-brand-blue/20 text-white"
+                    : "border-transparent text-gray-300 hover:border-white/10 hover:bg-white/5 hover:text-white"
+                }`}
               >
                 {link.label}
               </Link>
@@ -150,10 +167,21 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="mt-auto pt-6 border-t border-white/5 text-xs text-gray-400">Revenue intelligence layer</div>
+        <div className="mt-6 border-t border-white/10 pt-4 md:mt-auto md:pt-6">
+          <p className="truncate text-xs text-gray-300">{userEmail ?? "Signed in"}</p>
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="mt-2 rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-100 transition hover:bg-white/10 disabled:opacity-60"
+          >
+            {isLoggingOut ? "Logging out…" : "Log out"}
+          </button>
+          <p className="mt-3 text-[11px] text-gray-500">Revenue intelligence layer</p>
+        </div>
       </aside>
 
-      <main className="flex-1 p-10">{children}</main>
+      <main className="flex-1 p-4 sm:p-6 lg:p-10">{children}</main>
     </div>
   );
 }

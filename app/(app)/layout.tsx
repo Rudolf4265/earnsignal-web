@@ -10,14 +10,7 @@ import { EntitlementsProvider, useEntitlements } from "./_components/entitlement
 import { checkIsAdmin } from "@/src/lib/admin/access";
 import { createClient } from "@/src/lib/supabase/client";
 import { WorkspaceLoadingShell } from "./_components/ui/skeleton";
-
-const baseNavLinks = [
-  { href: "/app", label: "Dashboard" },
-  { href: "/app/upload", label: "Data" },
-  { href: "/app/report", label: "Reports" },
-  { href: "/app/billing", label: "Billing" },
-  { href: "/app/settings", label: "Settings" },
-];
+import { APP_NAV_LINKS } from "@/src/lib/navigation/app-nav";
 
 function AppLayoutFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -138,7 +131,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const navLinks = isAdmin ? [...baseNavLinks, { href: "/app/admin", label: "Admin" }] : baseNavLinks;
+  const navLinks = isAdmin ? [...APP_NAV_LINKS, { href: "/app/admin", label: "Admin" }] : APP_NAV_LINKS;
 
   return (
     <div className="min-h-screen bg-navy-950 text-white md:flex">

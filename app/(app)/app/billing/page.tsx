@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   clearCheckoutAttempt,
@@ -27,7 +28,8 @@ const plans: Array<{ id: CheckoutPlan; label: string; summary: string; highlight
 ];
 
 export default function BillingPage() {
-  const { entitlements, isLoading, error, refresh } = useEntitlements();
+  const router = useRouter();
+  const { entitlements, isLoading, error, isSessionExpired, refresh } = useEntitlements();
   const [isCreatingCheckout, setIsCreatingCheckout] = useState<CheckoutPlan | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [hasCheckoutMarker, setHasCheckoutMarker] = useState(() => checkoutAttemptInProgress());
@@ -86,6 +88,19 @@ export default function BillingPage() {
         </p>
 
         {error ? <ErrorBanner className="mt-4" title="Could not load billing status" message={error} onRetry={() => void refresh({ forceRefresh: true })} /> : null}
+
+        {isSessionExpired ? (
+          <div className="mt-4 rounded-lg border border-amber-300/40 bg-amber-500/10 p-4">
+            <p className="text-sm text-amber-100">Session expired. Please sign in again.</p>
+            <button
+              type="button"
+              onClick={() => router.push("/login")}
+              className="mt-3 inline-flex rounded-lg border border-amber-200/60 px-3 py-1.5 text-xs text-amber-100 hover:bg-amber-300/10"
+            >
+              Sign in
+            </button>
+          </div>
+        ) : null}
 
         {entitlements?.portal_url ? (
           <Link

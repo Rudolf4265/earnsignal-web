@@ -4,13 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BRAND_NAME } from "@/src/lib/brand";
-
-const navLinks = [
-  { href: "/app", label: "Dashboard" },
-  { href: "/app/upload", label: "Data" },
-  { href: "/app/report", label: "Reports" },
-  { href: "/app/settings", label: "Settings" },
-];
+import { APP_NAV_LINKS } from "@/src/lib/navigation/app-nav";
 
 export function AppShell({
   title,
@@ -39,7 +33,7 @@ export function AppShell({
         </div>
 
         <nav className="flex flex-wrap gap-3 text-sm">
-          {navLinks.map((link) => {
+          {APP_NAV_LINKS.filter((link) => link.href !== "/app/billing").map((link) => {
             const isActive =
               pathname === link.href ||
               (link.href !== "/app" && pathname.startsWith(link.href));

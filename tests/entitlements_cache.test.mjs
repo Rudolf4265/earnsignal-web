@@ -27,9 +27,20 @@ function jsonResponse(payload, status = 200) {
 
 async function buildEntitlementsTestModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
-  const patched = source.replace('from "./http";', 'from "../src/lib/api/http.ts";');
+  const withHttpPath = source.replace('from "./http";', 'from "../src/lib/api/http.ts";');
+  const patched = withHttpPath.replace('from "./client";', 'from "./mocks/api-client.ts";');
   const outDir = path.resolve(".tmp-tests");
-  await mkdir(outDir, { recursive: true });
+  await mkdir(path.join(outDir, "mocks"), { recursive: true });
+
+  const mockPath = path.join(outDir, "mocks", "api-client.ts");
+  await writeFile(
+    mockPath,
+    `export async function apiClientJson(path, init = {}) {
+      const response = await fetch(path, init);
+      return JSON.parse(await response.text());
+    }\n`,
+    "utf8",
+  );
   const outFile = path.join(outDir, `entitlements-${tag}.ts`);
   await writeFile(outFile, patched, "utf8");
   return pathToFileURL(outFile).href;

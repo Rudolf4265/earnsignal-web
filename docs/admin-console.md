@@ -4,8 +4,8 @@ Internal admin tooling is available under `/app/admin` for support workflows.
 
 ## Access
 
-- Access is restricted to admins detected via `GET /v1/admin/whoami`.
-- If `whoami` does not report admin, a fallback allowlist can be provided using `NEXT_PUBLIC_ADMIN_EMAILS` (comma-separated).
+- Access is restricted to users with an admin claim in Supabase auth metadata (`is_admin`, `admin`, or `role=admin`).
+- A fallback allowlist can be provided using `NEXT_PUBLIC_ADMIN_EMAILS` (comma-separated).
 - Non-admins do not see an Admin nav link and are redirected to `/app` when visiting `/app/admin` routes directly.
 
 ## Routes

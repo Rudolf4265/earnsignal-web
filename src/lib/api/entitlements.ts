@@ -1,4 +1,5 @@
-import { ApiResponseError, fetchApiJson } from "./http";
+import { ApiResponseError } from "./http";
+import { apiClientJson } from "./client";
 
 export type EntitlementFeatures = {
   app?: boolean;
@@ -73,23 +74,6 @@ function isFresh(fetchedAt: number): boolean {
   return Date.now() - fetchedAt < ENTITLEMENTS_TTL_MS;
 }
 
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  if (typeof window === "undefined") {
-    return {};
-  }
-
-  try {
-    const { createClient } = await import("../supabase/client");
-    const {
-      data: { session },
-    } = await createClient().auth.getSession();
-
-    return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
-  } catch {
-    return {};
-  }
-}
-
 function normalizeEntitlements(value: Record<string, unknown>): EntitlementsResponse {
   const features = (value.features as EntitlementFeatures | undefined) ?? {};
   const plan = (value.plan as string | null | undefined) ?? null;
@@ -127,10 +111,8 @@ export async function fetchEntitlements(options?: { forceRefresh?: boolean }): P
   }
 
   inFlightEntitlements = (async () => {
-    const headers = await getAuthHeaders();
-    const body = await fetchApiJson<Record<string, unknown>>("/v1/entitlements", {
+    const body = await apiClientJson<Record<string, unknown>>("/v1/entitlements", {
       method: "GET",
-      headers,
     }, "billing status");
     const value = normalizeEntitlements(body);
     const fetchedAt = Date.now();
@@ -221,13 +203,9 @@ export function clearCheckoutAttempt() {
   clearCheckoutAttemptMarker();
 }
 
-async function requestCheckout(path: string, headers: Record<string, string>, plan: CheckoutPlan): Promise<CheckoutResponse> {
-  const body = await fetchApiJson<Record<string, unknown>>(path, {
+async function requestCheckout(path: string, plan: CheckoutPlan): Promise<CheckoutResponse> {
+  const body = await apiClientJson<Record<string, unknown>>(path, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
     body: JSON.stringify({ plan }),
   }, "checkout session");
   const checkoutUrl = extractCheckoutUrl(body);
@@ -251,16 +229,14 @@ export async function createCheckoutSession(plan: CheckoutPlan): Promise<Checkou
   setCheckoutAttemptMarker();
 
   inFlightCheckout = (async () => {
-    const headers = await getAuthHeaders();
-
     try {
-      return await requestCheckout("/v1/billing/checkout", headers, plan);
+      return await requestCheckout("/v1/billing/checkout", plan);
     } catch (err) {
       if (!(err instanceof ApiResponseError) || (err.status !== 404 && err.status !== 405)) {
         throw err;
       }
 
-      return requestCheckout("/v1/checkout", headers, plan);
+      return requestCheckout("/v1/checkout", plan);
     }
   })();
 

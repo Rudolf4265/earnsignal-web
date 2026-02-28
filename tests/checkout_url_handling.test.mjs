@@ -27,9 +27,28 @@ function jsonResponse(payload, status = 200) {
 
 async function buildEntitlementsTestModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
-  const patched = source.replace('from "./http";', 'from "../src/lib/api/http.ts";');
+  const withHttpPath = source.replace('from "./http";', 'from "../src/lib/api/http.ts";');
+  const patched = withHttpPath.replace('from "./client";', 'from "./mocks/api-client.ts";');
   const outDir = path.resolve(".tmp-tests");
-  await mkdir(outDir, { recursive: true });
+  await mkdir(path.join(outDir, "mocks"), { recursive: true });
+
+  const mockPath = path.join(outDir, "mocks", "api-client.ts");
+  await writeFile(
+    mockPath,
+    `import { ApiResponseError } from "../../src/lib/api/http.ts";
+
+    export async function apiClientJson(path, init = {}) {
+      const response = await fetch(path, init);
+      const parsed = JSON.parse(await response.text());
+      if (!response.ok) {
+        throw new ApiResponseError("request failed", response.status, undefined, parsed);
+      }
+
+      return parsed;
+    }\n`,
+    "utf8",
+  );
+
   const outFile = path.join(outDir, `entitlements-${tag}.ts`);
   await writeFile(outFile, patched, "utf8");
   return pathToFileURL(outFile).href;
@@ -49,7 +68,7 @@ test("createCheckoutSession uses only primary endpoint when primary succeeds", a
 
   assert.equal(response.checkout_url, "https://checkout.stripe.test/session_123");
   assert.equal(calls.length, 1);
-  assert.match(calls[0], /^https:\/\/api\.earnsigma\.com\/v1\/billing\/checkout$/);
+  assert.equal(calls[0], "/v1/billing/checkout");
 
   clearCheckoutAttempt();
   delete global.fetch;
@@ -93,7 +112,7 @@ test("createCheckoutSession does not call fallback on 500", async () => {
   const moduleUrl = await buildEntitlementsTestModule(`error-${Date.now()}`);
   const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
 
-  await assert.rejects(createCheckoutSession("plan_a"), /500/);
+  await assert.rejects(createCheckoutSession("plan_a"), /request failed/);
   assert.equal(calls.length, 1);
 
   clearCheckoutAttempt();

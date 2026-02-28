@@ -63,6 +63,12 @@ Centralized URL config lives in `src/lib/urls.ts`:
 
 Use these constants in Stripe checkout session creation.
 
+
+## Billing entitlements troubleshooting
+
+- Billing status is loaded from `GET /v1/entitlements` and requires a valid bearer token.
+- If Billing shows **"Session expired. Please sign in again."**, click **Sign in** and re-authenticate, then refresh Billing status.
+
 ## Manual QA checklist
 
 ### Marketing domain (`earnsignalstudio.com`)

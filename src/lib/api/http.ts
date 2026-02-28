@@ -167,12 +167,20 @@ export async function fetchApiJson<T>(path: string, init: RequestInit = {}, cont
 
     if (parsed && typeof parsed === "object") {
       const envelope = parsed as Record<string, unknown>;
+      const nestedError = envelope.error && typeof envelope.error === "object" ? (envelope.error as Record<string, unknown>) : null;
+
       if (typeof envelope.message === "string") {
         message = envelope.message;
+      } else if (nestedError && typeof nestedError.message === "string") {
+        message = nestedError.message;
       }
+
       if (typeof envelope.code === "string") {
         code = envelope.code;
+      } else if (nestedError && typeof nestedError.code === "string") {
+        code = nestedError.code;
       }
+
       details = envelope.details ?? envelope.error ?? envelope.errors ?? envelope;
     }
 

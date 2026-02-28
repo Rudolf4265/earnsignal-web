@@ -4,11 +4,20 @@ export function decideAppGate(params: {
   hasSession: boolean;
   isLoadingSession: boolean;
   isLoadingEntitlements: boolean;
+  hasEntitlementsError?: boolean;
   isEntitled: boolean;
   isAdmin?: boolean;
   pathname: string;
 }): AppGateDecision {
-  const { hasSession, isLoadingSession, isLoadingEntitlements, isEntitled, isAdmin = false, pathname } = params;
+  const {
+    hasSession,
+    isLoadingSession,
+    isLoadingEntitlements,
+    hasEntitlementsError = false,
+    isEntitled,
+    isAdmin = false,
+    pathname,
+  } = params;
 
   if (isLoadingSession || (hasSession && isLoadingEntitlements)) {
     return "show_loading";
@@ -16,6 +25,10 @@ export function decideAppGate(params: {
 
   if (!hasSession) {
     return "redirect_login";
+  }
+
+  if (hasEntitlementsError) {
+    return "allow";
   }
 
   const isBillingPath = pathname.startsWith("/app/billing");

@@ -22,7 +22,7 @@ const baseNavLinks = [
 function AppLayoutFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { entitlements, isLoading: isLoadingEntitlements } = useEntitlements();
+  const { entitlements, isLoading: isLoadingEntitlements, error: entitlementsError } = useEntitlements();
 
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [hasSession, setHasSession] = useState(false);
@@ -95,6 +95,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
     hasSession,
     isLoadingSession,
     isLoadingEntitlements,
+    hasEntitlementsError: Boolean(entitlementsError),
     isEntitled: Boolean(entitlements?.entitled),
     pathname,
     isAdmin,

@@ -41,3 +41,19 @@ test("decideAppGate redirects users without session to login", () => {
 
   assert.equal(decision, "redirect_login");
 });
+
+
+test("decideAppGate allows navigation when entitlements request fails", async () => {
+  const { decideAppGate } = await import(`${moduleUrl}?t=${Date.now()}-entitlements-error`);
+
+  const decision = decideAppGate({
+    hasSession: true,
+    isLoadingSession: false,
+    isLoadingEntitlements: false,
+    hasEntitlementsError: true,
+    isEntitled: false,
+    pathname: "/app/report",
+  });
+
+  assert.equal(decision, "allow");
+});

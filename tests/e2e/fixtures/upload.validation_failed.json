@@ -1,0 +1,12 @@
+{
+  "status": "ok",
+  "code": "VALIDATION_FAILED",
+  "message": "Validation failed.",
+  "details": {
+    "upload_id": "upl_123",
+    "status": "validation_failed",
+    "reason_code": "validation_failed",
+    "report_id": null
+  },
+  "request_id": "req_upload_validation_failed_001"
+}

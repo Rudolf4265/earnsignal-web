@@ -1,0 +1,9 @@
+{
+  "status": "error",
+  "code": "SESSION_EXPIRED",
+  "message": "Session expired.",
+  "details": {
+    "reason_code": "SESSION_EXPIRED"
+  },
+  "request_id": "req_session_expired_001"
+}

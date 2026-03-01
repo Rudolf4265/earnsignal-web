@@ -9,6 +9,7 @@ import {
   type CheckoutPlan,
 } from "@/src/lib/api/entitlements";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
+import { isApiError } from "@/src/lib/api/client";
 import { useAppGate } from "../../_components/app-gate-provider";
 import { SessionExpiredCallout } from "../../_components/gate-callouts";
 
@@ -30,7 +31,7 @@ const plans: Array<{ id: CheckoutPlan; label: string; summary: string; highlight
 export default function BillingPage() {
   const { state, entitlements, error, requestId, actions } = useAppGate();
   const [isCreatingCheckout, setIsCreatingCheckout] = useState<CheckoutPlan | null>(null);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<{ message: string; requestId?: string } | null>(null);
   const [hasCheckoutMarker, setHasCheckoutMarker] = useState(() => checkoutAttemptInProgress());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -42,7 +43,11 @@ export default function BillingPage() {
       const { checkout_url } = await createCheckoutSession(plan);
       window.location.assign(checkout_url);
     } catch (err) {
-      setCheckoutError(err instanceof Error ? err.message : "Unable to start checkout");
+      const message = err instanceof Error ? err.message : "Unable to start checkout";
+      setCheckoutError({
+        message,
+        requestId: isApiError(err) ? err.requestId : undefined,
+      });
       setIsCreatingCheckout(null);
       setHasCheckoutMarker(checkoutAttemptInProgress());
     }
@@ -79,7 +84,7 @@ export default function BillingPage() {
           </button>
         </div>
 
-        <p className="mt-3 text-sm text-gray-300">{`Plan: ${entitlements?.plan ?? "None"} · Status: ${entitlements?.status ?? "inactive"}`}</p>
+        <p className="mt-3 text-sm text-gray-300" data-testid="billing-current-plan">{`Plan: ${entitlements?.plan ?? "None"} · Status: ${entitlements?.status ?? "inactive"}`}</p>
         <p className="mt-1 text-xs text-gray-400">
           Feature access: {entitlements?.entitled ? "Active" : "Limited until subscription is active"}
         </p>
@@ -130,7 +135,7 @@ export default function BillingPage() {
               <div>
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-xl font-semibold text-white">{plan.label}</h3>
-                  {isCurrentPlan ? <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[11px] text-emerald-200">Current</span> : null}
+                  {isCurrentPlan ? <span data-testid="billing-current-badge" className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[11px] text-emerald-200">Current</span> : null}
                 </div>
                 <p className="mt-1 text-sm text-gray-300">{plan.summary}</p>
               </div>
@@ -154,7 +159,7 @@ export default function BillingPage() {
         })}
       </section>
 
-      {checkoutError ? <ErrorBanner title="Checkout failed" message={checkoutError} onRetry={() => setCheckoutError(null)} retryLabel="Dismiss" /> : null}
+      {checkoutError ? <ErrorBanner data-testid="billing-error-banner" title="Checkout failed" message={checkoutError.message} requestId={checkoutError.requestId} onRetry={() => setCheckoutError(null)} retryLabel="Dismiss" /> : null}
     </div>
   );
 }

@@ -1,0 +1,16 @@
+{
+  "status": "ok",
+  "code": "OK",
+  "message": "Entitlements loaded.",
+  "details": {
+    "plan": null,
+    "status": "inactive",
+    "entitled": false,
+    "features": {
+      "app": true,
+      "upload": true,
+      "report": false
+    }
+  },
+  "request_id": "req_unentitled_001"
+}

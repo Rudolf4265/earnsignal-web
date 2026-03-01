@@ -29,7 +29,7 @@ const plans: Array<{ id: CheckoutPlan; label: string; summary: string; highlight
 ];
 
 export default function BillingPage() {
-  const { state, entitlements, error, requestId, actions } = useAppGate();
+  const { state, entitlements, error, errorRequestId, requestId, actions } = useAppGate();
   const [isCreatingCheckout, setIsCreatingCheckout] = useState<CheckoutPlan | null>(null);
   const [checkoutError, setCheckoutError] = useState<{ message: string; requestId?: string } | null>(null);
   const [hasCheckoutMarker, setHasCheckoutMarker] = useState(() => checkoutAttemptInProgress());
@@ -90,7 +90,7 @@ export default function BillingPage() {
         </p>
 
         {error ? (
-          <ErrorBanner className="mt-4" title="Could not load billing status" message={error} onRetry={() => void actions.refreshEntitlements({ forceRefresh: true })} />
+          <ErrorBanner className="mt-4" title="Could not load billing status" message={error} requestId={errorRequestId} onRetry={() => void actions.refreshEntitlements({ forceRefresh: true })} />
         ) : null}
 
         {entitlements?.portal_url ? (

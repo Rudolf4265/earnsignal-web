@@ -18,6 +18,20 @@ export type EntitlementsResolution =
   | { status: "session_expired"; requestId?: string }
   | { status: "error" };
 
+export function resolveEntitlementsError(error: unknown): EntitlementsResolution {
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as { status?: unknown; requestId?: unknown };
+    if (candidate.status === 401) {
+      return {
+        status: "session_expired",
+        requestId: typeof candidate.requestId === "string" ? candidate.requestId : undefined,
+      };
+    }
+  }
+
+  return { status: "error" };
+}
+
 export function deriveAppGateState(params: {
   isSessionKnown: boolean;
   session: Session | null;
@@ -66,4 +80,3 @@ export function isAppGateLoading(state: AppGateState): boolean {
 export function buildLoginHref(returnTo: string): string {
   return `/login?returnTo=${encodeURIComponent(returnTo)}`;
 }
-

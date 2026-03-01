@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AuthShell from "../../_components/auth-shell";
 import { getSession, onAuthStateChange } from "@/src/lib/supabase/session";
@@ -12,9 +12,11 @@ const SESSION_RETRY_DELAY_MS = 200;
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const resolvedReturnTo = resolveReturnTo(searchParams.get("returnTo")) ?? "/app";
+  const resolvedReturnTo =
+    typeof window === "undefined"
+      ? "/app"
+      : resolveReturnTo(new URLSearchParams(window.location.search).get("returnTo")) ?? "/app";
 
   useEffect(() => {
     let isMounted = true;

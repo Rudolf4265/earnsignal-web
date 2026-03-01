@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
+function isDebugEnabled(): boolean {
+  return process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_ENABLE_DEBUG === "true";
+}
+
 function previewValue(value: string | undefined, length: number): string | null {
   if (!value) {
     return null;
@@ -9,6 +13,10 @@ function previewValue(value: string | undefined, length: number): string | null 
 }
 
 export async function GET(request: NextRequest) {
+  if (!isDebugEnabled()) {
+    return NextResponse.json({ error: "Not Found" }, { status: 404 });
+  }
+
   const host = request.headers.get("host");
   const userAgent = request.headers.get("user-agent");
 

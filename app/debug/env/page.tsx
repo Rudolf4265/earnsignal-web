@@ -1,4 +1,10 @@
-"use client";
+function assertDebugEnabled() {
+  if (process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENABLE_DEBUG !== "true") {
+    notFound();
+  }
+}
+
+import { notFound } from "next/navigation";
 
 function maskAnonKey(value: string | undefined): string {
   if (!value) {
@@ -13,8 +19,10 @@ function maskAnonKey(value: string | undefined): string {
 }
 
 export default function PublicEnvDebugPage() {
-  const origin = typeof window === "undefined" ? "(unavailable)" : window.location.origin;
-  const host = typeof document === "undefined" ? "(unavailable)" : document.location.host;
+  assertDebugEnabled();
+
+  const origin = "(server-only debug page)";
+  const host = "(server-only debug page)";
 
   const values: Array<[string, string]> = [
     ["window.location.origin", origin],

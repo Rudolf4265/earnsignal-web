@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { ApiError, isApiError } from "@/src/lib/api/client";
 import { fetchEntitlements, type EntitlementsResponse } from "@/src/lib/api/entitlements";
 import { checkIsAdmin } from "@/src/lib/admin/access";
 import { createClient } from "@/src/lib/supabase/client";
@@ -12,6 +11,7 @@ import {
   deriveAppGateState,
   isAppGateLoading,
   type AppGateState,
+  resolveEntitlementsError,
   type EntitlementsResolution,
 } from "@/src/lib/gating/app-gate";
 
@@ -29,14 +29,11 @@ type AppGateContextValue = {
   isAdmin: boolean;
   requestId?: string;
   error: string | null;
+  errorRequestId?: string;
   actions: GateActions;
 };
 
 const AppGateContext = createContext<AppGateContextValue | null>(null);
-
-function isSessionExpiredApiError(error: unknown): error is ApiError {
-  return isApiError(error) && error.status === 401 && error.code === "SESSION_EXPIRED";
-}
 
 export function AppGateProvider({ children }: { children: React.ReactNode }) {
   const [isSessionKnown, setIsSessionKnown] = useState(false);
@@ -44,6 +41,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [entitlementsState, setEntitlementsState] = useState<EntitlementsResolution>({ status: "idle" });
   const [error, setError] = useState<string | null>(null);
+  const [errorRequestId, setErrorRequestId] = useState<string | undefined>(undefined);
 
   const loadEntitlements = useCallback(async (options?: { forceRefresh?: boolean }) => {
     setEntitlementsState({ status: "loading" });
@@ -52,16 +50,15 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
       const nextEntitlements = await fetchEntitlements(options);
       setEntitlementsState({ status: nextEntitlements.entitled ? "entitled" : "unentitled", entitlements: nextEntitlements });
       setError(null);
+      setErrorRequestId(undefined);
       return nextEntitlements;
     } catch (err) {
-      if (isSessionExpiredApiError(err)) {
-        setEntitlementsState({ status: "session_expired", requestId: err.requestId });
-        setError(err.message);
-      } else {
-        const message = err instanceof Error ? err.message : "Unable to load access status.";
-        setEntitlementsState({ status: "error" });
-        setError(message);
-      }
+      const resolved = resolveEntitlementsError(err);
+      setEntitlementsState(resolved);
+
+      const message = err instanceof Error ? err.message : "Unable to load access status.";
+      setError(message);
+      setErrorRequestId(err instanceof Error && "requestId" in err && typeof (err as { requestId?: unknown }).requestId === "string" ? (err as { requestId: string }).requestId : undefined);
 
       return null;
     }
@@ -72,6 +69,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
       setIsAdmin(false);
       setEntitlementsState({ status: "idle" });
       setError(null);
+      setErrorRequestId(undefined);
       return;
     }
 
@@ -148,9 +146,10 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
       isAdmin,
       requestId: entitlementsState.status === "session_expired" ? entitlementsState.requestId : undefined,
       error,
+      errorRequestId,
       actions,
     }),
-    [actions, entitlementsState, error, isAdmin, session, state],
+    [actions, entitlementsState, error, errorRequestId, isAdmin, session, state],
   );
 
   return <AppGateContext.Provider value={value}>{children}</AppGateContext.Provider>;

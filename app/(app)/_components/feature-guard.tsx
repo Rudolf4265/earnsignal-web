@@ -1,37 +1,63 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEntitlements } from "./entitlements-provider";
-import { SkeletonBlock } from "./ui/skeleton";
+import { canAccessPathWhenUnentitled } from "@/src/lib/gating/app-gate";
+import { useAppGate } from "./app-gate-provider";
+import { GateLoadingShell, NotEntitledCallout, SessionExpiredCallout } from "./gate-callouts";
 
 type GuardedFeature = "upload" | "report";
 
 export function FeatureGuard({ feature, children }: { feature: GuardedFeature; children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { entitlements, isLoading } = useEntitlements();
+  const replacedRef = useRef(false);
+  const { state, entitlements, requestId } = useAppGate();
 
   const hasFeature = Boolean(entitlements?.features?.[feature]);
 
   useEffect(() => {
-    if (isLoading) {
+    if (state === "authed_unentitled" && !canAccessPathWhenUnentitled(pathname) && !replacedRef.current) {
+      replacedRef.current = true;
+      router.replace(`/app/billing?feature=${feature}`);
       return;
     }
 
-    if (!hasFeature && !pathname.startsWith("/app/billing")) {
-      router.replace(`/app/billing?feature=${feature}`);
-    }
-  }, [feature, hasFeature, isLoading, pathname, router]);
+    replacedRef.current = false;
+  }, [feature, pathname, router, state]);
 
-  if (isLoading || !hasFeature) {
+  if (state === "session_loading" || state === "authed_loading_entitlements") {
     return (
-      <div className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-6">
-        <p className="text-sm text-gray-300">Checking your plan access…</p>
-        <SkeletonBlock className="h-6 w-2/5" />
-        <SkeletonBlock className="h-20 w-full" />
+      <div data-testid="gate-loading">
+        <GateLoadingShell />
       </div>
     );
+  }
+
+  if (state === "session_expired") {
+    return <SessionExpiredCallout requestId={requestId} />;
+  }
+
+  if (state === "authed_unentitled") {
+    if (!canAccessPathWhenUnentitled(pathname)) {
+      return <NotEntitledCallout />;
+    }
+
+    if (!hasFeature) {
+      return <NotEntitledCallout />;
+    }
+  }
+
+  if (state !== "authed_entitled" && state !== "authed_admin") {
+    return (
+      <div data-testid="gate-loading">
+        <GateLoadingShell />
+      </div>
+    );
+  }
+
+  if (!hasFeature) {
+    return <NotEntitledCallout />;
   }
 
   return <>{children}</>;

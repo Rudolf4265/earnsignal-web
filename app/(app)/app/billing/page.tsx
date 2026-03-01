@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   clearCheckoutAttempt,
@@ -9,8 +8,9 @@ import {
   createCheckoutSession,
   type CheckoutPlan,
 } from "@/src/lib/api/entitlements";
-import { useEntitlements } from "../../_components/entitlements-provider";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
+import { useAppGate } from "../../_components/app-gate-provider";
+import { SessionExpiredCallout } from "../../_components/gate-callouts";
 
 const plans: Array<{ id: CheckoutPlan; label: string; summary: string; highlights: string[] }> = [
   {
@@ -28,8 +28,7 @@ const plans: Array<{ id: CheckoutPlan; label: string; summary: string; highlight
 ];
 
 export default function BillingPage() {
-  const router = useRouter();
-  const { entitlements, isLoading, error, isSessionExpired, refresh } = useEntitlements();
+  const { state, entitlements, error, requestId, actions } = useAppGate();
   const [isCreatingCheckout, setIsCreatingCheckout] = useState<CheckoutPlan | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [hasCheckoutMarker, setHasCheckoutMarker] = useState(() => checkoutAttemptInProgress());
@@ -58,6 +57,8 @@ export default function BillingPage() {
         <p className="text-gray-400">Compare plans, confirm your subscription status, and manage access.</p>
       </header>
 
+      {state === "session_expired" ? <SessionExpiredCallout requestId={requestId} /> : null}
+
       <section className="rounded-xl border border-white/10 bg-white/5 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-medium text-white">Current subscription</h2>
@@ -66,7 +67,7 @@ export default function BillingPage() {
             onClick={async () => {
               setIsRefreshing(true);
               try {
-                await refresh({ forceRefresh: true });
+                await actions.refreshEntitlements({ forceRefresh: true });
               } finally {
                 setIsRefreshing(false);
               }
@@ -78,28 +79,13 @@ export default function BillingPage() {
           </button>
         </div>
 
-        <p className="mt-3 text-sm text-gray-300">
-          {isLoading
-            ? "Loading subscription status…"
-            : `Plan: ${entitlements?.plan ?? "None"} · Status: ${entitlements?.status ?? "inactive"}`}
-        </p>
+        <p className="mt-3 text-sm text-gray-300">{`Plan: ${entitlements?.plan ?? "None"} · Status: ${entitlements?.status ?? "inactive"}`}</p>
         <p className="mt-1 text-xs text-gray-400">
           Feature access: {entitlements?.entitled ? "Active" : "Limited until subscription is active"}
         </p>
 
-        {error ? <ErrorBanner className="mt-4" title="Could not load billing status" message={error} onRetry={() => void refresh({ forceRefresh: true })} /> : null}
-
-        {isSessionExpired ? (
-          <div className="mt-4 rounded-lg border border-amber-300/40 bg-amber-500/10 p-4">
-            <p className="text-sm text-amber-100">Session expired. Please sign in again.</p>
-            <button
-              type="button"
-              onClick={() => router.push("/login")}
-              className="mt-3 inline-flex rounded-lg border border-amber-200/60 px-3 py-1.5 text-xs text-amber-100 hover:bg-amber-300/10"
-            >
-              Sign in
-            </button>
-          </div>
+        {error ? (
+          <ErrorBanner className="mt-4" title="Could not load billing status" message={error} onRetry={() => void actions.refreshEntitlements({ forceRefresh: true })} />
         ) : null}
 
         {entitlements?.portal_url ? (

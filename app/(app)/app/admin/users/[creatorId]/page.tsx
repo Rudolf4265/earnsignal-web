@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { checkIsAdmin } from "@/src/lib/admin/access";
+import { NotAuthorizedCallout } from "@/app/(app)/_components/gate-callouts";
+import { useAppGate } from "@/app/(app)/_components/app-gate-provider";
 import { AdminUserDetail, fetchAdminUserDetail, updateAdminUserBlocked, updateAdminUserCompUntil } from "@/src/lib/api/admin";
 
 function formatTimestamp(value: string | null): string {
@@ -22,29 +23,22 @@ export default function AdminUserDetailPage() {
   const [user, setUser] = useState<AdminUserDetail | null>(null);
   const [compUntilDraft, setCompUntilDraft] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const { isAdmin } = useAppGate();
 
   useEffect(() => {
+    if (!isAdmin) {
+      setIsLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     const load = async () => {
       try {
         setIsLoading(true);
-        const allowed = await checkIsAdmin();
-
-        if (!isMounted) {
-          return;
-        }
-
-        if (!allowed) {
-          window.location.replace("/app");
-          return;
-        }
-
-        setIsAdmin(true);
 
         const data = await fetchAdminUserDetail(creatorId);
         if (!isMounted) {
@@ -71,7 +65,7 @@ export default function AdminUserDetailPage() {
     return () => {
       isMounted = false;
     };
-  }, [creatorId]);
+  }, [creatorId, isAdmin]);
 
   const headerText = useMemo(() => {
     if (!user) {
@@ -81,8 +75,12 @@ export default function AdminUserDetailPage() {
     return user.email ? `${user.email} (${user.creatorId})` : user.creatorId;
   }, [creatorId, user]);
 
-  if (!isAdmin && isLoading) {
-    return <p className="text-sm text-gray-300">Validating admin access…</p>;
+  if (!isAdmin) {
+    return <NotAuthorizedCallout />;
+  }
+
+  if (isLoading) {
+    return <p className="text-sm text-gray-300">Loading user details…</p>;
   }
 
   if (!user) {

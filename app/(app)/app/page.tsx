@@ -46,7 +46,7 @@ export default function DashboardPage() {
           <p className="mt-2 text-gray-400">High-level revenue signals and structural stability.</p>
         </div>
         <Link
-          href="/app/upload"
+          href="/app/data"
           className="inline-flex w-fit rounded-xl bg-brand-blue px-4 py-2 text-sm font-medium text-white shadow-brandGlow transition hover:opacity-90"
         >
           Upload data
@@ -97,7 +97,7 @@ export default function DashboardPage() {
               title="Charts appear once data is connected"
               body="Upload revenue data to populate trend lines, variance windows, and seasonality insights."
               ctaLabel="Upload data"
-              ctaHref="/app/upload"
+              ctaHref="/app/data"
             />
           </Panel>
         </div>
@@ -107,7 +107,7 @@ export default function DashboardPage() {
             title="Data Status"
             rightSlot={
               <Link
-                href="/app/upload"
+                href="/app/data"
                 className="inline-flex rounded-xl border border-white/10 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/5"
               >
                 Upload data
@@ -156,7 +156,7 @@ export default function DashboardPage() {
                 title="No reports generated yet."
                 body="Upload your data and generate analysis to see report quality and summaries here."
                 ctaLabel="Upload data"
-                ctaHref="/app/upload"
+                ctaHref="/app/data"
               />
             )}
           </Panel>

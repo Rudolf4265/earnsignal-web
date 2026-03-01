@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BRAND_NAME } from "@/src/lib/brand";
-import { APP_NAV_LINKS } from "@/src/lib/navigation/app-nav";
+import { WorkspaceNav } from "./workspace-nav";
 
 export function AppShell({
   title,
@@ -32,27 +32,13 @@ export function AppShell({
           <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
         </div>
 
-        <nav className="flex flex-wrap gap-3 text-sm">
-          {APP_NAV_LINKS.filter((link) => link.href !== "/app/billing").map((link) => {
-            const isActive =
-              pathname === link.href ||
-              (link.href !== "/app" && pathname.startsWith(link.href));
-
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`rounded-full border px-3 py-1.5 transition ${
-                  isActive
-                    ? "border-zinc-400 text-zinc-100"
-                    : "border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-zinc-100"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <WorkspaceNav
+          pathname={pathname}
+          isAdmin={false}
+          className="flex flex-wrap gap-3 text-sm"
+          linkClassName="rounded-full border border-zinc-700 px-3 py-1.5 text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100"
+          activeLinkClassName="border-zinc-400 text-zinc-100"
+        />
       </header>
 
       <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">

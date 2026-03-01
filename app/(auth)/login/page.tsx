@@ -2,14 +2,16 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AuthShell from "../_components/auth-shell";
 import { createClient } from "@/src/lib/supabase/client";
 import { signInWithGoogle } from "@/src/lib/supabase/oauth";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
+import { resolveReturnTo } from "@/src/lib/auth/resolveReturnTo";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -17,13 +19,13 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
-
   const handleGoogleSignIn = async () => {
     setError("");
     setGoogleLoading(true);
 
     try {
-      await signInWithGoogle();
+      const resolvedReturnTo = resolveReturnTo(searchParams.get("returnTo"));
+      await signInWithGoogle({ returnTo: resolvedReturnTo });
     } catch (googleError) {
       setError(
         googleError instanceof Error
@@ -51,7 +53,8 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/app");
+      const resolvedReturnTo = resolveReturnTo(searchParams.get("returnTo"));
+      router.replace(resolvedReturnTo ?? "/app");
     } catch (clientError) {
       setError(
         clientError instanceof Error

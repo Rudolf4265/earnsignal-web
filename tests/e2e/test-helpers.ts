@@ -158,6 +158,45 @@ export async function stubUnhandledApiRoutes(page: Page) {
   });
 }
 
+
+export async function stubPasswordLoginSuccess(page: Page) {
+  await page.route(`${SUPABASE_URL}/auth/v1/token**`, async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.fulfill({ status: 405, body: "{}", contentType: "application/json" });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        access_token: "access-token",
+        refresh_token: "refresh-token",
+        expires_in: 3600,
+        token_type: "bearer",
+        user: {
+          id: "user_123",
+          email: "staff@earnsignal.test",
+        },
+      }),
+    });
+  });
+
+  await page.route(`${SUPABASE_URL}/auth/v1/user`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "user_123",
+        email: "staff@earnsignal.test",
+        role: "authenticated",
+        app_metadata: {},
+        user_metadata: {},
+      }),
+    });
+  });
+}
+
 export async function assertNoGateLoading(page: Page) {
   await expect(page.getByTestId("gate-loading")).toHaveCount(0);
 }

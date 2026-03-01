@@ -59,3 +59,10 @@ test("canAccessPathWhenUnentitled allows only policy-safe routes", async () => {
   assert.equal(canAccessPathWhenUnentitled("/app/data"), true);
   assert.equal(canAccessPathWhenUnentitled("/app/report"), false);
 });
+
+
+test("buildLoginHref encodes full return path with query", async () => {
+  const { buildLoginHref } = await import(`${moduleUrl}?t=${Date.now()}-build-login`);
+
+  assert.equal(buildLoginHref("/app/report/123?tab=overview&range=30d"), "/login?returnTo=%2Fapp%2Freport%2F123%3Ftab%3Doverview%26range%3D30d");
+});

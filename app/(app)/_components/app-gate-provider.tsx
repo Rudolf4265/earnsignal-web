@@ -7,7 +7,13 @@ import { fetchEntitlements, type EntitlementsResponse } from "@/src/lib/api/enti
 import { checkIsAdmin } from "@/src/lib/admin/access";
 import { createClient } from "@/src/lib/supabase/client";
 import { getSession, onAuthStateChange } from "@/src/lib/supabase/session";
-import { deriveAppGateState, isAppGateLoading, type AppGateState, type EntitlementsResolution } from "@/src/lib/gating/app-gate";
+import {
+  buildLoginHref,
+  deriveAppGateState,
+  isAppGateLoading,
+  type AppGateState,
+  type EntitlementsResolution,
+} from "@/src/lib/gating/app-gate";
 
 type GateActions = {
   signIn: (returnTo?: string) => void;
@@ -118,8 +124,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
     () => ({
       signIn: (returnTo = "/app") => {
         if (typeof window !== "undefined") {
-          const encoded = encodeURIComponent(returnTo);
-          window.location.assign(`/login?returnTo=${encoded}`);
+          window.location.assign(buildLoginHref(returnTo));
         }
       },
       signOut: async () => {

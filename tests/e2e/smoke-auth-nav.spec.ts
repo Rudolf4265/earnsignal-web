@@ -4,6 +4,7 @@ import {
   stubAuthenticatedSession,
   stubEntitlements,
   stubEntitlementsSessionExpired,
+  stubPasswordLoginSuccess,
   stubUnauthenticatedSession,
   stubUnhandledApiRoutes,
 } from "./test-helpers";
@@ -16,6 +17,23 @@ test.describe("Auth + Nav + Gate smoke", () => {
     await page.goto("/app");
 
     await expect(page).toHaveURL(/\/login\?returnTo=%2Fapp/);
+  });
+
+  test("deep link survives password login", async ({ page }) => {
+    await stubUnhandledApiRoutes(page);
+    await stubUnauthenticatedSession(page);
+    await stubPasswordLoginSuccess(page);
+    await stubEntitlements(page, "entitled");
+
+    await page.goto("/app/report/abc");
+
+    await expect(page).toHaveURL(/\/login\?returnTo=%2Fapp%2Freport%2Fabc/);
+
+    await page.locator("input[type=email]").fill("staff@earnsignal.test");
+    await page.locator("input[type=password]").fill("password123");
+    await page.getByRole("button", { name: "Log in" }).click();
+
+    await expect(page).toHaveURL("/app/report/abc");
   });
 
   test("authenticated entitled user lands on dashboard without redirect loop", async ({ page }) => {

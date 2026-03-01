@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { buildLoginHref } from "@/src/lib/gating/app-gate";
 import { AppGateProvider, useAppGate } from "./_components/app-gate-provider";
@@ -12,7 +12,6 @@ import { WorkspaceNav } from "./_components/workspace-nav";
 function AppLayoutFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { state, session, isAdmin, actions, requestId } = useAppGate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const redirectedToLoginRef = useRef(false);
@@ -21,7 +20,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
     if (state === "anon") {
       if (!redirectedToLoginRef.current) {
         redirectedToLoginRef.current = true;
-        const queryString = searchParams.toString();
+        const queryString = typeof window === "undefined" ? "" : window.location.search.replace(/^\?/, "");
         const returnTo = queryString ? `${pathname}?${queryString}` : pathname;
         router.replace(buildLoginHref(returnTo));
       }
@@ -29,7 +28,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
     }
 
     redirectedToLoginRef.current = false;
-  }, [pathname, router, searchParams, state]);
+  }, [pathname, router, state]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);

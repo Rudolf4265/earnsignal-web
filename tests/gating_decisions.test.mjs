@@ -66,3 +66,37 @@ test("buildLoginHref encodes full return path with query", async () => {
 
   assert.equal(buildLoginHref("/app/report/123?tab=overview&range=30d"), "/login?returnTo=%2Fapp%2Freport%2F123%3Ftab%3Doverview%26range%3D30d");
 });
+
+
+test("resolveEntitlementsError normalizes 401 into session_expired", async () => {
+  const { ApiError } = await import(pathToFileURL(path.resolve("src/lib/api/client.ts")).href + `?t=${Date.now()}-apierr-401`);
+  const { resolveEntitlementsError } = await import(`${moduleUrl}?t=${Date.now()}-resolve-401`);
+
+  const unknownPayload = new ApiError({
+    status: 401,
+    code: "HTTP_401",
+    message: "Unauthorized",
+    requestId: "req_unknown_401",
+    operation: "entitlements.fetch",
+    path: "/v1/entitlements",
+    method: "GET",
+  });
+
+  assert.deepEqual(resolveEntitlementsError(unknownPayload), { status: "session_expired", requestId: "req_unknown_401" });
+});
+
+test("resolveEntitlementsError keeps 403 as generic error", async () => {
+  const { ApiError } = await import(pathToFileURL(path.resolve("src/lib/api/client.ts")).href + `?t=${Date.now()}-apierr-403`);
+  const { resolveEntitlementsError } = await import(`${moduleUrl}?t=${Date.now()}-resolve-403`);
+
+  const forbidden = new ApiError({
+    status: 403,
+    code: "FORBIDDEN",
+    message: "Forbidden",
+    operation: "entitlements.fetch",
+    path: "/v1/entitlements",
+    method: "GET",
+  });
+
+  assert.deepEqual(resolveEntitlementsError(forbidden), { status: "error" });
+});

@@ -1,4 +1,10 @@
-"use client";
+function assertDebugEnabled() {
+  if (process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_ENABLE_DEBUG !== "true") {
+    notFound();
+  }
+}
+
+import { notFound } from "next/navigation";
 
 function maskSecret(value: string | undefined): string {
   if (!value) {
@@ -13,8 +19,10 @@ function maskSecret(value: string | undefined): string {
 }
 
 export default function EnvDebugPage() {
+  assertDebugEnabled();
+
   const values = {
-    origin: typeof window === "undefined" ? "(server render)" : window.location.origin,
+    origin: "(server-only debug page)",
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "(missing)",
     NEXT_PUBLIC_SUPABASE_ANON_KEY: maskSecret(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "(missing)",

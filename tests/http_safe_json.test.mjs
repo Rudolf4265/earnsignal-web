@@ -3,53 +3,70 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-const moduleUrl = pathToFileURL(path.resolve("src/lib/api/http.ts")).href;
+const moduleUrl = pathToFileURL(path.resolve("src/lib/api/client.ts")).href;
 
-function mockResponse({ status = 200, contentType = "application/json", body = "" }) {
-  return {
-    status,
-    headers: { get: () => contentType },
-    text: async () => body,
-  };
-}
+test("apiFetchJson normalizes API errors and captures request id", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
 
-test("safeParseJsonResponse parses JSON payload", async () => {
-  const { safeParseJsonResponse } = await import(`${moduleUrl}?t=${Date.now()}`);
-  const parsed = await safeParseJsonResponse(mockResponse({ body: '{"ok":true}' }));
-  assert.deepEqual(parsed, { ok: true });
-});
-
-test("safeParseJsonResponse rejects HTML payload", async () => {
-  const { safeParseJsonResponse } = await import(`${moduleUrl}?t=${Date.now() + 1}`);
-  await assert.rejects(
-    safeParseJsonResponse(mockResponse({ contentType: "text/html", body: "<!DOCTYPE html><html></html>" })),
-    /non-JSON response/,
-  );
-});
-
-test("safeParseJsonResponse returns null for empty body", async () => {
-  const { safeParseJsonResponse } = await import(`${moduleUrl}?t=${Date.now() + 2}`);
-  const parsed = await safeParseJsonResponse(mockResponse({ body: "   " }));
-  assert.equal(parsed, null);
-});
-
-test("safeParseJsonResponse returns null for 204", async () => {
-  const { safeParseJsonResponse } = await import(`${moduleUrl}?t=${Date.now() + 3}`);
-  const parsed = await safeParseJsonResponse(mockResponse({ status: 204, body: "" }));
-  assert.equal(parsed, null);
-});
-
-test("fetchApiJson reports status when server returns 401 HTML", async () => {
   global.fetch = async () => ({
-    status: 401,
     ok: false,
-    headers: { get: () => "text/html" },
-    text: async () => "<!DOCTYPE html><html><body>Unauthorized</body></html>",
+    status: 404,
+    headers: {
+      get: (key) => {
+        if (key === "content-type") return "application/json";
+        if (key === "x-request-id") return "req_123";
+        return null;
+      },
+    },
+    text: async () => JSON.stringify({ message: "missing", code: "NOT_FOUND", details: { id: "a1" } }),
   });
 
-  const { fetchApiJson } = await import(`${moduleUrl}?t=${Date.now() + 4}`);
+  try {
+    const { apiFetchJson, ApiError } = await import(`${moduleUrl}?t=${Date.now()}`);
 
-  await assert.rejects(fetchApiJson("/v1/entitlements", { method: "GET" }, "billing status"), /non-JSON response/);
+    await assert.rejects(
+      () => apiFetchJson("entitlements.fetch", "/v1/entitlements", { method: "GET" }),
+      (error) => {
+        assert.equal(error instanceof ApiError, true);
+        assert.equal(error.status, 404);
+        assert.equal(error.code, "NOT_FOUND");
+        assert.equal(error.requestId, "req_123");
+        assert.equal(error.operation, "entitlements.fetch");
+        assert.equal(error.path, "/v1/entitlements");
+        assert.equal(error.method, "GET");
+        return true;
+      },
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
 
-  delete global.fetch;
+test("apiFetchJson returns timeout ApiError", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+
+  global.fetch = async (_url, init = {}) => {
+    await new Promise((_resolve, reject) => {
+      init.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+    });
+    return { ok: true, status: 200, headers: { get: () => "application/json" }, text: async () => "{}" };
+  };
+
+  try {
+    const { apiFetchJson, ApiError } = await import(`${moduleUrl}?t=${Date.now() + 1}`);
+
+    await assert.rejects(
+      () => apiFetchJson("reports.fetch", "/v1/reports", { method: "GET", timeoutMs: 5 }),
+      (error) => {
+        assert.equal(error instanceof ApiError, true);
+        assert.equal(error.code, "TIMEOUT");
+        assert.equal(error.status, 0);
+        return true;
+      },
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
 });

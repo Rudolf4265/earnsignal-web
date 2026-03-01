@@ -4,7 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 
-const gatingUrl = pathToFileURL(path.resolve("src/lib/billing/gating.ts")).href;
+const gatingUrl = pathToFileURL(path.resolve("src/lib/gating/app-gate.ts")).href;
 const adminSourcePath = path.resolve("src/lib/api/admin.ts");
 async function buildAdminModule(tag) {
   const source = await readFile(adminSourcePath, "utf8");
@@ -17,19 +17,17 @@ async function buildAdminModule(tag) {
 }
 
 
-test("decideAppGate allows admin route for admins without entitlement", async () => {
-  const { decideAppGate } = await import(`${gatingUrl}?t=${Date.now()}`);
+test("deriveAppGateState returns authed_admin for entitled admin users", async () => {
+  const { deriveAppGateState } = await import(`${gatingUrl}?t=${Date.now()}`);
 
-  const decision = decideAppGate({
-    hasSession: true,
-    isLoadingSession: false,
-    isLoadingEntitlements: false,
-    isEntitled: false,
+  const decision = deriveAppGateState({
+    isSessionKnown: true,
+    session: { user: { id: "admin_1" } },
+    entitlements: { status: "entitled", entitlements: { plan: "pro", status: "active", entitled: true, features: { app: true } } },
     isAdmin: true,
-    pathname: "/app/admin",
   });
 
-  assert.equal(decision, "allow");
+  assert.equal(decision, "authed_admin");
 });
 
 test("fetchAdminUsers maps backend fields to frontend shape", async () => {

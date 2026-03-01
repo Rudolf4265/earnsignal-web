@@ -2,35 +2,29 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { checkIsAdmin } from "@/src/lib/admin/access";
+import { NotAuthorizedCallout } from "../../_components/gate-callouts";
+import { useAppGate } from "../../_components/app-gate-provider";
 import { AdminUserRow, fetchAdminUsers } from "@/src/lib/api/admin";
 
 export default function AdminUsersPage() {
+  const { isAdmin } = useAppGate();
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    if (!isAdmin) {
+      setIsLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     const load = async () => {
       try {
         setIsLoading(true);
-        const allowed = await checkIsAdmin();
-
-        if (!isMounted) {
-          return;
-        }
-
-        if (!allowed) {
-          window.location.replace("/app");
-          return;
-        }
-
-        setIsAdmin(true);
         const result = await fetchAdminUsers(query);
 
         if (!isMounted) {
@@ -57,12 +51,16 @@ export default function AdminUsersPage() {
     return () => {
       isMounted = false;
     };
-  }, [query]);
+  }, [isAdmin, query]);
 
   const totalText = useMemo(() => `${users.length} user${users.length === 1 ? "" : "s"}`, [users.length]);
 
-  if (!isAdmin && isLoading) {
-    return <p className="text-sm text-gray-300">Validating admin access…</p>;
+  if (!isAdmin) {
+    return <NotAuthorizedCallout />;
+  }
+
+  if (isLoading) {
+    return <p className="text-sm text-gray-300">Loading admin users…</p>;
   }
 
   return (

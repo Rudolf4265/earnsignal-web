@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { checkIsAdmin } from "@/src/lib/admin/access";
+import { useAppGate } from "@/app/(app)/_components/app-gate-provider";
 
 const checks = [
   { label: "Auth: login", href: "/login" },
@@ -15,25 +14,8 @@ const checks = [
 ];
 
 export default function QaDebugPage() {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [ready, setReady] = useState(false);
+  const { isAdmin } = useAppGate();
   const isProd = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
-
-  useEffect(() => {
-    const run = async () => {
-      try {
-        setIsAdmin(await checkIsAdmin());
-      } finally {
-        setReady(true);
-      }
-    };
-
-    void run();
-  }, []);
-
-  if (!ready) {
-    return <p className="text-sm text-gray-300">Checking debug access…</p>;
-  }
 
   if (isProd && !isAdmin) {
     return <p className="text-sm text-gray-300">Not available in production.</p>;

@@ -85,3 +85,33 @@ test("pollUploadStatus cancels via AbortController", async () => {
     /cancelled/i,
   );
 });
+
+
+test("pollUploadStatus does not schedule additional sleeps after abort", async () => {
+  const controller = new AbortController();
+  let sleepCalls = 0;
+
+  await assert.rejects(
+    pollUploadStatus({
+      signal: controller.signal,
+      getStatus: async () => ({
+        status: "processing",
+        uploadId: "u-abort",
+        reasonCode: null,
+        message: null,
+        reportId: null,
+        rawStatus: "processing",
+        updatedAt: null,
+      }),
+      sleep: async () => {
+        sleepCalls += 1;
+        controller.abort();
+        throw new UploadPollingCancelledError();
+      },
+      config: { timeoutMs: 1000, initialIntervalMs: 1, maxIntervalMs: 1 },
+    }),
+    /cancelled/i,
+  );
+
+  assert.equal(sleepCalls, 1);
+});

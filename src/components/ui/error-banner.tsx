@@ -1,13 +1,15 @@
 "use client";
 
-type ErrorBannerProps = {
+import type { HTMLAttributes, ReactNode } from "react";
+
+type ErrorBannerProps = HTMLAttributes<HTMLDivElement> & {
   title?: string;
   message: string;
   retryLabel?: string;
   onRetry?: () => void;
-  action?: React.ReactNode;
+  action?: ReactNode;
   className?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
   requestId?: string;
 };
 
@@ -20,9 +22,14 @@ export function ErrorBanner({
   className = "",
   children,
   requestId,
+  ...rest
 }: ErrorBannerProps) {
   return (
-    <div className={`rounded-xl border border-rose-300/30 bg-rose-500/10 p-4 text-rose-100 ${className}`} role="alert">
+    <div
+      className={`rounded-xl border border-rose-300/30 bg-rose-500/10 p-4 text-rose-100 ${className}`}
+      role="alert"
+      {...rest}
+    >
       <p className="text-sm font-semibold">{title}</p>
       <p className="mt-1 text-sm text-rose-100/90">{message}</p>
       {children ? <div className="mt-2">{children}</div> : null}

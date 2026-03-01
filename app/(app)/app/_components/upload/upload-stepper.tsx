@@ -14,6 +14,7 @@ import {
 import { pollUploadStatus, UploadPollingCancelledError } from "@/src/lib/upload/polling";
 import { mapApiErrorToUploadFailure } from "@/src/lib/upload/errors";
 import { buildUploadDiagnostics, mapUploadStatus, type UploadUiStatus } from "@/src/lib/upload/status";
+import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/lib/upload/resume";
 import InlineAlert from "./InlineAlert";
 import StepHeader from "./StepHeader";
 import Stepper from "./Stepper";
@@ -27,8 +28,6 @@ type PlatformOption = {
   label: string;
   supported: boolean;
 };
-
-const LAST_UPLOAD_ID_KEY = "earnsignal:last_upload_id";
 
 const platforms: PlatformOption[] = [
   { id: "patreon", label: "Patreon", supported: true },
@@ -66,21 +65,6 @@ const friendlyFailureMessage = (reasonCode: string | null) => {
   }
 };
 
-function readStoredUploadId(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(LAST_UPLOAD_ID_KEY);
-}
-
-function storeUploadId(uploadId: string | null) {
-  if (typeof window === "undefined") return;
-  if (!uploadId) {
-    window.localStorage.removeItem(LAST_UPLOAD_ID_KEY);
-    return;
-  }
-
-  window.localStorage.setItem(LAST_UPLOAD_ID_KEY, uploadId);
-}
-
 export default function UploadStepper() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const pollAbortRef = useRef<AbortController | null>(null);
@@ -94,9 +78,12 @@ export default function UploadStepper() {
   const [error, setError] = useState<string | null>(null);
   const [reasonCode, setReasonCode] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [errorRequestId, setErrorRequestId] = useState<string | null>(null);
+  const [errorOperation, setErrorOperation] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<UploadUiStatus | null>(null);
+  const [hasResumeCandidate, setHasResumeCandidate] = useState(false);
 
   const activeStepIndex = stepOrder.indexOf(step);
   const progressPct = Math.round(((activeStepIndex + 1) / stepOrder.length) * 100);
@@ -118,13 +105,32 @@ export default function UploadStepper() {
     pollAbortRef.current = null;
   }, []);
 
+  const logUploadDiagnostic = useCallback((event: string, details: Record<string, unknown>) => {
+    if (process.env.NODE_ENV === "production") {
+      return;
+    }
+
+    console.info("[upload]", { event, ...details });
+  }, []);
+
+
   const setFailureState = useCallback(
-    (params: { uploadId: string | null; rawStatus: string | null; reasonCode: string; message: string; updatedAt?: string | null }) => {
+    (params: {
+      uploadId: string | null;
+      rawStatus: string | null;
+      reasonCode: string;
+      message: string;
+      updatedAt?: string | null;
+      requestId?: string | null;
+      operation?: string | null;
+    }) => {
       setStep("processing");
       setProcessingStatus("failed");
       setError(friendlyFailureMessage(params.reasonCode));
       setReasonCode(params.reasonCode);
       setStatusMsg(params.message);
+      setErrorRequestId(params.requestId ?? null);
+      setErrorOperation(params.operation ?? null);
       setErrorDetails(
         buildUploadDiagnostics({
           uploadId: params.uploadId,
@@ -132,10 +138,18 @@ export default function UploadStepper() {
           reasonCode: params.reasonCode,
           message: params.message,
           updatedAt: params.updatedAt,
+          requestId: params.requestId,
+          operation: params.operation,
         }),
       );
+      logUploadDiagnostic("terminal_failure", {
+        uploadId: params.uploadId,
+        reasonCode: params.reasonCode,
+        requestId: params.requestId ?? null,
+        operation: params.operation ?? null,
+      });
     },
-    [],
+    [logUploadDiagnostic],
   );
 
   const updateProcessingFromEnvelope = useCallback(
@@ -155,6 +169,8 @@ export default function UploadStepper() {
         setError(null);
         setReasonCode(null);
         setErrorDetails(null);
+        setErrorRequestId(null);
+        setErrorOperation(null);
         return;
       }
 
@@ -164,6 +180,8 @@ export default function UploadStepper() {
         setError(null);
         setReasonCode(null);
         setErrorDetails(null);
+        setErrorRequestId(null);
+        setErrorOperation(null);
         return;
       }
 
@@ -189,10 +207,15 @@ export default function UploadStepper() {
     setError(null);
     setReasonCode(null);
     setErrorDetails(null);
+    setErrorRequestId(null);
+    setErrorOperation(null);
     setWarnings([]);
     setBusy(false);
     setProcessingStatus(null);
-    storeUploadId(null);
+    setHasResumeCandidate(false);
+    if (typeof window !== "undefined") {
+      clearUploadResume(window.localStorage);
+    }
     if (inputRef.current) {
       inputRef.current.value = "";
     }
@@ -246,6 +269,7 @@ export default function UploadStepper() {
             rawStatus: "processing",
             reasonCode: "timeout",
             message: "Upload is still processing. Retry status check in a moment.",
+            operation: "uploads.status",
           });
           return;
         }
@@ -256,6 +280,8 @@ export default function UploadStepper() {
           rawStatus: null,
           reasonCode: mapped.reasonCode,
           message: mapped.message,
+          requestId: mapped.requestId,
+          operation: mapped.operation,
         });
         if (mapped.shouldStopPolling) {
           stopPolling();
@@ -279,6 +305,8 @@ export default function UploadStepper() {
     setError(null);
     setReasonCode(null);
     setErrorDetails(null);
+    setErrorRequestId(null);
+    setErrorOperation(null);
     setWarnings([]);
 
     try {
@@ -293,7 +321,9 @@ export default function UploadStepper() {
       });
 
       setUploadId(presign.upload_id);
-      storeUploadId(presign.upload_id);
+      if (typeof window !== "undefined") {
+        writeUploadResume(window.localStorage, presign.upload_id);
+      }
 
       setStatusMsg("Uploading file…");
       await uploadFileToPresignedUrl({
@@ -329,6 +359,8 @@ export default function UploadStepper() {
         rawStatus: null,
         reasonCode: mapped.reasonCode,
         message: mapped.message,
+        requestId: mapped.requestId,
+        operation: mapped.operation,
       });
     } finally {
       setBusy(false);
@@ -359,7 +391,9 @@ export default function UploadStepper() {
   }, [stopPolling]);
 
   useEffect(() => {
-    const resumeUploadId = readStoredUploadId();
+    const resumeRecord = typeof window !== "undefined" ? readUploadResume(window.localStorage) : null;
+    const resumeUploadId = resumeRecord?.uploadId ?? null;
+    setHasResumeCandidate(Boolean(resumeUploadId));
     if (!resumeUploadId || busy || step !== "platform") {
       return;
     }
@@ -391,6 +425,9 @@ export default function UploadStepper() {
         const mapped = mapApiErrorToUploadFailure(resumeError);
 
         if (mapped.reasonCode === "upload_not_found") {
+          if (typeof window !== "undefined") {
+            clearUploadResume(window.localStorage);
+          }
           try {
             const latest = await getLatestUploadStatus();
             if (!active) return;
@@ -410,6 +447,8 @@ export default function UploadStepper() {
           rawStatus: null,
           reasonCode: mapped.reasonCode,
           message: mapped.message,
+          requestId: mapped.requestId,
+          operation: mapped.operation,
         });
       } finally {
         if (active) {
@@ -430,15 +469,16 @@ export default function UploadStepper() {
       <Stepper steps={steps} activeIndex={activeStepIndex} />
 
       {error ? (
-        <ErrorBanner
+        <ErrorBanner data-testid="upload-terminal-error"
           title="Upload needs attention"
           message={error}
-          retryLabel="Retry status"
+retryLabel="Retry status"
           onRetry={uploadId && !busy ? () => void retryProcessing() : undefined}
           action={
             <>
               <button
                 type="button"
+                data-testid="upload-reset"
                 className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-100 hover:bg-white/5"
                 onClick={resetFlow}
               >
@@ -446,6 +486,7 @@ export default function UploadStepper() {
               </button>
               <button
                 type="button"
+                data-testid="upload-copy-diagnostics"
                 className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-100 hover:bg-white/5"
                 onClick={copyDiagnostics}
                 disabled={!errorDetails}
@@ -457,6 +498,10 @@ export default function UploadStepper() {
         >
           <div className="space-y-2">
             {reasonCode ? <p className="text-xs text-red-100/80">Reason code: {reasonCode}</p> : null}
+            {errorRequestId ? (
+              <p className="text-xs text-red-100/80" data-testid="upload-request-id">Request ID: {errorRequestId}</p>
+            ) : null}
+            {errorOperation ? <p className="text-xs text-red-100/80">Operation: {errorOperation}</p> : null}
             {reasonCode === "session_expired" ? (
               <Link href="/login" className="inline-flex rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/15">
                 Log in again
@@ -488,6 +533,11 @@ export default function UploadStepper() {
 
       {step === "platform" ? (
         <div className="space-y-5">
+          {uploadId ? null : hasResumeCandidate ? (
+            <InlineAlert variant="info" title="Found an in-progress upload" data-testid="upload-resume-banner">
+              We found a recent upload and will automatically check its status.
+            </InlineAlert>
+          ) : null}
           <StepHeader title="Choose platform" subtitle="Select the data source for this upload." />
           <div className="grid gap-3 sm:grid-cols-2">
             {platforms.map((item) => {
@@ -517,6 +567,8 @@ export default function UploadStepper() {
                 setStep("file");
                 setError(null);
                 setErrorDetails(null);
+        setErrorRequestId(null);
+        setErrorOperation(null);
               }}
               className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white shadow-brandGlow transition hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -604,24 +656,39 @@ export default function UploadStepper() {
             )}
             <p className="text-sm text-gray-200">{statusMsg ?? "Working…"}</p>
           </div>
-          <button
-            type="button"
-            onClick={resetFlow}
-            className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5"
-          >
-            Start over
-          </button>
+          <div className="flex gap-2">
+            {error ? (
+              <button
+                type="button"
+                data-testid="upload-retry"
+                onClick={() => void retryProcessing()}
+                disabled={!uploadId || busy}
+                className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Retry status
+              </button>
+            ) : null}
+            <button
+              type="button"
+              data-testid="upload-reset"
+              onClick={resetFlow}
+              className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5"
+            >
+              Start over
+            </button>
+          </div>
         </div>
       ) : null}
 
       {step === "done" ? (
         <div className="space-y-5">
-          <InlineAlert variant="success" title="Report ready">
+          <InlineAlert variant="success" title="Report ready" data-testid="upload-terminal-success">
             Your upload was validated and your report is now available.
           </InlineAlert>
           <div className="flex flex-wrap gap-2">
             <Link
               href={reportId ? `/app/report/${reportId}` : "/app/report"}
+              data-testid="upload-view-report"
               className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white shadow-brandGlow hover:bg-brand-blue/90"
             >
               View report
@@ -640,13 +707,27 @@ export default function UploadStepper() {
 
       {step !== "done" && step !== "uploading" && step !== "processing" ? (
         <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={resetFlow}
-            className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5"
-          >
-            Start over
-          </button>
+          <div className="flex gap-2">
+            {error ? (
+              <button
+                type="button"
+                data-testid="upload-retry"
+                onClick={() => void retryProcessing()}
+                disabled={!uploadId || busy}
+                className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Retry status
+              </button>
+            ) : null}
+            <button
+              type="button"
+              data-testid="upload-reset"
+              onClick={resetFlow}
+              className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5"
+            >
+              Start over
+            </button>
+          </div>
         </div>
       ) : null}
     </UploadCard>

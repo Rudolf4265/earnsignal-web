@@ -33,5 +33,7 @@ test("buildUploadDiagnostics returns deterministic safe json", () => {
     reason_code: "validation_failed",
     message: "invalid column",
     updated_at: "2026-01-01T00:00:00.000Z",
+    request_id: null,
+    operation: null,
   });
 });

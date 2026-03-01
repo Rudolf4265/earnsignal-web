@@ -1,0 +1,12 @@
+{
+  "status": "ok",
+  "code": "OK",
+  "message": "Upload processing.",
+  "details": {
+    "upload_id": "upl_123",
+    "status": "processing",
+    "reason_code": null,
+    "report_id": null
+  },
+  "request_id": "req_upload_processing_001"
+}

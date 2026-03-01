@@ -1,0 +1,17 @@
+{
+  "status": "ok",
+  "code": "OK",
+  "message": "Entitlements loaded.",
+  "details": {
+    "plan": "plan_a",
+    "status": "active",
+    "entitled": true,
+    "features": {
+      "app": true,
+      "upload": true,
+      "report": true
+    },
+    "portal_url": "https://stripe.test/portal"
+  },
+  "request_id": "req_entitled_001"
+}

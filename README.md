@@ -103,3 +103,53 @@ Use these constants in Stripe checkout session creation.
 - Wire Supabase auth actions/forms on `/login` and `/signup`.
 - Wire Stripe checkout and use URL constants from `src/lib/urls.ts` when creating sessions.
 - Replace placeholder legal text on Privacy + Terms pages.
+
+## Playwright E2E suite
+
+### Local run
+
+```bash
+npm run e2e
+npm run e2e:ui
+npm run e2e:headed
+```
+
+The suite is configured in `playwright.config.ts` and runs tests under `tests/e2e`.
+
+### Backend stubbing model
+
+E2E tests are deterministic and do not depend on live backend services.
+
+- API routes are stubbed with `page.route(...)`.
+- Auth session shape is mocked in browser storage and Supabase auth endpoints are routed.
+- Critical API paths covered by stubs include:
+  - `/v1/entitlements`
+  - `/v1/billing/checkout` and fallback `/v1/checkout`
+  - `/v1/uploads/presign`, `/v1/uploads/callback`, `/v1/uploads/:id/status`, `/v1/uploads/latest/status`
+  - presigned storage `PUT` upload URL
+
+### Mock test accounts
+
+The E2E suite uses mocked account profiles rather than real users:
+
+- `staff@earnsignal.test` (authenticated + entitled)
+- `staff@earnsignal.test` with unentitled fixture
+- Anonymous (no session) for redirect assertions
+- Session-expired responses (`SESSION_EXPIRED`) for gate assertions
+
+### CI recipe (generic / GitHub Actions style)
+
+```bash
+npm ci
+npx playwright install --with-deps
+npm run build
+npm run start -- --port 3000 &
+npm run e2e:ci
+```
+
+Recommended CI order:
+1. Build app
+2. Start server on fixed port (3000)
+3. Wait until app is reachable (`/livez` if available, otherwise `/login`)
+4. Run Playwright tests
+5. Upload `playwright-report`, `test-results`, traces/videos/screenshots on failure

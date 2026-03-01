@@ -1,0 +1,11 @@
+{
+  "status": "ok",
+  "code": "OK",
+  "message": "Report ready.",
+  "details": {
+    "upload_id": "upl_123",
+    "status": "report_ready",
+    "report_id": "rep_123"
+  },
+  "request_id": "req_upload_ready_001"
+}

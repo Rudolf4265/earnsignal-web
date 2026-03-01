@@ -10,7 +10,7 @@ import { EntitlementsProvider, useEntitlements } from "./_components/entitlement
 import { checkIsAdmin } from "@/src/lib/admin/access";
 import { createClient } from "@/src/lib/supabase/client";
 import { WorkspaceLoadingShell } from "./_components/ui/skeleton";
-import { APP_NAV_LINKS } from "@/src/lib/navigation/app-nav";
+import { WorkspaceNav } from "./_components/workspace-nav";
 
 function AppLayoutFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -131,7 +131,6 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const navLinks = isAdmin ? [...APP_NAV_LINKS, { href: "/app/admin", label: "Admin" }] : APP_NAV_LINKS;
 
   return (
     <div className="min-h-screen bg-navy-950 text-white md:flex">
@@ -141,25 +140,13 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
           <span className="font-semibold">EarnSigma</span>
         </Link>
 
-        <nav className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 md:grid-cols-1 md:space-y-2 md:gap-0">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href || (link.href !== "/app" && pathname.startsWith(link.href));
-
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`rounded-lg border px-3 py-2 transition ${
-                  isActive
-                    ? "border-brand-blue/40 bg-brand-blue/20 text-white"
-                    : "border-transparent text-gray-300 hover:border-white/10 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <WorkspaceNav
+          pathname={pathname}
+          isAdmin={isAdmin}
+          className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 md:grid-cols-1 md:space-y-2 md:gap-0"
+          linkClassName="rounded-lg border border-transparent px-3 py-2 text-gray-300 transition hover:border-white/10 hover:bg-white/5 hover:text-white"
+          activeLinkClassName="border-brand-blue/40 bg-brand-blue/20 text-white"
+        />
 
         <div className="mt-6 border-t border-white/10 pt-4 md:mt-auto md:pt-6">
           <p className="truncate text-xs text-gray-300">{userEmail ?? "Signed in"}</p>

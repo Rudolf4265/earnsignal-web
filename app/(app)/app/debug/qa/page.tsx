@@ -7,7 +7,7 @@ import { checkIsAdmin } from "@/src/lib/admin/access";
 const checks = [
   { label: "Auth: login", href: "/login" },
   { label: "Dashboard", href: "/app" },
-  { label: "Upload flow", href: "/app/upload" },
+  { label: "Upload flow", href: "/app/data" },
   { label: "Reports list", href: "/app/report" },
   { label: "Billing", href: "/app/billing" },
   { label: "Admin console", href: "/app/admin" },

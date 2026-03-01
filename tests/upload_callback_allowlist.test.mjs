@@ -16,7 +16,7 @@ async function buildUploadModule(tag) {
   return pathToFileURL(outFile).href;
 }
 
-test("finalizeUploadCallback ignores callback_url on foreign origin", async () => {
+async function runFinalize(callbackUrl) {
   const originalFetch = global.fetch;
   process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
 
@@ -32,7 +32,7 @@ test("finalizeUploadCallback ignores callback_url on foreign origin", async () =
   };
 
   try {
-    const uploadUrl = await buildUploadModule(Date.now());
+    const uploadUrl = await buildUploadModule(`${Date.now()}-${Math.random()}`);
     const { finalizeUploadCallback } = await import(`${uploadUrl}?t=${Date.now()}`);
     await finalizeUploadCallback(
       {
@@ -42,11 +42,26 @@ test("finalizeUploadCallback ignores callback_url on foreign origin", async () =
         size: 1,
         content_type: "text/csv",
       },
-      "https://evil.example.net/callback",
+      callbackUrl,
     );
 
-    assert.equal(urls[0], "https://api.example.test/v1/uploads/callback");
+    return urls[0];
   } finally {
     global.fetch = originalFetch;
   }
+}
+
+test("finalizeUploadCallback uses callback_url when absolute origin matches API", async () => {
+  const calledUrl = await runFinalize("https://api.example.test/custom/callback?x=1");
+  assert.equal(calledUrl, "https://api.example.test/custom/callback?x=1");
+});
+
+test("finalizeUploadCallback ignores callback_url on foreign origin", async () => {
+  const calledUrl = await runFinalize("https://evil.example.net/callback");
+  assert.equal(calledUrl, "https://api.example.test/v1/uploads/callback");
+});
+
+test("finalizeUploadCallback allows relative callback_url", async () => {
+  const calledUrl = await runFinalize("/v1/uploads/callback-alt");
+  assert.equal(calledUrl, "https://api.example.test/v1/uploads/callback-alt");
 });

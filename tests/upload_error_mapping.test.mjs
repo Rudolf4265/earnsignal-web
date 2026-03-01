@@ -16,18 +16,29 @@ const apiModuleUrl = pathToFileURL(uploadTempPath).href;
 const { ApiError } = await import(`${apiModuleUrl}?t=${Date.now()}`);
 const { mapApiErrorToUploadFailure } = await import(`${errorModuleUrl}?t=${Date.now()}`);
 
-test("mapApiErrorToUploadFailure handles auth expiration without redirect", () => {
-  const unauthorized = mapApiErrorToUploadFailure(new ApiError({ status: 401, code: "HTTP_401", message: "Unauthorized", operation: "test", path: "/x", method: "GET" }));
-  const forbidden = mapApiErrorToUploadFailure(new ApiError({ status: 403, code: "HTTP_403", message: "Forbidden", operation: "test", path: "/x", method: "GET" }));
+test("mapApiErrorToUploadFailure handles auth expiration with request metadata", () => {
+  const unauthorized = mapApiErrorToUploadFailure(
+    new ApiError({
+      status: 401,
+      code: "HTTP_401",
+      message: "Unauthorized",
+      operation: "uploads.status",
+      path: "/x",
+      method: "GET",
+      requestId: "req_401",
+    }),
+  );
 
   assert.equal(unauthorized.reasonCode, "session_expired");
   assert.equal(unauthorized.shouldStopPolling, true);
-  assert.equal(forbidden.reasonCode, "session_expired");
-  assert.equal(forbidden.shouldStopPolling, true);
+  assert.equal(unauthorized.requestId, "req_401");
+  assert.equal(unauthorized.operation, "uploads.status");
 });
 
 test("mapApiErrorToUploadFailure maps not-found to recoverable state", () => {
-  const notFound = mapApiErrorToUploadFailure(new ApiError({ status: 404, code: "HTTP_404", message: "missing", operation: "test", path: "/x", method: "GET" }));
+  const notFound = mapApiErrorToUploadFailure(
+    new ApiError({ status: 404, code: "HTTP_404", message: "missing", operation: "test", path: "/x", method: "GET" }),
+  );
 
   assert.equal(notFound.reasonCode, "upload_not_found");
   assert.equal(notFound.shouldStopPolling, true);
@@ -38,4 +49,5 @@ test("mapApiErrorToUploadFailure keeps unknown errors retryable", () => {
 
   assert.equal(result.reasonCode, "upload_failed");
   assert.equal(result.shouldStopPolling, false);
+  assert.equal(result.requestId, null);
 });

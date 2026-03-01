@@ -79,6 +79,8 @@ export function buildUploadDiagnostics(params: {
   reasonCode: string | null;
   message: string | null;
   updatedAt?: string | null;
+  requestId?: string | null;
+  operation?: string | null;
 }): string {
   return JSON.stringify(
     {
@@ -87,6 +89,8 @@ export function buildUploadDiagnostics(params: {
       reason_code: params.reasonCode ?? null,
       message: params.message ?? null,
       updated_at: params.updatedAt ?? null,
+      request_id: params.requestId ?? null,
+      operation: params.operation ?? null,
     },
     null,
     2,

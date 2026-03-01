@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
-type InlineAlertProps = {
+type InlineAlertProps = HTMLAttributes<HTMLDivElement> & {
   variant: "error" | "warn" | "success" | "info";
   title?: string;
   children?: ReactNode;
@@ -13,9 +13,9 @@ const styles: Record<InlineAlertProps["variant"], string> = {
   info: "border-blue-500/20 bg-blue-500/10 text-blue-100",
 };
 
-export default function InlineAlert({ variant, title, children }: InlineAlertProps) {
+export default function InlineAlert({ variant, title, children, className, ...rest }: InlineAlertProps) {
   return (
-    <div className={`rounded-xl border px-4 py-3 ${styles[variant]}`}>
+    <div className={`rounded-xl border px-4 py-3 ${styles[variant]} ${className ?? ""}`.trim()} {...rest}>
       {title ? <p className="text-sm font-semibold">{title}</p> : null}
       {children ? <div className="mt-1 text-sm text-current/90">{children}</div> : null}
     </div>

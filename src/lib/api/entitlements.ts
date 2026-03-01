@@ -1,5 +1,4 @@
-import { ApiResponseError } from "./http";
-import { apiClientJson } from "./client";
+import { ApiError, apiFetchJson } from "./client";
 
 export type EntitlementFeatures = {
   app?: boolean;
@@ -111,9 +110,9 @@ export async function fetchEntitlements(options?: { forceRefresh?: boolean }): P
   }
 
   inFlightEntitlements = (async () => {
-    const body = await apiClientJson<Record<string, unknown>>("/v1/entitlements", {
+    const body = await apiFetchJson<Record<string, unknown>>("entitlements.fetch", "/v1/entitlements", {
       method: "GET",
-    }, "billing status");
+    });
     const value = normalizeEntitlements(body);
     const fetchedAt = Date.now();
 
@@ -204,10 +203,10 @@ export function clearCheckoutAttempt() {
 }
 
 async function requestCheckout(path: string, plan: CheckoutPlan): Promise<CheckoutResponse> {
-  const body = await apiClientJson<Record<string, unknown>>(path, {
+  const body = await apiFetchJson<Record<string, unknown>>("billing.checkout", path, {
     method: "POST",
     body: JSON.stringify({ plan }),
-  }, "checkout session");
+  });
   const checkoutUrl = extractCheckoutUrl(body);
 
   if (!checkoutUrl) {
@@ -232,7 +231,7 @@ export async function createCheckoutSession(plan: CheckoutPlan): Promise<Checkou
     try {
       return await requestCheckout("/v1/billing/checkout", plan);
     } catch (err) {
-      if (!(err instanceof ApiResponseError) || (err.status !== 404 && err.status !== 405)) {
+      if (!(err instanceof ApiError) || (err.status !== 404 && err.status !== 405)) {
         throw err;
       }
 

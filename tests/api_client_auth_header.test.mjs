@@ -6,8 +6,7 @@ import { pathToFileURL } from "node:url";
 
 async function buildApiClientModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/client.ts"), "utf8");
-  const withHttpPath = source.replace('from "./http";', 'from "../src/lib/api/http.ts";');
-  const patched = withHttpPath.replace('import("../supabase/client")', 'import("./mocks/supabase-client.ts")');
+  const patched = source.replace('import("../supabase/client")', 'import("./mocks/supabase-client.ts")');
 
   const outDir = path.resolve(".tmp-tests");
   await mkdir(path.join(outDir, "mocks"), { recursive: true });
@@ -32,31 +31,28 @@ async function buildApiClientModule(tag) {
   return pathToFileURL(outFile).href;
 }
 
-function jsonResponse(payload) {
-  return {
-    status: 200,
-    ok: true,
-    headers: { get: () => "application/json" },
-    text: async () => JSON.stringify(payload),
-  };
-}
-
-test("apiClientJson adds Authorization header for logged-in browser sessions", async () => {
+test("apiFetchJson adds Authorization header for logged-in browser sessions", async () => {
   const originalFetch = global.fetch;
   const originalWindow = global.window;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
   global.window = { location: { hostname: "app.earnsigma.com", protocol: "https:" } };
 
   const requests = [];
   global.fetch = async (_url, init = {}) => {
     requests.push(init);
-    return jsonResponse({ ok: true });
+    return {
+      status: 200,
+      ok: true,
+      headers: { get: () => "application/json" },
+      text: async () => JSON.stringify({ ok: true }),
+    };
   };
 
   try {
     const moduleUrl = await buildApiClientModule(Date.now());
-    const { apiClientJson } = await import(moduleUrl);
+    const { apiFetchJson } = await import(moduleUrl);
 
-    await apiClientJson("/v1/entitlements", { method: "GET" }, "billing status");
+    await apiFetchJson("entitlements.fetch", "/v1/entitlements", { method: "GET" });
 
     const firstHeaders = requests[0].headers;
     assert.equal(firstHeaders.Authorization, "Bearer test-token");

@@ -8,6 +8,7 @@ type ErrorBannerProps = {
   action?: React.ReactNode;
   className?: string;
   children?: React.ReactNode;
+  requestId?: string;
 };
 
 export function ErrorBanner({
@@ -18,12 +19,14 @@ export function ErrorBanner({
   action,
   className = "",
   children,
+  requestId,
 }: ErrorBannerProps) {
   return (
     <div className={`rounded-xl border border-rose-300/30 bg-rose-500/10 p-4 text-rose-100 ${className}`} role="alert">
       <p className="text-sm font-semibold">{title}</p>
       <p className="mt-1 text-sm text-rose-100/90">{message}</p>
       {children ? <div className="mt-2">{children}</div> : null}
+      {requestId ? <p className="mt-2 text-xs text-rose-100/80">Request ID: {requestId}</p> : null}
       {onRetry || action ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {onRetry ? (

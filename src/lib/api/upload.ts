@@ -1,3 +1,5 @@
+import { ApiError, apiFetchJson, getApiBaseOrigin } from "./client";
+
 export type UploadPlatform =
   | "patreon"
   | "substack"
@@ -63,71 +65,30 @@ export type UploadStatusResponse = {
   updatedAt?: string;
 };
 
-export class ApiError extends Error {
-  status: number;
-  code: string | null;
-
-  constructor(message: string, status: number, code?: string | null) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.code = code ?? null;
-  }
-}
-
-const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "";
-
-async function apiFetch<T>(path: string, init: RequestInit): Promise<T> {
-  const authHeaders = await getAuthHeaders();
-
-  const response = await fetch(`${apiBase}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders,
-      ...(init.headers ?? {}),
-    },
-  });
-
-  if (!response.ok) {
-    const bodyText = await response.text();
-    let message = bodyText || `Request failed with status ${response.status}`;
-    let code: string | null = null;
-
-    try {
-      const body = JSON.parse(bodyText) as { detail?: string; message?: string; code?: string; reason_code?: string };
-      message = body.message ?? body.detail ?? message;
-      code = body.code ?? body.reason_code ?? null;
-    } catch {
-      // keep plain-text message fallback
-    }
-
-    throw new ApiError(message, response.status, code);
+function normalizeCallbackPath(callbackUrl?: string): string {
+  const fallback = "/v1/uploads/callback";
+  if (!callbackUrl) {
+    return fallback;
   }
 
-  return (await response.json()) as T;
-}
-
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  if (typeof window === "undefined") {
-    return {};
+  if (!callbackUrl.startsWith("http://") && !callbackUrl.startsWith("https://")) {
+    return callbackUrl;
   }
 
   try {
-    const { createClient } = await import("../supabase/client");
-    const {
-      data: { session },
-    } = await createClient().auth.getSession();
-    const accessToken = session?.access_token;
+    const parsed = new URL(callbackUrl);
+    if (parsed.origin !== getApiBaseOrigin()) {
+      return fallback;
+    }
 
-    return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+    return `${parsed.pathname}${parsed.search}`;
   } catch {
-    return {};
+    return fallback;
   }
 }
 
 export async function createUploadPresign(payload: PresignRequest): Promise<PresignResponse> {
-  const data = await apiFetch<Record<string, unknown>>("/v1/uploads/presign", {
+  const data = await apiFetchJson<Record<string, unknown>>("uploads.presign", "/v1/uploads/presign", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -161,8 +122,8 @@ export async function finalizeUploadCallback(
   payload: UploadCallbackRequest,
   callbackUrl?: string,
 ): Promise<UploadCallbackResponse> {
-  const endpoint = callbackUrl ?? "/v1/uploads/callback";
-  const data = await apiFetch<Record<string, unknown>>(endpoint, {
+  const endpoint = normalizeCallbackPath(callbackUrl);
+  const data = await apiFetchJson<Record<string, unknown>>("uploads.callback", endpoint, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -175,7 +136,7 @@ export async function finalizeUploadCallback(
 }
 
 export async function generateReport(payload: GenerateReportRequest): Promise<GenerateReportResponse> {
-  const data = await apiFetch<Record<string, unknown>>("/v1/reports/generate", {
+  const data = await apiFetchJson<Record<string, unknown>>("reports.generate", "/v1/reports/generate", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -187,13 +148,15 @@ export async function generateReport(payload: GenerateReportRequest): Promise<Ge
 }
 
 export async function getUploadStatus(uploadId: string): Promise<UploadStatusResponse> {
-  return apiFetch<UploadStatusResponse>(`/v1/uploads/${encodeURIComponent(uploadId)}/status`, {
+  return apiFetchJson<UploadStatusResponse>("uploads.status", `/v1/uploads/${encodeURIComponent(uploadId)}/status`, {
     method: "GET",
   });
 }
 
 export async function getLatestUploadStatus(): Promise<UploadStatusResponse> {
-  return apiFetch<UploadStatusResponse>("/v1/uploads/latest/status", {
+  return apiFetchJson<UploadStatusResponse>("uploads.latestStatus", "/v1/uploads/latest/status", {
     method: "GET",
   });
 }
+
+export { ApiError, normalizeCallbackPath };

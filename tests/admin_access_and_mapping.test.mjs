@@ -2,9 +2,20 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 
 const gatingUrl = pathToFileURL(path.resolve("src/lib/billing/gating.ts")).href;
-const adminApiUrl = pathToFileURL(path.resolve("src/lib/api/admin.ts")).href;
+const adminSourcePath = path.resolve("src/lib/api/admin.ts");
+async function buildAdminModule(tag) {
+  const source = await readFile(adminSourcePath, "utf8");
+  const patched = source.replace("./client", "../src/lib/api/client.ts");
+  const outDir = path.resolve(".tmp-tests");
+  await mkdir(outDir, { recursive: true });
+  const outFile = path.join(outDir, `admin-${tag}.ts`);
+  await writeFile(outFile, patched, "utf8");
+  return pathToFileURL(outFile).href;
+}
+
 
 test("decideAppGate allows admin route for admins without entitlement", async () => {
   const { decideAppGate } = await import(`${gatingUrl}?t=${Date.now()}`);
@@ -33,10 +44,13 @@ test("fetchAdminUsers maps backend fields to frontend shape", async () => {
     },
   };
 
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
   global.window = sessionWindow;
   global.fetch = async () => ({
     ok: true,
-    json: async () => ({
+    status: 200,
+    headers: { get: () => "application/json" },
+    text: async () => JSON.stringify({
       users: [
         {
           creator_id: "creator_123",
@@ -53,6 +67,7 @@ test("fetchAdminUsers maps backend fields to frontend shape", async () => {
   });
 
   try {
+    const adminApiUrl = await buildAdminModule(Date.now());
     const { fetchAdminUsers } = await import(`${adminApiUrl}?t=${Date.now()}`);
     const result = await fetchAdminUsers();
 

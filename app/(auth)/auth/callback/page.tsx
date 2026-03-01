@@ -1,17 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import AuthShell from "../../_components/auth-shell";
 import { getSession, onAuthStateChange } from "@/src/lib/supabase/session";
+import { resolveReturnTo } from "@/src/lib/auth/resolveReturnTo";
 
 const SESSION_RETRY_COUNT = 8;
 const SESSION_RETRY_DELAY_MS = 200;
 
 export default function AuthCallbackPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
+  const resolvedReturnTo = resolveReturnTo(searchParams.get("returnTo")) ?? "/app";
 
   useEffect(() => {
     let isMounted = true;
@@ -26,7 +29,7 @@ export default function AuthCallbackPage() {
             return;
           }
 
-          router.replace("/app");
+          router.replace(resolvedReturnTo);
         });
 
         for (let attempt = 0; attempt < SESSION_RETRY_COUNT; attempt += 1) {
@@ -37,7 +40,7 @@ export default function AuthCallbackPage() {
           }
 
           if (data.session) {
-            router.replace("/app");
+            router.replace(resolvedReturnTo);
             return;
           }
 
@@ -62,7 +65,7 @@ export default function AuthCallbackPage() {
       isMounted = false;
       unsubscribe?.();
     };
-  }, [router]);
+  }, [resolvedReturnTo, router]);
 
   return (
     <AuthShell>

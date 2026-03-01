@@ -2,7 +2,7 @@
 
 import { createClient } from "./client";
 
-export async function signInWithGoogle(opts?: { redirectTo?: string }) {
+export async function signInWithGoogle(opts?: { redirectTo?: string; returnTo?: string | null }) {
   let supabase;
 
   try {
@@ -12,7 +12,15 @@ export async function signInWithGoogle(opts?: { redirectTo?: string }) {
     throw err;
   }
 
-  const redirectTo = opts?.redirectTo ?? `${window.location.origin}/auth/callback`;
+  const fallbackRedirectTo = `${window.location.origin}/auth/callback`;
+  const redirectBase = opts?.redirectTo ?? fallbackRedirectTo;
+  const callbackUrl = new URL(redirectBase, window.location.origin);
+
+  if (opts?.returnTo) {
+    callbackUrl.searchParams.set("returnTo", opts.returnTo);
+  }
+
+  const redirectTo = callbackUrl.toString();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",

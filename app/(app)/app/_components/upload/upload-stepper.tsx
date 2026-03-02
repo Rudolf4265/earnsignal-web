@@ -497,7 +497,7 @@ export default function UploadStepper() {
   }, [busy, pollUntilTerminal, setFailureState, step, updateProcessingFromEnvelope]);
 
   return (
-    <UploadCard className="space-y-6 shadow-brandGlow">
+    <UploadCard className="space-y-6">
       <Stepper steps={steps} activeIndex={activeStepIndex} />
 
       {error ? (
@@ -512,7 +512,7 @@ export default function UploadStepper() {
               <button
                 type="button"
                 data-testid="upload-reset"
-                className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-100 hover:bg-white/5"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
                 onClick={resetFlow}
               >
                 Reset
@@ -520,7 +520,7 @@ export default function UploadStepper() {
               <button
                 type="button"
                 data-testid="upload-copy-diagnostics"
-                className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-100 hover:bg-white/5"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
                 onClick={copyDiagnostics}
                 disabled={!errorDetails}
               >
@@ -533,7 +533,7 @@ export default function UploadStepper() {
             {reasonCode ? <p className="text-xs text-red-100/80">Reason code: {reasonCode}</p> : null}
             {errorOperation ? <p className="text-xs text-red-100/80">Operation: {errorOperation}</p> : null}
             {reasonCode === "session_expired" ? (
-              <Link href="/login" className="inline-flex rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/15">
+              <Link href="/login" className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100">
                 Log in again
               </Link>
             ) : null}
@@ -541,12 +541,12 @@ export default function UploadStepper() {
         </ErrorBanner>
       ) : null}
 
-      <div className="space-y-2 rounded-xl border border-white/10 bg-navy-950/80 p-3">
-        <div className="flex items-center justify-between text-xs text-gray-300">
+      <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
+        <div className="flex items-center justify-between text-xs text-slate-400">
           <span>Step {activeStepIndex + 1} of {stepOrder.length}</span>
           <span>{progressPct}%</span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-white/10">
+        <div className="h-2 overflow-hidden rounded-full bg-slate-200">
           <div className="h-full rounded-full bg-gradient-to-r from-brand-blue to-emerald-400 transition-all" style={{ width: `${progressPct}%` }} />
         </div>
       </div>
@@ -578,12 +578,12 @@ export default function UploadStepper() {
                   type="button"
                   disabled={!item.supported}
                   onClick={() => setPlatform(item.id)}
-                  className={`rounded-2xl border border-white/10 bg-navy-950 p-4 text-left transition ${
-                    item.supported ? "hover:bg-white/5" : "cursor-not-allowed opacity-60"
-                  } ${selected ? "border-brand-blue shadow-brandGlow" : ""}`}
+                  className={`rounded-2xl border border-slate-200 bg-white p-4 text-left transition ${
+                    item.supported ? "hover:bg-slate-100" : "cursor-not-allowed opacity-60"
+                  } ${selected ? "border-brand-blue " : ""}`}
                 >
-                  <p className="font-medium text-white">{item.label}</p>
-                  <p className="mt-1 text-xs text-gray-400">{item.supported ? "Available" : "Coming soon"}</p>
+                  <p className="font-medium text-slate-900">{item.label}</p>
+                  <p className="mt-1 text-xs text-slate-600">{item.supported ? "Available" : "Coming soon"}</p>
                 </button>
               );
             })}
@@ -600,7 +600,7 @@ export default function UploadStepper() {
         setErrorRequestId(null);
         setErrorOperation(null);
               }}
-              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white shadow-brandGlow transition hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Continue
             </button>
@@ -613,11 +613,11 @@ export default function UploadStepper() {
           <StepHeader title="Select file" subtitle="Upload a CSV export from your platform." />
           <button
             type="button"
-            className="w-full rounded-2xl border border-dashed border-white/20 bg-navy-950 px-5 py-8 text-center hover:border-brand-blue/60 hover:bg-white/5"
+            className="w-full rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center hover:border-brand-blue/60 hover:bg-slate-100"
             onClick={() => inputRef.current?.click()}
           >
-            <p className="text-sm font-medium text-white">Click to choose a file</p>
-            <p className="mt-1 text-xs text-gray-400">Drag and drop is supported by your browser as well.</p>
+            <p className="text-sm font-medium text-slate-900">Click to choose a file</p>
+            <p className="mt-1 text-xs text-slate-600">Drag and drop is supported by your browser as well.</p>
           </button>
 
           <input
@@ -632,10 +632,10 @@ export default function UploadStepper() {
           />
 
           {file ? (
-            <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-gray-200">
-              <p className="font-medium text-white">{file.name}</p>
-              <p className="text-xs text-gray-400">Size: {readableFileSize(file.size)}</p>
-              <p className="text-xs text-gray-400">Last modified: {new Date(file.lastModified).toLocaleString()}</p>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+              <p className="font-medium text-slate-900">{file.name}</p>
+              <p className="text-xs text-slate-600">Size: {readableFileSize(file.size)}</p>
+              <p className="text-xs text-slate-600">Last modified: {new Date(file.lastModified).toLocaleString()}</p>
             </div>
           ) : null}
 
@@ -646,12 +646,12 @@ export default function UploadStepper() {
           ) : null}
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">Need help? Ask your platform for a CSV export.</span>
+            <span className="text-xs text-slate-500">Need help? Ask your platform for a CSV export.</span>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setStep("platform")}
-                className="rounded-xl border border-white/15 px-4 py-2 text-sm text-gray-200 hover:bg-white/5"
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
               >
                 Back
               </button>
@@ -659,7 +659,7 @@ export default function UploadStepper() {
                 type="button"
                 disabled={!platform || !file || busy}
                 onClick={runUpload}
-                className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white shadow-brandGlow hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Upload &amp; Validate
               </button>
@@ -680,11 +680,11 @@ export default function UploadStepper() {
                   : "Most uploads complete within 45–90 seconds. Keep this tab open while we validate your data."
             }
           />
-          <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-navy-950 px-4 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
             {(step === "uploading" || busy) && (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
             )}
-            <p className="text-sm text-gray-200">{statusMsg ?? "Working…"}</p>
+            <p className="text-sm text-slate-700">{statusMsg ?? "Working…"}</p>
           </div>
           <div className="flex gap-2">
             {error ? (
@@ -693,7 +693,7 @@ export default function UploadStepper() {
                 data-testid="upload-retry"
                 onClick={() => void retryProcessing()}
                 disabled={!uploadId || busy}
-                className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Retry status
               </button>
@@ -702,7 +702,7 @@ export default function UploadStepper() {
               type="button"
               data-testid="upload-reset"
               onClick={resetFlow}
-              className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100"
             >
               Start over
             </button>
@@ -719,19 +719,19 @@ export default function UploadStepper() {
             <Link
               href={reportId ? `/app/report/${reportId}` : "/app/report"}
               data-testid="upload-view-report"
-              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white shadow-brandGlow hover:bg-brand-blue/90"
+              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90"
             >
               View report
             </Link>
             <button
               type="button"
               onClick={resetFlow}
-              className="rounded-xl border border-white/20 px-4 py-2 text-sm text-gray-100 hover:bg-white/5"
+              className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
             >
               Upload another
             </button>
           </div>
-          <p className="text-xs text-gray-500">Upload ID: {uploadId ?? "n/a"}</p>
+          <p className="text-xs text-slate-500">Upload ID: {uploadId ?? "n/a"}</p>
         </div>
       ) : null}
 
@@ -744,7 +744,7 @@ export default function UploadStepper() {
                 data-testid="upload-retry"
                 onClick={() => void retryProcessing()}
                 disabled={!uploadId || busy}
-                className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Retry status
               </button>
@@ -753,7 +753,7 @@ export default function UploadStepper() {
               type="button"
               data-testid="upload-reset"
               onClick={resetFlow}
-              className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100"
             >
               Start over
             </button>

@@ -7,9 +7,9 @@ export default function DataUploadPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold text-white">Upload data</h1>
-        <p className="text-gray-400">Follow the guided steps to validate your export and generate a production-ready report.</p>
-        <p className="text-xs text-gray-500">Report generation access depends on your billing plan.</p>
+        <h1 className="text-3xl font-semibold text-slate-900">Upload data</h1>
+        <p className="text-slate-600">Follow the guided steps to validate your export and generate a production-ready report.</p>
+        <p className="text-xs text-slate-500">Report generation access depends on your billing plan.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -19,8 +19,8 @@ export default function DataUploadPage() {
 
         <div className="space-y-4">
           <UploadCard>
-            <h3 className="text-base font-semibold text-white">What you&apos;ll get</h3>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-gray-300">
+            <h3 className="text-base font-semibold text-slate-900">What you&apos;ll get</h3>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700">
               <li>Automated CSV validation before analysis.</li>
               <li>A generated report you can review in your dashboard.</li>
               <li>Clear warnings if any fields need attention.</li>
@@ -28,9 +28,9 @@ export default function DataUploadPage() {
           </UploadCard>
 
           <UploadCard>
-            <h3 className="text-base font-semibold text-white">Recent uploads</h3>
-            <p className="mt-2 text-sm text-gray-400">No uploads yet</p>
-            <p className="text-xs text-gray-500">Your validated uploads will appear here.</p>
+            <h3 className="text-base font-semibold text-slate-900">Recent uploads</h3>
+            <p className="mt-2 text-sm text-slate-600">No uploads yet</p>
+            <p className="text-xs text-slate-500">Your validated uploads will appear here.</p>
           </UploadCard>
         </div>
       </div>

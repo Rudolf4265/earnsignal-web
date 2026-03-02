@@ -6,5 +6,5 @@ type UploadCardProps = {
 };
 
 export default function UploadCard({ children, className }: UploadCardProps) {
-  return <section className={`rounded-2xl border border-white/10 bg-navy-900 p-6 ${className ?? ""}`}>{children}</section>;
+  return <section className={`rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ${className ?? ""}`}>{children}</section>;
 }

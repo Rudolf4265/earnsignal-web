@@ -6,9 +6,9 @@ type BadgeProps = {
 };
 
 const variantClasses: Record<BadgeProps["variant"], string> = {
-  good: "border-emerald-400/30 bg-emerald-500/15 text-emerald-200",
-  warn: "border-amber-400/30 bg-amber-500/15 text-amber-200",
-  neutral: "border-white/15 bg-white/10 text-gray-200",
+  good: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  warn: "border-amber-200 bg-amber-50 text-amber-700",
+  neutral: "border-slate-200 bg-slate-100 text-slate-700",
 };
 
 export function Badge({ variant, children }: BadgeProps) {

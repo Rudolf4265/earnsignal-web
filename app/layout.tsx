@@ -47,7 +47,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased"><HostIntegrityGuard />{children}</body>
+      <body className="bg-background text-foreground antialiased"><HostIntegrityGuard />{children}</body>
     </html>
   );
 }

@@ -37,6 +37,7 @@ test.describe("Upload deep flows", () => {
           object_key: "uploads/upl_123.csv",
           presigned_url: "https://storage.test/uploads/upl_123.csv",
           callback_url: "/v1/uploads/callback",
+          callback_proof: "proof_upl_123",
         }),
       });
     });
@@ -46,6 +47,17 @@ test.describe("Upload deep flows", () => {
     });
 
     await page.route("**/v1/uploads/callback", async (route) => {
+      const body = route.request().postDataJSON() as {
+        upload_id: string;
+        size_bytes: number;
+        success: boolean;
+        callback_proof: string;
+      };
+      expect(body.upload_id).toBe(uploadId);
+      expect(body.size_bytes).toBeGreaterThan(0);
+      expect(body.success).toBe(true);
+      expect(body.callback_proof).toBe("proof_upl_123");
+
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -74,7 +86,7 @@ test.describe("Upload deep flows", () => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ upload_id: uploadId, presigned_url: "https://storage.test/upload.csv" }),
+        body: JSON.stringify({ upload_id: uploadId, presigned_url: "https://storage.test/upload.csv", callback_proof: "proof_upl_123" }),
       });
     });
     await page.route("https://storage.test/**", async (route) => route.fulfill({ status: 200, body: "" }));
@@ -98,7 +110,7 @@ test.describe("Upload deep flows", () => {
   test("session expired mid-poll shows session gate", async ({ page }) => {
     let pollCount = 0;
 
-    await page.route("**/v1/uploads/presign", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ upload_id: uploadId, presigned_url: "https://storage.test/upload.csv" }) }));
+    await page.route("**/v1/uploads/presign", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ upload_id: uploadId, presigned_url: "https://storage.test/upload.csv", callback_proof: "proof_upl_123" }) }));
     await page.route("https://storage.test/**", async (route) => route.fulfill({ status: 200, body: "" }));
     await page.route("**/v1/uploads/callback", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ upload_id: uploadId, status: "processing" }) }));
     await page.route(`**/v1/uploads/${uploadId}/status`, async (route) => {
@@ -183,7 +195,7 @@ test.describe("Upload deep flows", () => {
   });
 
   test("timeout terminal state shows retry controls", async ({ page }) => {
-    await page.route("**/v1/uploads/presign", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ upload_id: uploadId, presigned_url: "https://storage.test/upload.csv" }) }));
+    await page.route("**/v1/uploads/presign", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ upload_id: uploadId, presigned_url: "https://storage.test/upload.csv", callback_proof: "proof_upl_123" }) }));
     await page.route("https://storage.test/**", async (route) => route.fulfill({ status: 200, body: "" }));
     await page.route("**/v1/uploads/callback", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ upload_id: uploadId, status: "processing" }) }));
     await page.route(`**/v1/uploads/${uploadId}/status`, async (route) => {

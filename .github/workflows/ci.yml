@@ -33,68 +33,123 @@ jobs:
             exit 1
           fi
 
-      - name: NPM registry diagnostics
+      - name: Configure npm mirror registry
+        env:
+          NPM_MIRROR_REGISTRY_VAR: ${{ vars.NPM_MIRROR_REGISTRY }}
+          NPM_MIRROR_REGISTRY_SECRET: ${{ secrets.NPM_MIRROR_REGISTRY }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_SCOPE: ${{ vars.NPM_SCOPE }}
+          NPM_ALWAYS_AUTH: ${{ vars.NPM_ALWAYS_AUTH }}
+        run: |
+          set -euo pipefail
+
+          NPM_MIRROR_REGISTRY="${NPM_MIRROR_REGISTRY_VAR:-}"
+          if [ -z "$NPM_MIRROR_REGISTRY" ]; then
+            NPM_MIRROR_REGISTRY="${NPM_MIRROR_REGISTRY_SECRET:-}"
+          fi
+
+          if [ -z "$NPM_MIRROR_REGISTRY" ]; then
+            echo "::error::NPM_MIRROR_REGISTRY is required in CI because direct access to registry.npmjs.org is blocked. Set it as a repository variable or secret to your mirror URL."
+            exit 1
+          fi
+
+          if [ -z "${NPM_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN is required in CI to authenticate to the npm mirror registry."
+            exit 1
+          fi
+
+          echo "::add-mask::${NPM_TOKEN}"
+
+          ALWAYS_AUTH_VALUE="${NPM_ALWAYS_AUTH:-true}"
+          MIRROR_NO_PROTOCOL="${NPM_MIRROR_REGISTRY#http://}"
+          MIRROR_NO_PROTOCOL="${MIRROR_NO_PROTOCOL#https://}"
+          MIRROR_HOST_PATH="${MIRROR_NO_PROTOCOL%/}"
+
+          cat > "$GITHUB_WORKSPACE/.npmrc" <<EOF
+registry=${NPM_MIRROR_REGISTRY}
+always-auth=${ALWAYS_AUTH_VALUE}
+EOF
+
+          if [ -n "${NPM_SCOPE:-}" ]; then
+            printf '%s\n' "${NPM_SCOPE}:registry=${NPM_MIRROR_REGISTRY}" >> "$GITHUB_WORKSPACE/.npmrc"
+          fi
+
+          printf '%s\n' "//${MIRROR_HOST_PATH}/:_authToken=${NPM_TOKEN}" >> "$GITHUB_WORKSPACE/.npmrc"
+
+      - name: Validate generated mirror config
+        env:
+          NPM_MIRROR_REGISTRY_VAR: ${{ vars.NPM_MIRROR_REGISTRY }}
+          NPM_MIRROR_REGISTRY_SECRET: ${{ secrets.NPM_MIRROR_REGISTRY }}
+        run: |
+          set -euo pipefail
+
+          NPM_MIRROR_REGISTRY="${NPM_MIRROR_REGISTRY_VAR:-}"
+          if [ -z "$NPM_MIRROR_REGISTRY" ]; then
+            NPM_MIRROR_REGISTRY="${NPM_MIRROR_REGISTRY_SECRET:-}"
+          fi
+
+          EFFECTIVE_REGISTRY="$(npm config get registry)"
+          EXPECTED_REGISTRY="$NPM_MIRROR_REGISTRY"
+          [[ "$EXPECTED_REGISTRY" == */ ]] || EXPECTED_REGISTRY="${EXPECTED_REGISTRY}/"
+          [[ "$EFFECTIVE_REGISTRY" == */ ]] || EFFECTIVE_REGISTRY="${EFFECTIVE_REGISTRY}/"
+
+          if [ "$EFFECTIVE_REGISTRY" != "$EXPECTED_REGISTRY" ]; then
+            echo "::error::npm registry mismatch. expected=$EXPECTED_REGISTRY actual=$EFFECTIVE_REGISTRY"
+            exit 1
+          fi
+
+          MIRROR_NO_PROTOCOL="${NPM_MIRROR_REGISTRY#http://}"
+          MIRROR_NO_PROTOCOL="${MIRROR_NO_PROTOCOL#https://}"
+          MIRROR_HOST_PATH="${MIRROR_NO_PROTOCOL%/}"
+          EXPECTED_AUTH_PREFIX="//${MIRROR_HOST_PATH}/"
+
+          AUTH_LINE_PREFIX="$(awk -F':_authToken=' '/:_authToken=/{print $1}' "$GITHUB_WORKSPACE/.npmrc" | tail -n1)"
+          if [ "$AUTH_LINE_PREFIX" != "$EXPECTED_AUTH_PREFIX" ]; then
+            echo "::error::Generated .npmrc auth host/path mismatch. expected prefix: $EXPECTED_AUTH_PREFIX"
+            exit 1
+          fi
+
+      - name: NPM diagnostics (safe)
         run: |
           set -euo pipefail
           echo "Node version: $(node -v)"
           echo "NPM version: $(npm -v)"
           echo "Configured npm registry: $(npm config get registry)"
 
-          if [ -f .npmrc ]; then
-            echo "Found .npmrc (auth lines masked):"
+          if [ -f "$GITHUB_WORKSPACE/.npmrc" ]; then
+            echo "CI .npmrc present at $GITHUB_WORKSPACE/.npmrc (auth lines masked):"
             awk '
               /^[[:space:]]*($|#|;)/ { print; next }
               /(_authToken|_password|username|email|always-auth|authToken|_auth)[[:space:]]*=/ { print "*** auth config redacted ***"; next }
               { print }
-            ' .npmrc
+            ' "$GITHUB_WORKSPACE/.npmrc"
           else
-            echo "No repo .npmrc found."
+            echo "::error::Expected CI .npmrc was not created."
+            exit 1
           fi
 
-          echo "Running npm ping against public registry..."
-          npm ping --registry=https://registry.npmjs.org/
-
-      - name: Configure deterministic npm registry
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Install dependencies
         run: |
           set -euo pipefail
-
-          TARGET_REGISTRY="https://registry.npmjs.org/"
-          if [ -f .npmrc ]; then
-            REPO_REGISTRY="$(awk -F= '/^[[:space:]]*registry[[:space:]]*=/{print $2}' .npmrc | tail -n1 | tr -d '[:space:]')"
-            if [ -n "$REPO_REGISTRY" ]; then
-              TARGET_REGISTRY="$REPO_REGISTRY"
-            fi
-          fi
-
-          if [ "$TARGET_REGISTRY" != "https://registry.npmjs.org/" ]; then
-            echo "Private/non-default registry detected via .npmrc: $TARGET_REGISTRY"
-            if [ -z "${NPM_TOKEN:-}" ]; then
-              echo "::error::NPM_TOKEN is required for private registry access in CI."
-              exit 1
-            fi
-          else
-            echo "Using deterministic public npm registry: $TARGET_REGISTRY"
-          fi
-
-          npm config set registry "$TARGET_REGISTRY"
-          npm config set fund false
-          npm config set audit false
-
-          echo "Effective npm registry after configuration: $(npm config get registry)"
-
-      - name: Install dependencies (retry once on transient failure)
-        run: |
-          set -euo pipefail
-          echo "npm ci attempt 1 of 2"
-          if npm ci; then
+          if npm ci 2>&1 | tee /tmp/npm-ci.log; then
             exit 0
           fi
-          echo "npm ci attempt 1 failed; retrying once after short delay..."
-          sleep 5
-          echo "npm ci attempt 2 of 2"
-          npm ci
+
+          if rg -q "E401|E403|401 Unauthorized|403 Forbidden" /tmp/npm-ci.log; then
+            echo "::error::npm ci failed with mirror authentication/authorization error (401/403). Verify NPM_TOKEN read access and mirror permissions for the requested packages."
+          else
+            echo "::error::npm ci failed. See log above for details."
+          fi
+          exit 1
+
+      - name: Dependency completeness check
+        run: |
+          set -euo pipefail
+          if npm ls --depth=0; then
+            exit 0
+          fi
+          echo "::error::Dependency completeness check failed. Mirror may be missing packages or lockfile integrity may be out of sync. Verify mirror replication and package-lock.json consistency."
+          exit 1
 
       - name: Lint
         run: npm run lint
@@ -136,31 +191,78 @@ jobs:
             exit 1
           fi
 
-      - name: Configure deterministic npm registry for e2e
+      - name: Configure npm mirror registry for e2e
         env:
+          NPM_MIRROR_REGISTRY_VAR: ${{ vars.NPM_MIRROR_REGISTRY }}
+          NPM_MIRROR_REGISTRY_SECRET: ${{ secrets.NPM_MIRROR_REGISTRY }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_SCOPE: ${{ vars.NPM_SCOPE }}
+          NPM_ALWAYS_AUTH: ${{ vars.NPM_ALWAYS_AUTH }}
         run: |
           set -euo pipefail
 
-          TARGET_REGISTRY="https://registry.npmjs.org/"
-          if [ -f .npmrc ]; then
-            REPO_REGISTRY="$(awk -F= '/^[[:space:]]*registry[[:space:]]*=/{print $2}' .npmrc | tail -n1 | tr -d '[:space:]')"
-            if [ -n "$REPO_REGISTRY" ]; then
-              TARGET_REGISTRY="$REPO_REGISTRY"
-            fi
+          NPM_MIRROR_REGISTRY="${NPM_MIRROR_REGISTRY_VAR:-}"
+          if [ -z "$NPM_MIRROR_REGISTRY" ]; then
+            NPM_MIRROR_REGISTRY="${NPM_MIRROR_REGISTRY_SECRET:-}"
           fi
 
-          if [ "$TARGET_REGISTRY" != "https://registry.npmjs.org/" ] && [ -z "${NPM_TOKEN:-}" ]; then
-            echo "::error::NPM_TOKEN is required for private registry access in CI."
+          if [ -z "$NPM_MIRROR_REGISTRY" ]; then
+            echo "::error::NPM_MIRROR_REGISTRY is required in CI because direct access to registry.npmjs.org is blocked. Set it as a repository variable or secret to your mirror URL."
             exit 1
           fi
 
-          npm config set registry "$TARGET_REGISTRY"
-          npm config set fund false
-          npm config set audit false
+          if [ -z "${NPM_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN is required in CI to authenticate to the npm mirror registry."
+            exit 1
+          fi
+
+          echo "::add-mask::${NPM_TOKEN}"
+
+          ALWAYS_AUTH_VALUE="${NPM_ALWAYS_AUTH:-true}"
+          MIRROR_NO_PROTOCOL="${NPM_MIRROR_REGISTRY#http://}"
+          MIRROR_NO_PROTOCOL="${MIRROR_NO_PROTOCOL#https://}"
+          MIRROR_HOST_PATH="${MIRROR_NO_PROTOCOL%/}"
+
+          cat > "$GITHUB_WORKSPACE/.npmrc" <<EOF
+registry=${NPM_MIRROR_REGISTRY}
+always-auth=${ALWAYS_AUTH_VALUE}
+EOF
+
+          if [ -n "${NPM_SCOPE:-}" ]; then
+            printf '%s\n' "${NPM_SCOPE}:registry=${NPM_MIRROR_REGISTRY}" >> "$GITHUB_WORKSPACE/.npmrc"
+          fi
+
+          printf '%s\n' "//${MIRROR_HOST_PATH}/:_authToken=${NPM_TOKEN}" >> "$GITHUB_WORKSPACE/.npmrc"
+
+      - name: NPM diagnostics (safe)
+        run: |
+          set -euo pipefail
+          echo "Node version: $(node -v)"
+          echo "NPM version: $(npm -v)"
+          echo "Configured npm registry: $(npm config get registry)"
 
       - name: Install app dependencies
-        run: npm ci
+        run: |
+          set -euo pipefail
+          if npm ci 2>&1 | tee /tmp/npm-ci-e2e.log; then
+            exit 0
+          fi
+
+          if rg -q "E401|E403|401 Unauthorized|403 Forbidden" /tmp/npm-ci-e2e.log; then
+            echo "::error::npm ci failed with mirror authentication/authorization error (401/403). Verify NPM_TOKEN read access and mirror permissions for the requested packages."
+          else
+            echo "::error::npm ci failed. See log above for details."
+          fi
+          exit 1
+
+      - name: Dependency completeness check
+        run: |
+          set -euo pipefail
+          if npm ls --depth=0; then
+            exit 0
+          fi
+          echo "::error::Dependency completeness check failed. Mirror may be missing packages or lockfile integrity may be out of sync. Verify mirror replication and package-lock.json consistency."
+          exit 1
 
       - name: Install e2e dependencies
         id: e2e_deps

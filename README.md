@@ -33,16 +33,44 @@ For local two-host testing, map hosts in `/etc/hosts`:
 CI uses `npm ci` with `package-lock.json` as the source of truth for deterministic installs.
 Do not edit `package.json` without committing the corresponding `package-lock.json` update.
 
+CI installs are routed through an npm mirror registry because direct `registry.npmjs.org` access is blocked in CI.
+Configure the following repository settings for GitHub Actions:
+
+- `NPM_MIRROR_REGISTRY` (repository variable or secret): mirror URL (Artifactory/Verdaccio/GitHub Packages proxy/Azure Artifacts/Nexus)
+- `NPM_TOKEN` (repository secret): read token for mirror access
+- Optional `NPM_SCOPE` (repository variable): scoped registry mapping such as `@earnsigma`
+- Optional `NPM_ALWAYS_AUTH` (repository variable): defaults to `true` in CI when unset
+
+After setting the values above, re-run the CI workflow on the PR.
+
+The workflow fails fast with a clear error when `package-lock.json` or `NPM_MIRROR_REGISTRY` is missing, and surfaces an actionable message if mirror auth fails (`401/403`) during `npm ci`.
+
 Playwright e2e dependencies are isolated under `tests/e2e` and are not part of the default root install graph.
 
-Standard local clean build sequence:
+Expected deterministic CI failures:
+- lockfile missing (`package-lock.json` guard)
+- mirror auth 401/403 (token permissions)
+- mirror missing packages / integrity mismatch (`npm ci` or dependency completeness check)
+- registry mis-format (effective registry mismatch)
+
+After `npm ci`, CI runs `npm ls --depth=0` as a dependency completeness check before lint/build/test.
+
+Standard local clean build sequence (no mirror required):
 
 ```bash
-rm -rf node_modules
+rm -rf node_modules .next
 npm ci
-npm run lint
-npm run build
-npm test
+npm run lint && npm run build && npm test
+```
+
+Optional local mirror verification:
+
+```bash
+npm config set registry "https://your-mirror.example.com/"
+# set token in your user-level ~/.npmrc only; never commit tokens to this repo
+# example: //your-mirror.example.com/:_authToken=${NPM_TOKEN}
+npm ci
+npm run lint && npm run build && npm test
 ```
 
 Optional local e2e sequence:

@@ -26,6 +26,9 @@ test.describe("Upload deep flows", () => {
     let pollCount = 0;
 
     await page.route("**/v1/uploads/presign", async (route) => {
+      const body = route.request().postDataJSON() as { checksum?: string };
+      expect(body.checksum).toMatch(/^[a-f0-9]{64}$/);
+
       await route.fulfill({
         status: 200,
         contentType: "application/json",

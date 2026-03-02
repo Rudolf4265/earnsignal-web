@@ -18,8 +18,13 @@ Domain configuration (recommended):
 
 ```bash
 NEXT_PUBLIC_PRIMARY_DOMAIN=earnsigma.com
-NEXT_PUBLIC_ALLOWED_HOST_SUFFIXES=.vercel.app,.earnsigma.com,.localhost
+NEXT_PUBLIC_ALLOWED_HOST_SUFFIXES=.vercel.app,.localhost
 ```
+
+Production host hardening note:
+
+- In production (`NODE_ENV=production`), host routing allows only canonical hosts: `earnsigma.com`, `www.earnsigma.com`, and `app.earnsigma.com`.
+- `NEXT_PUBLIC_ALLOWED_HOST_SUFFIXES` is only honored outside production (for preview/dev flexibility such as `.vercel.app`).
 
 For local two-host testing, map hosts in `/etc/hosts`:
 
@@ -124,16 +129,16 @@ Use these constants in Stripe checkout session creation.
 
 ## Manual QA checklist
 
-### Marketing domain (`earnsignalstudio.com`)
+### Marketing domain (`earnsigma.com`)
 
 - [ ] `/` renders landing page.
 - [ ] `/pricing`, `/example`, `/privacy`, `/terms` render correctly.
-- [ ] `/login`, `/signup`, `/app`, `/app/upload` redirect to `app.earnsignalstudio.com` preserving path/query.
+- [ ] `/login`, `/signup`, `/app`, `/app/upload` redirect to `app.earnsigma.com` preserving path/query.
 
-### App domain (`app.earnsignalstudio.com`)
+### App domain (`app.earnsigma.com`)
 
 - [ ] `/login`, `/signup`, `/app`, `/app/upload`, `/app/report/123` render correctly.
-- [ ] `/`, `/pricing`, `/example`, `/privacy`, `/terms` redirect to `earnsignalstudio.com` preserving path/query.
+- [ ] `/`, `/pricing`, `/example`, `/privacy`, `/terms` redirect to `earnsigma.com` preserving path/query.
 
 ### Assets (both domains)
 
@@ -147,9 +152,9 @@ Use these constants in Stripe checkout session creation.
 
 ## WWW redirect loop fix
 
-- [ ] `https://www.earnsignalstudio.com/pricing` redirects once to `https://earnsignalstudio.com/pricing`.
-- [ ] `https://www.earnsignalstudio.com/login` redirects to `https://app.earnsignalstudio.com/login` (canonicalization then host routing).
-- [ ] `https://earnsignalstudio.com/login` redirects to `https://app.earnsignalstudio.com/login`.
+- [ ] `https://www.earnsigma.com/pricing` redirects once to `https://earnsigma.com/pricing`.
+- [ ] `https://www.earnsigma.com/login` redirects to `https://app.earnsigma.com/login` (canonicalization then host routing).
+- [ ] `https://earnsigma.com/login` redirects to `https://app.earnsigma.com/login`.
 
 ## TODOs
 
@@ -164,7 +169,7 @@ Set these environment variables in CI and hosting for deterministic domain/callb
 
 ```bash
 NEXT_PUBLIC_PRIMARY_DOMAIN=earnsigma.com
-NEXT_PUBLIC_ALLOWED_HOST_SUFFIXES=.vercel.app,.earnsigma.com,.localhost
+NEXT_PUBLIC_ALLOWED_HOST_SUFFIXES=.vercel.app,.localhost
 NEXT_PUBLIC_API_BASE_URL=https://api.earnsigma.com
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
@@ -217,6 +222,6 @@ npm run test:e2e
 Recommended CI order:
 1. Build app
 2. Start server on fixed port (3000)
-3. Wait until app is reachable (`/livez` if available, otherwise `/login`)
+3. Wait until app is reachable (`/login`)
 4. Run Playwright tests
 5. Upload `playwright-report`, `test-results`, traces/videos/screenshots on failure

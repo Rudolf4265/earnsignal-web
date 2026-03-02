@@ -15,11 +15,20 @@ function parseCsv(input: string | undefined): string[] {
     .filter(Boolean);
 }
 
+function isProductionEnvironment(): boolean {
+  return process.env.NODE_ENV === "production";
+}
+
 export const PRIMARY_DOMAIN = normalizeHost(process.env.NEXT_PUBLIC_PRIMARY_DOMAIN ?? DEFAULT_PRIMARY_DOMAIN);
 
 const configuredSuffixes = parseCsv(process.env.NEXT_PUBLIC_ALLOWED_HOST_SUFFIXES);
+const nonProductionDefaultSuffixes = [".vercel.app", ".localhost"];
 
-export const ALLOWED_HOST_SUFFIXES = configuredSuffixes.length > 0 ? configuredSuffixes : [".vercel.app", `.${PRIMARY_DOMAIN}`, ".localhost"];
+export const ALLOWED_HOST_SUFFIXES = isProductionEnvironment()
+  ? []
+  : configuredSuffixes.length > 0
+    ? configuredSuffixes
+    : nonProductionDefaultSuffixes;
 
 export const AUTH_CALLBACK_ALLOWED_ORIGINS = [
   `https://${PRIMARY_DOMAIN}`,

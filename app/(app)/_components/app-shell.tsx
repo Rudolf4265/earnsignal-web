@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { BRAND_NAME } from "@/src/lib/brand";
 import { WorkspaceNav } from "./workspace-nav";
 
@@ -20,14 +20,7 @@ export function AppShell({
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-5">
         <div className="flex items-center gap-4">
           <Link href="/" className="inline-flex items-center" aria-label={BRAND_NAME}>
-            <Image
-              src="/brand/earnsigma-lockup.svg"
-              alt={BRAND_NAME}
-              width={140}
-              height={40}
-              priority
-              className="h-8 w-auto"
-            />
+            <BrandMark variant="lockup" priority iconClassName="h-8 w-auto" />
           </Link>
           <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
         </div>

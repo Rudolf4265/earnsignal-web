@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { buildLoginHref } from "@/src/lib/gating/app-gate";
 import { AppGateProvider, useAppGate } from "./_components/app-gate-provider";
 import { EntitlementsErrorCallout, GateLoadingShell, SessionExpiredCallout } from "./_components/gate-callouts";
@@ -67,10 +67,14 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 md:flex">
-      <aside className="border-b border-slate-800 bg-slate-950 text-slate-100 px-4 py-4 md:min-h-screen md:w-64 md:border-b-0 md:border-r md:px-6 md:py-6">
-        <Link href="/app" className="mb-6 flex items-center gap-2 md:mb-10">
-          <Image src="/brand/earnsigma-mark.svg" alt="EarnSigma" width={28} height={28} />
-          <span className="font-semibold">EarnSigma</span>
+      <aside className="border-b border-slate-800 bg-slate-950 px-4 py-4 text-slate-100 md:min-h-screen md:w-64 md:border-b-0 md:border-r md:px-6 md:py-6">
+        <Link href="/app" className="mb-6 inline-flex items-center md:mb-10" aria-label="EarnSigma">
+          <BrandMark
+            priority
+            className="inline-flex items-center gap-2.5"
+            iconClassName="h-7 w-7"
+            labelClassName="text-base font-semibold leading-none"
+          />
         </Link>
 
         <WorkspaceNav

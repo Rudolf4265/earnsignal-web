@@ -10,7 +10,7 @@ Hostname routing is handled by `proxy.ts` in this project via centralized domain
 ## Local development
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -26,6 +26,31 @@ For local two-host testing, map hosts in `/etc/hosts`:
 ```txt
 127.0.0.1 localhost
 127.0.0.1 app.localhost
+```
+
+## Deterministic installs in CI
+
+CI uses `npm ci` with `package-lock.json` as the source of truth for deterministic installs.
+Do not edit `package.json` without committing the corresponding `package-lock.json` update.
+
+Playwright e2e dependencies are isolated under `tests/e2e` and are not part of the default root install graph.
+
+Standard local clean build sequence:
+
+```bash
+rm -rf node_modules
+npm ci
+npm run lint
+npm run build
+npm test
+```
+
+Optional local e2e sequence:
+
+```bash
+npm --prefix tests/e2e ci
+npm --prefix tests/e2e exec playwright install --with-deps
+npm run test:e2e
 ```
 
 ## Vercel domain setup (single project)
@@ -122,12 +147,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ### Local run
 
 ```bash
-npm run e2e
-npm run e2e:ui
-npm run e2e:headed
+npm --prefix tests/e2e ci
+npm run test:e2e
+npm run test:e2e:ui
 ```
 
-The suite is configured in `playwright.config.ts` and runs tests under `tests/e2e`.
+The suite is configured in `tests/e2e/playwright.config.ts` and runs tests under `tests/e2e`.
 
 ### Backend stubbing model
 
@@ -154,10 +179,11 @@ The E2E suite uses mocked account profiles rather than real users:
 
 ```bash
 npm ci
-npx playwright install --with-deps
+npm --prefix tests/e2e ci
+npm --prefix tests/e2e exec playwright install --with-deps
 npm run build
 npm run start -- --port 3000 &
-npm run e2e:ci
+npm run test:e2e
 ```
 
 Recommended CI order:

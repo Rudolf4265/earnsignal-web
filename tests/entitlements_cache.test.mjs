@@ -27,11 +27,11 @@ function jsonResponse(payload, status = 200) {
 
 async function buildEntitlementsTestModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
-  const patched = source.replace('from "./client";', 'from "./mocks/api-client.ts";');
+  const patched = source.replace('from "./client";', 'from "./mocks/api-client";');
   const outDir = path.resolve(".tmp-tests");
   await mkdir(path.join(outDir, "mocks"), { recursive: true });
 
-  const mockPath = path.join(outDir, "mocks", "api-client.ts");
+  const mockPath = path.join(outDir, "mocks", "api-client");
   await writeFile(
     mockPath,
     `export class ApiError extends Error {

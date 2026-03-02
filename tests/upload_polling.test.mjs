@@ -9,7 +9,7 @@ const tempDir = path.resolve(".tmp-tests");
 const tempPath = path.join(tempDir, `polling-${Date.now()}.ts`);
 
 await mkdir(tempDir, { recursive: true });
-const rewritten = (await readFile(sourcePath, "utf8")).replace('from "./status"', 'from "../src/lib/upload/status.ts"');
+const rewritten = (await readFile(sourcePath, "utf8")).replace('from "./status"', 'from "../src/lib/upload/status"');
 await writeFile(tempPath, rewritten, "utf8");
 
 const pollingModuleUrl = pathToFileURL(tempPath).href;

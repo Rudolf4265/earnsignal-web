@@ -1,6 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import type { EntitlementsResponse } from "@/src/lib/api/entitlements";
-import { isSessionExpiredError } from "../auth/isSessionExpiredError.ts";
+import { isSessionExpiredError } from "../auth/isSessionExpiredError";
 
 export type AppGateState =
   | "session_loading"

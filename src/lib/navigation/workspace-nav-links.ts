@@ -1,6 +1,6 @@
-import type { AppNavLinkId } from "./app-nav.ts";
-import { APP_NAV_LINKS } from "./app-nav.ts";
-import type { AdminStatus } from "../gating/admin-guard.ts";
+import type { AppNavLinkId } from "./app-nav";
+import { APP_NAV_LINKS } from "./app-nav";
+import type { AdminStatus } from "../gating/admin-guard";
 
 export type WorkspaceNavLink = {
   id: AppNavLinkId;

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-specifier-resolution=node --test tests/**/*.test.mjs && rm -rf .tmp-tests",
+    "test": "node --experimental-specifier-resolution=node --loader ./tests/node-ts-loader.mjs --test tests/**/*.test.mjs && node -e \"require('node:fs').rmSync('.tmp-tests',{ recursive: true, force: true })\"",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",

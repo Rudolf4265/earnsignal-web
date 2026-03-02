@@ -6,12 +6,12 @@ import { pathToFileURL } from "node:url";
 
 async function buildApiClientModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/client.ts"), "utf8");
-  const patched = source.replace('import("../supabase/client")', 'import("./mocks/supabase-client.ts")');
+  const patched = source.replace('import("../supabase/client")', 'import("./mocks/supabase-client")');
 
   const outDir = path.resolve(".tmp-tests");
   await mkdir(path.join(outDir, "mocks"), { recursive: true });
 
-  const mockPath = path.join(outDir, "mocks", "supabase-client.ts");
+  const mockPath = path.join(outDir, "mocks", "supabase-client");
   await writeFile(
     mockPath,
     `export function createClient() {

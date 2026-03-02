@@ -1,5 +1,5 @@
 import { ApiError, apiFetchJson } from "./client";
-import { isSessionExpiredError } from "../auth/isSessionExpiredError.ts";
+import { isSessionExpiredError } from "../auth/isSessionExpiredError";
 
 export type AdminWhoAmIResponse = {
   isAdmin: boolean;

@@ -8,7 +8,7 @@ const uploadSourcePath = path.resolve("src/lib/api/upload.ts");
 
 async function buildUploadModule(tag) {
   const source = await readFile(uploadSourcePath, "utf8");
-  const patched = source.replace("./client", "../src/lib/api/client.ts");
+  const patched = source.replace("./client", "../src/lib/api/client");
   const outDir = path.resolve(".tmp-tests");
   await mkdir(outDir, { recursive: true });
   const outFile = path.join(outDir, `upload-${tag}.ts`);

@@ -1,4 +1,4 @@
-import { isSessionExpiredError } from "../auth/isSessionExpiredError.ts";
+import { isSessionExpiredError } from "../auth/isSessionExpiredError";
 
 export type ReportViewState = "loading" | "success" | "not_found" | "forbidden" | "session_expired" | "server_error";
 

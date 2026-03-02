@@ -8,7 +8,7 @@ const uploadSourcePath = path.resolve("src/lib/api/upload.ts");
 const errorModuleUrl = pathToFileURL(path.resolve("src/lib/upload/errors.ts")).href;
 
 const source = await readFile(uploadSourcePath, "utf8");
-const patched = source.replace("./client", "../src/lib/api/client.ts");
+const patched = source.replace("./client", "../src/lib/api/client");
 await mkdir(path.resolve(".tmp-tests"), { recursive: true });
 const uploadTempPath = path.resolve(".tmp-tests", `upload-errors-${Date.now()}.ts`);
 await writeFile(uploadTempPath, patched, "utf8");

@@ -9,8 +9,8 @@ const adminSourcePath = path.resolve("src/lib/api/admin.ts");
 async function buildAdminModule(tag) {
   const source = await readFile(adminSourcePath, "utf8");
   const patched = source
-    .replace("./client", "../src/lib/api/client.ts")
-    .replace("../auth/isSessionExpiredError.ts", "../src/lib/auth/isSessionExpiredError.ts");
+    .replace("./client", "../src/lib/api/client")
+    .replace("../auth/isSessionExpiredError", "../src/lib/auth/isSessionExpiredError");
   const outDir = path.resolve(".tmp-tests");
   await mkdir(outDir, { recursive: true });
   const outFile = path.join(outDir, `admin-${tag}.ts`);

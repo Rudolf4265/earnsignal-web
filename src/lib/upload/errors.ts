@@ -1,4 +1,4 @@
-import { isSessionExpiredError } from "../auth/isSessionExpiredError.ts";
+import { isSessionExpiredError } from "../auth/isSessionExpiredError";
 
 export type UploadFailure = {
   reasonCode: string;

@@ -33,8 +33,68 @@ jobs:
             exit 1
           fi
 
-      - name: Install dependencies
-        run: npm ci
+      - name: NPM registry diagnostics
+        run: |
+          set -euo pipefail
+          echo "Node version: $(node -v)"
+          echo "NPM version: $(npm -v)"
+          echo "Configured npm registry: $(npm config get registry)"
+
+          if [ -f .npmrc ]; then
+            echo "Found .npmrc (auth lines masked):"
+            awk '
+              /^[[:space:]]*($|#|;)/ { print; next }
+              /(_authToken|_password|username|email|always-auth|authToken|_auth)[[:space:]]*=/ { print "*** auth config redacted ***"; next }
+              { print }
+            ' .npmrc
+          else
+            echo "No repo .npmrc found."
+          fi
+
+          echo "Running npm ping against public registry..."
+          npm ping --registry=https://registry.npmjs.org/
+
+      - name: Configure deterministic npm registry
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          TARGET_REGISTRY="https://registry.npmjs.org/"
+          if [ -f .npmrc ]; then
+            REPO_REGISTRY="$(awk -F= '/^[[:space:]]*registry[[:space:]]*=/{print $2}' .npmrc | tail -n1 | tr -d '[:space:]')"
+            if [ -n "$REPO_REGISTRY" ]; then
+              TARGET_REGISTRY="$REPO_REGISTRY"
+            fi
+          fi
+
+          if [ "$TARGET_REGISTRY" != "https://registry.npmjs.org/" ]; then
+            echo "Private/non-default registry detected via .npmrc: $TARGET_REGISTRY"
+            if [ -z "${NPM_TOKEN:-}" ]; then
+              echo "::error::NPM_TOKEN is required for private registry access in CI."
+              exit 1
+            fi
+          else
+            echo "Using deterministic public npm registry: $TARGET_REGISTRY"
+          fi
+
+          npm config set registry "$TARGET_REGISTRY"
+          npm config set fund false
+          npm config set audit false
+
+          echo "Effective npm registry after configuration: $(npm config get registry)"
+
+      - name: Install dependencies (retry once on transient failure)
+        run: |
+          set -euo pipefail
+          echo "npm ci attempt 1 of 2"
+          if npm ci; then
+            exit 0
+          fi
+          echo "npm ci attempt 1 failed; retrying once after short delay..."
+          sleep 5
+          echo "npm ci attempt 2 of 2"
+          npm ci
 
       - name: Lint
         run: npm run lint
@@ -75,6 +135,29 @@ jobs:
             echo "::error::tests/e2e/package-lock.json is required for deterministic e2e installs. Commit the lockfile and re-run."
             exit 1
           fi
+
+      - name: Configure deterministic npm registry for e2e
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          TARGET_REGISTRY="https://registry.npmjs.org/"
+          if [ -f .npmrc ]; then
+            REPO_REGISTRY="$(awk -F= '/^[[:space:]]*registry[[:space:]]*=/{print $2}' .npmrc | tail -n1 | tr -d '[:space:]')"
+            if [ -n "$REPO_REGISTRY" ]; then
+              TARGET_REGISTRY="$REPO_REGISTRY"
+            fi
+          fi
+
+          if [ "$TARGET_REGISTRY" != "https://registry.npmjs.org/" ] && [ -z "${NPM_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN is required for private registry access in CI."
+            exit 1
+          fi
+
+          npm config set registry "$TARGET_REGISTRY"
+          npm config set fund false
+          npm config set audit false
 
       - name: Install app dependencies
         run: npm ci

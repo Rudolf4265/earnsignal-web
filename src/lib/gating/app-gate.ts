@@ -1,5 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import type { EntitlementsResponse } from "@/src/lib/api/entitlements";
+import { isSessionExpiredError } from "../auth/isSessionExpiredError.ts";
 
 export type AppGateState =
   | "session_loading"
@@ -8,7 +9,7 @@ export type AppGateState =
   | "authed_entitled"
   | "authed_unentitled"
   | "session_expired"
-  | "authed_admin";
+  | "entitlements_error";
 
 export type EntitlementsResolution =
   | { status: "idle" }
@@ -16,20 +17,18 @@ export type EntitlementsResolution =
   | { status: "entitled"; entitlements: EntitlementsResponse }
   | { status: "unentitled"; entitlements: EntitlementsResponse }
   | { status: "session_expired"; requestId?: string }
-  | { status: "error" };
+  | { status: "entitlements_error" };
 
 export function resolveEntitlementsError(error: unknown): EntitlementsResolution {
-  if (typeof error === "object" && error !== null) {
+  if (isSessionExpiredError(error, { hasAuthContext: true })) {
     const candidate = error as { status?: unknown; requestId?: unknown };
-    if (candidate.status === 401) {
-      return {
-        status: "session_expired",
-        requestId: typeof candidate.requestId === "string" ? candidate.requestId : undefined,
-      };
-    }
+    return {
+      status: "session_expired",
+      requestId: typeof candidate.requestId === "string" ? candidate.requestId : undefined,
+    };
   }
 
-  return { status: "error" };
+  return { status: "entitlements_error" };
 }
 
 export function deriveAppGateState(params: {
@@ -38,7 +37,7 @@ export function deriveAppGateState(params: {
   entitlements: EntitlementsResolution;
   isAdmin: boolean;
 }): AppGateState {
-  const { isSessionKnown, session, entitlements, isAdmin } = params;
+  const { isSessionKnown, session, entitlements } = params;
 
   if (!isSessionKnown) {
     return "session_loading";
@@ -56,12 +55,12 @@ export function deriveAppGateState(params: {
     return "session_expired";
   }
 
-  if (entitlements.status === "unentitled") {
-    return "authed_unentitled";
+  if (entitlements.status === "entitlements_error") {
+    return "entitlements_error";
   }
 
-  if (isAdmin) {
-    return "authed_admin";
+  if (entitlements.status === "unentitled") {
+    return "authed_unentitled";
   }
 
   return "authed_entitled";

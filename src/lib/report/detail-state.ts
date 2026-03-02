@@ -1,3 +1,5 @@
+import { isSessionExpiredError } from "../auth/isSessionExpiredError.ts";
+
 export type ReportViewState = "loading" | "success" | "not_found" | "forbidden" | "session_expired" | "server_error";
 
 type ApiLikeError = {
@@ -10,12 +12,12 @@ function isApiLikeError(error: unknown): error is ApiLikeError {
 }
 
 export function getReportViewState(error: unknown): ReportViewState {
-  if (!isApiLikeError(error) || typeof error.status !== "number") {
-    return "server_error";
+  if (isSessionExpiredError(error, { hasAuthContext: true })) {
+    return "session_expired";
   }
 
-  if (error.status === 401) {
-    return "session_expired";
+  if (!isApiLikeError(error) || typeof error.status !== "number") {
+    return "server_error";
   }
 
   if (error.status === 403) {

@@ -19,7 +19,7 @@ test("deriveAppGateState handles loading to anon", async () => {
   );
 });
 
-test("deriveAppGateState resolves entitled and admin states", async () => {
+test("deriveAppGateState resolves entitled state", async () => {
   const { deriveAppGateState } = await import(`${moduleUrl}?t=${Date.now()}-entitled-admin`);
   const session = { user: { id: "user_1" } };
   const entitlements = { plan: "pro", status: "active", entitled: true, features: { app: true, report: true } };
@@ -29,10 +29,6 @@ test("deriveAppGateState resolves entitled and admin states", async () => {
     "authed_entitled",
   );
 
-  assert.equal(
-    deriveAppGateState({ isSessionKnown: true, session, entitlements: { status: "entitled", entitlements }, isAdmin: true }),
-    "authed_admin",
-  );
 });
 
 test("deriveAppGateState resolves unentitled and session expired", async () => {
@@ -48,6 +44,11 @@ test("deriveAppGateState resolves unentitled and session expired", async () => {
   assert.equal(
     deriveAppGateState({ isSessionKnown: true, session, entitlements: { status: "session_expired", requestId: "req_123" }, isAdmin: false }),
     "session_expired",
+  );
+
+  assert.equal(
+    deriveAppGateState({ isSessionKnown: true, session, entitlements: { status: "entitlements_error" }, isAdmin: false }),
+    "entitlements_error",
   );
 });
 
@@ -85,7 +86,7 @@ test("resolveEntitlementsError normalizes 401 into session_expired", async () =>
   assert.deepEqual(resolveEntitlementsError(unknownPayload), { status: "session_expired", requestId: "req_unknown_401" });
 });
 
-test("resolveEntitlementsError keeps 403 as generic error", async () => {
+test("resolveEntitlementsError treats 403 as session_expired", async () => {
   const { ApiError } = await import(pathToFileURL(path.resolve("src/lib/api/client.ts")).href + `?t=${Date.now()}-apierr-403`);
   const { resolveEntitlementsError } = await import(`${moduleUrl}?t=${Date.now()}-resolve-403`);
 
@@ -98,5 +99,24 @@ test("resolveEntitlementsError keeps 403 as generic error", async () => {
     method: "GET",
   });
 
-  assert.deepEqual(resolveEntitlementsError(forbidden), { status: "error" });
+  assert.deepEqual(resolveEntitlementsError(forbidden), { status: "session_expired", requestId: undefined });
+});
+
+test("resolveEntitlementsError fail-closes for 500, network, and malformed payloads", async () => {
+  const { ApiError } = await import(pathToFileURL(path.resolve("src/lib/api/client.ts")).href + `?t=${Date.now()}-apierr-fail-closed`);
+  const { resolveEntitlementsError, deriveAppGateState } = await import(`${moduleUrl}?t=${Date.now()}-resolve-fail-closed`);
+  const session = { user: { id: "user_3" } };
+
+  const errors = [
+    new ApiError({ status: 500, code: "HTTP_500", message: "Server error", operation: "entitlements.fetch", path: "/v1/entitlements", method: "GET" }),
+    new ApiError({ status: 0, code: "NETWORK_ERROR", message: "Network request failed.", operation: "entitlements.fetch", path: "/v1/entitlements", method: "GET" }),
+    new ApiError({ status: 200, code: "INVALID_JSON_RESPONSE", message: "invalid", operation: "entitlements.fetch", path: "/v1/entitlements", method: "GET" }),
+  ];
+
+  for (const error of errors) {
+    const resolution = resolveEntitlementsError(error);
+    assert.equal(resolution.status, "entitlements_error");
+    const gateState = deriveAppGateState({ isSessionKnown: true, session, entitlements: resolution, isAdmin: false });
+    assert.notEqual(gateState, "authed_entitled");
+  }
 });

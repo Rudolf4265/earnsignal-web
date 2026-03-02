@@ -1,3 +1,5 @@
+import { isSessionExpiredError } from "../auth/isSessionExpiredError.ts";
+
 export type UploadFailure = {
   reasonCode: string;
   message: string;
@@ -11,17 +13,17 @@ export function mapApiErrorToUploadFailure(error: unknown): UploadFailure {
   const requestId = typeof (error as { requestId?: unknown })?.requestId === "string" ? (error as { requestId: string }).requestId : null;
   const operation = typeof (error as { operation?: unknown })?.operation === "string" ? (error as { operation: string }).operation : null;
 
-  if (status !== null) {
-    if (status === 401 || status === 403) {
-      return {
-        reasonCode: "session_expired",
-        message: "Your session expired. Log in again, then return to upload status.",
-        shouldStopPolling: true,
-        requestId,
-        operation,
-      };
-    }
+  if (isSessionExpiredError(error, { hasAuthContext: true })) {
+    return {
+      reasonCode: "session_expired",
+      message: "Your session expired. Log in again, then return to upload status.",
+      shouldStopPolling: true,
+      requestId,
+      operation,
+    };
+  }
 
+  if (status !== null) {
     if (status === 404) {
       return {
         reasonCode: "upload_not_found",

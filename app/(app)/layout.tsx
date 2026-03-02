@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { buildLoginHref } from "@/src/lib/gating/app-gate";
 import { AppGateProvider, useAppGate } from "./_components/app-gate-provider";
-import { GateLoadingShell, SessionExpiredCallout } from "./_components/gate-callouts";
+import { EntitlementsErrorCallout, GateLoadingShell, SessionExpiredCallout } from "./_components/gate-callouts";
 import { WorkspaceNav } from "./_components/workspace-nav";
 
 function AppLayoutFrame({ children }: { children: React.ReactNode }) {
@@ -51,6 +51,10 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
 
   if (state === "session_expired") {
     return <SessionExpiredCallout requestId={requestId} />;
+  }
+
+  if (state === "entitlements_error") {
+    return <EntitlementsErrorCallout onRetry={() => void actions.refreshEntitlements({ forceRefresh: true })} />;
   }
 
   if (state === "anon") {

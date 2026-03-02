@@ -15,6 +15,7 @@ import { pollUploadStatus, UploadPollingCancelledError } from "@/src/lib/upload/
 import { mapApiErrorToUploadFailure } from "@/src/lib/upload/errors";
 import { buildUploadDiagnostics, mapUploadStatus, type UploadUiStatus } from "@/src/lib/upload/status";
 import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/lib/upload/resume";
+import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import InlineAlert from "./InlineAlert";
 import StepHeader from "./StepHeader";
 import Stepper from "./Stepper";
@@ -311,13 +312,21 @@ export default function UploadStepper() {
 
     try {
       setStep("uploading");
-      setStatusMsg("Requesting secure upload URL…");
+      setStatusMsg("Preparing file…");
+      const checksum = await computeSHA256Hex(file);
+      console.debug("Presign checksum computed", {
+        fileName: file.name,
+        size: file.size,
+        hasChecksum: true,
+      });
 
+      setStatusMsg("Requesting secure upload URL…");
       const presign = await createUploadPresign({
         platform,
         filename: file.name,
         content_type: file.type || "text/csv",
         size: file.size,
+        checksum,
       });
 
       setUploadId(presign.upload_id);

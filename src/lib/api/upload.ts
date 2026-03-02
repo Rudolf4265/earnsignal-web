@@ -13,6 +13,7 @@ export type PresignRequest = {
   filename: string;
   content_type: string;
   size: number;
+  checksum?: string;
   sha256?: string;
   content_md5?: string;
 };

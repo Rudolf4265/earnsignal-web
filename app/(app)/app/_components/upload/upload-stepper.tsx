@@ -334,21 +334,44 @@ export default function UploadStepper() {
         writeUploadResume(window.localStorage, presign.upload_id);
       }
 
-      setStatusMsg("Uploading file…");
-      await uploadFileToPresignedUrl({
-        presignedUrl: presign.presigned_url,
-        file,
-        headers: presign.headers,
-      });
+      if (typeof presign.callback_proof === "undefined") {
+        throw new Error("Upload finalize failed: missing callback proof from presign response");
+      }
+
+      try {
+        setStatusMsg("Uploading file…");
+        await uploadFileToPresignedUrl({
+          presignedUrl: presign.presigned_url,
+          file,
+          headers: presign.headers,
+        });
+      } catch (storageUploadError) {
+        await finalizeUploadCallback(
+          {
+            upload_id: presign.upload_id,
+            success: false,
+            size_bytes: file.size,
+            callback_proof: presign.callback_proof,
+            platform,
+            object_key: presign.object_key,
+            filename: file.name,
+            content_type: file.type || "text/csv",
+          },
+          presign.callback_url,
+        );
+        throw storageUploadError;
+      }
 
       setStatusMsg("Finalizing upload…");
       const callback = await finalizeUploadCallback(
         {
           upload_id: presign.upload_id,
+          success: true,
+          size_bytes: file.size,
+          callback_proof: presign.callback_proof,
           platform,
           object_key: presign.object_key,
           filename: file.name,
-          size: file.size,
           content_type: file.type || "text/csv",
         },
         presign.callback_url,

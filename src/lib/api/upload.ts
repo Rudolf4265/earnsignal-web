@@ -23,15 +23,18 @@ export type PresignResponse = {
   object_key?: string;
   presigned_url: string;
   callback_url?: string;
+  callback_proof?: Record<string, unknown> | string;
   headers?: Record<string, string>;
 };
 
 export type UploadCallbackRequest = {
   upload_id: string;
+  success: boolean;
+  size_bytes: number;
+  callback_proof: Record<string, unknown> | string;
   platform: string;
   object_key?: string;
   filename: string;
-  size: number;
   content_type: string;
   sha256?: string;
   content_md5?: string;
@@ -99,6 +102,7 @@ export async function createUploadPresign(payload: PresignRequest): Promise<Pres
     object_key: (data.object_key as string) ?? (data.objectKey as string) ?? undefined,
     presigned_url: (data.presigned_url as string) ?? (data.presign_url as string) ?? (data.url as string),
     callback_url: (data.callback_url as string) ?? (data.callbackUrl as string) ?? undefined,
+    callback_proof: (data.callback_proof as Record<string, unknown> | string) ?? (data.callbackProof as Record<string, unknown> | string) ?? undefined,
     headers: (data.headers as Record<string, string>) ?? undefined,
   };
 }

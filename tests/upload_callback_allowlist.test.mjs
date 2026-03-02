@@ -16,13 +16,16 @@ async function buildUploadModule(tag) {
   return pathToFileURL(outFile).href;
 }
 
-async function runFinalize(callbackUrl) {
+async function runFinalize(callbackUrl, payloadOverride = {}) {
   const originalFetch = global.fetch;
   process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
 
-  const urls = [];
-  global.fetch = async (url) => {
-    urls.push(String(url));
+  const calls = [];
+  global.fetch = async (url, init) => {
+    calls.push({
+      url: String(url),
+      body: init?.body ? JSON.parse(String(init.body)) : null,
+    });
     return {
       ok: true,
       status: 200,
@@ -39,29 +42,40 @@ async function runFinalize(callbackUrl) {
         upload_id: "up_1",
         platform: "youtube",
         filename: "a.csv",
-        size: 1,
+        size_bytes: 1,
+        success: true,
+        callback_proof: "proof_1",
         content_type: "text/csv",
+        ...payloadOverride,
       },
       callbackUrl,
     );
 
-    return urls[0];
+    return calls[0];
   } finally {
     global.fetch = originalFetch;
   }
 }
 
 test("finalizeUploadCallback uses callback_url when absolute origin matches API", async () => {
-  const calledUrl = await runFinalize("https://api.example.test/custom/callback?x=1");
-  assert.equal(calledUrl, "https://api.example.test/custom/callback?x=1");
+  const call = await runFinalize("https://api.example.test/custom/callback?x=1");
+  assert.equal(call.url, "https://api.example.test/custom/callback?x=1");
 });
 
 test("finalizeUploadCallback ignores callback_url on foreign origin", async () => {
-  const calledUrl = await runFinalize("https://evil.example.net/callback");
-  assert.equal(calledUrl, "https://api.example.test/v1/uploads/callback");
+  const call = await runFinalize("https://evil.example.net/callback");
+  assert.equal(call.url, "https://api.example.test/v1/uploads/callback");
 });
 
 test("finalizeUploadCallback allows relative callback_url", async () => {
-  const calledUrl = await runFinalize("/v1/uploads/callback-alt");
-  assert.equal(calledUrl, "https://api.example.test/v1/uploads/callback-alt");
+  const call = await runFinalize("/v1/uploads/callback-alt");
+  assert.equal(call.url, "https://api.example.test/v1/uploads/callback-alt");
+});
+
+
+test("finalizeUploadCallback sends required callback fields", async () => {
+  const call = await runFinalize("/v1/uploads/callback");
+  assert.equal(call.body.size_bytes, 1);
+  assert.equal(call.body.success, true);
+  assert.equal(call.body.callback_proof, "proof_1");
 });

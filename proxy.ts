@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCanonicalHosts, isAllowedHost } from "./src/lib/config/domains";
 
 const APP_ALLOWED_PREFIXES = [
   "/login",
@@ -19,32 +20,11 @@ const STATIC_PATHS = new Set([
 ]);
 const STATIC_EXTENSION_REGEX = /\.(svg|png|ico|jpg|jpeg|webp|css|js|map|txt)$/i;
 
-// Canonical hosts (EarnSigma)
-const MARKETING_HOST = "www.earnsigma.com";
-const MARKETING_ROOT_HOST = "earnsigma.com";
-const APP_HOST = "app.earnsigma.com";
-
-const ALLOWED_HOSTS = new Set([
-  MARKETING_HOST,
-  MARKETING_ROOT_HOST,
-  APP_HOST,
-  "localhost",
-  "app.localhost",
-  "127.0.0.1",
-]);
-
-const ALLOWED_HOST_SUFFIXES = [".vercel.app", ".earnsigma.com", ".localhost"];
+const { marketingHost: MARKETING_HOST, marketingRootHost: MARKETING_ROOT_HOST, appHost: APP_HOST } = getCanonicalHosts();
 
 function getRequestHost(request: NextRequest): string {
   const raw = request.headers.get("host") ?? "";
   return raw.split(":")[0]?.trim().toLowerCase();
-}
-
-function isAllowedHost(host: string): boolean {
-  return (
-    ALLOWED_HOSTS.has(host) ||
-    ALLOWED_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix))
-  );
 }
 
 function isStaticPath(pathname: string): boolean {

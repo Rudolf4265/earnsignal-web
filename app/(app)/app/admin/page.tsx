@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { NotAuthorizedCallout } from "../../_components/gate-callouts";
 import { useAppGate } from "../../_components/app-gate-provider";
 import { AdminUserRow, fetchAdminUsers } from "@/src/lib/api/admin";
+import { ErrorBanner } from "@/src/components/ui/error-banner";
+import { isApiError } from "@/src/lib/api/client";
 
 export default function AdminUsersPage() {
   const { isAdmin } = useAppGate();
@@ -12,7 +14,7 @@ export default function AdminUsersPage() {
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; requestId?: string } | null>(null);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -38,7 +40,10 @@ export default function AdminUsersPage() {
           return;
         }
 
-        setError(err instanceof Error ? err.message : "Failed to load admin users.");
+        setError({
+          message: err instanceof Error ? err.message : "Failed to load admin users.",
+          requestId: isApiError(err) ? err.requestId : undefined,
+        });
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -88,7 +93,7 @@ export default function AdminUsersPage() {
         </button>
       </form>
 
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      {error ? <ErrorBanner title="Could not load admin users" message={error.message} requestId={error.requestId} /> : null}
 
       <div className="rounded-xl border border-white/10 bg-white/5 p-4">
         <div className="mb-3 text-xs text-gray-400">{totalText}</div>

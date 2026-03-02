@@ -33,7 +33,7 @@ export function ErrorBanner({
       <p className="text-sm font-semibold">{title}</p>
       <p className="mt-1 text-sm text-rose-100/90">{message}</p>
       {children ? <div className="mt-2">{children}</div> : null}
-      {requestId ? <p className="mt-2 text-xs text-rose-100/80">Request ID: {requestId}</p> : null}
+      {requestId ? <p className="mt-2 text-xs text-rose-100/80" data-testid="error-request-id">Request ID: {requestId}</p> : null}
       {onRetry || action ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {onRetry ? (

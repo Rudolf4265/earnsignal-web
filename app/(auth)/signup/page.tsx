@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import AuthShell from "../_components/auth-shell";
 import { createClient } from "@/src/lib/supabase/client";
 import { signInWithGoogle } from "@/src/lib/supabase/oauth";
+import { appBaseUrl } from "@/src/lib/urls";
+import { isAllowedAuthOrigin } from "@/src/lib/config/domains";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -55,7 +57,8 @@ export default function SignupPage() {
 
     try {
       const supabase = await createClient();
-      const emailRedirectTo = `${window.location.origin}/auth/callback`;
+      const origin = window.location.origin;
+      const emailRedirectTo = isAllowedAuthOrigin(origin) ? `${origin}/auth/callback` : `${appBaseUrl}/auth/callback`;
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,

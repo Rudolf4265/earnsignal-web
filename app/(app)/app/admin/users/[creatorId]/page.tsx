@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { NotAuthorizedCallout } from "@/app/(app)/_components/gate-callouts";
 import { useAppGate } from "@/app/(app)/_components/app-gate-provider";
 import { AdminUserDetail, fetchAdminUserDetail, updateAdminUserBlocked, updateAdminUserCompUntil } from "@/src/lib/api/admin";
+import { ErrorBanner } from "@/src/components/ui/error-banner";
+import { isApiError } from "@/src/lib/api/client";
 
 function formatTimestamp(value: string | null): string {
   if (!value) {
@@ -24,7 +26,7 @@ export default function AdminUserDetailPage() {
   const [compUntilDraft, setCompUntilDraft] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; requestId?: string } | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const { isAdmin } = useAppGate();
 
@@ -52,7 +54,7 @@ export default function AdminUserDetailPage() {
         if (!isMounted) {
           return;
         }
-        setError(err instanceof Error ? err.message : "Failed to load user.");
+        setError({ message: err instanceof Error ? err.message : "Failed to load user.", requestId: isApiError(err) ? err.requestId : undefined });
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -84,7 +86,7 @@ export default function AdminUserDetailPage() {
   }
 
   if (!user) {
-    return <p className="text-sm text-red-300">{error ?? "User not found."}</p>;
+    return <ErrorBanner title="Could not load user" message={error?.message ?? "User not found."} requestId={error?.requestId} />;
   }
 
   return (
@@ -99,7 +101,7 @@ export default function AdminUserDetailPage() {
         </Link>
       </div>
 
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      {error ? <ErrorBanner title="Admin action failed" message={error.message} requestId={error.requestId} /> : null}
       <p className="text-xs text-gray-400">Last updated: {formatTimestamp(lastUpdated)}</p>
 
       <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
@@ -136,7 +138,7 @@ export default function AdminUserDetailPage() {
               setLastUpdated(new Date().toISOString());
             } catch (err) {
               setUser(previous);
-              setError(err instanceof Error ? err.message : "Failed to update blocked status.");
+              setError({ message: err instanceof Error ? err.message : "Failed to update blocked status.", requestId: isApiError(err) ? err.requestId : undefined });
             } finally {
               setIsSaving(false);
             }
@@ -170,7 +172,7 @@ export default function AdminUserDetailPage() {
             } catch (err) {
               setUser(previous);
               setCompUntilDraft(previous.compUntil ?? "");
-              setError(err instanceof Error ? err.message : "Failed to update comp_until.");
+              setError({ message: err instanceof Error ? err.message : "Failed to update comp_until.", requestId: isApiError(err) ? err.requestId : undefined });
             } finally {
               setIsSaving(false);
             }

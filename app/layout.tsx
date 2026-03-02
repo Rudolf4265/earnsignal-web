@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { HostIntegrityGuard } from "@/src/components/runtime/host-integrity-guard";
+import { PRIMARY_DOMAIN } from "@/src/lib/config/domains";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://earnsigma.com"),
+  metadataBase: new URL(`https://${PRIMARY_DOMAIN}`),
   title: {
     default: "EarnSigma — Revenue Intelligence for Creator Teams",
     template: "%s | EarnSigma",
@@ -13,7 +15,7 @@ export const metadata: Metadata = {
     title: "EarnSigma — Revenue Intelligence",
     description:
       "Understand the structure behind your revenue. Stability. Churn. Tier migration.",
-    url: "https://earnsigma.com",
+    url: `https://${PRIMARY_DOMAIN}`,
     siteName: "EarnSigma",
     images: [
       {
@@ -45,7 +47,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><HostIntegrityGuard />{children}</body>
     </html>
   );
 }

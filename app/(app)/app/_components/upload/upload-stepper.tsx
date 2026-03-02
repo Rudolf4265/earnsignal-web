@@ -472,7 +472,8 @@ export default function UploadStepper() {
         <ErrorBanner data-testid="upload-terminal-error"
           title="Upload needs attention"
           message={error}
-retryLabel="Retry status"
+          requestId={errorRequestId ?? undefined}
+          retryLabel="Retry status"
           onRetry={uploadId && !busy ? () => void retryProcessing() : undefined}
           action={
             <>
@@ -498,9 +499,6 @@ retryLabel="Retry status"
         >
           <div className="space-y-2">
             {reasonCode ? <p className="text-xs text-red-100/80">Reason code: {reasonCode}</p> : null}
-            {errorRequestId ? (
-              <p className="text-xs text-red-100/80" data-testid="upload-request-id">Request ID: {errorRequestId}</p>
-            ) : null}
             {errorOperation ? <p className="text-xs text-red-100/80">Operation: {errorOperation}</p> : null}
             {reasonCode === "session_expired" ? (
               <Link href="/login" className="inline-flex rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/15">

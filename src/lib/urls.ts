@@ -1,9 +1,6 @@
-const DEFAULT_MARKETING_HOST = "earnsigma.com";
-const DEFAULT_APP_HOST = "app.earnsigma.com";
+import { getCanonicalHosts } from "./config/domains";
 
-const marketingHost =
-  process.env.NEXT_PUBLIC_MARKETING_HOST?.trim() || DEFAULT_MARKETING_HOST;
-const appHost = process.env.NEXT_PUBLIC_APP_HOST?.trim() || DEFAULT_APP_HOST;
+const { marketingHost, appHost } = getCanonicalHosts();
 
 function toBaseUrl(host: string): string {
   if (host.startsWith("http://") || host.startsWith("https://")) {

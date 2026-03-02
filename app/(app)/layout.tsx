@@ -66,8 +66,8 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-navy-950 text-white md:flex">
-      <aside className="border-b border-white/5 bg-navy-900 px-4 py-4 md:min-h-screen md:w-64 md:border-b-0 md:border-r md:px-6 md:py-6">
+    <div className="min-h-screen bg-slate-50 text-slate-900 md:flex">
+      <aside className="border-b border-slate-800 bg-slate-950 text-slate-100 px-4 py-4 md:min-h-screen md:w-64 md:border-b-0 md:border-r md:px-6 md:py-6">
         <Link href="/app" className="mb-6 flex items-center gap-2 md:mb-10">
           <Image src="/brand/earnsigma-mark.svg" alt="EarnSigma" width={28} height={28} />
           <span className="font-semibold">EarnSigma</span>
@@ -77,25 +77,25 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
           pathname={pathname}
           adminStatus={adminStatus}
           className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 md:grid-cols-1 md:space-y-2 md:gap-0"
-          linkClassName="rounded-lg border border-transparent px-3 py-2 text-gray-300 transition hover:border-white/10 hover:bg-white/5 hover:text-white"
-          activeLinkClassName="border-brand-blue/40 bg-brand-blue/20 text-white"
+          linkClassName="rounded-lg border border-transparent px-3 py-2 text-slate-300 transition hover:border-slate-700 hover:bg-slate-800 hover:text-slate-100"
+          activeLinkClassName="border-slate-600 bg-slate-800 text-slate-100"
         />
 
-        <div className="mt-6 border-t border-white/10 pt-4 md:mt-auto md:pt-6">
-          <p className="truncate text-xs text-gray-300">{session?.user?.email ?? "Signed in"}</p>
+        <div className="mt-6 border-t border-slate-800 pt-4 md:mt-auto md:pt-6">
+          <p className="truncate text-xs text-slate-400">{session?.user?.email ?? "Signed in"}</p>
           <button
             type="button"
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="mt-2 rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-100 transition hover:bg-white/10 disabled:opacity-60"
+            className="mt-2 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 transition hover:bg-slate-800 disabled:opacity-60"
           >
             {isLoggingOut ? "Logging out…" : "Log out"}
           </button>
-          <p className="mt-3 text-[11px] text-gray-500">Revenue intelligence layer</p>
+          <p className="mt-3 text-[11px] text-slate-500">Revenue intelligence layer</p>
         </div>
       </aside>
 
-      <main className="flex-1 p-4 sm:p-6 lg:p-10">{children}</main>
+      <main className="flex-1 bg-slate-50 p-4 sm:p-6 lg:p-10">{children}</main>
     </div>
   );
 }

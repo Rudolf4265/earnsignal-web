@@ -58,15 +58,15 @@ export default function BillingPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <header className="space-y-2">
-        <h1 className="text-3xl font-semibold text-white">Billing</h1>
-        <p className="text-gray-400">Compare plans, confirm your subscription status, and manage access.</p>
+        <h1 className="text-3xl font-semibold text-slate-900">Billing</h1>
+        <p className="text-slate-600">Compare plans, confirm your subscription status, and manage access.</p>
       </header>
 
       {state === "session_expired" ? <SessionExpiredCallout requestId={requestId} /> : null}
 
-      <section className="rounded-xl border border-white/10 bg-white/5 p-6">
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-medium text-white">Current subscription</h2>
+          <h2 className="text-lg font-medium text-slate-900">Current subscription</h2>
           <button
             type="button"
             onClick={async () => {
@@ -77,15 +77,15 @@ export default function BillingPage() {
                 setIsRefreshing(false);
               }
             }}
-            className="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-gray-100 hover:bg-white/5 disabled:opacity-60"
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 disabled:opacity-60"
             disabled={isRefreshing}
           >
             {isRefreshing ? "Refreshing…" : "Refresh status"}
           </button>
         </div>
 
-        <p className="mt-3 text-sm text-gray-300" data-testid="billing-current-plan">{`Plan: ${entitlements?.plan ?? "None"} · Status: ${entitlements?.status ?? "inactive"}`}</p>
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-3 text-sm text-slate-700" data-testid="billing-current-plan">{`Plan: ${entitlements?.plan ?? "None"} · Status: ${entitlements?.status ?? "inactive"}`}</p>
+        <p className="mt-1 text-xs text-slate-600">
           Feature access: {entitlements?.entitled ? "Active" : "Limited until subscription is active"}
         </p>
 
@@ -96,17 +96,17 @@ export default function BillingPage() {
         {entitlements?.portal_url ? (
           <Link
             href={entitlements.portal_url}
-            className="mt-4 inline-flex rounded-lg border border-white/20 px-4 py-2 text-sm hover:bg-white/5"
+            className="mt-4 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100"
           >
             Manage subscription
           </Link>
         ) : (
-          <p className="mt-3 text-xs text-gray-400">Need changes later? Contact support to update billing details.</p>
+          <p className="mt-3 text-xs text-slate-600">Need changes later? Contact support to update billing details.</p>
         )}
       </section>
 
       {hasCheckoutMarker ? (
-        <section className="rounded-lg border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-100">
+        <section className="rounded-lg border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-800">
           <p>Checkout is already starting…</p>
           <button
             type="button"
@@ -129,18 +129,18 @@ export default function BillingPage() {
             <article
               key={plan.id}
               className={`space-y-4 rounded-xl border p-6 ${
-                isCurrentPlan ? "border-brand-blue/50 bg-brand-blue/10" : "border-white/10 bg-white/5"
+                isCurrentPlan ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white"
               }`}
             >
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-xl font-semibold text-white">{plan.label}</h3>
-                  {isCurrentPlan ? <span data-testid="billing-current-badge" className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[11px] text-emerald-200">Current</span> : null}
+                  <h3 className="text-xl font-semibold text-slate-900">{plan.label}</h3>
+                  {isCurrentPlan ? <span data-testid="billing-current-badge" className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-700">Current</span> : null}
                 </div>
-                <p className="mt-1 text-sm text-gray-300">{plan.summary}</p>
+                <p className="mt-1 text-sm text-slate-700">{plan.summary}</p>
               </div>
 
-              <ul className="space-y-1 text-xs text-gray-300">
+              <ul className="space-y-1 text-xs text-slate-700">
                 {plan.highlights.map((line) => (
                   <li key={line}>• {line}</li>
                 ))}

@@ -41,10 +41,10 @@ export default function BillingSuccessPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 rounded-xl border border-white/10 bg-white/5 p-6">
-      <h1 className="text-2xl font-semibold text-white">Checkout complete</h1>
-      <p className="text-sm text-gray-300">We&apos;re verifying your payment and refreshing your workspace permissions.</p>
-      <p className="text-sm text-gray-400">
+    <div className="mx-auto max-w-2xl space-y-4 rounded-xl border border-slate-200 bg-white p-6">
+      <h1 className="text-2xl font-semibold text-slate-900">Checkout complete</h1>
+      <p className="text-sm text-slate-700">We&apos;re verifying your payment and refreshing your workspace permissions.</p>
+      <p className="text-sm text-slate-600">
         {entitlements?.entitled
           ? "Entitlements updated. Redirecting you to the app…"
           : "If activation takes a moment, use retry below."}
@@ -53,7 +53,7 @@ export default function BillingSuccessPage() {
         type="button"
         onClick={() => void handleRefresh()}
         disabled={isRefreshing}
-        className="inline-flex rounded-lg border border-white/20 px-4 py-2 text-sm hover:bg-white/5 disabled:opacity-50"
+        className="inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100 disabled:opacity-50"
       >
         {isRefreshing ? "Refreshing…" : "Retry refresh"}
       </button>

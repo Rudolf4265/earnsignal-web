@@ -24,15 +24,15 @@ export default function Stepper({ steps, activeIndex }: StepperProps) {
                     ? "border-brand-blue bg-brand-blue text-white"
                     : active
                       ? "border-brand-blue/80 bg-brand-blue/20 text-white"
-                      : "border-white/20 bg-navy-950 text-gray-400"
+                      : "border-slate-300 bg-slate-100 text-slate-500"
                 }`}
               >
                 {complete ? "✓" : index + 1}
               </div>
-              <span className={`truncate text-sm ${active || complete ? "text-white" : "text-gray-500"}`}>
+              <span className={`truncate text-sm ${active || complete ? "text-slate-900" : "text-slate-500"}`}>
                 {step.label}
               </span>
-              {index < steps.length - 1 ? <div className="h-px flex-1 bg-white/10" /> : null}
+              {index < steps.length - 1 ? <div className="h-px flex-1 bg-slate-200" /> : null}
             </li>
           );
         })}
@@ -43,19 +43,19 @@ export default function Stepper({ steps, activeIndex }: StepperProps) {
           const complete = index < activeIndex;
           const active = index === activeIndex;
           return (
-            <li key={step.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-navy-950 px-3 py-2">
+            <li key={step.id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
               <div
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-medium ${
                   complete
                     ? "border-brand-blue bg-brand-blue text-white"
                     : active
                       ? "border-brand-blue/80 bg-brand-blue/20 text-white"
-                      : "border-white/20 bg-transparent text-gray-400"
+                      : "border-slate-300 bg-transparent text-slate-500"
                 }`}
               >
                 {complete ? "✓" : index + 1}
               </div>
-              <span className={`text-sm ${active || complete ? "text-white" : "text-gray-500"}`}>{step.label}</span>
+              <span className={`text-sm ${active || complete ? "text-slate-900" : "text-slate-500"}`}>{step.label}</span>
             </li>
           );
         })}

@@ -57,9 +57,9 @@ export function EntitlementsErrorCallout({
   );
 }
 
-export function NotAuthorizedCallout() {
+export function NotAuthorizedCallout({ testId = "gate-not-authorized" }: { testId?: string }) {
   return (
-    <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-rose-300/40 bg-rose-500/10 p-6" data-testid="gate-not-authorized">
+    <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-rose-300/40 bg-rose-500/10 p-6" data-testid={testId}>
       <h2 className="text-lg font-semibold text-rose-100">Not authorized</h2>
       <p className="mt-2 text-sm text-rose-100/90">You do not have access to this admin section. Return to your dashboard.</p>
       <Link href="/app" className="mt-4 inline-flex rounded-lg border border-rose-200/60 px-3 py-1.5 text-xs text-rose-100 hover:bg-rose-300/10">

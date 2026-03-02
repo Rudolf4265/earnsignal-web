@@ -34,7 +34,7 @@ export function AppShell({
 
         <WorkspaceNav
           pathname={pathname}
-          isAdmin={false}
+          adminStatus="not_admin"
           className="flex flex-wrap gap-3 text-sm"
           linkClassName="rounded-full border border-zinc-700 px-3 py-1.5 text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100"
           activeLinkClassName="border-zinc-400 text-zinc-100"

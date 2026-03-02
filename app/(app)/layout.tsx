@@ -12,7 +12,7 @@ import { WorkspaceNav } from "./_components/workspace-nav";
 function AppLayoutFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { state, session, isAdmin, actions, requestId } = useAppGate();
+  const { state, session, adminStatus, actions, requestId } = useAppGate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const redirectedToLoginRef = useRef(false);
 
@@ -75,7 +75,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
 
         <WorkspaceNav
           pathname={pathname}
-          isAdmin={isAdmin}
+          adminStatus={adminStatus}
           className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 md:grid-cols-1 md:space-y-2 md:gap-0"
           linkClassName="rounded-lg border border-transparent px-3 py-2 text-gray-300 transition hover:border-white/10 hover:bg-white/5 hover:text-white"
           activeLinkClassName="border-brand-blue/40 bg-brand-blue/20 text-white"

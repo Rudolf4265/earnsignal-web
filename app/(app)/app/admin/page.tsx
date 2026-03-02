@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { NotAuthorizedCallout } from "../../_components/gate-callouts";
+import { GateLoadingShell, NotAuthorizedCallout } from "../../_components/gate-callouts";
 import { useAppGate } from "../../_components/app-gate-provider";
 import { AdminUserRow, fetchAdminUsers } from "@/src/lib/api/admin";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
+import { deriveAdminRenderState } from "@/src/lib/gating/admin-guard";
 
 export default function AdminUsersPage() {
-  const { isAdmin } = useAppGate();
+  const { isLoading: isGateLoading, adminStatus } = useAppGate();
+  const adminRenderState = deriveAdminRenderState({ isGateLoading, adminStatus });
+  const isAdmin = adminRenderState === "authorized";
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<AdminUserRow[]>([]);
@@ -60,8 +63,12 @@ export default function AdminUsersPage() {
 
   const totalText = useMemo(() => `${users.length} user${users.length === 1 ? "" : "s"}`, [users.length]);
 
-  if (!isAdmin) {
-    return <NotAuthorizedCallout />;
+  if (adminRenderState === "loading") {
+    return <div data-testid="admin-loading"><GateLoadingShell /></div>;
+  }
+
+  if (adminRenderState === "not_authorized") {
+    return <NotAuthorizedCallout testId="admin-not-authorized" />;
   }
 
   if (isLoading) {

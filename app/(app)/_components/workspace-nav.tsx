@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { APP_NAV_LINKS, getAppNavTestId, type AppNavLinkId } from "@/src/lib/navigation/app-nav";
+import { getAppNavTestId, type AppNavLinkId } from "@/src/lib/navigation/app-nav";
+import { buildWorkspaceNavLinks } from "@/src/lib/navigation/workspace-nav-links";
+import type { AdminStatus } from "@/src/lib/gating/admin-guard";
 
-type WorkspaceNavLink = {
-  id: AppNavLinkId;
-  href: string;
-  label: string;
-};
+type WorkspaceNavLink = { id: AppNavLinkId; href: string; label: string };
 
 function isLinkActive(pathname: string, link: WorkspaceNavLink): boolean {
   if (link.id === "dashboard") {
@@ -23,20 +21,18 @@ function isLinkActive(pathname: string, link: WorkspaceNavLink): boolean {
 
 export function WorkspaceNav({
   pathname,
-  isAdmin,
+  adminStatus,
   className,
   linkClassName,
   activeLinkClassName,
 }: {
   pathname: string;
-  isAdmin: boolean;
+  adminStatus: AdminStatus;
   className: string;
   linkClassName: string;
   activeLinkClassName: string;
 }) {
-  const navLinks: WorkspaceNavLink[] = isAdmin
-    ? [...APP_NAV_LINKS, { id: "admin", href: "/app/admin", label: "Admin" }]
-    : [...APP_NAV_LINKS];
+  const navLinks: WorkspaceNavLink[] = buildWorkspaceNavLinks(adminStatus);
 
   return (
     <nav className={className}>

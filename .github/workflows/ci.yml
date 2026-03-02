@@ -58,6 +58,8 @@ jobs:
             exit 1
           fi
 
+          echo "::add-mask::${NPM_TOKEN}"
+
           ALWAYS_AUTH_VALUE="${NPM_ALWAYS_AUTH:-true}"
           MIRROR_NO_PROTOCOL="${NPM_MIRROR_REGISTRY#http://}"
           MIRROR_NO_PROTOCOL="${MIRROR_NO_PROTOCOL#https://}"
@@ -73,6 +75,39 @@ EOF
           fi
 
           printf '%s\n' "//${MIRROR_HOST_PATH}/:_authToken=${NPM_TOKEN}" >> "$GITHUB_WORKSPACE/.npmrc"
+
+      - name: Validate generated mirror config
+        env:
+          NPM_MIRROR_REGISTRY_VAR: ${{ vars.NPM_MIRROR_REGISTRY }}
+          NPM_MIRROR_REGISTRY_SECRET: ${{ secrets.NPM_MIRROR_REGISTRY }}
+        run: |
+          set -euo pipefail
+
+          NPM_MIRROR_REGISTRY="${NPM_MIRROR_REGISTRY_VAR:-}"
+          if [ -z "$NPM_MIRROR_REGISTRY" ]; then
+            NPM_MIRROR_REGISTRY="${NPM_MIRROR_REGISTRY_SECRET:-}"
+          fi
+
+          EFFECTIVE_REGISTRY="$(npm config get registry)"
+          EXPECTED_REGISTRY="$NPM_MIRROR_REGISTRY"
+          [[ "$EXPECTED_REGISTRY" == */ ]] || EXPECTED_REGISTRY="${EXPECTED_REGISTRY}/"
+          [[ "$EFFECTIVE_REGISTRY" == */ ]] || EFFECTIVE_REGISTRY="${EFFECTIVE_REGISTRY}/"
+
+          if [ "$EFFECTIVE_REGISTRY" != "$EXPECTED_REGISTRY" ]; then
+            echo "::error::npm registry mismatch. expected=$EXPECTED_REGISTRY actual=$EFFECTIVE_REGISTRY"
+            exit 1
+          fi
+
+          MIRROR_NO_PROTOCOL="${NPM_MIRROR_REGISTRY#http://}"
+          MIRROR_NO_PROTOCOL="${MIRROR_NO_PROTOCOL#https://}"
+          MIRROR_HOST_PATH="${MIRROR_NO_PROTOCOL%/}"
+          EXPECTED_AUTH_PREFIX="//${MIRROR_HOST_PATH}/"
+
+          AUTH_LINE_PREFIX="$(awk -F':_authToken=' '/:_authToken=/{print $1}' "$GITHUB_WORKSPACE/.npmrc" | tail -n1)"
+          if [ "$AUTH_LINE_PREFIX" != "$EXPECTED_AUTH_PREFIX" ]; then
+            echo "::error::Generated .npmrc auth host/path mismatch. expected prefix: $EXPECTED_AUTH_PREFIX"
+            exit 1
+          fi
 
       - name: NPM diagnostics (safe)
         run: |
@@ -94,7 +129,21 @@ EOF
           fi
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          set -euo pipefail
+          if npm ci 2>&1 | tee /tmp/npm-ci.log; then
+            exit 0
+          fi
+
+          if rg -q "E401|E403|401 Unauthorized|403 Forbidden" /tmp/npm-ci.log; then
+            echo "::error::npm ci failed with mirror authentication/authorization error (401/403). Verify NPM_TOKEN read access and mirror permissions for the requested packages."
+          else
+            echo "::error::npm ci failed. See log above for details."
+          fi
+          exit 1
+
+      - name: Dependency completeness check
+        run: npm ls --depth=0
 
       - name: Lint
         run: npm run lint
@@ -161,6 +210,8 @@ EOF
             exit 1
           fi
 
+          echo "::add-mask::${NPM_TOKEN}"
+
           ALWAYS_AUTH_VALUE="${NPM_ALWAYS_AUTH:-true}"
           MIRROR_NO_PROTOCOL="${NPM_MIRROR_REGISTRY#http://}"
           MIRROR_NO_PROTOCOL="${MIRROR_NO_PROTOCOL#https://}"
@@ -185,7 +236,21 @@ EOF
           echo "Configured npm registry: $(npm config get registry)"
 
       - name: Install app dependencies
-        run: npm ci
+        run: |
+          set -euo pipefail
+          if npm ci 2>&1 | tee /tmp/npm-ci-e2e.log; then
+            exit 0
+          fi
+
+          if rg -q "E401|E403|401 Unauthorized|403 Forbidden" /tmp/npm-ci-e2e.log; then
+            echo "::error::npm ci failed with mirror authentication/authorization error (401/403). Verify NPM_TOKEN read access and mirror permissions for the requested packages."
+          else
+            echo "::error::npm ci failed. See log above for details."
+          fi
+          exit 1
+
+      - name: Dependency completeness check
+        run: npm ls --depth=0
 
       - name: Install e2e dependencies
         id: e2e_deps

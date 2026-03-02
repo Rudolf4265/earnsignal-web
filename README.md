@@ -41,9 +41,11 @@ Configure the following repository settings for GitHub Actions:
 - Optional `NPM_SCOPE` (repository variable): scoped registry mapping such as `@earnsigma`
 - Optional `NPM_ALWAYS_AUTH` (repository variable): defaults to `true` in CI when unset
 
-The workflow fails fast with a clear error when `package-lock.json` or `NPM_MIRROR_REGISTRY` is missing.
+The workflow fails fast with a clear error when `package-lock.json` or `NPM_MIRROR_REGISTRY` is missing, and surfaces an actionable message if mirror auth fails (`401/403`) during `npm ci`.
 
 Playwright e2e dependencies are isolated under `tests/e2e` and are not part of the default root install graph.
+
+After `npm ci`, CI runs `npm ls --depth=0` as a dependency completeness check before lint/build/test.
 
 Standard local clean build sequence (no mirror required):
 

@@ -143,7 +143,13 @@ EOF
           exit 1
 
       - name: Dependency completeness check
-        run: npm ls --depth=0
+        run: |
+          set -euo pipefail
+          if npm ls --depth=0; then
+            exit 0
+          fi
+          echo "::error::Dependency completeness check failed. Mirror may be missing packages or lockfile integrity may be out of sync. Verify mirror replication and package-lock.json consistency."
+          exit 1
 
       - name: Lint
         run: npm run lint
@@ -250,7 +256,13 @@ EOF
           exit 1
 
       - name: Dependency completeness check
-        run: npm ls --depth=0
+        run: |
+          set -euo pipefail
+          if npm ls --depth=0; then
+            exit 0
+          fi
+          echo "::error::Dependency completeness check failed. Mirror may be missing packages or lockfile integrity may be out of sync. Verify mirror replication and package-lock.json consistency."
+          exit 1
 
       - name: Install e2e dependencies
         id: e2e_deps

@@ -1,6 +1,8 @@
 "use client";
 
 import { createClient } from "./client";
+import { appBaseUrl } from "@/src/lib/urls";
+import { isAllowedAuthOrigin } from "@/src/lib/config/domains";
 
 export async function signInWithGoogle(opts?: { redirectTo?: string; returnTo?: string | null }) {
   let supabase;
@@ -12,8 +14,9 @@ export async function signInWithGoogle(opts?: { redirectTo?: string; returnTo?: 
     throw err;
   }
 
-  const fallbackRedirectTo = `${window.location.origin}/auth/callback`;
-  const redirectBase = opts?.redirectTo ?? fallbackRedirectTo;
+  const browserOrigin = window.location.origin;
+  const fallbackRedirectTo = `${appBaseUrl}/auth/callback`;
+  const redirectBase = opts?.redirectTo ?? (isAllowedAuthOrigin(browserOrigin) ? `${browserOrigin}/auth/callback` : fallbackRedirectTo);
   const callbackUrl = new URL(redirectBase, window.location.origin);
 
   if (opts?.returnTo) {

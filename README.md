@@ -2,10 +2,10 @@
 
 Next.js (App Router) single-repo app serving both:
 
-- Marketing domain: `https://earnsignalstudio.com`
-- App domain: `https://app.earnsignalstudio.com`
+- Marketing domain: `https://www.earnsigma.com`
+- App domain: `https://app.earnsigma.com`
 
-Hostname routing is handled by `middleware.ts` in this project.
+Hostname routing is handled by `proxy.ts` in this project via centralized domain config (`src/lib/config/domains.ts`).
 
 ## Local development
 
@@ -14,11 +14,11 @@ npm install
 npm run dev
 ```
 
-Optional host overrides:
+Domain configuration (recommended):
 
 ```bash
-NEXT_PUBLIC_MARKETING_HOST=earnsignalstudio.com
-NEXT_PUBLIC_APP_HOST=app.earnsignalstudio.com
+NEXT_PUBLIC_PRIMARY_DOMAIN=earnsigma.com
+NEXT_PUBLIC_ALLOWED_HOST_SUFFIXES=.vercel.app,.earnsigma.com,.localhost
 ```
 
 For local two-host testing, map hosts in `/etc/hosts`:
@@ -32,8 +32,8 @@ For local two-host testing, map hosts in `/etc/hosts`:
 
 1. Deploy this repo to one Vercel project.
 2. Add both domains to that same project:
-   - `earnsignalstudio.com`
-   - `app.earnsignalstudio.com`
+   - `www.earnsigma.com`
+   - `app.earnsigma.com`
 3. Ensure DNS for each domain points to Vercel.
 4. Do **not** create a second project for the app domain.
 
@@ -103,6 +103,19 @@ Use these constants in Stripe checkout session creation.
 - Wire Supabase auth actions/forms on `/login` and `/signup`.
 - Wire Stripe checkout and use URL constants from `src/lib/urls.ts` when creating sessions.
 - Replace placeholder legal text on Privacy + Terms pages.
+
+
+### CI environment requirements
+
+Set these environment variables in CI and hosting for deterministic domain/callback behavior:
+
+```bash
+NEXT_PUBLIC_PRIMARY_DOMAIN=earnsigma.com
+NEXT_PUBLIC_ALLOWED_HOST_SUFFIXES=.vercel.app,.earnsigma.com,.localhost
+NEXT_PUBLIC_API_BASE_URL=https://api.earnsigma.com
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
 
 ## Playwright E2E suite
 

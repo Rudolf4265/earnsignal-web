@@ -26,8 +26,8 @@ export default function EnvDebugPage() {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "(missing)",
     NEXT_PUBLIC_SUPABASE_ANON_KEY: maskSecret(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? "(missing)",
-    NEXT_PUBLIC_MARKETING_HOST: process.env.NEXT_PUBLIC_MARKETING_HOST ?? "(missing)",
-    NEXT_PUBLIC_APP_HOST: process.env.NEXT_PUBLIC_APP_HOST ?? "(missing)",
+    NEXT_PUBLIC_PRIMARY_DOMAIN: process.env.NEXT_PUBLIC_PRIMARY_DOMAIN ?? "(missing)",
+    NEXT_PUBLIC_ALLOWED_HOST_SUFFIXES: process.env.NEXT_PUBLIC_ALLOWED_HOST_SUFFIXES ?? "(missing)",
     VERCEL_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? "(missing)",
     VERCEL_ENV: process.env.VERCEL_ENV ?? "(missing)",
   };

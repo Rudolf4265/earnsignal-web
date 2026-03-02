@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { useAppGate } from "@/app/(app)/_components/app-gate-provider";
+import { DEBUG_QA_ROUTE } from "@/src/lib/debug/routes";
 
 const checks = [
   { label: "Auth: login", href: "/login" },
@@ -15,10 +17,12 @@ const checks = [
 
 export default function QaDebugPage() {
   const { isAdmin } = useAppGate();
-  const isProd = process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
+  if (!DEBUG_QA_ROUTE) {
+    notFound();
+  }
 
-  if (isProd && !isAdmin) {
-    return <p className="text-sm text-gray-300">Not available in production.</p>;
+  if (!isAdmin) {
+    return <p className="text-sm text-gray-300">Not available to non-admins.</p>;
   }
 
   return (

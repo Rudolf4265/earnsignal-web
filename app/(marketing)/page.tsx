@@ -75,11 +75,11 @@ export default function MarketingHomePage() {
               <div className="absolute inset-0 bg-gradient-to-tr from-brand-blue/20 to-brand-teal/20 blur-3xl opacity-40" />
               <div className="relative rounded-2xl border border-white/10 bg-navy-900 shadow-2xl p-4">
                 <Image
-                  src="/brand/earnsigma-hero-lockup.png"
-                  alt="EarnSigma dashboard preview"
-                  width={800}
-                  height={500}
-                  className="rounded-lg"
+                  src="/brand/earnsigma-lockup.svg"
+                  alt="EarnSigma brand lockup"
+                  width={1200}
+                  height={600}
+                  className="h-auto w-full rounded-lg"
                   priority
                 />
               </div>

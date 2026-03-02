@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Image from "next/image";
+import { BrandMark } from "@/components/brand/brand-mark";
 
 export default function AuthShell({ children }: { children: ReactNode }) {
   return (
@@ -15,8 +15,12 @@ export default function AuthShell({ children }: { children: ReactNode }) {
             rel="noreferrer"
             className="inline-flex items-center gap-2"
           >
-            <Image src="/brand/earnsigma-mark.svg" alt="EarnSigma" width={36} height={36} priority />
-            <span className="text-lg font-semibold text-white">EarnSigma</span>
+            <BrandMark
+              priority
+              className="inline-flex items-center gap-2"
+              iconClassName="h-9 w-9"
+              labelClassName="text-lg font-semibold text-white leading-none"
+            />
           </a>
           <p className="mt-4 text-sm text-gray-400">Revenue intelligence for creator teams</p>
         </div>

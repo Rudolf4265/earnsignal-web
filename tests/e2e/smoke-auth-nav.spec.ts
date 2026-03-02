@@ -88,4 +88,28 @@ test.describe("Auth + Nav + Gate smoke", () => {
 
     await expect(page.getByTestId("gate-session-expired")).toBeVisible();
   });
+
+  test("entitlements 500 fails closed and blocks report route access", async ({ page }) => {
+    await stubAuthenticatedSession(page);
+    await stubUnhandledApiRoutes(page);
+    await page.route("**/v1/entitlements", async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "error",
+          code: "HTTP_500",
+          message: "Internal error",
+          request_id: "req_entitlements_500",
+        }),
+      });
+    });
+
+    await page.goto("/app");
+    await expect(page.getByTestId("gate-entitlements-error")).toBeVisible();
+
+    await page.goto("/app/report");
+    await expect(page.getByTestId("gate-entitlements-error")).toBeVisible();
+    await expect(page).not.toHaveURL(/\/app\/report$/);
+  });
 });

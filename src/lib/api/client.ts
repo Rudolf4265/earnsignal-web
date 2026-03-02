@@ -301,10 +301,6 @@ export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError;
 }
 
-export function isSessionExpiredError(error: unknown): boolean {
-  return isApiError(error) && (error.status === 401 || error.status === 403);
-}
-
 export function getApiBaseOrigin(): string {
   return new URL(getApiBaseUrl()).origin;
 }

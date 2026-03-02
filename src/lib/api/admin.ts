@@ -1,4 +1,5 @@
 import { ApiError, apiFetchJson } from "./client";
+import { isSessionExpiredError } from "../auth/isSessionExpiredError.ts";
 
 export type AdminWhoAmIResponse = {
   isAdmin: boolean;
@@ -81,7 +82,7 @@ export async function fetchAdminWhoAmI(options?: { forceRefresh?: boolean }): Pr
       whoAmICache = value;
       return value;
     } catch (error) {
-      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+      if (error instanceof ApiError && isSessionExpiredError(error, { hasAuthContext: true })) {
         return { isAdmin: false, email: null };
       }
 

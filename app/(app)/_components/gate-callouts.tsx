@@ -32,6 +32,31 @@ export function NotEntitledCallout() {
   );
 }
 
+export function EntitlementsErrorCallout({
+  onRetry,
+}: {
+  onRetry: () => void;
+}) {
+  return (
+    <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-rose-300/40 bg-rose-500/10 p-6" data-testid="gate-entitlements-error">
+      <h2 className="text-lg font-semibold text-rose-100">Unable to verify subscription status.</h2>
+      <p className="mt-2 text-sm text-rose-100/90">We could not confirm your plan access right now. Retry verification or go to Billing.</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex rounded-lg border border-rose-200/60 px-3 py-1.5 text-xs text-rose-100 hover:bg-rose-300/10"
+        >
+          Retry
+        </button>
+        <Link href="/app/billing" className="inline-flex rounded-lg border border-rose-200/60 px-3 py-1.5 text-xs text-rose-100 hover:bg-rose-300/10">
+          Go to Billing
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export function NotAuthorizedCallout() {
   return (
     <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-rose-300/40 bg-rose-500/10 p-6" data-testid="gate-not-authorized">

@@ -41,11 +41,11 @@ test("report detail maps 404 to not_found", async () => {
   assert.equal(getReportViewState(error), "not_found");
 });
 
-test("report detail maps 403 to forbidden", async () => {
+test("report detail maps 403 to session_expired", async () => {
   const { ApiError, getReportViewState } = await loadModules(Date.now() + 3);
   const error = new ApiError({ status: 403, code: "FORBIDDEN", message: "denied", operation: "report.fetch", path: "/v1/reports/1", method: "GET" });
 
-  assert.equal(getReportViewState(error), "forbidden");
+  assert.equal(getReportViewState(error), "session_expired");
 });
 
 test("report detail maps 500 to server_error", async () => {

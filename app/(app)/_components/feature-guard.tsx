@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccessPathWhenUnentitled } from "@/src/lib/gating/app-gate";
 import { useAppGate } from "./app-gate-provider";
-import { GateLoadingShell, NotEntitledCallout, SessionExpiredCallout } from "./gate-callouts";
+import { EntitlementsErrorCallout, GateLoadingShell, NotEntitledCallout, SessionExpiredCallout } from "./gate-callouts";
 
 type GuardedFeature = "upload" | "report";
 
@@ -12,7 +12,7 @@ export function FeatureGuard({ feature, children }: { feature: GuardedFeature; c
   const router = useRouter();
   const pathname = usePathname();
   const replacedRef = useRef(false);
-  const { state, entitlements, requestId } = useAppGate();
+  const { state, entitlements, requestId, actions } = useAppGate();
 
   const hasFeature = Boolean(entitlements?.features?.[feature]);
 
@@ -38,6 +38,10 @@ export function FeatureGuard({ feature, children }: { feature: GuardedFeature; c
     return <SessionExpiredCallout requestId={requestId} />;
   }
 
+  if (state === "entitlements_error") {
+    return <EntitlementsErrorCallout onRetry={() => void actions.refreshEntitlements({ forceRefresh: true })} />;
+  }
+
   if (state === "authed_unentitled") {
     if (!canAccessPathWhenUnentitled(pathname)) {
       return <NotEntitledCallout />;
@@ -48,7 +52,7 @@ export function FeatureGuard({ feature, children }: { feature: GuardedFeature; c
     }
   }
 
-  if (state !== "authed_entitled" && state !== "authed_admin") {
+  if (state !== "authed_entitled") {
     return (
       <div data-testid="gate-loading">
         <GateLoadingShell />

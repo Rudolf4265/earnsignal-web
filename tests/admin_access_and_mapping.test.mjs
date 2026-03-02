@@ -8,7 +8,9 @@ const gatingUrl = pathToFileURL(path.resolve("src/lib/gating/app-gate.ts")).href
 const adminSourcePath = path.resolve("src/lib/api/admin.ts");
 async function buildAdminModule(tag) {
   const source = await readFile(adminSourcePath, "utf8");
-  const patched = source.replace("./client", "../src/lib/api/client.ts");
+  const patched = source
+    .replace("./client", "../src/lib/api/client.ts")
+    .replace("../auth/isSessionExpiredError.ts", "../src/lib/auth/isSessionExpiredError.ts");
   const outDir = path.resolve(".tmp-tests");
   await mkdir(outDir, { recursive: true });
   const outFile = path.join(outDir, `admin-${tag}.ts`);
@@ -17,7 +19,7 @@ async function buildAdminModule(tag) {
 }
 
 
-test("deriveAppGateState returns authed_admin for entitled admin users", async () => {
+test("deriveAppGateState keeps entitled admins in authed_entitled", async () => {
   const { deriveAppGateState } = await import(`${gatingUrl}?t=${Date.now()}`);
 
   const decision = deriveAppGateState({
@@ -27,7 +29,7 @@ test("deriveAppGateState returns authed_admin for entitled admin users", async (
     isAdmin: true,
   });
 
-  assert.equal(decision, "authed_admin");
+  assert.equal(decision, "authed_entitled");
 });
 
 test("fetchAdminUsers maps backend fields to frontend shape", async () => {

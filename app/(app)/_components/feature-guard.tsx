@@ -2,9 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { canAccessPathWhenUnentitled } from "@/src/lib/gating/app-gate";
 import { useAppGate } from "./app-gate-provider";
 import { EntitlementsErrorCallout, GateLoadingShell, NotEntitledCallout, SessionExpiredCallout } from "./gate-callouts";
+import { decideFeatureGuardOutcome } from "@/src/lib/gating/feature-guard-decision.mjs";
 
 type GuardedFeature = "upload" | "report";
 
@@ -12,57 +12,38 @@ export function FeatureGuard({ feature, children }: { feature: GuardedFeature; c
   const router = useRouter();
   const pathname = usePathname();
   const replacedRef = useRef(false);
-  const { state, entitlements, requestId, actions } = useAppGate();
+  const { state, actions, requestId } = useAppGate();
 
-  const hasFeature = Boolean(entitlements?.features?.[feature]);
+  const outcome = decideFeatureGuardOutcome({ gateState: state, pathname, feature });
 
   useEffect(() => {
-    if (state === "authed_unentitled" && !canAccessPathWhenUnentitled(pathname) && !replacedRef.current) {
+    if (outcome.kind === "redirect" && !replacedRef.current) {
       replacedRef.current = true;
-      router.replace(`/app/billing?feature=${feature}`);
+      router.replace(outcome.href);
       return;
     }
 
     replacedRef.current = false;
-  }, [feature, pathname, router, state]);
+  }, [outcome, router]);
 
-  if (state === "session_loading" || state === "authed_loading_entitlements") {
-    return (
-      <div data-testid="gate-loading">
-        <GateLoadingShell />
-      </div>
-    );
-  }
-
-  if (state === "session_expired") {
-    return <SessionExpiredCallout requestId={requestId} />;
-  }
-
-  if (state === "entitlements_error") {
-    return <EntitlementsErrorCallout onRetry={() => void actions.refreshEntitlements({ forceRefresh: true })} />;
-  }
-
-  if (state === "authed_unentitled") {
-    if (!canAccessPathWhenUnentitled(pathname)) {
+  switch (outcome.kind) {
+    case "render_children":
+      return <>{children}</>;
+    case "render_loading":
+      return (
+        <div data-testid="gate-loading">
+          <GateLoadingShell />
+        </div>
+      );
+    case "render_session_expired":
+      return <SessionExpiredCallout requestId={requestId} />;
+    case "render_entitlements_error":
+      return <EntitlementsErrorCallout onRetry={() => void actions.refreshEntitlements({ forceRefresh: true })} />;
+    case "render_not_entitled":
       return <NotEntitledCallout />;
-    }
-
-    if (!hasFeature) {
+    case "redirect":
       return <NotEntitledCallout />;
-    }
+    default:
+      return <NotEntitledCallout />;
   }
-
-  if (state !== "authed_entitled") {
-    return (
-      <div data-testid="gate-loading">
-        <GateLoadingShell />
-      </div>
-    );
-  }
-
-  if (!hasFeature) {
-    return <NotEntitledCallout />;
-  }
-
-  return <>{children}</>;
 }

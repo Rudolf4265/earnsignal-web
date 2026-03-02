@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { fetchEntitlements, type EntitlementsResponse } from "@/src/lib/api/entitlements";
 import { checkIsAdmin } from "@/src/lib/admin/access";
@@ -27,6 +27,7 @@ type AppGateContextValue = {
   session: Session | null;
   entitlements: EntitlementsResponse | null;
   isAdmin: boolean;
+  adminStatus: "unknown" | "admin" | "not_admin";
   requestId?: string;
   error: string | null;
   errorRequestId?: string;
@@ -36,9 +37,10 @@ type AppGateContextValue = {
 const AppGateContext = createContext<AppGateContextValue | null>(null);
 
 export function AppGateProvider({ children }: { children: React.ReactNode }) {
+  const adminCheckRef = useRef(0);
   const [isSessionKnown, setIsSessionKnown] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminStatus, setAdminStatus] = useState<"unknown" | "admin" | "not_admin">("unknown");
   const [entitlementsState, setEntitlementsState] = useState<EntitlementsResolution>({ status: "idle" });
   const [error, setError] = useState<string | null>(null);
   const [errorRequestId, setErrorRequestId] = useState<string | undefined>(undefined);
@@ -66,16 +68,31 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
 
   const syncSessionState = useCallback((nextSession: Session | null) => {
     if (!nextSession) {
-      setIsAdmin(false);
+      adminCheckRef.current += 1;
+      setAdminStatus("unknown");
       setEntitlementsState({ status: "idle" });
       setError(null);
       setErrorRequestId(undefined);
       return;
     }
 
-    void checkIsAdmin().then((allowed) => {
-      setIsAdmin(allowed);
-    });
+    const checkId = adminCheckRef.current + 1;
+    adminCheckRef.current = checkId;
+    setAdminStatus("unknown");
+
+    void checkIsAdmin()
+      .then((allowed) => {
+        if (adminCheckRef.current !== checkId) {
+          return;
+        }
+        setAdminStatus(allowed ? "admin" : "not_admin");
+      })
+      .catch(() => {
+        if (adminCheckRef.current !== checkId) {
+          return;
+        }
+        setAdminStatus("not_admin");
+      });
 
     void loadEntitlements();
   }, [loadEntitlements]);
@@ -116,7 +133,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
     };
   }, [syncSessionState]);
 
-  const state = deriveAppGateState({ isSessionKnown, session, entitlements: entitlementsState, isAdmin });
+  const state = deriveAppGateState({ isSessionKnown, session, entitlements: entitlementsState, isAdmin: adminStatus === "admin" });
 
   const actions = useMemo<GateActions>(
     () => ({
@@ -143,13 +160,14 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
         entitlementsState.status === "entitled" || entitlementsState.status === "unentitled"
           ? entitlementsState.entitlements
           : null,
-      isAdmin,
+      isAdmin: adminStatus === "admin",
+      adminStatus: !isSessionKnown || !session ? "unknown" : adminStatus,
       requestId: entitlementsState.status === "session_expired" ? entitlementsState.requestId : undefined,
       error,
       errorRequestId,
       actions,
     }),
-    [actions, entitlementsState, error, errorRequestId, isAdmin, session, state],
+    [actions, adminStatus, entitlementsState, error, errorRequestId, isSessionKnown, session, state],
   );
 
   return <AppGateContext.Provider value={value}>{children}</AppGateContext.Provider>;

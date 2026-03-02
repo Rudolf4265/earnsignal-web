@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { NotAuthorizedCallout } from "@/app/(app)/_components/gate-callouts";
+import { GateLoadingShell, NotAuthorizedCallout } from "@/app/(app)/_components/gate-callouts";
 import { useAppGate } from "@/app/(app)/_components/app-gate-provider";
 import { AdminUserDetail, fetchAdminUserDetail, updateAdminUserBlocked, updateAdminUserCompUntil } from "@/src/lib/api/admin";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
+import { deriveAdminRenderState } from "@/src/lib/gating/admin-guard";
 
 function formatTimestamp(value: string | null): string {
   if (!value) {
@@ -28,7 +29,9 @@ export default function AdminUserDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<{ message: string; requestId?: string } | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const { isAdmin } = useAppGate();
+  const { isLoading: isGateLoading, adminStatus } = useAppGate();
+  const adminRenderState = deriveAdminRenderState({ isGateLoading, adminStatus });
+  const isAdmin = adminRenderState === "authorized";
 
   useEffect(() => {
     if (!isAdmin) {
@@ -77,8 +80,12 @@ export default function AdminUserDetailPage() {
     return user.email ? `${user.email} (${user.creatorId})` : user.creatorId;
   }, [creatorId, user]);
 
-  if (!isAdmin) {
-    return <NotAuthorizedCallout />;
+  if (adminRenderState === "loading") {
+    return <div data-testid="admin-loading"><GateLoadingShell /></div>;
+  }
+
+  if (adminRenderState === "not_authorized") {
+    return <NotAuthorizedCallout testId="admin-not-authorized" />;
   }
 
   if (isLoading) {

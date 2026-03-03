@@ -10,6 +10,7 @@ No endpoints are invented here.
 - Requests with a body default to `Content-Type: application/json`.
 - Auth is bearer-token based when a browser Supabase session exists (`Authorization: Bearer <access_token>`).
 - Errors are expected to include optional `x-request-id` in response headers and may include JSON fields like `code`, `message`, and `details`.
+- In environments where Playwright browser download is blocked, request-trace tests are optional and will skip.
 
 ## Confirmed endpoints
 

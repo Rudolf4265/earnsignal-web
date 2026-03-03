@@ -9,7 +9,16 @@ type TraceEntry = {
   page: string;
 };
 
+const runE2E = process.env.RUN_E2E === "1";
+
+if (!runE2E) {
+  // eslint-disable-next-line no-console
+  console.log("[request-trace] Skipping request-trace Playwright spec. Set RUN_E2E=1 to execute.");
+}
+
 test.describe("Request trace scaffolding", () => {
+  test.skip(!runE2E, "request-trace is optional by default; set RUN_E2E=1 to run.");
+
   test("captures API requests for /app/data, /app/report, /app", async ({ page }, testInfo) => {
     await stubAuthenticatedSession(page);
 

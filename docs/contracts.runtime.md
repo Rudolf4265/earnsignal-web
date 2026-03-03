@@ -119,12 +119,34 @@ No endpoints are invented here.
 - **Auth:** Bearer token expected when session exists
 - **Response shape:** same consumed shape as `GET /v1/uploads/:uploadId/status`
 
-## Unknown or missing contracts (requires backend confirmation)
+## Additional contracts and known gaps
 
 ### Reports listing endpoint
-- **Status:** unknown/missing; requires backend confirmation.
-- **Reason:** Runtime code references report detail (`GET /v1/reports/:id`) but no reports-list API call was found for `/v1/reports` list, `/v1/report`, `/v1/analysis`, or `/v1/results` in app runtime usage.
-- **Current UI behavior:** `/app/report` currently presents a static sample link rather than fetched report listings.
+
+#### `GET /v1/reports`
+- **Used by pages:** `/app/report`
+- **Auth:** Bearer token expected when session exists
+- **Query params:**
+  - `limit: number` (default `25`, max `100`)
+  - `offset: number` (default `0`)
+- **Response shape consumed:**
+  - `items: ReportListItem[]`
+    - `report_id: string` (`reportId` / `id` accepted)
+    - `created_at: string` (`createdAt` accepted)
+    - `status: "queued" | "running" | "ready" | "failed"` (normalized from backend status values)
+    - `title: string | null`
+    - `platforms: string[] | null`
+    - `coverage_start: string | null` (`coverageStart` accepted)
+    - `coverage_end: string | null` (`coverageEnd` accepted)
+    - `artifact_kind: string | null` (`artifactKind` accepted)
+    - `artifact_url: string | null` (`artifactUrl` accepted)
+    - `upload_id: string | null` (`uploadId` accepted)
+    - `job_id: string | null` (`jobId` accepted)
+  - `next_offset: number` (`nextOffset` accepted)
+  - `has_more: boolean` (`hasMore` accepted)
+- **Page behavior notes:**
+  - `/app/report` renders loading, empty, error, and paginated list states from this endpoint.
+  - Sample report CTA is preserved as a secondary/fallback action.
 
 ### Dashboard summary endpoint
 - **Status:** unknown/missing; requires backend confirmation.

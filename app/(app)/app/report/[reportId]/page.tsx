@@ -6,16 +6,13 @@ import { FeatureGuard } from "../../../_components/feature-guard";
 import { NotEntitledCallout, SessionExpiredCallout } from "../../../_components/gate-callouts";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { getReport, type ReportDetail } from "@/src/lib/api/reports";
-import { getReportViewState, getRequestId, getStatusCode, type ReportViewState } from "@/src/lib/report/detail-state";
+import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 
 type ReportPageState = {
   view: ReportViewState;
   report: ReportDetail | null;
   requestId?: string;
-  statusCode?: number;
 };
-
-const DEBUG_REPORTS = process.env.NEXT_PUBLIC_DEBUG_REPORTS === "1";
 
 const initialState: ReportPageState = {
   view: "loading",
@@ -25,6 +22,7 @@ const initialState: ReportPageState = {
 export default function ReportPage({ params }: { params: { reportId: string } }) {
   const { reportId } = params;
   const [state, setState] = useState<ReportPageState>(initialState);
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,14 +47,13 @@ export default function ReportPage({ params }: { params: { reportId: string } })
           view: getReportViewState(error),
           report: null,
           requestId: getRequestId(error),
-          statusCode: getStatusCode(error),
         });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [reportId]);
+  }, [reportId, retryToken]);
 
   return (
     <FeatureGuard feature="report">
@@ -112,15 +109,21 @@ export default function ReportPage({ params }: { params: { reportId: string } })
         </section>
       ) : null}
 
+      {state.view === "invalid_link" ? (
+        <section className="space-y-3" data-testid="report-invalid-link">
+          <h1 className="text-2xl font-semibold">Invalid report link</h1>
+          <p className="text-slate-400">This report link is invalid. Please return to Reports and choose a valid report.</p>
+          <Link href="/app/report" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
+            Back to Reports
+          </Link>
+        </section>
+      ) : null}
+
       {state.view === "not_found" ? (
         <section className="space-y-3" data-testid="report-not-found">
           <h1 className="text-2xl font-semibold">Report not found</h1>
           <p className="text-slate-400">We could not find a report with ID {reportId}. It may have been deleted or never existed.</p>
-          {DEBUG_REPORTS ? (
-            <p className="text-xs text-slate-500" data-testid="report-debug-line">
-              debug: attempted reportId={reportId}, backend status={state.statusCode ?? "unknown"}
-            </p>
-          ) : null}
+          {state.requestId ? <p className="text-xs text-slate-500">request_id: {state.requestId}</p> : null}
           <Link href="/app/report" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
             Back to Reports
           </Link>
@@ -138,9 +141,13 @@ export default function ReportPage({ params }: { params: { reportId: string } })
             message="We could not load this report right now. Please try again shortly."
             requestId={state.requestId}
             action={
-              <Link href="/app/report" className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50">
-                Back to Reports
-              </Link>
+              <button
+                type="button"
+                onClick={() => { setState(initialState); setRetryToken((value) => value + 1); }}
+                className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50"
+              >
+                Retry
+              </button>
             }
           />
         </div>

@@ -1,4 +1,4 @@
-import { apiFetchJson } from "./client";
+import { ApiError, apiFetchJson } from "./client";
 import { normalizeReportDetail, type ReportDetail } from "../report/normalize-report-detail";
 
 export type { ReportDetail };
@@ -6,7 +6,7 @@ export type { ReportDetail };
 export type ReportListStatus = "queued" | "running" | "ready" | "failed";
 
 export type ReportListItem = {
-  report_id: string;
+  report_id: string | null;
   created_at: string;
   status: ReportListStatus;
   artifact_url: string | null;
@@ -65,6 +65,21 @@ function readPlatforms(record: Record<string, unknown>): string[] | null {
   return platforms.length > 0 ? platforms : null;
 }
 
+export function normalizeReportId(item: unknown): string | null {
+  if (!item || typeof item !== "object") {
+    return null;
+  }
+
+  const record = item as Record<string, unknown>;
+  const candidate = record.report_id ?? record.reportId ?? record.id ?? null;
+  if (typeof candidate !== "string") {
+    return null;
+  }
+
+  const trimmed = candidate.trim();
+  return trimmed ? trimmed : null;
+}
+
 function normalizeStatus(input: string | null): ReportListStatus {
   const normalized = input?.trim().toLowerCase();
 
@@ -97,23 +112,14 @@ function normalizeItem(payload: unknown): ReportListItem | null {
   }
 
   const record = payload as Record<string, unknown>;
-  const reportId = readString(record, ["report_id", "reportId", "id"]);
   const createdAt = readDate(record, ["created_at", "createdAt"]);
-
-  if (!reportId) {
-    debugReports("dropping list item without report identifier", {
-      hasCreatedAt: Boolean(createdAt),
-      keys: Object.keys(record),
-    });
-    return null;
-  }
 
   if (!createdAt) {
     return null;
   }
 
   return {
-    report_id: reportId,
+    report_id: normalizeReportId(record),
     created_at: createdAt,
     status: normalizeStatus(readString(record, ["status"])),
     artifact_url: readString(record, ["artifact_url", "artifactUrl"]),
@@ -165,6 +171,22 @@ function normalizeListResponse(payload: unknown): ReportListResponse {
   };
 }
 
+function toReportApiError(path: string, method: string, error: unknown): never {
+  if (error instanceof ApiError) {
+    throw error;
+  }
+
+  throw new ApiError({
+    status: 0,
+    code: "NETWORK_ERROR",
+    message: error instanceof Error ? error.message : "Network request failed.",
+    operation: "reports.client",
+    path,
+    method,
+    details: error,
+  });
+}
+
 export async function listReports(params: { limit?: number; offset?: number } = {}): Promise<ReportListResponse> {
   const limit = Math.min(Math.max(params.limit ?? 25, 1), 100);
   const offset = Math.max(params.offset ?? 0, 0);
@@ -182,21 +204,35 @@ export async function listReports(params: { limit?: number; offset?: number } = 
   } catch (error) {
     const status = typeof error === "object" && error && "status" in error ? (error as { status?: unknown }).status : undefined;
     debugReports("response", { path, status: typeof status === "number" ? status : "network", tokenAttached: true });
-    throw error;
+    toReportApiError(path, "GET", error);
   }
 }
 
 export async function getReport(reportId: string): Promise<ReportDetail> {
-  const path = `/v1/reports/${encodeURIComponent(reportId)}`;
+  const normalizedId = typeof reportId === "string" ? reportId.trim() : "";
+  if (!normalizedId || normalizedId.toLowerCase() === "undefined" || normalizedId.toLowerCase() === "null") {
+    throw new ApiError({
+      status: 400,
+      code: "invalid_report_id",
+      message: "Invalid report ID.",
+      operation: "report.fetch",
+      path: "/v1/reports/:reportId",
+      method: "GET",
+      details: { reportId },
+    });
+  }
+
+  const encodedId = encodeURIComponent(normalizedId);
+  const path = `/v1/reports/${encodedId}`;
   debugReports("request", { path, tokenAttached: true });
   try {
     const data = await apiFetchJson<Record<string, unknown>>("report.fetch", path, { method: "GET" });
     debugReports("response", { path, status: 200, tokenAttached: true });
-    return normalizeReportDetail(reportId, data);
+    return normalizeReportDetail(normalizedId, data);
   } catch (error) {
     const status = typeof error === "object" && error && "status" in error ? (error as { status?: unknown }).status : undefined;
     debugReports("response", { path, status: typeof status === "number" ? status : "network", tokenAttached: true });
-    throw error;
+    toReportApiError(path, "GET", error);
   }
 }
 

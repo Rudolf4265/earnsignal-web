@@ -134,7 +134,7 @@ No endpoints are invented here.
   - `offset: number` (default `0`)
 - **Response shape consumed:**
   - `items: ReportListItem[]`
-    - `report_id: string` (`reportId` / `id` accepted)
+    - `report_id: string | null` (`reportId` / `id` accepted for normalization, but `report_id` is canonical for navigation)
     - `created_at: string` (`createdAt` accepted)
     - `status: "queued" | "running" | "ready" | "failed"` (normalized from backend status values)
     - `title: string | null`
@@ -149,8 +149,8 @@ No endpoints are invented here.
   - `has_more: boolean` (`hasMore` accepted)
 - **Page behavior notes:**
   - `/app/report` renders loading, empty, error, not-entitled, and paginated list states from this endpoint.
-  - List canonical identifier is `report_id`; aliases `reportId` and `id` are accepted for normalization.
-  - Report detail route is `/app/report/[reportId]` and calls `GET /v1/reports/:reportId`.
+  - Frontend uses `report_id` as the canonical navigation key; aliases `reportId` and `id` are normalized for compatibility.
+  - Report detail route `/app/report/[reportId]` calls `GET /v1/reports/:reportId` only when `reportId` is valid (non-empty and not `undefined`/`null`).
   - Sample report CTA is preserved as a secondary/fallback action.
 
 ### Dashboard summary endpoint

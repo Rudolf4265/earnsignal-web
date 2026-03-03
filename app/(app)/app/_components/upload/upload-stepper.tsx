@@ -58,7 +58,7 @@ const platforms: PlatformOption[] = [
 
 const stepOrder: Step[] = ["platform", "file", "uploading", "processing", "done"];
 
-const primaryActionButtonClassName = "rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:bg-brand-blue/65 disabled:text-slate-100 disabled:opacity-100";
+const primaryActionButtonClassName = "rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-brand-blue/90 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:bg-brand-blue/65 disabled:text-slate-900 disabled:opacity-100";
 
 const readableFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -828,7 +828,7 @@ export default function UploadStepper() {
             <Link
               href={reportId ? `/app/report/${reportId}` : "/app/report"}
               data-testid="upload-view-report"
-              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90"
+              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-brand-blue/90 hover:text-slate-950"
             >
               View report
             </Link>

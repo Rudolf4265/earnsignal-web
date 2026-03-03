@@ -117,7 +117,7 @@ export default function LoginPage() {
                   <span>Password</span>
                   <Link href="/forgot-password" className="transition hover:text-white/90">
                     Forgot?
-                  </Link>
+                  </a>
                 </div>
 
                 <div className="relative">
@@ -162,13 +162,13 @@ export default function LoginPage() {
 
             <p className="mt-6 text-center text-[11px] leading-relaxed text-white/40">
               By continuing, you agree to our{" "}
-              <Link href="/terms" className="transition hover:text-white/70">
+              <a href="https://earnsigma.com/terms" className="transition hover:text-white/70" target="_blank" rel="noreferrer">
                 Terms
-              </Link>{" "}
+              </a>{" "}
               and{" "}
-              <Link href="/privacy" className="transition hover:text-white/70">
+              <a href="https://earnsigma.com/privacy" className="transition hover:text-white/70" target="_blank" rel="noreferrer">
                 Privacy Policy
-              </Link>
+              </a>
               .
             </p>
           </div>

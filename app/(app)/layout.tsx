@@ -123,20 +123,20 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
           <main className="flex-1 p-4 sm:p-6 lg:p-10">{children}</main>
           <footer className="border-t border-slate-800 px-4 py-4 text-xs text-slate-400 sm:px-6 lg:px-10">
             <div className="flex items-center justify-end gap-4">
-              <Link
-                href="/privacy"
+              <a
+                href="https://earnsigma.com/privacy"
                 aria-label="Privacy Policy"
                 className="transition hover:text-slate-200"
               >
                 Privacy
-              </Link>
-              <Link
-                href="/terms"
+              </a>
+              <a
+                href="https://earnsigma.com/terms"
                 aria-label="Terms of Service"
                 className="transition hover:text-slate-200"
               >
                 Terms
-              </Link>
+              </a>
             </div>
           </footer>
         </div>

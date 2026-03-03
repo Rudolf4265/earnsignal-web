@@ -13,12 +13,16 @@ function isApiLikeError(error: unknown): error is ApiLikeError {
 }
 
 export function getReportViewState(error: unknown): ReportViewState {
-  if (isSessionExpiredError(error, { hasAuthContext: true })) {
-    return "session_expired";
+  if (isApiLikeError(error) && typeof error.code === "string" && error.code.toUpperCase() === "INVALID_REPORT_ID") {
+    return "invalid_link";
   }
 
-  if (isApiLikeError(error) && typeof error.code === "string" && error.code === "invalid_report_id") {
-    return "invalid_link";
+  if (isApiLikeError(error) && error.status === 403) {
+    return "forbidden";
+  }
+
+  if (isSessionExpiredError(error, { hasAuthContext: true })) {
+    return "session_expired";
   }
 
   if (!isApiLikeError(error) || typeof error.status !== "number") {
@@ -27,10 +31,6 @@ export function getReportViewState(error: unknown): ReportViewState {
 
   if (error.status === 401) {
     return "session_expired";
-  }
-
-  if (error.status === 403) {
-    return "forbidden";
   }
 
   if (error.status === 404) {

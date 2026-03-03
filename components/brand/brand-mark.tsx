@@ -20,14 +20,17 @@ export function BrandMark({
 }: BrandMarkProps) {
   if (variant === "lockup") {
     return (
-      <Image
-        src="/brand/earnsigma-lockup.svg"
-        alt={BRAND_NAME}
-        width={180}
-        height={44}
-        priority={priority}
-        className={iconClassName ?? "h-8 w-auto"}
-      />
+      <span className={className ?? "inline-flex items-center gap-2.5"}>
+        <Image
+          src="/brand/earnsigma-mark.svg"
+          alt={BRAND_NAME}
+          width={32}
+          height={32}
+          priority={priority}
+          className={iconClassName ?? "h-8 w-8"}
+        />
+        <span className={labelClassName ?? "text-base font-semibold leading-none"}>{BRAND_NAME}</span>
+      </span>
     );
   }
 

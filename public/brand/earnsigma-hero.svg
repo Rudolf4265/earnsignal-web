@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-label="EarnSigma hero preview">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="1" stop-color="#eff6ff"/>
+    </linearGradient>
+    <linearGradient id="lineA" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#1B4DFF"/>
+      <stop offset="1" stop-color="#25A6FF"/>
+    </linearGradient>
+    <linearGradient id="lineB" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#25A6FF"/>
+      <stop offset="1" stop-color="#34D399"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="720" rx="40" fill="url(#bg)"/>
+  <rect x="44" y="44" width="1112" height="632" rx="30" fill="#fff" stroke="#e2e8f0"/>
+
+  <rect x="88" y="96" width="260" height="22" rx="11" fill="#cbd5e1"/>
+  <rect x="88" y="132" width="170" height="14" rx="7" fill="#e2e8f0"/>
+
+  <rect x="88" y="194" width="300" height="180" rx="18" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect x="108" y="218" width="130" height="12" rx="6" fill="#cbd5e1"/>
+  <path d="M108 332c48-38 70-63 102-54s39 44 70 44 49-27 88-67" fill="none" stroke="url(#lineA)" stroke-width="8" stroke-linecap="round"/>
+
+  <rect x="412" y="194" width="300" height="180" rx="18" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect x="432" y="218" width="120" height="12" rx="6" fill="#cbd5e1"/>
+  <path d="M432 314h28v36h-28zm48-42h28v78h-28zm48-20h28v98h-28zm48 34h28v64h-28zm48-57h28v121h-28z" fill="url(#lineB)"/>
+
+  <rect x="736" y="194" width="376" height="394" rx="18" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect x="768" y="230" width="154" height="14" rx="7" fill="#cbd5e1"/>
+  <path d="M768 310c62-62 124-17 182-75 42-42 82-78 130-67" fill="none" stroke="url(#lineA)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M768 386c55-42 106-22 158-49 44-23 87-72 154-63" fill="none" stroke="url(#lineB)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M768 460c68-24 124 7 178 0 44-6 86-46 134-40" fill="none" stroke="#60a5fa" stroke-width="10" stroke-linecap="round" opacity="0.9"/>
+
+  <circle cx="952" cy="520" r="52" fill="#dbeafe"/>
+  <path d="M922 520h62" stroke="#1d4ed8" stroke-width="10" stroke-linecap="round"/>
+  <path d="M952 490v60" stroke="#1d4ed8" stroke-width="10" stroke-linecap="round"/>
+</svg>

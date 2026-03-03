@@ -66,8 +66,8 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 md:flex">
-      <aside className="border-b border-slate-800 bg-slate-950 px-4 py-4 text-slate-100 md:min-h-screen md:w-64 md:border-b-0 md:border-r md:px-6 md:py-6">
+    <div className="relative isolate min-h-screen bg-slate-50 text-slate-900 md:flex">
+      <aside className="relative z-10 border-b border-slate-800 bg-slate-950 px-4 py-4 text-slate-100 md:min-h-screen md:w-64 md:border-b-0 md:border-r md:px-6 md:py-6">
         <Link href="/app" className="mb-6 inline-flex items-center md:mb-10" aria-label="EarnSigma">
           <BrandMark
             priority
@@ -99,7 +99,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 bg-slate-50 p-4 sm:p-6 lg:p-10">{children}</main>
+      <main className="relative z-10 flex-1 bg-slate-50 p-4 sm:p-6 lg:p-10">{children}</main>
     </div>
   );
 }

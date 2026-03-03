@@ -127,6 +127,12 @@ Use these constants in Stripe checkout session creation.
 - Billing status is loaded from `GET /v1/entitlements` and requires a valid bearer token.
 - If Billing shows **"Session expired. Please sign in again."**, click **Sign in** and re-authenticate, then refresh Billing status.
 
+## Launch gate (internal)
+
+- Internal checklist page: `/app/debug/launch-gate` (admin-only, non-production).
+- Minimal API smoke: `npm run smoke:launch-gate` (configure `API_BASE_URL` and optional `TOKEN`).
+- Full instructions: `docs/launch-gate.md`.
+
 ## Manual QA checklist
 
 ### Marketing domain (`earnsigma.com`)

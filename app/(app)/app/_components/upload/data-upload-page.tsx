@@ -7,9 +7,9 @@ export default function DataUploadPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-white">Upload data</h1>
-        <p className="text-slate-200">Follow the guided steps to validate your export and generate a production-ready report.</p>
-        <p className="text-xs text-slate-300">Report generation access depends on your billing plan.</p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Upload data</h1>
+        <p className="text-base text-foreground/85">Follow the guided steps to validate your export and generate a production-ready report.</p>
+        <p className="text-sm text-foreground/70">Report generation access depends on your billing plan.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">

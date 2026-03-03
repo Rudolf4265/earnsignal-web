@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "node --experimental-specifier-resolution=node --loader ./tests/node-ts-loader.mjs --test tests/**/*.test.mjs && node -e \"require('node:fs').rmSync('.tmp-tests',{ recursive: true, force: true })\"",
     "test:e2e": "npm --prefix tests/e2e run e2e:ci",
-    "test:e2e:ui": "npm --prefix tests/e2e run e2e:ui"
+    "test:e2e:ui": "npm --prefix tests/e2e run e2e:ui",
+    "smoke:launch-gate": "node scripts/launch-gate-smoke.mjs"
   },
   "dependencies": {
     "next": "16.1.6",

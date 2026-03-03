@@ -14,6 +14,7 @@ const checks = [
   { label: "Billing", href: "/app/billing" },
   { label: "Admin console", href: "/app/admin" },
   { label: "Env debug", href: "/app/debug/env" },
+  { label: "Launch gate", href: "/app/debug/launch-gate" },
 ];
 
 export default function QaDebugPage() {

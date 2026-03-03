@@ -39,17 +39,17 @@ export default function MarketingHomePage() {
 
   return (
     <MarketingShell>
-      <section className="py-28 lg:py-36">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-2">
+      <section className="py-20 lg:py-24">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
             <div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-white leading-tight">
+              <h1 className="text-4xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
                 Revenue doesn&apos;t plateau{" "}
                 <span className="bg-gradient-to-r from-brand-blue to-brand-teal bg-clip-text text-transparent">
                   randomly.
                 </span>
               </h1>
-              <p className="mt-6 text-lg text-gray-300 max-w-xl">
+              <p className="mt-6 max-w-xl text-lg text-slate-600">
                 EarnSigma reveals the structure behind creator revenue — stability, churn velocity,
                 tier migration, and platform risk.
               </p>
@@ -64,7 +64,7 @@ export default function MarketingHomePage() {
 
                 <Link
                   href="/example"
-                  className="inline-flex items-center justify-center rounded-xl border border-white/10 px-6 py-3 text-sm font-medium text-white hover:bg-white/5 transition"
+                  className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-6 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
                 >
                   View example report
                 </Link>
@@ -72,13 +72,13 @@ export default function MarketingHomePage() {
             </div>
 
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-brand-blue/20 to-brand-teal/20 blur-3xl opacity-40" />
-              <div className="relative rounded-2xl border border-white/10 bg-navy-900 shadow-2xl p-4">
+              <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-tr from-brand-blue/20 via-sky-200/30 to-brand-teal/20 blur-3xl" />
+              <div className="relative rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-xl shadow-slate-900/5 backdrop-blur">
                 <Image
-                  src="/brand/earnsigma-lockup.svg"
-                  alt="EarnSigma brand lockup"
+                  src="/brand/earnsigma-hero.svg"
+                  alt="EarnSigma analytics preview"
                   width={1200}
-                  height={600}
+                  height={720}
                   className="h-auto w-full rounded-lg"
                   priority
                 />
@@ -88,13 +88,13 @@ export default function MarketingHomePage() {
         </div>
       </section>
 
-      <section className="py-24 border-t border-white/5">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <section className="border-t border-slate-200 py-20">
+        <div className="mx-auto max-w-6xl px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {features.map((feature) => (
-              <div key={feature.title} className="rounded-2xl border border-white/10 bg-navy-900 p-6">
-                <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
-                <p className="mt-2 text-gray-400 text-sm">{feature.description}</p>
+              <div key={feature.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-slate-900">{feature.title}</h3>
+                <p className="mt-2 text-sm text-slate-600">{feature.description}</p>
               </div>
             ))}
           </div>

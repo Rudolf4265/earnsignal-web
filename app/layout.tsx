@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     siteName: "EarnSigma",
     images: [
       {
-        url: "/brand/earnsigma-lockup.svg",
+        url: "/brand/earnsigma-hero.svg",
         width: 1200,
         height: 630,
       },
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     title: "EarnSigma — Revenue Intelligence",
     description:
       "Stability, churn velocity, tier migration, and platform risk.",
-    images: ["/brand/earnsigma-lockup.svg"],
+    images: ["/brand/earnsigma-hero.svg"],
   },
   icons: {
     icon: "/brand/earnsigma-mark.svg",

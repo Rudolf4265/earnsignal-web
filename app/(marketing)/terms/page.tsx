@@ -55,9 +55,51 @@ export default function TermsPage() {
                 </div>
               </aside>
 
-              <article className="min-w-0">
-                <div className="max-w-3xl">
-                  <div className="prose prose-invert max-w-none prose-p:text-white/80 prose-li:text-white/80 prose-strong:text-white prose-a:text-cyan-300 hover:prose-a:text-cyan-200 prose-headings:text-white prose-headings:font-bold prose-headings:tracking-tight prose-h2:text-2xl prose-h2:mt-12 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3 prose-p:my-4 prose-p:leading-relaxed prose-li:my-2 prose-ul:my-4 prose-ol:my-4 prose-hr:my-10 prose-hr:border-white/10 prose-headings:scroll-mt-28">
+              <div className="min-w-0 max-w-3xl">
+                <article
+                  className="
+                    prose prose-invert max-w-none
+                    prose-headings:text-white
+                    prose-headings:font-bold
+                    prose-headings:tracking-tight
+                    prose-h2:text-2xl
+                    prose-h2:mt-10
+                    prose-h2:mb-2
+                    prose-h3:text-xl
+                    prose-h3:mt-8
+                    prose-h3:mb-2
+                    prose-p:my-4
+                    prose-p:leading-relaxed
+                    prose-li:my-2
+                    prose-ul:my-4
+                    prose-ol:my-4
+                    prose-strong:text-white
+                    prose-a:text-cyan-300 hover:prose-a:text-cyan-200
+                    prose-headings:scroll-mt-28
+                    [&_h2]:scroll-mt-28
+                    [&_h2]:text-2xl
+                    [&_h2]:font-bold
+                    [&_h2]:tracking-tight
+                    [&_h2]:text-white
+                    [&_h2]:mt-10
+                    [&_h2]:mb-2
+                    [&_h3]:text-xl
+                    [&_h3]:font-bold
+                    [&_h3]:tracking-tight
+                    [&_h3]:text-white
+                    [&_h3]:mt-8
+                    [&_h3]:mb-2
+                    [&_p]:my-4
+                    [&_p]:leading-relaxed
+                    [&_p]:text-white/80
+                    [&_ul]:my-4
+                    [&_ol]:my-4
+                    [&_li]:my-2
+                    [&_li]:text-white/80
+                    [&_strong]:text-white
+                    [&_a]:text-cyan-300 hover:[&_a]:text-cyan-200
+                  "
+                >
         <h2 id="agreement-to-terms">1. Agreement to Terms</h2>
         <p>These Terms of Service (“Terms”) constitute a legally binding agreement between you (“User”, “you”) and Oakline Ventures LLC, an Illinois limited liability company, doing business as EarnSigma (“Company”, “we”, “us”).</p>
         <p>By accessing or using the EarnSigma platform (“Service”), you agree to be bound by these Terms. If you do not agree, you must not use the Service.</p>
@@ -226,16 +268,11 @@ export default function TermsPage() {
         <p>We may modify these Terms at any time. Continued use after updates constitutes acceptance.</p>
 
         <h2 id="contact-information">17. Contact Information</h2>
-        <p>
-          Oakline Ventures LLC
-          <br />
-          Illinois, United States
-          <br />
-          admin@earnsigma.com
-        </p>
-                  </div>
-                </div>
-              </article>
+        <p>Oakline Ventures LLC</p>
+        <p>Illinois, United States</p>
+        <p>admin@earnsigma.com</p>
+                </article>
+              </div>
             </div>
           </div>
         </div>

@@ -707,7 +707,7 @@ export default function UploadStepper() {
                 setErrorRequestId(null);
                 setErrorOperation(null);
               }}
-              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:bg-brand-blue/70 disabled:text-white/90 disabled:opacity-100"
             >
               Continue
             </button>
@@ -766,7 +766,7 @@ export default function UploadStepper() {
                 type="button"
                 disabled={!platform || !file || busy}
                 onClick={runUpload}
-                className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:bg-brand-blue/70 disabled:text-white/90 disabled:opacity-100"
               >
                 Upload &amp; Validate
               </button>

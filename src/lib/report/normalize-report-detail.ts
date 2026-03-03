@@ -5,6 +5,8 @@ export type ReportDetail = {
   summary: string;
   createdAt?: string;
   updatedAt?: string;
+  artifactUrl?: string;
+  artifactKind?: string;
 };
 
 function readString(record: Record<string, unknown>, keys: string[], fallback = ""): string {
@@ -19,12 +21,16 @@ function readString(record: Record<string, unknown>, keys: string[], fallback = 
 }
 
 export function normalizeReportDetail(reportId: string, payload: Record<string, unknown>): ReportDetail {
+  const id = readString(payload, ["report_id", "reportId", "id"], reportId);
+
   return {
-    id: readString(payload, ["id", "report_id", "reportId"], reportId),
-    title: readString(payload, ["title", "name"], `Report ${reportId}`),
+    id,
+    title: readString(payload, ["title", "name"], `Report ${id}`),
     status: readString(payload, ["status"], "unknown"),
     summary: readString(payload, ["summary", "description", "message"], "No summary available."),
     createdAt: readString(payload, ["created_at", "createdAt"]) || undefined,
     updatedAt: readString(payload, ["updated_at", "updatedAt"]) || undefined,
+    artifactUrl: readString(payload, ["artifact_url", "artifactUrl"]) || undefined,
+    artifactKind: readString(payload, ["artifact_kind", "artifactKind"]) || undefined,
   };
 }

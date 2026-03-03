@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 test("critical surfaces pass requestId into ErrorBanner", async () => {
-  const report = await readFile("app/(app)/app/report/[id]/page.tsx", "utf8");
+  const report = await readFile("app/(app)/app/report/[reportId]/page.tsx", "utf8");
   const billing = await readFile("app/(app)/app/billing/page.tsx", "utf8");
   const upload = await readFile("app/(app)/app/_components/upload/upload-stepper.tsx", "utf8");
   const adminList = await readFile("app/(app)/app/admin/page.tsx", "utf8");

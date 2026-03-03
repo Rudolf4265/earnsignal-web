@@ -25,6 +25,21 @@ export type ReportListResponse = {
   has_more: boolean;
 };
 
+const DEBUG_REPORTS = process.env.NEXT_PUBLIC_DEBUG_REPORTS === "1";
+
+function debugReports(message: string, details?: Record<string, unknown>) {
+  if (!DEBUG_REPORTS) {
+    return;
+  }
+
+  if (details) {
+    console.debug(`[reports] ${message}`, details);
+    return;
+  }
+
+  console.debug(`[reports] ${message}`);
+}
+
 function readString(record: Record<string, unknown>, keys: string[]): string | null {
   for (const key of keys) {
     const value = record[key];
@@ -85,7 +100,15 @@ function normalizeItem(payload: unknown): ReportListItem | null {
   const reportId = readString(record, ["report_id", "reportId", "id"]);
   const createdAt = readDate(record, ["created_at", "createdAt"]);
 
-  if (!reportId || !createdAt) {
+  if (!reportId) {
+    debugReports("dropping list item without report identifier", {
+      hasCreatedAt: Boolean(createdAt),
+      keys: Object.keys(record),
+    });
+    return null;
+  }
+
+  if (!createdAt) {
     return null;
   }
 
@@ -150,17 +173,31 @@ export async function listReports(params: { limit?: number; offset?: number } = 
     offset: String(offset),
   });
 
-  const data = await apiFetchJson<Record<string, unknown>>("reports.list", `/v1/reports?${query.toString()}`, {
-    method: "GET",
-  });
-
-  return normalizeListResponse(data);
+  const path = `/v1/reports?${query.toString()}`;
+  debugReports("request", { path, tokenAttached: true });
+  try {
+    const data = await apiFetchJson<Record<string, unknown>>("reports.list", path, { method: "GET" });
+    debugReports("response", { path, status: 200, tokenAttached: true });
+    return normalizeListResponse(data);
+  } catch (error) {
+    const status = typeof error === "object" && error && "status" in error ? (error as { status?: unknown }).status : undefined;
+    debugReports("response", { path, status: typeof status === "number" ? status : "network", tokenAttached: true });
+    throw error;
+  }
 }
 
-export async function fetchReportDetail(reportId: string): Promise<ReportDetail> {
-  const data = await apiFetchJson<Record<string, unknown>>("report.fetch", `/v1/reports/${encodeURIComponent(reportId)}`, {
-    method: "GET",
-  });
-
-  return normalizeReportDetail(reportId, data);
+export async function getReport(reportId: string): Promise<ReportDetail> {
+  const path = `/v1/reports/${encodeURIComponent(reportId)}`;
+  debugReports("request", { path, tokenAttached: true });
+  try {
+    const data = await apiFetchJson<Record<string, unknown>>("report.fetch", path, { method: "GET" });
+    debugReports("response", { path, status: 200, tokenAttached: true });
+    return normalizeReportDetail(reportId, data);
+  } catch (error) {
+    const status = typeof error === "object" && error && "status" in error ? (error as { status?: unknown }).status : undefined;
+    debugReports("response", { path, status: typeof status === "number" ? status : "network", tokenAttached: true });
+    throw error;
+  }
 }
+
+export const fetchReportDetail = getReport;

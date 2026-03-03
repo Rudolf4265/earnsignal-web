@@ -170,7 +170,7 @@ export default function ReportsPage() {
         {state.view === "empty" ? (
           <section className="space-y-3 rounded-lg border border-slate-200 bg-white p-4" data-testid="reports-empty">
             <h2 className="text-lg font-medium text-slate-900">No reports yet</h2>
-            <p className="text-sm text-slate-600">Upload data to generate your first report.</p>
+            <p className="text-sm text-slate-600">No reports yet — upload data to generate your first report.</p>
             <Link href="/app/data" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
               Go to Data Upload
             </Link>
@@ -180,7 +180,7 @@ export default function ReportsPage() {
         {state.view === "success" ? (
           <section className="space-y-3" data-testid="reports-list">
             {sortedItems.map((report) => {
-              const primaryHref = report.artifact_url || `/app/report/${encodeURIComponent(report.report_id)}`;
+              const primaryHref = `/app/report/${encodeURIComponent(report.report_id)}`;
               const isReady = report.status === "ready";
 
               return (
@@ -202,8 +202,6 @@ export default function ReportsPage() {
                     {isReady ? (
                       <Link
                         href={primaryHref}
-                        target={report.artifact_url ? "_blank" : undefined}
-                        rel={report.artifact_url ? "noreferrer" : undefined}
                         className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100"
                       >
                         View

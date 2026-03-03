@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FeatureGuard } from "../../_components/feature-guard";
 import { NotEntitledCallout, SessionExpiredCallout } from "../../_components/gate-callouts";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
-import { listReports, type ReportListItem } from "@/src/lib/api/reports";
+import { listReports, normalizeReportId, type ReportListItem } from "@/src/lib/api/reports";
 
 type ReportsViewState = "loading" | "success" | "empty" | "session_expired" | "not_entitled" | "error";
 
@@ -19,6 +20,7 @@ type ReportsPageState = {
 };
 
 const PAGE_SIZE = 25;
+const DEBUG_REPORTS = process.env.NEXT_PUBLIC_DEBUG_REPORTS === "1";
 
 const initialState: ReportsPageState = {
   view: "loading",
@@ -74,9 +76,27 @@ function formatTimestamp(value: string): string {
   }).format(date);
 }
 
+function dedupeReports(items: ReportListItem[]): ReportListItem[] {
+  const seen = new Set<string>();
+  const output: ReportListItem[] = [];
+
+  for (const item of items) {
+    const reportId = normalizeReportId(item);
+    const key = reportId ? `id:${reportId}` : `fallback:${item.created_at}:${item.title ?? ""}:${item.status}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    output.push(item);
+  }
+
+  return output;
+}
+
 export default function ReportsPage() {
   const [state, setState] = useState<ReportsPageState>(initialState);
   const [loadingMore, setLoadingMore] = useState(false);
+  const router = useRouter();
 
   const sortedItems = useMemo(() => [...state.items].sort(compareByCreatedAtDesc), [state.items]);
 
@@ -95,7 +115,7 @@ export default function ReportsPage() {
     try {
       const response = await listReports({ limit: PAGE_SIZE, offset: targetOffset });
       const mergedItems = append ? [...state.items, ...response.items] : response.items;
-      const deduped = Array.from(new Map(mergedItems.map((item) => [item.report_id, item])).values());
+      const deduped = dedupeReports(mergedItems);
       const view: ReportsViewState = deduped.length > 0 ? "success" : "empty";
 
       setState({
@@ -179,12 +199,12 @@ export default function ReportsPage() {
 
         {state.view === "success" ? (
           <section className="space-y-3" data-testid="reports-list">
-            {sortedItems.map((report) => {
-              const primaryHref = `/app/report/${encodeURIComponent(report.report_id)}`;
-              const isReady = report.status === "ready";
+            {sortedItems.map((report, index) => {
+              const reportId = normalizeReportId(report);
+              const canView = Boolean(reportId) && report.status === "ready";
 
               return (
-                <article key={report.report_id} className="rounded-lg border border-slate-200 bg-white p-4" data-testid="report-row">
+                <article key={reportId ?? `report-${index}`} className="rounded-lg border border-slate-200 bg-white p-4" data-testid="report-row">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
                       <h2 className="font-semibold text-slate-900">{report.title || "Report"}</h2>
@@ -194,27 +214,28 @@ export default function ReportsPage() {
                       ) : null}
                       {report.platforms ? <p className="text-xs text-slate-500">Platforms: {report.platforms.join(", ")}</p> : null}
                     </div>
-                    <span className="rounded-full border border-slate-300 px-2 py-1 text-xs text-slate-700" data-testid={`report-status-${report.report_id}`}>
+                    <span className="rounded-full border border-slate-300 px-2 py-1 text-xs text-slate-700" data-testid={`report-status-${reportId ?? index}`}>
                       {statusLabel(report.status)}
                     </span>
                   </div>
-                  <div className="mt-3">
-                    {isReady ? (
-                      <Link
-                        href={primaryHref}
-                        className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100"
-                      >
-                        View
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        className="inline-flex cursor-not-allowed rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500"
-                      >
-                        {report.status === "failed" ? "Failed" : "Processing"}
-                      </button>
-                    )}
+                  <div className="mt-3 space-y-2">
+                    <button
+                      type="button"
+                      disabled={!canView}
+                      data-testid={reportId ? `report-view-${reportId}` : `report-view-disabled-${index}`}
+                      onClick={() => {
+                        if (!reportId) {
+                          return;
+                        }
+                        router.push(`/app/report/${encodeURIComponent(reportId)}`);
+                      }}
+                      className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-500"
+                    >
+                      View
+                    </button>
+                    {!reportId && DEBUG_REPORTS ? (
+                      <p className="text-xs text-slate-500" data-testid="report-missing-id-note">debug: report_id missing; View disabled.</p>
+                    ) : null}
                   </div>
                 </article>
               );
@@ -233,7 +254,7 @@ export default function ReportsPage() {
           </section>
         ) : null}
 
-        {(state.view === "empty" || state.view === "success") ? (
+        {state.view === "empty" || state.view === "success" ? (
           <Link href="/app/report/demo" className="inline-block rounded-lg border border-slate-200 bg-white px-4 py-2 transition hover:bg-slate-100">
             Open sample report
           </Link>

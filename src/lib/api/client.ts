@@ -13,6 +13,7 @@ export class ApiError extends Error {
   status: number;
   code: string;
   requestId?: string;
+  request_id?: string;
   details?: unknown;
   operation: string;
   path: string;
@@ -24,6 +25,7 @@ export class ApiError extends Error {
     this.status = params.status;
     this.code = params.code;
     this.requestId = params.requestId;
+    this.request_id = params.requestId;
     this.details = params.details;
     this.operation = params.operation;
     this.path = params.path;
@@ -124,6 +126,7 @@ function buildApiError(params: {
   let message = params.fallbackMessage;
   let code = params.status > 0 ? `HTTP_${params.status}` : "NETWORK_ERROR";
   let details: unknown = undefined;
+  let requestId = params.requestId;
 
   if (params.parsed && typeof params.parsed === "object") {
     const body = params.parsed as Record<string, unknown>;
@@ -147,6 +150,12 @@ function buildApiError(params: {
 
     details = body.details ?? body.error ?? body.errors;
 
+    if (typeof body.request_id === "string" && body.request_id.trim()) {
+      requestId = body.request_id;
+    } else if (nestedError && typeof nestedError.request_id === "string" && nestedError.request_id.trim()) {
+      requestId = nestedError.request_id;
+    }
+
     if ("__nonJsonText" in body || "__invalidJsonText" in body) {
       details = body;
     }
@@ -156,7 +165,7 @@ function buildApiError(params: {
     status: params.status,
     code,
     message,
-    requestId: params.requestId,
+    requestId,
     details,
     operation: params.operation,
     path: params.path,

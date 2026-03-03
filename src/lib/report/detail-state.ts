@@ -1,10 +1,11 @@
 import { isSessionExpiredError } from "../auth/isSessionExpiredError";
 
-export type ReportViewState = "loading" | "success" | "not_found" | "forbidden" | "session_expired" | "server_error";
+export type ReportViewState = "loading" | "success" | "invalid_link" | "not_found" | "forbidden" | "session_expired" | "server_error";
 
 type ApiLikeError = {
   status?: unknown;
   requestId?: unknown;
+  code?: unknown;
 };
 
 function isApiLikeError(error: unknown): error is ApiLikeError {
@@ -14,6 +15,10 @@ function isApiLikeError(error: unknown): error is ApiLikeError {
 export function getReportViewState(error: unknown): ReportViewState {
   if (isSessionExpiredError(error, { hasAuthContext: true })) {
     return "session_expired";
+  }
+
+  if (isApiLikeError(error) && typeof error.code === "string" && error.code === "invalid_report_id") {
+    return "invalid_link";
   }
 
   if (!isApiLikeError(error) || typeof error.status !== "number") {
@@ -53,4 +58,12 @@ export function getStatusCode(error: unknown): number | undefined {
   }
 
   return error.status;
+}
+
+export function getErrorCode(error: unknown): string | undefined {
+  if (!isApiLikeError(error) || typeof error.code !== "string") {
+    return undefined;
+  }
+
+  return error.code;
 }

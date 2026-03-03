@@ -14,43 +14,46 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <main className="relative">
-      <section className="mx-auto max-w-5xl px-6 py-14 lg:py-16">
-        <header className="mb-10">
-          <h1 className="text-3xl font-semibold tracking-tight text-white">PRIVACY POLICY</h1>
-          <p className="mt-2 text-sm text-white/70">
-            <span className="font-medium text-white/80">Effective Date:</span> March 2026
-          </p>
-          <p className="mt-1 text-sm text-white/70">
-            <span className="font-medium text-white/80">Company:</span> Oakline Ventures LLC (d/b/a EarnSigma)
-          </p>
-          <p className="mt-1 text-sm text-white/70">
-            <span className="font-medium text-white/80">Contact:</span> admin@earnsigma.com
-          </p>
-        </header>
+      <section className="mx-auto max-w-6xl px-6 py-14 lg:py-16">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-sm">
+          <div className="px-6 py-10 lg:px-10 lg:py-12">
+            <header className="mb-10">
+              <p className="text-xs font-semibold tracking-[0.18em] text-white/60">PRIVACY POLICY</p>
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                Privacy Policy
+              </h1>
+              <div className="mt-5 space-y-1 text-sm text-white/70">
+                <p><span className="font-medium text-white/80">Effective Date:</span> March 2026</p>
+                <p><span className="font-medium text-white/80">Company:</span> Oakline Ventures LLC (d/b/a EarnSigma)</p>
+                <p><span className="font-medium text-white/80">Contact:</span> admin@earnsigma.com</p>
+              </div>
+            </header>
 
-        <div className="grid gap-10 lg:grid-cols-[240px_minmax(0,1fr)]">
-          <aside className="hidden lg:block">
-            <div className="sticky top-24 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-semibold tracking-wide text-white/80">Contents</p>
-              <nav className="mt-3 space-y-2 text-sm text-white/70">
-                <Link href="#overview" className="block transition hover:text-white">1. Overview</Link>
-                <Link href="#information-we-collect" className="block transition hover:text-white">2. Information We Collect</Link>
-                <Link href="#how-we-use-information" className="block transition hover:text-white">3. How We Use Information</Link>
-                <Link href="#data-sharing-and-disclosure" className="block transition hover:text-white">4. Data Sharing and Disclosure</Link>
-                <Link href="#ai-and-automated-processing" className="block transition hover:text-white">5. AI and Automated Processing</Link>
-                <Link href="#data-retention" className="block transition hover:text-white">6. Data Retention</Link>
-                <Link href="#data-security" className="block transition hover:text-white">7. Data Security</Link>
-                <Link href="#international-users" className="block transition hover:text-white">8. International Users</Link>
-                <Link href="#user-rights" className="block transition hover:text-white">9. User Rights</Link>
-                <Link href="#childrens-privacy" className="block transition hover:text-white">10. Children’s Privacy</Link>
-                <Link href="#limitation-of-liability" className="block transition hover:text-white">11. Limitation of Liability</Link>
-                <Link href="#changes-to-this-privacy-policy" className="block transition hover:text-white">12. Changes to This Privacy Policy</Link>
-                <Link href="#contact-information" className="block transition hover:text-white">13. Contact Information</Link>
-              </nav>
-            </div>
-          </aside>
+            <div className="grid gap-10 lg:grid-cols-[240px_minmax(0,1fr)]">
+              <aside className="hidden lg:block">
+                <div className="sticky top-24 rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs font-semibold tracking-wide text-white/80">Contents</p>
+                  <nav className="mt-3 space-y-2 text-sm">
+                    <Link href="#overview" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">1. Overview</Link>
+                    <Link href="#information-we-collect" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">2. Information We Collect</Link>
+                    <Link href="#how-we-use-information" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">3. How We Use Information</Link>
+                    <Link href="#data-sharing-and-disclosure" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">4. Data Sharing and Disclosure</Link>
+                    <Link href="#ai-and-automated-processing" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">5. AI and Automated Processing</Link>
+                    <Link href="#data-retention" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">6. Data Retention</Link>
+                    <Link href="#data-security" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">7. Data Security</Link>
+                    <Link href="#international-users" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">8. International Users</Link>
+                    <Link href="#user-rights" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">9. User Rights</Link>
+                    <Link href="#childrens-privacy" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">10. Children’s Privacy</Link>
+                    <Link href="#limitation-of-liability" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">11. Limitation of Liability</Link>
+                    <Link href="#changes-to-this-privacy-policy" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">12. Changes to This Privacy Policy</Link>
+                    <Link href="#contact-information" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">13. Contact Information</Link>
+                  </nav>
+                </div>
+              </aside>
 
-          <article className="prose prose-invert max-w-none prose-headings:scroll-mt-24 prose-headings:font-semibold prose-p:text-white/80 prose-li:text-white/80 prose-strong:text-white prose-a:text-cyan-300 hover:prose-a:text-cyan-200">
+              <article className="min-w-0">
+                <div className="max-w-3xl">
+                  <div className="prose prose-invert max-w-none prose-p:text-white/80 prose-li:text-white/80 prose-strong:text-white prose-a:text-cyan-300 hover:prose-a:text-cyan-200 prose-headings:text-white prose-headings:font-semibold prose-headings:tracking-tight prose-h2:mt-10 prose-h2:mb-3 prose-h2:text-2xl prose-h3:mt-6 prose-h3:mb-2 prose-h3:text-xl prose-p:leading-relaxed prose-p:my-4 prose-ul:my-4 prose-ol:my-4 prose-li:my-2 prose-hr:my-10 prose-hr:border-white/10 prose-headings:scroll-mt-28">
         <h2 id="overview">1. Overview</h2>
         <p>Oakline Ventures LLC, an Illinois limited liability company doing business as EarnSigma (“Company,” “we,” “us,” or “our”), operates a revenue analytics platform for creators.</p>
         <p>This Privacy Policy explains how we collect, use, disclose, and protect information when you access or use the EarnSigma platform (the “Service”).</p>
@@ -189,8 +192,11 @@ export default function PrivacyPage() {
           <br />
           admin@earnsigma.com
         </p>
-
-          </article>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
         </div>
       </section>
     </main>

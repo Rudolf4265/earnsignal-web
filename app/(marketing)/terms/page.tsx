@@ -14,47 +14,50 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <main className="relative">
-      <section className="mx-auto max-w-5xl px-6 py-14 lg:py-16">
-        <header className="mb-10">
-          <h1 className="text-3xl font-semibold tracking-tight text-white">TERMS OF SERVICE</h1>
-          <p className="mt-2 text-sm text-white/70">
-            <span className="font-medium text-white/80">Effective Date:</span> March 2026
-          </p>
-          <p className="mt-1 text-sm text-white/70">
-            <span className="font-medium text-white/80">Company:</span> Oakline Ventures LLC (d/b/a EarnSigma)
-          </p>
-          <p className="mt-1 text-sm text-white/70">
-            <span className="font-medium text-white/80">Contact:</span> admin@earnsigma.com
-          </p>
-        </header>
+      <section className="mx-auto max-w-6xl px-6 py-14 lg:py-16">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-sm">
+          <div className="px-6 py-10 lg:px-10 lg:py-12">
+            <header className="mb-10">
+              <p className="text-xs font-semibold tracking-[0.18em] text-white/60">TERMS OF SERVICE</p>
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                Terms of Service
+              </h1>
+              <div className="mt-5 space-y-1 text-sm text-white/70">
+                <p><span className="font-medium text-white/80">Effective Date:</span> March 2026</p>
+                <p><span className="font-medium text-white/80">Company:</span> Oakline Ventures LLC (d/b/a EarnSigma)</p>
+                <p><span className="font-medium text-white/80">Contact:</span> admin@earnsigma.com</p>
+              </div>
+            </header>
 
-        <div className="grid gap-10 lg:grid-cols-[240px_minmax(0,1fr)]">
-          <aside className="hidden lg:block">
-            <div className="sticky top-24 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-semibold tracking-wide text-white/80">Contents</p>
-              <nav className="mt-3 space-y-2 text-sm text-white/70">
-                <Link href="#agreement-to-terms" className="block transition hover:text-white">1. Agreement to Terms</Link>
-                <Link href="#description-of-the-service" className="block transition hover:text-white">2. Description of the Service</Link>
-                <Link href="#eligibility" className="block transition hover:text-white">3. Eligibility</Link>
-                <Link href="#user-responsibilities" className="block transition hover:text-white">4. User Responsibilities</Link>
-                <Link href="#account-registration" className="block transition hover:text-white">5. Account Registration</Link>
-                <Link href="#subscription-billing" className="block transition hover:text-white">6. Subscription &amp; Billing</Link>
-                <Link href="#intellectual-property" className="block transition hover:text-white">7. Intellectual Property</Link>
-                <Link href="#data-processing-disclaimer" className="block transition hover:text-white">8. Data Processing Disclaimer</Link>
-                <Link href="#ai-processing-if-enabled" className="block transition hover:text-white">9. AI Processing (If Enabled)</Link>
-                <Link href="#disclaimer-of-warranties" className="block transition hover:text-white">10. Disclaimer of Warranties</Link>
-                <Link href="#limitation-of-liability" className="block transition hover:text-white">11. Limitation of Liability</Link>
-                <Link href="#indemnification" className="block transition hover:text-white">12. Indemnification</Link>
-                <Link href="#termination" className="block transition hover:text-white">13. Termination</Link>
-                <Link href="#governing-law" className="block transition hover:text-white">14. Governing Law</Link>
-                <Link href="#binding-arbitration" className="block transition hover:text-white">15. Binding Arbitration</Link>
-                <Link href="#changes-to-terms" className="block transition hover:text-white">16. Changes to Terms</Link>
-                <Link href="#contact-information" className="block transition hover:text-white">17. Contact Information</Link>
-              </nav>
-            </div>
-          </aside>
+            <div className="grid gap-10 lg:grid-cols-[240px_minmax(0,1fr)]">
+              <aside className="hidden lg:block">
+                <div className="sticky top-24 rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs font-semibold tracking-wide text-white/80">Contents</p>
+                  <nav className="mt-3 space-y-2 text-sm">
+                    <Link href="#agreement-to-terms" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">1. Agreement to Terms</Link>
+                    <Link href="#description-of-the-service" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">2. Description of the Service</Link>
+                    <Link href="#eligibility" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">3. Eligibility</Link>
+                    <Link href="#user-responsibilities" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">4. User Responsibilities</Link>
+                    <Link href="#account-registration" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">5. Account Registration</Link>
+                    <Link href="#subscription-billing" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">6. Subscription &amp; Billing</Link>
+                    <Link href="#intellectual-property" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">7. Intellectual Property</Link>
+                    <Link href="#data-processing-disclaimer" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">8. Data Processing Disclaimer</Link>
+                    <Link href="#ai-processing-if-enabled" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">9. AI Processing (If Enabled)</Link>
+                    <Link href="#disclaimer-of-warranties" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">10. Disclaimer of Warranties</Link>
+                    <Link href="#limitation-of-liability" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">11. Limitation of Liability</Link>
+                    <Link href="#indemnification" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">12. Indemnification</Link>
+                    <Link href="#termination" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">13. Termination</Link>
+                    <Link href="#governing-law" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">14. Governing Law</Link>
+                    <Link href="#binding-arbitration" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">15. Binding Arbitration</Link>
+                    <Link href="#changes-to-terms" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">16. Changes to Terms</Link>
+                    <Link href="#contact-information" className="block rounded-lg px-2 py-1 text-white/70 transition hover:bg-white/5 hover:text-white">17. Contact Information</Link>
+                  </nav>
+                </div>
+              </aside>
 
-          <article className="prose prose-invert max-w-none prose-headings:scroll-mt-24 prose-headings:font-semibold prose-p:text-white/80 prose-li:text-white/80 prose-strong:text-white prose-a:text-cyan-300 hover:prose-a:text-cyan-200">
+              <article className="min-w-0">
+                <div className="max-w-3xl">
+                  <div className="prose prose-invert max-w-none prose-p:text-white/80 prose-li:text-white/80 prose-strong:text-white prose-a:text-cyan-300 hover:prose-a:text-cyan-200 prose-headings:text-white prose-headings:font-semibold prose-headings:tracking-tight prose-h2:mt-10 prose-h2:mb-3 prose-h2:text-2xl prose-h3:mt-6 prose-h3:mb-2 prose-h3:text-xl prose-p:leading-relaxed prose-p:my-4 prose-ul:my-4 prose-ol:my-4 prose-li:my-2 prose-hr:my-10 prose-hr:border-white/10 prose-headings:scroll-mt-28">
         <h2 id="agreement-to-terms">1. Agreement to Terms</h2>
         <p>These Terms of Service (“Terms”) constitute a legally binding agreement between you (“User”, “you”) and Oakline Ventures LLC, an Illinois limited liability company, doing business as EarnSigma (“Company”, “we”, “us”).</p>
         <p>By accessing or using the EarnSigma platform (“Service”), you agree to be bound by these Terms. If you do not agree, you must not use the Service.</p>
@@ -230,8 +233,11 @@ export default function TermsPage() {
           <br />
           admin@earnsigma.com
         </p>
-
-          </article>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
         </div>
       </section>
     </main>

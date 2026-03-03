@@ -9,6 +9,7 @@ const checks = [
   { label: "Auth: login", href: "/login" },
   { label: "Dashboard", href: "/app" },
   { label: "Upload flow", href: "/app/data" },
+  { label: "Upload status diagnostics", href: "/app/data" },
   { label: "Reports list", href: "/app/report" },
   { label: "Billing", href: "/app/billing" },
   { label: "Admin console", href: "/app/admin" },

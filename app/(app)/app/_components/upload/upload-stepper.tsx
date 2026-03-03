@@ -11,9 +11,9 @@ import {
   uploadFileToPresignedUrl,
   type UploadPlatform,
 } from "@/src/lib/api/upload";
-import { pollUploadStatus, UploadPollingCancelledError } from "@/src/lib/upload/polling";
+import { pollUploadStatus, UploadPollingCancelledError, UploadPollingTimeoutError } from "@/src/lib/upload/polling";
 import { mapApiErrorToUploadFailure } from "@/src/lib/upload/errors";
-import { buildUploadDiagnostics, mapUploadStatus, type UploadUiStatus } from "@/src/lib/upload/status";
+import { buildUploadDiagnostics, mapUploadStatus, uploadStatusMessage, type UploadUiStatus } from "@/src/lib/upload/status";
 import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/lib/upload/resume";
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import InlineAlert from "./InlineAlert";
@@ -28,6 +28,23 @@ type PlatformOption = {
   id: UploadPlatform;
   label: string;
   supported: boolean;
+};
+
+type UploadDiagnosticsSnapshot = {
+  uploadId: string | null;
+  rawStatus: string | null;
+  reason: string | null;
+  timestamps: {
+    created_at: string | null;
+    validated_at: string | null;
+    ingested_at: string | null;
+    report_started_at: string | null;
+    ready_at: string | null;
+    updated_at: string | null;
+  };
+  monthsPresent: number | null;
+  rowsWritten: number | null;
+  recommendedNextAction: string | null;
 };
 
 const platforms: PlatformOption[] = [
@@ -81,6 +98,8 @@ export default function UploadStepper() {
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [errorRequestId, setErrorRequestId] = useState<string | null>(null);
   const [errorOperation, setErrorOperation] = useState<string | null>(null);
+  const [isProcessingDelayed, setIsProcessingDelayed] = useState(false);
+  const [diagnosticsSnapshot, setDiagnosticsSnapshot] = useState<UploadDiagnosticsSnapshot | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<UploadUiStatus | null>(null);
@@ -120,29 +139,42 @@ export default function UploadStepper() {
       uploadId: string | null;
       rawStatus: string | null;
       reasonCode: string;
+      reason?: string | null;
       message: string;
-      updatedAt?: string | null;
       requestId?: string | null;
       operation?: string | null;
+      monthsPresent?: number | null;
+      rowsWritten?: number | null;
+      recommendedNextAction?: string | null;
+      timestamps?: UploadDiagnosticsSnapshot["timestamps"];
     }) => {
+      const diagnostics: UploadDiagnosticsSnapshot = {
+        uploadId: params.uploadId,
+        rawStatus: params.rawStatus,
+        reason: params.reason ?? params.message,
+        timestamps: params.timestamps ?? {
+          created_at: null,
+          validated_at: null,
+          ingested_at: null,
+          report_started_at: null,
+          ready_at: null,
+          updated_at: null,
+        },
+        monthsPresent: params.monthsPresent ?? null,
+        rowsWritten: params.rowsWritten ?? null,
+        recommendedNextAction: params.recommendedNextAction ?? null,
+      };
+
       setStep("processing");
       setProcessingStatus("failed");
+      setIsProcessingDelayed(false);
       setError(friendlyFailureMessage(params.reasonCode));
       setReasonCode(params.reasonCode);
       setStatusMsg(params.message);
       setErrorRequestId(params.requestId ?? null);
       setErrorOperation(params.operation ?? null);
-      setErrorDetails(
-        buildUploadDiagnostics({
-          uploadId: params.uploadId,
-          rawStatus: params.rawStatus,
-          reasonCode: params.reasonCode,
-          message: params.message,
-          updatedAt: params.updatedAt,
-          requestId: params.requestId,
-          operation: params.operation,
-        }),
-      );
+      setDiagnosticsSnapshot(diagnostics);
+      setErrorDetails(buildUploadDiagnostics(diagnostics));
       logUploadDiagnostic("terminal_failure", {
         uploadId: params.uploadId,
         reasonCode: params.reasonCode,
@@ -160,12 +192,21 @@ export default function UploadStepper() {
 
       setProcessingStatus(mapped.status);
       setUploadId(resolvedUploadId ?? null);
+      setDiagnosticsSnapshot({
+        uploadId: resolvedUploadId ?? null,
+        rawStatus: mapped.rawStatus,
+        reason: mapped.reason ?? mapped.message,
+        timestamps: mapped.timestamps,
+        monthsPresent: mapped.monthsPresent,
+        rowsWritten: mapped.rowsWritten,
+        recommendedNextAction: mapped.recommendedNextAction,
+      });
       if (mapped.reportId) {
         setReportId(mapped.reportId);
       }
 
       if (mapped.status === "processing") {
-        setStatusMsg("Processing upload…");
+        setStatusMsg(uploadStatusMessage(mapped.rawStatus));
         setStep("processing");
         setError(null);
         setReasonCode(null);
@@ -183,6 +224,7 @@ export default function UploadStepper() {
         setErrorDetails(null);
         setErrorRequestId(null);
         setErrorOperation(null);
+        setIsProcessingDelayed(false);
         return;
       }
 
@@ -190,8 +232,12 @@ export default function UploadStepper() {
         uploadId: resolvedUploadId ?? null,
         rawStatus: mapped.rawStatus,
         reasonCode: mapped.reasonCode ?? "upload_failed",
-        message: mapped.message ?? "Processing failed.",
-        updatedAt: mapped.updatedAt,
+        reason: mapped.reason,
+        message: mapped.message ?? mapped.reason ?? "Processing failed.",
+        monthsPresent: mapped.monthsPresent,
+        rowsWritten: mapped.rowsWritten,
+        recommendedNextAction: mapped.recommendedNextAction,
+        timestamps: mapped.timestamps,
       });
     },
     [setFailureState, uploadId],
@@ -208,6 +254,8 @@ export default function UploadStepper() {
     setError(null);
     setReasonCode(null);
     setErrorDetails(null);
+    setIsProcessingDelayed(false);
+    setDiagnosticsSnapshot(null);
     setErrorRequestId(null);
     setErrorOperation(null);
     setWarnings([]);
@@ -223,12 +271,14 @@ export default function UploadStepper() {
   }, [stopPolling]);
 
   const copyDiagnostics = async () => {
-    if (!errorDetails || typeof navigator === "undefined" || !navigator.clipboard) {
+    if (!diagnosticsSnapshot || typeof navigator === "undefined" || !navigator.clipboard) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(errorDetails);
+      const diagnostics = buildUploadDiagnostics(diagnosticsSnapshot);
+      await navigator.clipboard.writeText(diagnostics);
+      setErrorDetails(diagnostics);
       setStatusMsg("Diagnostics copied");
     } catch {
       setStatusMsg("Unable to copy diagnostics");
@@ -242,6 +292,7 @@ export default function UploadStepper() {
     setErrorDetails(null);
     setErrorRequestId(null);
     setErrorOperation(null);
+    setIsProcessingDelayed(false);
   }, []);
 
   const pollUntilTerminal = useCallback(
@@ -260,8 +311,17 @@ export default function UploadStepper() {
                 upload_id: status.uploadId ?? currentUploadId,
                 status: status.rawStatus ?? status.status,
                 reason_code: status.reasonCode ?? undefined,
+                reason: status.reason ?? undefined,
+                recommended_next_action: status.recommendedNextAction ?? undefined,
+                rows_written: status.rowsWritten ?? undefined,
+                months_present: status.monthsPresent ?? undefined,
                 message: status.message ?? undefined,
                 report_id: status.reportId ?? undefined,
+                created_at: status.timestamps.created_at ?? undefined,
+                validated_at: status.timestamps.validated_at ?? undefined,
+                ingested_at: status.timestamps.ingested_at ?? undefined,
+                report_started_at: status.timestamps.report_started_at ?? undefined,
+                ready_at: status.timestamps.ready_at ?? undefined,
                 updated_at: status.updatedAt ?? undefined,
               },
               currentUploadId,
@@ -273,14 +333,13 @@ export default function UploadStepper() {
           return;
         }
 
-        if (pollError instanceof Error && /timed out/i.test(pollError.message)) {
-          setFailureState({
-            uploadId: currentUploadId,
-            rawStatus: "processing",
-            reasonCode: "timeout",
-            message: "Upload is still processing. Retry status check in a moment.",
-            operation: "uploads.status",
-          });
+        if (pollError instanceof UploadPollingTimeoutError) {
+          setProcessingStatus("processing");
+          setStep("processing");
+          setIsProcessingDelayed(true);
+          setError(null);
+          setReasonCode("timeout");
+          setStatusMsg("Still working in the background. You can retry status at any time.");
           return;
         }
 
@@ -315,6 +374,8 @@ export default function UploadStepper() {
     setError(null);
     setReasonCode(null);
     setErrorDetails(null);
+    setIsProcessingDelayed(false);
+    setDiagnosticsSnapshot(null);
     setErrorRequestId(null);
     setErrorOperation(null);
     setWarnings([]);
@@ -417,6 +478,7 @@ export default function UploadStepper() {
     setError(null);
     setReasonCode(null);
     setStatusMsg("Retrying status check…");
+    setIsProcessingDelayed(false);
 
     try {
       await pollUntilTerminal(uploadId);
@@ -524,7 +586,7 @@ export default function UploadStepper() {
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
                 onClick={resetFlow}
               >
-                Reset
+                Start over
               </button>
               <button
                 type="button"
@@ -548,6 +610,42 @@ export default function UploadStepper() {
             ) : null}
           </div>
         </ErrorBanner>
+      ) : null}
+
+      {isProcessingDelayed ? (
+        <InlineAlert variant="info" title="Still working">
+          <div className="space-y-3 text-sm text-slate-700">
+            <p>Your upload is still processing on the API service. You can retry status, copy diagnostics, or start over.</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                data-testid="upload-retry-status"
+                onClick={() => void retryProcessing()}
+                disabled={!uploadId || busy}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Retry status
+              </button>
+              <button
+                type="button"
+                data-testid="upload-copy-diagnostics-timeout"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+                onClick={copyDiagnostics}
+                disabled={!diagnosticsSnapshot}
+              >
+                Copy diagnostics
+              </button>
+              <button
+                type="button"
+                data-testid="upload-start-over-timeout"
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+                onClick={resetFlow}
+              >
+                Start over
+              </button>
+            </div>
+          </div>
+        </InlineAlert>
       ) : null}
 
       <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
@@ -606,8 +704,8 @@ export default function UploadStepper() {
                 setStep("file");
                 setError(null);
                 setErrorDetails(null);
-        setErrorRequestId(null);
-        setErrorOperation(null);
+                setErrorRequestId(null);
+                setErrorOperation(null);
               }}
               className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
             >

@@ -1,8 +1,6 @@
 import { isTerminalUploadStatus, type UploadStatusView } from "./status";
 
 export type UploadPollConfig = {
-  initialIntervalMs?: number;
-  maxIntervalMs?: number;
   timeoutMs?: number;
 };
 
@@ -21,14 +19,27 @@ export class UploadPollingCancelledError extends Error {
   }
 }
 
+export class UploadPollingTimeoutError extends Error {
+  constructor(message = "Upload processing timed out.") {
+    super(message);
+    this.name = "UploadPollingTimeoutError";
+  }
+}
+
 export const defaultUploadPollConfig: Required<UploadPollConfig> = {
-  initialIntervalMs: 1_000,
-  maxIntervalMs: 2_000,
-  timeoutMs: 180_000,
+  timeoutMs: 300_000,
 };
 
-export function nextUploadPollInterval(currentMs: number, maxMs: number): number {
-  return Math.min(maxMs, currentMs + 250);
+export function nextUploadPollInterval(elapsedMs: number): number {
+  if (elapsedMs < 20_000) {
+    return 2_000;
+  }
+
+  if (elapsedMs < 90_000) {
+    return 5_000;
+  }
+
+  return 10_000;
 }
 
 function throwIfAborted(signal?: AbortSignal) {
@@ -60,7 +71,6 @@ export async function pollUploadStatus(params: PollUploadStatusParams): Promise<
   const config = { ...defaultUploadPollConfig, ...(params.config ?? {}) };
 
   const startedAt = Date.now();
-  let intervalMs = config.initialIntervalMs;
 
   while (true) {
     throwIfAborted(signal);
@@ -72,11 +82,11 @@ export async function pollUploadStatus(params: PollUploadStatusParams): Promise<
       return status;
     }
 
-    if (Date.now() - startedAt >= config.timeoutMs) {
-      throw new Error("Upload processing timed out. Please retry the upload.");
+    const elapsedMs = Date.now() - startedAt;
+    if (elapsedMs >= config.timeoutMs) {
+      throw new UploadPollingTimeoutError();
     }
 
-    await sleep(intervalMs, signal);
-    intervalMs = nextUploadPollInterval(intervalMs, config.maxIntervalMs);
+    await sleep(nextUploadPollInterval(elapsedMs), signal);
   }
 }

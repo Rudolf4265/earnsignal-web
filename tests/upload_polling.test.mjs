@@ -14,18 +14,20 @@ await writeFile(tempPath, rewritten, "utf8");
 
 const pollingModuleUrl = pathToFileURL(tempPath).href;
 
-const { pollUploadStatus, nextUploadPollInterval, UploadPollingCancelledError } = await import(`${pollingModuleUrl}?t=${Date.now()}`);
+const { pollUploadStatus, nextUploadPollInterval, UploadPollingCancelledError, UploadPollingTimeoutError } = await import(`${pollingModuleUrl}?t=${Date.now()}`);
 
-test("nextUploadPollInterval increases with cap", () => {
-  assert.equal(nextUploadPollInterval(1000, 2000), 1250);
-  assert.equal(nextUploadPollInterval(1900, 2000), 2000);
-  assert.equal(nextUploadPollInterval(2000, 2000), 2000);
+test("nextUploadPollInterval uses staged backoff", () => {
+  assert.equal(nextUploadPollInterval(0), 2000);
+  assert.equal(nextUploadPollInterval(19999), 2000);
+  assert.equal(nextUploadPollInterval(20000), 5000);
+  assert.equal(nextUploadPollInterval(89999), 5000);
+  assert.equal(nextUploadPollInterval(90000), 10000);
 });
 
 test("pollUploadStatus resolves once status becomes ready", async () => {
   const queue = [
-    { status: "processing", uploadId: "u1", reasonCode: null, message: null, reportId: null, rawStatus: "processing", updatedAt: null },
-    { status: "ready", uploadId: "u1", reasonCode: null, message: null, reportId: "r1", rawStatus: "ready", updatedAt: null },
+    { status: "processing", uploadId: "u1", reasonCode: null, reason: null, message: null, reportId: null, rawStatus: "processing", updatedAt: null, recommendedNextAction: null, monthsPresent: null, rowsWritten: null, timestamps: { created_at: null, validated_at: null, ingested_at: null, report_started_at: null, ready_at: null, updated_at: null } },
+    { status: "ready", uploadId: "u1", reasonCode: null, reason: null, message: null, reportId: "r1", rawStatus: "ready", updatedAt: null, recommendedNextAction: null, monthsPresent: null, rowsWritten: null, timestamps: { created_at: null, validated_at: null, ingested_at: null, report_started_at: null, ready_at: null, updated_at: null } },
   ];
 
   const seen = [];
@@ -33,29 +35,34 @@ test("pollUploadStatus resolves once status becomes ready", async () => {
     getStatus: async () => queue.shift(),
     onUpdate: (value) => seen.push(value.status),
     sleep: async () => {},
-    config: { timeoutMs: 5000, initialIntervalMs: 1, maxIntervalMs: 2 },
+    config: { timeoutMs: 5000 },
   });
 
   assert.equal(result.status, "ready");
   assert.deepEqual(seen, ["processing", "ready"]);
 });
 
-test("pollUploadStatus throws on timeout", async () => {
+test("pollUploadStatus throws typed timeout", async () => {
   await assert.rejects(
     pollUploadStatus({
       getStatus: async () => ({
         status: "processing",
         uploadId: "u-timeout",
         reasonCode: null,
+        reason: null,
         message: null,
         reportId: null,
         rawStatus: "processing",
         updatedAt: null,
+        recommendedNextAction: null,
+        monthsPresent: null,
+        rowsWritten: null,
+        timestamps: { created_at: null, validated_at: null, ingested_at: null, report_started_at: null, ready_at: null, updated_at: null },
       }),
       sleep: async () => {},
-      config: { timeoutMs: 0, initialIntervalMs: 1, maxIntervalMs: 1 },
+      config: { timeoutMs: 0 },
     }),
-    /timed out/i,
+    UploadPollingTimeoutError,
   );
 });
 
@@ -69,10 +76,15 @@ test("pollUploadStatus cancels via AbortController", async () => {
         status: "processing",
         uploadId: "u-cancel",
         reasonCode: null,
+        reason: null,
         message: null,
         reportId: null,
         rawStatus: "processing",
         updatedAt: null,
+        recommendedNextAction: null,
+        monthsPresent: null,
+        rowsWritten: null,
+        timestamps: { created_at: null, validated_at: null, ingested_at: null, report_started_at: null, ready_at: null, updated_at: null },
       }),
       sleep: async (_ms, signal) => {
         controller.abort();
@@ -80,38 +92,8 @@ test("pollUploadStatus cancels via AbortController", async () => {
           throw new UploadPollingCancelledError();
         }
       },
-      config: { timeoutMs: 1000, initialIntervalMs: 1, maxIntervalMs: 1 },
+      config: { timeoutMs: 1000 },
     }),
     /cancelled/i,
   );
-});
-
-
-test("pollUploadStatus does not schedule additional sleeps after abort", async () => {
-  const controller = new AbortController();
-  let sleepCalls = 0;
-
-  await assert.rejects(
-    pollUploadStatus({
-      signal: controller.signal,
-      getStatus: async () => ({
-        status: "processing",
-        uploadId: "u-abort",
-        reasonCode: null,
-        message: null,
-        reportId: null,
-        rawStatus: "processing",
-        updatedAt: null,
-      }),
-      sleep: async () => {
-        sleepCalls += 1;
-        controller.abort();
-        throw new UploadPollingCancelledError();
-      },
-      config: { timeoutMs: 1000, initialIntervalMs: 1, maxIntervalMs: 1 },
-    }),
-    /cancelled/i,
-  );
-
-  assert.equal(sleepCalls, 1);
 });

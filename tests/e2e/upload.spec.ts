@@ -7,7 +7,7 @@ const uploadId = "upl_123";
 async function enterUploadFlow(page: import("@playwright/test").Page) {
   await page.goto("/app/data");
   await page.getByRole("button", { name: "Patreon" }).click();
-  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByText("Select file")).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles({
     name: "sample.csv",
     mimeType: "text/csv",
@@ -20,6 +20,23 @@ test.describe("Upload deep flows", () => {
   test.beforeEach(async ({ page }) => {
     await stubAuthenticatedSession(page);
     await stubEntitlements(page, "entitled");
+  });
+
+  test("platform click advances and start over resets to platform step", async ({ page }) => {
+    await page.goto("/app/data");
+
+    const patreonCard = page.getByRole("button", { name: "Patreon Available" });
+    await expect(patreonCard).toBeVisible();
+    await patreonCard.click();
+
+    await expect(page.getByText("Select file")).toBeVisible();
+
+    const startOver = page.getByTestId("upload-reset").first();
+    await expect(startOver).toBeVisible();
+    await startOver.click();
+
+    await expect(page.getByText("Choose platform")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Patreon Available" })).toBeVisible();
   });
 
   test("happy path: processing to report_ready", async ({ page }) => {

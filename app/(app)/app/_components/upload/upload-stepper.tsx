@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createUploadPresign,
   finalizeUploadCallback,
-  getLatestUploadStatus,
   getUploadStatus,
   type UploadStatusResponse,
   uploadFileToPresignedUrl,
@@ -13,8 +12,8 @@ import {
 } from "@/src/lib/api/upload";
 import { pollUploadStatus, UploadPollingCancelledError, UploadPollingTimeoutError } from "@/src/lib/upload/polling";
 import { mapApiErrorToUploadFailure } from "@/src/lib/upload/errors";
-import { buildUploadDiagnostics, mapUploadStatus, uploadStatusMessage, type UploadUiStatus } from "@/src/lib/upload/status";
-import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/lib/upload/resume";
+import { buildUploadDiagnostics, isTerminalUploadStatus, mapUploadStatus, uploadStatusMessage, type UploadUiStatus, type UploadStatusView } from "@/src/lib/upload/status";
+import { clearUploadResume, writeUploadResume } from "@/src/lib/upload/resume";
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import InlineAlert from "./InlineAlert";
 import StepHeader from "./StepHeader";
@@ -85,7 +84,22 @@ const friendlyFailureMessage = (reasonCode: string | null) => {
   }
 };
 
-export default function UploadStepper() {
+export type ResumeLookupState =
+  | { kind: "idle" }
+  | { kind: "loading"; uploadId: string }
+  | { kind: "no_upload" }
+  | { kind: "in_progress"; uploadId: string; statusResponse: UploadStatusResponse; mappedStatus: UploadStatusView }
+  | { kind: "finished"; uploadId: string; statusResponse: UploadStatusResponse; mappedStatus: UploadStatusView }
+  | { kind: "auth_error"; uploadId: string; message: string }
+  | { kind: "network_error"; uploadId: string; message: string };
+
+type UploadStepperProps = {
+  resumeLookup: ResumeLookupState;
+  onRetryResumeLookup: () => Promise<void> | void;
+  onClearResume: () => void;
+};
+
+export default function UploadStepper({ resumeLookup, onRetryResumeLookup, onClearResume }: UploadStepperProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const pollAbortRef = useRef<AbortController | null>(null);
 
@@ -105,7 +119,6 @@ export default function UploadStepper() {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<UploadUiStatus | null>(null);
-  const [hasResumeCandidate, setHasResumeCandidate] = useState(false);
 
   const activeStepIndex = stepOrder.indexOf(step);
   const progressPct = Math.round(((activeStepIndex + 1) / stepOrder.length) * 100);
@@ -263,7 +276,6 @@ export default function UploadStepper() {
     setWarnings([]);
     setBusy(false);
     setProcessingStatus(null);
-    setHasResumeCandidate(false);
     if (typeof window !== "undefined") {
       clearUploadResume(window.localStorage);
     }
@@ -495,79 +507,19 @@ export default function UploadStepper() {
     };
   }, [stopPolling]);
 
+
+  // Resume policy: only auto-resume polling for non-terminal uploads from the one-time lookup.
   useEffect(() => {
-    const resumeRecord = typeof window !== "undefined" ? readUploadResume(window.localStorage) : null;
-    const resumeUploadId = resumeRecord?.uploadId ?? null;
-    setHasResumeCandidate(Boolean(resumeUploadId));
-    if (!resumeUploadId || busy || step !== "platform") {
+    if (resumeLookup.kind !== "in_progress" || isTerminalUploadStatus(resumeLookup.mappedStatus.status) || busy || step !== "platform") {
       return;
     }
 
-    let active = true;
+    setStep("processing");
+    setStatusMsg("Checking previous upload…");
+    updateProcessingFromEnvelope(resumeLookup.statusResponse, resumeLookup.uploadId);
+    void pollUntilTerminal(resumeLookup.uploadId);
+  }, [busy, pollUntilTerminal, resumeLookup, step, updateProcessingFromEnvelope]);
 
-    const hydrateStatus = async () => {
-      setBusy(true);
-      setStep("processing");
-      setStatusMsg("Checking previous upload…");
-
-      try {
-        const byId = await getUploadStatus(resumeUploadId);
-        if (!active) {
-          return;
-        }
-
-        updateProcessingFromEnvelope(byId, resumeUploadId);
-
-        const mapped = mapUploadStatus(byId);
-        if (mapped.status === "processing") {
-          await pollUntilTerminal(resumeUploadId);
-        }
-      } catch (resumeError) {
-        if (!active) {
-          return;
-        }
-
-        const mapped = mapApiErrorToUploadFailure(resumeError);
-
-        if (mapped.reasonCode === "upload_not_found") {
-          if (typeof window !== "undefined") {
-            clearUploadResume(window.localStorage);
-          }
-          try {
-            const latest = await getLatestUploadStatus();
-            if (!active) return;
-            const latestMapped = mapUploadStatus(latest);
-            updateProcessingFromEnvelope(latest, latestMapped.uploadId ?? resumeUploadId);
-            if (latestMapped.status === "processing" && latestMapped.uploadId) {
-              await pollUntilTerminal(latestMapped.uploadId);
-              return;
-            }
-          } catch {
-            // fall through to not-found UI
-          }
-        }
-
-        setFailureState({
-          uploadId: resumeUploadId,
-          rawStatus: null,
-          reasonCode: mapped.reasonCode,
-          message: mapped.message,
-          requestId: mapped.requestId,
-          operation: mapped.operation,
-        });
-      } finally {
-        if (active) {
-          setBusy(false);
-        }
-      }
-    };
-
-    void hydrateStatus();
-
-    return () => {
-      active = false;
-    };
-  }, [busy, pollUntilTerminal, setFailureState, step, updateProcessingFromEnvelope]);
 
   return (
     <UploadCard className="space-y-6">
@@ -650,6 +602,73 @@ export default function UploadStepper() {
         </InlineAlert>
       ) : null}
 
+      {resumeLookup.kind === "finished" && step === "platform" ? (
+        <InlineAlert variant="info" title="Last upload finished" data-testid="upload-last-finished">
+          <div className="space-y-3 text-sm text-slate-700">
+            <p>
+              Status: <span className="font-medium">{resumeLookup.mappedStatus.status === "ready" ? "Ready" : "Failed"}</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {resumeLookup.mappedStatus.reportId ? (
+                <Link
+                  href={`/app/report/${resumeLookup.mappedStatus.reportId}`}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+                >
+                  View report
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                data-testid="upload-start-new"
+                onClick={resetFlow}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+              >
+                Start new upload
+              </button>
+              <button
+                type="button"
+                data-testid="upload-clear-last"
+                onClick={() => {
+                  onClearResume();
+                  resetFlow();
+                }}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </InlineAlert>
+      ) : null}
+
+      {resumeLookup.kind === "auth_error" && step === "platform" ? (
+        <InlineAlert variant="warn" title="Session expired" data-testid="upload-resume-auth-error">
+          <div className="space-y-3 text-sm text-slate-700">
+            <p>Your session expired while checking your last upload.</p>
+            <Link href="/login" className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100">
+              Log in again
+            </Link>
+          </div>
+        </InlineAlert>
+      ) : null}
+
+      {resumeLookup.kind === "network_error" && step === "platform" ? (
+        <InlineAlert variant="warn" title="Couldn't check last upload" data-testid="upload-resume-network-error">
+          <div className="space-y-3 text-sm text-slate-700">
+            <p>{resumeLookup.message}</p>
+            <button
+              type="button"
+              onClick={() => void onRetryResumeLookup()}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+            >
+              Retry
+            </button>
+          </div>
+        </InlineAlert>
+      ) : null}
+
+
+
       <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
         <div className="flex items-center justify-between text-xs text-slate-400">
           <span>Step {activeStepIndex + 1} of {stepOrder.length}</span>
@@ -672,9 +691,9 @@ export default function UploadStepper() {
 
       {step === "platform" ? (
         <div className="space-y-5">
-          {uploadId ? null : hasResumeCandidate ? (
+          {uploadId ? null : resumeLookup.kind === "in_progress" ? (
             <InlineAlert variant="info" title="Found an in-progress upload" data-testid="upload-resume-banner">
-              We found a recent upload and will automatically check its status.
+              We found a recent upload and are resuming status checks.
             </InlineAlert>
           ) : null}
           <StepHeader title="Choose platform" subtitle="Select the data source for this upload." />

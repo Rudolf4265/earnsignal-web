@@ -13,34 +13,44 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16 text-white">
-      <article className="prose prose-invert max-w-none prose-headings:scroll-mt-24 prose-a:text-blue-300 hover:prose-a:text-blue-200">
-        <h1>PRIVACY POLICY</h1>
-        <p>
-          <strong>Effective Date:</strong> March 2026
-          <br />
-          <strong>Company:</strong> Oakline Ventures LLC (d/b/a EarnSigma)
-          <br />
-          <strong>Contact:</strong> admin@earnsigma.com
-        </p>
+    <main className="relative">
+      <section className="mx-auto max-w-5xl px-6 py-14 lg:py-16">
+        <header className="mb-10">
+          <h1 className="text-3xl font-semibold tracking-tight text-white">PRIVACY POLICY</h1>
+          <p className="mt-2 text-sm text-white/70">
+            <span className="font-medium text-white/80">Effective Date:</span> March 2026
+          </p>
+          <p className="mt-1 text-sm text-white/70">
+            <span className="font-medium text-white/80">Company:</span> Oakline Ventures LLC (d/b/a EarnSigma)
+          </p>
+          <p className="mt-1 text-sm text-white/70">
+            <span className="font-medium text-white/80">Contact:</span> admin@earnsigma.com
+          </p>
+        </header>
 
-        <h2>Table of Contents</h2>
-        <ul>
-          <li><Link href="#overview">1. Overview</Link></li>
-          <li><Link href="#information-we-collect">2. Information We Collect</Link></li>
-          <li><Link href="#how-we-use-information">3. How We Use Information</Link></li>
-          <li><Link href="#data-sharing-and-disclosure">4. Data Sharing and Disclosure</Link></li>
-          <li><Link href="#ai-and-automated-processing">5. AI and Automated Processing</Link></li>
-          <li><Link href="#data-retention">6. Data Retention</Link></li>
-          <li><Link href="#data-security">7. Data Security</Link></li>
-          <li><Link href="#international-users">8. International Users</Link></li>
-          <li><Link href="#user-rights">9. User Rights</Link></li>
-          <li><Link href="#childrens-privacy">10. Children’s Privacy</Link></li>
-          <li><Link href="#limitation-of-liability">11. Limitation of Liability</Link></li>
-          <li><Link href="#changes-to-this-privacy-policy">12. Changes to This Privacy Policy</Link></li>
-          <li><Link href="#contact-information">13. Contact Information</Link></li>
-        </ul>
+        <div className="grid gap-10 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <aside className="hidden lg:block">
+            <div className="sticky top-24 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-semibold tracking-wide text-white/80">Contents</p>
+              <nav className="mt-3 space-y-2 text-sm text-white/70">
+                <Link href="#overview" className="block transition hover:text-white">1. Overview</Link>
+                <Link href="#information-we-collect" className="block transition hover:text-white">2. Information We Collect</Link>
+                <Link href="#how-we-use-information" className="block transition hover:text-white">3. How We Use Information</Link>
+                <Link href="#data-sharing-and-disclosure" className="block transition hover:text-white">4. Data Sharing and Disclosure</Link>
+                <Link href="#ai-and-automated-processing" className="block transition hover:text-white">5. AI and Automated Processing</Link>
+                <Link href="#data-retention" className="block transition hover:text-white">6. Data Retention</Link>
+                <Link href="#data-security" className="block transition hover:text-white">7. Data Security</Link>
+                <Link href="#international-users" className="block transition hover:text-white">8. International Users</Link>
+                <Link href="#user-rights" className="block transition hover:text-white">9. User Rights</Link>
+                <Link href="#childrens-privacy" className="block transition hover:text-white">10. Children’s Privacy</Link>
+                <Link href="#limitation-of-liability" className="block transition hover:text-white">11. Limitation of Liability</Link>
+                <Link href="#changes-to-this-privacy-policy" className="block transition hover:text-white">12. Changes to This Privacy Policy</Link>
+                <Link href="#contact-information" className="block transition hover:text-white">13. Contact Information</Link>
+              </nav>
+            </div>
+          </aside>
 
+          <article className="prose prose-invert max-w-none prose-headings:scroll-mt-24 prose-headings:font-semibold prose-p:text-white/80 prose-li:text-white/80 prose-strong:text-white prose-a:text-cyan-300 hover:prose-a:text-cyan-200">
         <h2 id="overview">1. Overview</h2>
         <p>Oakline Ventures LLC, an Illinois limited liability company doing business as EarnSigma (“Company,” “we,” “us,” or “our”), operates a revenue analytics platform for creators.</p>
         <p>This Privacy Policy explains how we collect, use, disclose, and protect information when you access or use the EarnSigma platform (the “Service”).</p>
@@ -179,7 +189,10 @@ export default function PrivacyPage() {
           <br />
           admin@earnsigma.com
         </p>
-      </article>
+
+          </article>
+        </div>
+      </section>
     </main>
   );
 }

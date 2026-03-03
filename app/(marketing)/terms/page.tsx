@@ -13,38 +13,48 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16 text-white">
-      <article className="prose prose-invert max-w-none prose-headings:scroll-mt-24 prose-a:text-blue-300 hover:prose-a:text-blue-200">
-        <h1>TERMS OF SERVICE</h1>
-        <p>
-          <strong>Effective Date:</strong> March 2026
-          <br />
-          <strong>Company:</strong> Oakline Ventures LLC (d/b/a EarnSigma)
-          <br />
-          <strong>Contact:</strong> admin@earnsigma.com
-        </p>
+    <main className="relative">
+      <section className="mx-auto max-w-5xl px-6 py-14 lg:py-16">
+        <header className="mb-10">
+          <h1 className="text-3xl font-semibold tracking-tight text-white">TERMS OF SERVICE</h1>
+          <p className="mt-2 text-sm text-white/70">
+            <span className="font-medium text-white/80">Effective Date:</span> March 2026
+          </p>
+          <p className="mt-1 text-sm text-white/70">
+            <span className="font-medium text-white/80">Company:</span> Oakline Ventures LLC (d/b/a EarnSigma)
+          </p>
+          <p className="mt-1 text-sm text-white/70">
+            <span className="font-medium text-white/80">Contact:</span> admin@earnsigma.com
+          </p>
+        </header>
 
-        <h2>Table of Contents</h2>
-        <ul>
-          <li><Link href="#agreement-to-terms">1. Agreement to Terms</Link></li>
-          <li><Link href="#description-of-the-service">2. Description of the Service</Link></li>
-          <li><Link href="#eligibility">3. Eligibility</Link></li>
-          <li><Link href="#user-responsibilities">4. User Responsibilities</Link></li>
-          <li><Link href="#account-registration">5. Account Registration</Link></li>
-          <li><Link href="#subscription-billing">6. Subscription &amp; Billing</Link></li>
-          <li><Link href="#intellectual-property">7. Intellectual Property</Link></li>
-          <li><Link href="#data-processing-disclaimer">8. Data Processing Disclaimer</Link></li>
-          <li><Link href="#ai-processing-if-enabled">9. AI Processing (If Enabled)</Link></li>
-          <li><Link href="#disclaimer-of-warranties">10. Disclaimer of Warranties</Link></li>
-          <li><Link href="#limitation-of-liability">11. Limitation of Liability</Link></li>
-          <li><Link href="#indemnification">12. Indemnification</Link></li>
-          <li><Link href="#termination">13. Termination</Link></li>
-          <li><Link href="#governing-law">14. Governing Law</Link></li>
-          <li><Link href="#binding-arbitration">15. Binding Arbitration</Link></li>
-          <li><Link href="#changes-to-terms">16. Changes to Terms</Link></li>
-          <li><Link href="#contact-information">17. Contact Information</Link></li>
-        </ul>
+        <div className="grid gap-10 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <aside className="hidden lg:block">
+            <div className="sticky top-24 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-semibold tracking-wide text-white/80">Contents</p>
+              <nav className="mt-3 space-y-2 text-sm text-white/70">
+                <Link href="#agreement-to-terms" className="block transition hover:text-white">1. Agreement to Terms</Link>
+                <Link href="#description-of-the-service" className="block transition hover:text-white">2. Description of the Service</Link>
+                <Link href="#eligibility" className="block transition hover:text-white">3. Eligibility</Link>
+                <Link href="#user-responsibilities" className="block transition hover:text-white">4. User Responsibilities</Link>
+                <Link href="#account-registration" className="block transition hover:text-white">5. Account Registration</Link>
+                <Link href="#subscription-billing" className="block transition hover:text-white">6. Subscription &amp; Billing</Link>
+                <Link href="#intellectual-property" className="block transition hover:text-white">7. Intellectual Property</Link>
+                <Link href="#data-processing-disclaimer" className="block transition hover:text-white">8. Data Processing Disclaimer</Link>
+                <Link href="#ai-processing-if-enabled" className="block transition hover:text-white">9. AI Processing (If Enabled)</Link>
+                <Link href="#disclaimer-of-warranties" className="block transition hover:text-white">10. Disclaimer of Warranties</Link>
+                <Link href="#limitation-of-liability" className="block transition hover:text-white">11. Limitation of Liability</Link>
+                <Link href="#indemnification" className="block transition hover:text-white">12. Indemnification</Link>
+                <Link href="#termination" className="block transition hover:text-white">13. Termination</Link>
+                <Link href="#governing-law" className="block transition hover:text-white">14. Governing Law</Link>
+                <Link href="#binding-arbitration" className="block transition hover:text-white">15. Binding Arbitration</Link>
+                <Link href="#changes-to-terms" className="block transition hover:text-white">16. Changes to Terms</Link>
+                <Link href="#contact-information" className="block transition hover:text-white">17. Contact Information</Link>
+              </nav>
+            </div>
+          </aside>
 
+          <article className="prose prose-invert max-w-none prose-headings:scroll-mt-24 prose-headings:font-semibold prose-p:text-white/80 prose-li:text-white/80 prose-strong:text-white prose-a:text-cyan-300 hover:prose-a:text-cyan-200">
         <h2 id="agreement-to-terms">1. Agreement to Terms</h2>
         <p>These Terms of Service (“Terms”) constitute a legally binding agreement between you (“User”, “you”) and Oakline Ventures LLC, an Illinois limited liability company, doing business as EarnSigma (“Company”, “we”, “us”).</p>
         <p>By accessing or using the EarnSigma platform (“Service”), you agree to be bound by these Terms. If you do not agree, you must not use the Service.</p>
@@ -220,7 +230,10 @@ export default function TermsPage() {
           <br />
           admin@earnsigma.com
         </p>
-      </article>
+
+          </article>
+        </div>
+      </section>
     </main>
   );
 }

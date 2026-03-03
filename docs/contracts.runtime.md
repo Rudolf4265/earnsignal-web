@@ -32,7 +32,7 @@ No endpoints are invented here.
 ### Report detail (single report read)
 
 #### `GET /v1/reports/:reportId`
-- **Used by pages:** `/app/report/[id]`
+- **Used by pages:** `/app/report/[reportId]`
 - **Auth:** Bearer token expected when session exists
 - **Response fields consumed (aliases accepted):**
   - `id | report_id | reportId` -> `id: string`
@@ -41,6 +41,8 @@ No endpoints are invented here.
   - `summary | description | message` -> `summary: string`
   - `created_at | createdAt` -> `createdAt?: string`
   - `updated_at | updatedAt` -> `updatedAt?: string`
+  - `artifact_url | artifactUrl` -> `artifactUrl?: string`
+  - `artifact_kind | artifactKind` -> `artifactKind?: string`
 - **Entitlement interaction:**
   - Route is wrapped in report feature guard and requires entitled `report` access.
 
@@ -122,6 +124,7 @@ No endpoints are invented here.
 ## Additional contracts and known gaps
 
 ### Reports listing endpoint
+- **Status:** CONFIRMED (200 observed in production logs and consumed by `/app/report`).
 
 #### `GET /v1/reports`
 - **Used by pages:** `/app/report`
@@ -145,7 +148,9 @@ No endpoints are invented here.
   - `next_offset: number` (`nextOffset` accepted)
   - `has_more: boolean` (`hasMore` accepted)
 - **Page behavior notes:**
-  - `/app/report` renders loading, empty, error, and paginated list states from this endpoint.
+  - `/app/report` renders loading, empty, error, not-entitled, and paginated list states from this endpoint.
+  - List canonical identifier is `report_id`; aliases `reportId` and `id` are accepted for normalization.
+  - Report detail route is `/app/report/[reportId]` and calls `GET /v1/reports/:reportId`.
   - Sample report CTA is preserved as a secondary/fallback action.
 
 ### Dashboard summary endpoint

@@ -86,3 +86,55 @@ test("listReports tolerates camelCase response aliases", async () => {
     global.fetch = originalFetch;
   }
 });
+
+
+test("listReports drops rows missing canonical report identifier", async () => {
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+
+  const originalFetch = global.fetch;
+  global.fetch = async () =>
+    createResponse({
+      items: [
+        { created_at: "2026-01-01T00:00:00Z", status: "ready" },
+        { id: "rep_from_id", created_at: "2026-01-02T00:00:00Z", status: "ready" },
+      ],
+      next_offset: 2,
+      has_more: false,
+    });
+
+  try {
+    const { listReports } = await import(`${moduleUrl}?t=${Date.now() + 2}`);
+    const response = await listReports();
+
+    assert.equal(response.items.length, 1);
+    assert.equal(response.items[0].report_id, "rep_from_id");
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("getReport uses /v1/reports/:reportId", async () => {
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+
+  const calls = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (input) => {
+    calls.push(String(input));
+    return createResponse({
+      report_id: "r1",
+      title: "Detail",
+      status: "ready",
+      summary: "ok",
+    });
+  };
+
+  try {
+    const { getReport } = await import(`${moduleUrl}?t=${Date.now() + 3}`);
+    const response = await getReport("r1");
+
+    assert.match(calls[0], /\/v1\/reports\/r1$/);
+    assert.equal(response.id, "r1");
+  } finally {
+    global.fetch = originalFetch;
+  }
+});

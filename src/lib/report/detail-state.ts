@@ -20,6 +20,10 @@ export function getReportViewState(error: unknown): ReportViewState {
     return "server_error";
   }
 
+  if (error.status === 401) {
+    return "session_expired";
+  }
+
   if (error.status === 403) {
     return "forbidden";
   }
@@ -41,4 +45,12 @@ export function getRequestId(error: unknown): string | undefined {
   }
 
   return error.requestId;
+}
+
+export function getStatusCode(error: unknown): number | undefined {
+  if (!isApiLikeError(error) || typeof error.status !== "number") {
+    return undefined;
+  }
+
+  return error.status;
 }

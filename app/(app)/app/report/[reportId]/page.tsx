@@ -3,30 +3,33 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FeatureGuard } from "../../../_components/feature-guard";
-import { SessionExpiredCallout } from "../../../_components/gate-callouts";
+import { NotEntitledCallout, SessionExpiredCallout } from "../../../_components/gate-callouts";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
-import { fetchReportDetail, type ReportDetail } from "@/src/lib/api/reports";
-import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
+import { getReport, type ReportDetail } from "@/src/lib/api/reports";
+import { getReportViewState, getRequestId, getStatusCode, type ReportViewState } from "@/src/lib/report/detail-state";
 
 type ReportPageState = {
   view: ReportViewState;
   report: ReportDetail | null;
   requestId?: string;
+  statusCode?: number;
 };
+
+const DEBUG_REPORTS = process.env.NEXT_PUBLIC_DEBUG_REPORTS === "1";
 
 const initialState: ReportPageState = {
   view: "loading",
   report: null,
 };
 
-export default function ReportPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function ReportPage({ params }: { params: { reportId: string } }) {
+  const { reportId } = params;
   const [state, setState] = useState<ReportPageState>(initialState);
 
   useEffect(() => {
     let cancelled = false;
 
-    fetchReportDetail(id)
+    getReport(reportId)
       .then((report) => {
         if (cancelled) {
           return;
@@ -46,20 +49,21 @@ export default function ReportPage({ params }: { params: { id: string } }) {
           view: getReportViewState(error),
           report: null,
           requestId: getRequestId(error),
+          statusCode: getStatusCode(error),
         });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [reportId]);
 
   return (
     <FeatureGuard feature="report">
       {state.view === "loading" ? (
         <div className="space-y-3" data-testid="report-loading">
           <h1 className="text-2xl font-semibold">Loading report…</h1>
-          <p className="text-sm text-slate-400">Fetching report details for {id}.</p>
+          <p className="text-sm text-slate-400">Fetching report details for {reportId}.</p>
         </div>
       ) : null}
 
@@ -87,30 +91,43 @@ export default function ReportPage({ params }: { params: { id: string } }) {
                 <dd>{state.report.updatedAt}</dd>
               </div>
             ) : null}
+            {state.report.artifactUrl ? (
+              <div>
+                <dt className="text-slate-600">Artifact kind</dt>
+                <dd>{state.report.artifactKind ?? "report"}</dd>
+              </div>
+            ) : null}
           </dl>
           <p className="text-slate-400">{state.report.summary}</p>
+          {state.report.artifactUrl ? (
+            <Link
+              href={state.report.artifactUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100"
+            >
+              Download/Open PDF
+            </Link>
+          ) : null}
         </section>
       ) : null}
 
       {state.view === "not_found" ? (
         <section className="space-y-3" data-testid="report-not-found">
           <h1 className="text-2xl font-semibold">Report not found</h1>
-          <p className="text-slate-400">We could not find a report with ID {id}. It may have been deleted or never existed.</p>
+          <p className="text-slate-400">We could not find a report with ID {reportId}. It may have been deleted or never existed.</p>
+          {DEBUG_REPORTS ? (
+            <p className="text-xs text-slate-500" data-testid="report-debug-line">
+              debug: attempted reportId={reportId}, backend status={state.statusCode ?? "unknown"}
+            </p>
+          ) : null}
           <Link href="/app/report" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
             Back to Reports
           </Link>
         </section>
       ) : null}
 
-      {state.view === "forbidden" ? (
-        <section className="space-y-3" data-testid="report-forbidden">
-          <h1 className="text-2xl font-semibold">Unauthorized access</h1>
-          <p className="text-slate-400">You do not have permission to view this report.</p>
-          <Link href="/app" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
-            Back to Dashboard
-          </Link>
-        </section>
-      ) : null}
+      {state.view === "forbidden" ? <NotEntitledCallout /> : null}
 
       {state.view === "session_expired" ? <SessionExpiredCallout requestId={state.requestId} /> : null}
 
@@ -118,7 +135,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
         <div data-testid="report-error">
           <ErrorBanner
             title="Report unavailable"
-            message="We could not load this report due to a server error. Please try again shortly."
+            message="We could not load this report right now. Please try again shortly."
             requestId={state.requestId}
             action={
               <Link href="/app/report" className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50">

@@ -154,7 +154,23 @@ test.describe("Upload deep flows", () => {
     await expect(page.getByTestId("gate-session-expired")).toBeVisible();
   });
 
-  test("resume flow picks up in-progress upload", async ({ page }) => {
+  test("terminal ready resume shows finished card without auto-checking state", async ({ page }) => {
+    const resumeRecord = createUploadResumeRecord(uploadId);
+    await page.addInitScript(([storageKey, record]) => {
+      window.localStorage.setItem(storageKey, JSON.stringify(record));
+    }, [getUploadResumeStorageKey(), resumeRecord]);
+
+    await page.route(`**/v1/uploads/${uploadId}/status`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(toApiBody(uploadFixtures.reportReady)) });
+    });
+
+    await page.goto("/app/data");
+
+    await expect(page.getByTestId("upload-last-finished")).toBeVisible();
+    await expect(page.getByText("Checking previous upload…")).toHaveCount(0);
+  });
+
+  test("resume flow picks up non-terminal upload and starts polling UI", async ({ page }) => {
     const resumeRecord = createUploadResumeRecord(uploadId);
     await page.addInitScript(([storageKey, record]) => {
       window.localStorage.setItem(storageKey, JSON.stringify(record));
@@ -167,10 +183,11 @@ test.describe("Upload deep flows", () => {
     await page.goto("/app/data");
 
     await expect(page.getByTestId("upload-resume-banner")).toBeVisible();
+    await expect(page.getByText("Checking previous upload…")).toBeVisible();
     await expect(page.getByText("Processing upload")).toBeVisible();
   });
 
-  test("resume 404 clears key and returns to start flow", async ({ page }) => {
+  test("resume 404 clears key and shows no uploads yet", async ({ page }) => {
     const resumeRecord = createUploadResumeRecord(uploadId);
     await page.addInitScript(([storageKey, record]) => {
       window.localStorage.setItem(storageKey, JSON.stringify(record));
@@ -189,22 +206,29 @@ test.describe("Upload deep flows", () => {
         }),
       });
     });
-    await page.route("**/v1/uploads/latest/status", async (route) => {
-      await route.fulfill({
-        status: 404,
-        contentType: "application/json",
-        body: JSON.stringify({
-          status: "error",
-          code: "UPLOAD_NOT_FOUND",
-          message: "Upload not found",
-          details: { reason_code: "upload_not_found" },
-          request_id: "req_upload_latest_404_001",
-        }),
-      });
-    });
 
     await page.goto("/app/data");
 
+    await expect(page.getByText("No uploads yet")).toBeVisible();
+    await expect
+      .poll(async () => page.evaluate((storageKey) => window.localStorage.getItem(storageKey), getUploadResumeStorageKey()))
+      .toBeNull();
+  });
+
+  test("clear action removes last upload key and returns to clean state", async ({ page }) => {
+    const resumeRecord = createUploadResumeRecord(uploadId);
+    await page.addInitScript(([storageKey, record]) => {
+      window.localStorage.setItem(storageKey, JSON.stringify(record));
+    }, [getUploadResumeStorageKey(), resumeRecord]);
+
+    await page.route(`**/v1/uploads/${uploadId}/status`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(toApiBody(uploadFixtures.reportReady)) });
+    });
+
+    await page.goto("/app/data");
+    await page.getByTestId("upload-clear-last").click();
+
+    await expect(page.getByText("No uploads yet")).toBeVisible();
     await expect(page.getByText("Choose platform")).toBeVisible();
     await expect
       .poll(async () => page.evaluate((storageKey) => window.localStorage.getItem(storageKey), getUploadResumeStorageKey()))

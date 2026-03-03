@@ -3,8 +3,8 @@ import { BrandMark } from "@/components/brand/brand-mark";
 
 export default function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-navy-950 px-6">
-      <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/10 to-brand-teal/10 opacity-30 blur-3xl" />
+    <div className="relative isolate flex min-h-screen items-center justify-center bg-navy-950 px-6">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-brand-blue/10 to-brand-teal/10 opacity-30 blur-3xl" />
 
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">

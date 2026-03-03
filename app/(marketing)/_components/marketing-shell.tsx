@@ -5,7 +5,7 @@ import { appBaseUrl } from "@/src/lib/urls";
 
 export function MarketingShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="marketing-theme min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="inline-flex items-center" aria-label={BRAND_NAME}>
@@ -37,7 +37,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main>{children}</main>
+      <main className="relative z-10">{children}</main>
 
       <footer className="border-t border-slate-200 py-10 text-sm text-slate-500">
         <div className="mx-auto flex max-w-6xl justify-between px-6">

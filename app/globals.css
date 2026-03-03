@@ -1,13 +1,23 @@
 @import "tailwindcss";
 
 :root {
+  --background: #09090b;
+  --foreground: #f4f4f5;
+}
+
+.marketing-theme {
   --background: #ffffff;
   --foreground: #0f172a;
+  color: #0f172a;
 }
 
 .dark {
   --background: #09090b;
   --foreground: #f4f4f5;
+}
+
+.marketing-theme .marketing-muted {
+  color: #475569;
 }
 
 @theme inline {

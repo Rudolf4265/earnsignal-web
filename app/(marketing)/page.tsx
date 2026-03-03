@@ -39,7 +39,7 @@ export default function MarketingHomePage() {
 
   return (
     <MarketingShell>
-      <section className="py-20 lg:py-24">
+      <section className="py-16 lg:py-20">
         <div className="mx-auto max-w-6xl px-6">
           <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
             <div>
@@ -54,7 +54,7 @@ export default function MarketingHomePage() {
                 tier migration, and platform risk.
               </p>
 
-              <div className="mt-10 flex items-center gap-4">
+              <div className="mt-8 flex items-center gap-4">
                 <a
                   href={`${appBaseUrl}/signup`}
                   className="inline-flex items-center justify-center rounded-xl bg-brand-blue px-6 py-3 text-sm font-medium text-white shadow-brandGlow transition hover:opacity-90"
@@ -72,8 +72,8 @@ export default function MarketingHomePage() {
             </div>
 
             <div className="relative">
-              <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-tr from-brand-blue/20 via-sky-200/30 to-brand-teal/20 blur-3xl" />
-              <div className="relative rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-xl shadow-slate-900/5 backdrop-blur">
+              <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-tr from-brand-blue/20 via-sky-200/40 to-brand-teal/20 blur-3xl" />
+              <div className="relative rounded-3xl border border-slate-200/80 bg-white/85 p-4 shadow-lg shadow-slate-900/10 backdrop-blur">
                 <Image
                   src="/brand/earnsigma-hero.svg"
                   alt="EarnSigma analytics preview"
@@ -88,7 +88,7 @@ export default function MarketingHomePage() {
         </div>
       </section>
 
-      <section className="border-t border-slate-200 py-20">
+      <section className="border-t border-slate-200 py-16">
         <div className="mx-auto max-w-6xl px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {features.map((feature) => (

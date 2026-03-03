@@ -235,6 +235,15 @@ export default function UploadStepper() {
     }
   };
 
+  const handlePlatformSelect = useCallback((nextPlatform: UploadPlatform) => {
+    setPlatform(nextPlatform);
+    setStep("file");
+    setError(null);
+    setErrorDetails(null);
+    setErrorRequestId(null);
+    setErrorOperation(null);
+  }, []);
+
   const pollUntilTerminal = useCallback(
     async (currentUploadId: string) => {
       stopPolling();
@@ -577,9 +586,9 @@ export default function UploadStepper() {
                   key={item.id}
                   type="button"
                   disabled={!item.supported}
-                  onClick={() => setPlatform(item.id)}
+                  onClick={() => handlePlatformSelect(item.id)}
                   className={`rounded-2xl border border-slate-200 bg-white p-4 text-left transition ${
-                    item.supported ? "hover:bg-slate-100" : "cursor-not-allowed opacity-60"
+                    item.supported ? "cursor-pointer hover:bg-slate-100" : "cursor-not-allowed opacity-60"
                   } ${selected ? "border-brand-blue " : ""}`}
                 >
                   <p className="font-medium text-slate-900">{item.label}</p>
@@ -702,7 +711,7 @@ export default function UploadStepper() {
               type="button"
               data-testid="upload-reset"
               onClick={resetFlow}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100"
+              className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100"
             >
               Start over
             </button>
@@ -753,7 +762,7 @@ export default function UploadStepper() {
               type="button"
               data-testid="upload-reset"
               onClick={resetFlow}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100"
+              className="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100"
             >
               Start over
             </button>

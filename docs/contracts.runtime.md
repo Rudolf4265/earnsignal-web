@@ -1,0 +1,131 @@
+# Runtime API contracts (discovered from code)
+
+This document records **only endpoints that are referenced in this repository's runtime code paths**.
+No endpoints are invented here.
+
+## Cross-cutting request assumptions
+
+- API base URL comes from `NEXT_PUBLIC_API_BASE_URL` and paths are joined against it.
+- Requests include `Accept: application/json`.
+- Requests with a body default to `Content-Type: application/json`.
+- Auth is bearer-token based when a browser Supabase session exists (`Authorization: Bearer <access_token>`).
+- Errors are expected to include optional `x-request-id` in response headers and may include JSON fields like `code`, `message`, and `details`.
+
+## Confirmed endpoints
+
+### Entitlements / gate state
+
+#### `GET /v1/entitlements`
+- **Used by pages:** `/app`, `/app/report`, `/app/data` (via app gate provider / feature guards)
+- **Auth:** Bearer token expected when session exists
+- **Response shape (normalized):**
+  - `plan: string | null`
+  - `status: string | null`
+  - `entitled: boolean` (or inferred from features/status)
+  - `features: { app?: boolean; upload?: boolean; report?: boolean; [key: string]: boolean | undefined }`
+  - `portal_url?: string` (`portalUrl` also accepted)
+- **Entitlement interaction:**
+  - Gate states derived from this call: entitled, unentitled, session expired, entitlements error.
+  - Unentitled users can still access `/app/data` but report routes are blocked/redirected by guard policy.
+
+### Report detail (single report read)
+
+#### `GET /v1/reports/:reportId`
+- **Used by pages:** `/app/report/[id]`
+- **Auth:** Bearer token expected when session exists
+- **Response fields consumed (aliases accepted):**
+  - `id | report_id | reportId` -> `id: string`
+  - `title | name` -> `title: string`
+  - `status` -> `status: string`
+  - `summary | description | message` -> `summary: string`
+  - `created_at | createdAt` -> `createdAt?: string`
+  - `updated_at | updatedAt` -> `updatedAt?: string`
+- **Entitlement interaction:**
+  - Route is wrapped in report feature guard and requires entitled `report` access.
+
+### Upload status + generation flow
+
+#### `POST /v1/uploads/presign`
+- **Used by pages:** `/app/data`
+- **Auth:** Bearer token expected when session exists
+- **Request shape:**
+  - `platform: string`
+  - `filename: string`
+  - `content_type: string`
+  - `size: number`
+  - `checksum?: string`
+  - `sha256?: string`
+  - `content_md5?: string`
+- **Response shape consumed:**
+  - `upload_id: string`
+  - `object_key?: string`
+  - `presigned_url: string` (`presign_url` / `url` accepted)
+  - `callback_url?: string`
+  - `callback_proof?: Record<string, unknown> | string`
+  - `headers?: Record<string, string>`
+
+#### `POST /v1/uploads/callback` (or same-origin path returned by presign)
+- **Used by pages:** `/app/data`
+- **Auth:** Bearer token expected when session exists
+- **Request shape:**
+  - `upload_id: string`
+  - `success: boolean`
+  - `size_bytes: number`
+  - `callback_proof: Record<string, unknown> | string`
+  - `platform: string`
+  - `object_key?: string`
+  - `filename: string`
+  - `content_type: string`
+  - `sha256?: string`
+  - `content_md5?: string`
+- **Response shape consumed:**
+  - `upload_id: string`
+  - `status?: string`
+  - `warnings?: string[]`
+
+#### `POST /v1/reports/generate`
+- **Used by pages:** `/app/data`
+- **Auth:** Bearer token expected when session exists
+- **Request shape:**
+  - `upload_id: string`
+  - `platform: string`
+- **Response shape consumed:**
+  - `report_id: string`
+  - `warnings?: string[]`
+
+#### `GET /v1/uploads/:uploadId/status`
+- **Used by pages:** `/app/data`
+- **Auth:** Bearer token expected when session exists
+- **Response fields consumed:**
+  - `upload_id | uploadId?: string`
+  - `status?: string`
+  - `created_at | createdAt?: string`
+  - `validated_at | validatedAt?: string`
+  - `ingested_at | ingestedAt?: string`
+  - `report_started_at | reportStartedAt?: string`
+  - `ready_at | readyAt?: string`
+  - `reason?: string`
+  - `reason_code | reasonCode?: string`
+  - `recommended_next_action | recommendedNextAction?: string`
+  - `rows_written | rowsWritten?: number`
+  - `months_present | monthsPresent?: number`
+  - `message?: string`
+  - `report_id | reportId?: string`
+  - `updated_at | updatedAt?: string`
+
+#### `GET /v1/uploads/latest/status`
+- **Used by pages:** `/app/data` (resume fallback when prior upload id is missing/not found)
+- **Auth:** Bearer token expected when session exists
+- **Response shape:** same consumed shape as `GET /v1/uploads/:uploadId/status`
+
+## Unknown or missing contracts (requires backend confirmation)
+
+### Reports listing endpoint
+- **Status:** unknown/missing; requires backend confirmation.
+- **Reason:** Runtime code references report detail (`GET /v1/reports/:id`) but no reports-list API call was found for `/v1/reports` list, `/v1/report`, `/v1/analysis`, or `/v1/results` in app runtime usage.
+- **Current UI behavior:** `/app/report` currently presents a static sample link rather than fetched report listings.
+
+### Dashboard summary endpoint
+- **Status:** unknown/missing; requires backend confirmation.
+- **Reason:** `/app` dashboard currently renders static placeholder cards/panels and no dashboard-summary API endpoint call was found in runtime code.
+

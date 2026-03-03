@@ -58,6 +58,8 @@ const platforms: PlatformOption[] = [
 
 const stepOrder: Step[] = ["platform", "file", "uploading", "processing", "done"];
 
+const primaryActionButtonClassName = "rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:bg-brand-blue/65 disabled:text-slate-100 disabled:opacity-100";
+
 const readableFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -707,7 +709,7 @@ export default function UploadStepper() {
                 setErrorRequestId(null);
                 setErrorOperation(null);
               }}
-              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:bg-brand-blue/70 disabled:text-white/90 disabled:opacity-100"
+              className={primaryActionButtonClassName}
             >
               Continue
             </button>
@@ -766,7 +768,7 @@ export default function UploadStepper() {
                 type="button"
                 disabled={!platform || !file || busy}
                 onClick={runUpload}
-                className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-blue/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:cursor-not-allowed disabled:bg-brand-blue/70 disabled:text-white/90 disabled:opacity-100"
+                className={primaryActionButtonClassName}
               >
                 Upload &amp; Validate
               </button>

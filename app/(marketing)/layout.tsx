@@ -4,9 +4,9 @@ import { MarketingNav } from "@/components/marketing/MarketingNav";
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#070B16] text-white relative overflow-hidden">
+    <div className="min-h-dvh bg-[#050B18] text-white">
       <MarketingBackground />
-      <div className="relative z-10">
+      <div className="relative">
         <MarketingNav />
         {children}
         <MarketingFooter />

@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+const SHOW_AUTH_BUTTON = false;
+
 export function MarketingNav() {
   return (
     <header className="w-full border-b border-white/10 backdrop-blur-md bg-black/10">
@@ -25,12 +27,14 @@ export function MarketingNav() {
               </Link>
             </nav>
 
-            <Link
-              href="/login"
-              className="ml-6 inline-flex items-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-[0_0_24px_rgba(59,130,246,0.20)] hover:bg-white/15 hover:border-white/25 transition"
-            >
-              Sign Up / Login
-            </Link>
+            {SHOW_AUTH_BUTTON && (
+              <Link
+                href="/login"
+                className="ml-6 inline-flex items-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-[0_0_24px_rgba(59,130,246,0.20)] hover:bg-white/15 hover:border-white/25 transition"
+              >
+                Sign Up / Login
+              </Link>
+            )}
           </div>
         </div>
       </div>

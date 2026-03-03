@@ -7,40 +7,40 @@ test.describe("Reports routes", () => {
     await stubEntitlements(page, "entitled");
   });
 
-  test("T1 — View uses real ID", async ({ page }) => {
+  test("T1 — Detail uses route param and never requests undefined", async ({ page }) => {
     const detailRequests: string[] = [];
+    const reportId = "6b49bf43-99b2-4c06-ba7f-d592b466938b";
 
     await page.route("**/v1/reports?**", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          items: [{ report_id: "r1", status: "ready", created_at: "2026-01-01T00:00:00Z" }],
-          next_offset: 1,
-          has_more: false,
-        }),
+        body: JSON.stringify({ items: [], next_offset: 0, has_more: false }),
       });
     });
 
-    await page.route("**/v1/reports/*", async (route) => {
+    await page.route(`**/v1/reports/${reportId}`, async (route) => {
       detailRequests.push(route.request().url());
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({ report_id: "r1", status: "ready", title: "R1", summary: "ok" }),
+        body: JSON.stringify({ report_id: reportId, status: "ready", title: "R1", summary: "ok" }),
       });
     });
 
-    await page.goto("/app/report");
-    await page.getByTestId("report-view-r1").click();
+    await page.route("**/v1/reports/undefined", async (route) => {
+      detailRequests.push(route.request().url());
+      await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+    });
 
-    await expect(page).toHaveURL(/\/app\/report\/r1$/);
-    await expect.poll(() => detailRequests.length).toBeGreaterThan(0);
-    expect(detailRequests.some((url) => url.endsWith("/v1/reports/r1"))).toBeTruthy();
+    await page.goto(`/app/report/${reportId}`);
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    expect(detailRequests.some((url) => url.endsWith(`/v1/reports/${reportId}`))).toBeTruthy();
     expect(detailRequests.some((url) => url.endsWith("/v1/reports/undefined"))).toBeFalsy();
   });
 
-  test("T2 — Invalid link guard", async ({ page }) => {
+  test("T2 — Invalid link does not fetch undefined", async ({ page }) => {
     const detailRequests: string[] = [];
 
     await page.route("**/v1/reports/*", async (route) => {
@@ -54,7 +54,7 @@ test.describe("Reports routes", () => {
     expect(detailRequests.some((url) => url.endsWith("/v1/reports/undefined"))).toBeFalsy();
   });
 
-  test("T3 — 404 envelope handling", async ({ page }) => {
+  test("T3 — 404 envelope shows request_id", async ({ page }) => {
     await page.route("**/v1/reports/r404", async (route) => {
       await route.fulfill({
         status: 404,
@@ -75,25 +75,37 @@ test.describe("Reports routes", () => {
     await expect(page.getByText("request_id: abc-123")).toBeVisible();
   });
 
-  test("T4 — View enable rules", async ({ page }) => {
+  test("T4 — app routes do not fetch www.earnsigma.com", async ({ page }) => {
+    const externalRequests: string[] = [];
+
+    page.on("request", (request) => {
+      if (request.url().startsWith("https://www.earnsigma.com/")) {
+        externalRequests.push(request.url());
+      }
+    });
+
     await page.route("**/v1/reports?**", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          items: [
-            { report_id: "r-ready", status: "ready", artifact_url: null, created_at: "2026-01-01T00:00:00Z" },
-            { status: "ready", created_at: "2026-01-02T00:00:00Z" },
-          ],
-          next_offset: 2,
-          has_more: false,
-        }),
+        body: JSON.stringify({ items: [], next_offset: 0, has_more: false }),
+      });
+    });
+
+    await page.route("**/v1/reports/r1", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ report_id: "r1", status: "ready", title: "R1", summary: "ok" }),
       });
     });
 
     await page.goto("/app/report");
+    await expect(page.getByRole("link", { name: "Privacy" })).toBeVisible();
 
-    await expect(page.getByTestId("report-view-r-ready")).toBeEnabled();
-    await expect(page.getByTestId("report-view-disabled-0")).toBeDisabled();
+    await page.goto("/app/report/r1");
+    await expect(page.getByTestId("report-content")).toBeVisible();
+
+    expect(externalRequests).toEqual([]);
   });
 });

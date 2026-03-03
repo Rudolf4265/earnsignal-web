@@ -154,7 +154,7 @@ test("getReport rejects invalid report IDs without calling fetch", async () => {
   try {
     const { getReport } = await import(`${moduleUrl}?t=${Date.now() + 4}`);
     await assert.rejects(() => getReport("undefined"), (error) => {
-      assert.equal(error.code, "invalid_report_id");
+      assert.equal(error.code, "INVALID_REPORT_ID");
       return true;
     });
     assert.equal(called, false);

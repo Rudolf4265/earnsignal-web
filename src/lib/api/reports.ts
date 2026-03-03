@@ -213,7 +213,7 @@ export async function getReport(reportId: string): Promise<ReportDetail> {
   if (!normalizedId || normalizedId.toLowerCase() === "undefined" || normalizedId.toLowerCase() === "null") {
     throw new ApiError({
       status: 400,
-      code: "invalid_report_id",
+      code: "INVALID_REPORT_ID",
       message: "Invalid report ID.",
       operation: "report.fetch",
       path: "/v1/reports/:reportId",

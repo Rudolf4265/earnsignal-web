@@ -1,4 +1,4 @@
-import { listReports, type ReportListItem } from "../api/reports";
+import { listReports, normalizeReportId, type ReportListItem } from "../api/reports";
 import { getLatestUploadStatus, getUploadStatusById, type UploadStatus } from "../api/uploads";
 
 export type DashboardReportItem = {
@@ -6,6 +6,7 @@ export type DashboardReportItem = {
   title: string;
   createdAt: string;
   href: string;
+  canView: boolean;
 };
 
 export type DashboardViewModel = {
@@ -36,7 +37,17 @@ function formatDate(value: string): string {
 }
 
 function reportHref(report: ReportListItem): string {
-  return report.artifact_url || `/app/report/${encodeURIComponent(report.report_id)}`;
+  const artifactUrl = typeof report.artifact_url === "string" ? report.artifact_url.trim() : "";
+  if (artifactUrl) {
+    return artifactUrl;
+  }
+
+  const id = normalizeReportId(report);
+  if (id) {
+    return `/app/report/${encodeURIComponent(id)}`;
+  }
+
+  return "#";
 }
 
 function sortByCreatedAtDesc(a: ReportListItem, b: ReportListItem): number {
@@ -83,12 +94,16 @@ function resolveCoverage(uploadStatus: UploadStatus | null): { value: string; hi
 export async function buildDashboardModelWithDeps(deps: DashboardModelDeps): Promise<DashboardViewModel> {
   const reportsResponse = await deps.listReports({ limit: 25, offset: 0 });
   const reports = [...reportsResponse.items].sort(sortByCreatedAtDesc);
-  const recentReports = reports.slice(0, 3).map((report) => ({
-    id: report.report_id,
-    title: report.title || "Report",
-    createdAt: formatDate(report.created_at),
-    href: reportHref(report),
-  }));
+  const recentReports = reports.slice(0, 3).map((report, index) => {
+    const id = normalizeReportId(report);
+    return {
+      id: id ?? `report-${index}`,
+      title: report.title || "Report",
+      createdAt: formatDate(report.created_at),
+      href: reportHref(report),
+      canView: Boolean(id) && report.status === "ready",
+    };
+  });
 
   let uploadStatus: UploadStatus | null = null;
   const lastUploadId = deps.readLastUploadId?.() ?? null;

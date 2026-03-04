@@ -6,14 +6,14 @@ function normalizeArtifactUrl(report: ReportListItem): string | null {
 }
 
 export function getReportHref(report: ReportListItem): string | null {
-  const artifactUrl = normalizeArtifactUrl(report);
-  if (artifactUrl) {
-    return artifactUrl;
-  }
-
   const reportId = normalizeReportId(report);
   if (reportId) {
     return `/app/report/${encodeURIComponent(reportId)}`;
+  }
+
+  const artifactUrl = normalizeArtifactUrl(report);
+  if (artifactUrl) {
+    return artifactUrl;
   }
 
   return null;
@@ -26,4 +26,3 @@ export function isReportViewable(report: ReportListItem): boolean {
 
   return getReportHref(report) !== null;
 }
-

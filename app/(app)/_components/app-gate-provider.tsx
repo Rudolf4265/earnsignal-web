@@ -36,6 +36,16 @@ type AppGateContextValue = {
 
 const AppGateContext = createContext<AppGateContextValue | null>(null);
 
+const DEBUG_AUDIT_FRONTEND = process.env.NEXT_PUBLIC_DEBUG_AUDIT_FRONTEND === "1" || process.env.NODE_ENV !== "production";
+
+function debugGate(message: string, details: Record<string, unknown>) {
+  if (!DEBUG_AUDIT_FRONTEND) {
+    return;
+  }
+
+  console.debug(`[audit:gate] ${message}`, details);
+}
+
 export function AppGateProvider({ children }: { children: React.ReactNode }) {
   const adminCheckRef = useRef(0);
   const [isSessionKnown, setIsSessionKnown] = useState(false);
@@ -51,12 +61,22 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
     try {
       const nextEntitlements = await fetchEntitlements(options);
       setEntitlementsState({ status: nextEntitlements.entitled ? "entitled" : "unentitled", entitlements: nextEntitlements });
+      debugGate("entitlements-evaluated", {
+        plan: nextEntitlements.plan,
+        status: nextEntitlements.status,
+        entitled: nextEntitlements.entitled,
+        featureFlags: Object.keys(nextEntitlements.features ?? {}),
+      });
       setError(null);
       setErrorRequestId(undefined);
       return nextEntitlements;
     } catch (err) {
       const resolved = resolveEntitlementsError(err);
       setEntitlementsState(resolved);
+      debugGate("entitlements-error", {
+        resolution: resolved.status,
+        message: err instanceof Error ? err.message : "unknown",
+      });
 
       const message = err instanceof Error ? err.message : "Unable to load access status.";
       setError(message);

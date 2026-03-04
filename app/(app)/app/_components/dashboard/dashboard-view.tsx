@@ -5,6 +5,7 @@ import { EmptyState } from "./EmptyState";
 import { KpiCard } from "./KpiCard";
 import { Panel } from "./Panel";
 import type { DashboardViewModel } from "@/src/lib/dashboard/model";
+import { ErrorBanner } from "@/src/components/ui/error-banner";
 
 const keySignals = [
   {
@@ -65,11 +66,15 @@ export function DashboardView({ model, loading, onRefresh }: DashboardViewProps)
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Net Revenue" value="—" subtext="Available after first report" />
-        <KpiCard label="Subscribers" value="—" subtext="Available after first report" />
-        <KpiCard label="Stability Index" value="—" subtext="Available after first report" />
-        <KpiCard label="Churn Velocity" value="—" subtext="Available after first report" />
+        <KpiCard label="Net Revenue" value={model.kpis.netRevenue} subtext={model.hasReports ? "From latest report JSON" : "Available after first report"} />
+        <KpiCard label="Subscribers" value={model.kpis.subscribers} subtext={model.hasReports ? "From latest report JSON" : "Available after first report"} />
+        <KpiCard label="Stability Index" value={model.kpis.stabilityIndex} subtext={model.hasReports ? "From latest report JSON" : "Available after first report"} />
+        <KpiCard label="Churn Velocity" value={model.kpis.churnVelocity} subtext={model.hasReports ? "From latest report JSON" : "Available after first report"} />
       </div>
+
+      {model.hasReports && model.reportDataError ? (
+        <ErrorBanner title="Report data unavailable" message="Unable to hydrate dashboard cards from report JSON." action={<button type="button" onClick={onRefresh} className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50">Retry</button>} />
+      ) : null}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
@@ -158,8 +163,6 @@ export function DashboardView({ model, loading, onRefresh }: DashboardViewProps)
                     {report.canView ? (
                       <Link
                         href={report.href}
-                        target={report.href.startsWith("http") ? "_blank" : undefined}
-                        rel={report.href.startsWith("http") ? "noreferrer" : undefined}
                         className="inline-flex rounded-xl border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                       >
                         View

@@ -9,6 +9,13 @@ import { DashboardView } from "./dashboard-view";
 const emptyModel: DashboardViewModel = {
   recentReports: [],
   hasReports: false,
+  reportDataError: false,
+  kpis: {
+    netRevenue: "—",
+    subscribers: "—",
+    stabilityIndex: "—",
+    churnVelocity: "—",
+  },
   dataStatus: {
     platformsConnected: "None (upload to connect)",
     coverageMonths: "—",

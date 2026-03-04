@@ -9,6 +9,7 @@ function baseReport(overrides = {}) {
     created_at: "2026-03-01T00:00:00.000Z",
     status: "ready",
     artifact_url: null,
+    artifact_json_url: null,
     artifact_kind: null,
     upload_id: null,
     job_id: null,
@@ -20,22 +21,21 @@ function baseReport(overrides = {}) {
   };
 }
 
-test("viewability: ready report with report_id prefers app route even when artifact_url exists", () => {
+test("viewability: getReportHref always prefers app route", () => {
   const report = baseReport({ artifact_url: "https://cdn.example.test/r-123.pdf" });
 
   assert.equal(getReportHref(report), "/app/report/r-123");
-  assert.equal(isReportViewable(report), true);
 });
 
-test("viewability: ready report with missing report_id but artifact_url is viewable", () => {
+test("viewability: ready report without report_id is not viewable", () => {
   const report = baseReport({ report_id: null, artifact_url: "https://cdn.example.test/r-123.pdf" });
 
-  assert.equal(getReportHref(report), "https://cdn.example.test/r-123.pdf");
-  assert.equal(isReportViewable(report), true);
+  assert.equal(getReportHref(report), null);
+  assert.equal(isReportViewable(report), false);
 });
 
-test("viewability: non-ready report is not viewable even if href exists", () => {
-  const report = baseReport({ status: "running", artifact_url: "https://cdn.example.test/r-123.pdf" });
+test("viewability: non-ready report is not viewable even with report_id", () => {
+  const report = baseReport({ status: "running" });
 
   assert.equal(getReportHref(report), "/app/report/r-123");
   assert.equal(isReportViewable(report), false);

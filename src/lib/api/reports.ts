@@ -10,6 +10,7 @@ export type ReportListItem = {
   created_at: string;
   status: ReportListStatus;
   artifact_url: string | null;
+  artifact_json_url: string | null;
   artifact_kind: string | null;
   upload_id: string | null;
   job_id: string | null;
@@ -123,6 +124,7 @@ function normalizeItem(payload: unknown): ReportListItem | null {
     created_at: createdAt,
     status: normalizeStatus(readString(record, ["status"])),
     artifact_url: readString(record, ["artifact_url", "artifactUrl"]),
+    artifact_json_url: readString(record, ["artifact_json_url", "artifactJsonUrl"]),
     artifact_kind: readString(record, ["artifact_kind", "artifactKind"]),
     upload_id: readString(record, ["upload_id", "uploadId"]),
     job_id: readString(record, ["job_id", "jobId"]),

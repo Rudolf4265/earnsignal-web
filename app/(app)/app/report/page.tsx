@@ -255,8 +255,6 @@ export default function ReportsPage() {
                     {canView && reportHref ? (
                       <Link
                         href={reportHref}
-                        target={reportHref.startsWith("http") ? "_blank" : undefined}
-                        rel={reportHref.startsWith("http") ? "noreferrer" : undefined}
                         data-testid={reportId ? `report-view-${reportId}` : `report-view-artifact-${index}`}
                         className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100"
                       >
@@ -273,7 +271,7 @@ export default function ReportsPage() {
                       </button>
                     )}
                     {!canView && DEBUG_REPORTS ? (
-                      <p className="text-xs text-slate-500" data-testid="report-missing-id-note">debug: report not viewable; requires ready status plus report_id or artifact_url.</p>
+                      <p className="text-xs text-slate-500" data-testid="report-missing-id-note">debug: report not viewable; requires ready status plus report_id.</p>
                     ) : null}
                   </div>
                 </article>

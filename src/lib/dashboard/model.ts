@@ -1,6 +1,9 @@
-import { listReports, normalizeReportId, type ReportListItem } from "../api/reports";
+import { getReport, listReports, normalizeReportId, type ReportListItem } from "../api/reports";
 import { getLatestUploadStatus, getUploadStatusById, type UploadStatus } from "../api/uploads";
 import { getReportHref, isReportViewable } from "../report/viewability";
+import { createClient } from "../supabase/client";
+import { getApiBaseOrigin } from "../api/client";
+import { fetchReportJsonArtifact } from "../report/artifacts";
 
 export type DashboardReportItem = {
   id: string;
@@ -13,6 +16,13 @@ export type DashboardReportItem = {
 export type DashboardViewModel = {
   recentReports: DashboardReportItem[];
   hasReports: boolean;
+  reportDataError: boolean;
+  kpis: {
+    netRevenue: string;
+    subscribers: string;
+    stabilityIndex: string;
+    churnVelocity: string;
+  };
   dataStatus: {
     platformsConnected: string;
     coverageMonths: string;
@@ -23,27 +33,24 @@ export type DashboardViewModel = {
 
 type DashboardModelDeps = {
   listReports: typeof listReports;
+  getReport: typeof getReport;
   getUploadStatusById: typeof getUploadStatusById;
   getLatestUploadStatus: typeof getLatestUploadStatus;
+  fetchReportJsonArtifact: typeof fetchReportJsonArtifact;
+  getAccessToken: () => Promise<string | null>;
   readLastUploadId?: () => string | null;
 };
 
 const DEBUG_AUDIT_FRONTEND = process.env.NEXT_PUBLIC_DEBUG_AUDIT_FRONTEND === "1" || process.env.NODE_ENV !== "production";
 
 function debugDashboard(message: string, details: Record<string, unknown>) {
-  if (!DEBUG_AUDIT_FRONTEND) {
-    return;
-  }
-
+  if (!DEBUG_AUDIT_FRONTEND) return;
   console.debug(`[audit:dashboard] ${message}`, details);
 }
 
 function formatDate(value: string): string {
   const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) {
-    return value;
-  }
-
+  if (!Number.isFinite(date.getTime())) return value;
   return date.toISOString().slice(0, 10);
 }
 
@@ -53,110 +60,134 @@ function sortByCreatedAtDesc(a: ReportListItem, b: ReportListItem): number {
   return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
 }
 
+function asDisplay(value: unknown): string {
+  if (typeof value === "number" && Number.isFinite(value)) return `${value}`;
+  if (typeof value === "string" && value.trim()) return value;
+  return "—";
+}
+
+function readPath(payload: Record<string, unknown>, paths: string[][]): unknown {
+  for (const path of paths) {
+    let current: unknown = payload;
+    let ok = true;
+    for (const key of path) {
+      if (!current || typeof current !== "object" || !(key in (current as Record<string, unknown>))) {
+        ok = false;
+        break;
+      }
+      current = (current as Record<string, unknown>)[key];
+    }
+    if (ok) return current;
+  }
+  return undefined;
+}
+
+function extractKpis(payload: Record<string, unknown>) {
+  return {
+    netRevenue: asDisplay(readPath(payload, [["kpis", "net_revenue"], ["net_revenue"], ["summary", "net_revenue"]])),
+    subscribers: asDisplay(readPath(payload, [["kpis", "subscribers"], ["subscribers"], ["summary", "subscribers"]])),
+    stabilityIndex: asDisplay(readPath(payload, [["kpis", "stability_index"], ["stability_index"]])),
+    churnVelocity: asDisplay(readPath(payload, [["kpis", "churn_velocity"], ["churn_velocity"]])),
+  };
+}
+
 function resolvePlatforms(uploadStatus: UploadStatus | null, reports: ReportListItem[]): string {
   const uploadPlatforms = uploadStatus?.platforms.length ? uploadStatus.platforms : uploadStatus?.platform ? [uploadStatus.platform] : [];
   const reportPlatforms = reports.flatMap((item) => item.platforms ?? []);
   const joined = Array.from(new Set([...uploadPlatforms, ...reportPlatforms].map((item) => item.trim()).filter(Boolean)));
-
-  if (joined.length === 0) {
-    return "None (upload to connect)";
-  }
-
+  if (joined.length === 0) return "None (upload to connect)";
   return joined.join(", ");
 }
 
 function resolveLastUpload(uploadStatus: UploadStatus | null): string {
   const timestamp = uploadStatus?.lastUpdatedAt ?? uploadStatus?.createdAt;
-  if (!timestamp) {
-    return "—";
-  }
-
+  if (!timestamp) return "—";
   return formatDate(timestamp);
 }
 
-function resolveCoverage(uploadStatus: UploadStatus | null): { value: string; hint: string | null } {
-  if (typeof uploadStatus?.monthsPresent === "number") {
-    return {
-      value: `${uploadStatus.monthsPresent} months`,
-      hint: null,
-    };
+function safeApiBaseOrigin(): string | undefined {
+  try {
+    return getApiBaseOrigin();
+  } catch {
+    return undefined;
   }
+}
 
-  return {
-    value: "—",
-    hint: "Available after first report",
-  };
+function resolveCoverage(uploadStatus: UploadStatus | null): { value: string; hint: string | null } {
+  if (typeof uploadStatus?.monthsPresent === "number") return { value: `${uploadStatus.monthsPresent} months`, hint: null };
+  return { value: "—", hint: "Available after first report" };
 }
 
 export async function buildDashboardModelWithDeps(deps: DashboardModelDeps): Promise<DashboardViewModel> {
   const reportsResponse = await deps.listReports({ limit: 25, offset: 0 });
   const reports = [...reportsResponse.items].sort(sortByCreatedAtDesc);
+
   const recentReports = reports.slice(0, 3).map((report, index) => {
     const id = normalizeReportId(report);
     const href = getReportHref(report);
     const canView = isReportViewable(report);
-
-    debugDashboard("report-row-derived", {
-      report_id: id,
-      status: report.status,
-      artifact_url_present: Boolean(typeof report.artifact_url === "string" && report.artifact_url.trim()),
-      href,
-      canView,
-    });
-
-    return {
-      id: id ?? `report-${index}`,
-      title: report.title || "Report",
-      createdAt: formatDate(report.created_at),
-      href: href ?? "#",
-      canView,
-    };
+    return { id: id ?? `report-${index}`, title: report.title || "Report", createdAt: formatDate(report.created_at), href: href ?? "#", canView };
   });
+
+  let kpis = {
+    netRevenue: "—",
+    subscribers: "—",
+    stabilityIndex: "—",
+    churnVelocity: "—",
+  };
+  let reportDataError = false;
+
+  const latestReady = reports.find((item) => item.status === "ready" && normalizeReportId(item));
+  if (latestReady) {
+    try {
+      const reportId = normalizeReportId(latestReady)!;
+      const detail = await deps.getReport(reportId);
+      const artifactJsonUrl = latestReady.artifact_json_url ?? detail.artifactJsonUrl;
+      const token = await deps.getAccessToken();
+      if (artifactJsonUrl && token) {
+        const payload = await deps.fetchReportJsonArtifact({ artifactJsonUrl, token, origin: safeApiBaseOrigin() });
+        kpis = extractKpis(payload);
+      } else {
+        reportDataError = true;
+      }
+    } catch {
+      reportDataError = true;
+    }
+  }
 
   let uploadStatus: UploadStatus | null = null;
   const lastUploadId = deps.readLastUploadId?.() ?? null;
   if (lastUploadId) {
-    try {
-      uploadStatus = await deps.getUploadStatusById(lastUploadId);
-    } catch {
-      uploadStatus = null;
-    }
+    try { uploadStatus = await deps.getUploadStatusById(lastUploadId); } catch { uploadStatus = null; }
   }
-
-  if (!uploadStatus) {
-    uploadStatus = await deps.getLatestUploadStatus();
-  }
+  if (!uploadStatus) uploadStatus = await deps.getLatestUploadStatus();
 
   const coverage = resolveCoverage(uploadStatus);
   const platformsConnected = resolvePlatforms(uploadStatus, reports);
   const lastUpload = resolveLastUpload(uploadStatus);
 
-  debugDashboard("model-derived", {
-    reportCount: reports.length,
-    hasReports: recentReports.length > 0,
-    coverageMonths: coverage.value,
-    coverageHint: coverage.hint,
-    platformsConnected,
-    lastUpload,
-  });
+  debugDashboard("model-derived", { reportCount: reports.length, hasReports: recentReports.length > 0, reportDataError, kpis });
 
   return {
     recentReports,
     hasReports: recentReports.length > 0,
-    dataStatus: {
-      platformsConnected,
-      coverageMonths: coverage.value,
-      coverageHint: coverage.hint,
-      lastUpload,
-    },
+    reportDataError,
+    kpis,
+    dataStatus: { platformsConnected, coverageMonths: coverage.value, coverageHint: coverage.hint, lastUpload },
   };
 }
 
 export async function buildDashboardModel(params?: { readLastUploadId?: () => string | null }): Promise<DashboardViewModel> {
   return buildDashboardModelWithDeps({
     listReports,
+    getReport,
     getUploadStatusById,
     getLatestUploadStatus,
+    fetchReportJsonArtifact,
+    getAccessToken: async () => {
+      const { data } = await createClient().auth.getSession();
+      return data.session?.access_token ?? null;
+    },
     readLastUploadId: params?.readLastUploadId,
   });
 }

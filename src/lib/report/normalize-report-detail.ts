@@ -6,6 +6,7 @@ export type ReportDetail = {
   createdAt?: string;
   updatedAt?: string;
   artifactUrl?: string;
+  artifactJsonUrl?: string;
   artifactKind?: string;
 };
 
@@ -31,6 +32,7 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
     createdAt: readString(payload, ["created_at", "createdAt"]) || undefined,
     updatedAt: readString(payload, ["updated_at", "updatedAt"]) || undefined,
     artifactUrl: readString(payload, ["artifact_url", "artifactUrl"]) || undefined,
+    artifactJsonUrl: readString(payload, ["artifact_json_url", "artifactJsonUrl"]) || undefined,
     artifactKind: readString(payload, ["artifact_kind", "artifactKind"]) || undefined,
   };
 }

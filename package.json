@@ -6,8 +6,15 @@
     "apps/site"
   ],
   "scripts": {
-    "build:app": "npm --workspace @earnsigma/app run build",
-    "build:site": "npm --workspace @earnsigma/site run build",
+    "assert:deploy-roots": "node scripts/assert-deploy-roots.mjs",
+    "prebuild": "npm run assert:deploy-roots",
+    "build": "npm run build:app && npm run build:site && npm run test:build-assertions",
+    "build:app": "npm run assert:deploy-roots && npm --workspace @earnsigma/app run build",
+    "build:site": "npm run assert:deploy-roots && npm --workspace @earnsigma/site run build",
+    "lint": "npm run lint:app && npm run lint:site",
+    "lint:app": "npm --workspace @earnsigma/app run lint",
+    "lint:site": "npm --workspace @earnsigma/site run lint",
+    "test": "node --loader ./tests/node-ts-loader.mjs --test tests/*.test.mjs",
     "test:build-assertions": "node scripts/assert-builds.mjs"
   }
 }

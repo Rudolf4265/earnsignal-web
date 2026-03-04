@@ -27,7 +27,8 @@ test("dashboard recent reports matches order and app route links", async () => {
   }));
 
   assert.deepEqual(model.recentReports.map((item) => item.title), ["Feb", "Jan"]);
-  assert.deepEqual(model.recentReports.map((item) => item.href), ["/app/report/r2", "/app/report/r1"]);
+  assert.deepEqual(model.recentReports.map((item) => item.internalHref), ["/app/report/r2", "/app/report/r1"]);
+  assert.deepEqual(model.recentReports.map((item) => item.externalHref), [null, null]);
 });
 
 test("dashboard hydrates KPI cards from report JSON artifact", async () => {
@@ -91,4 +92,70 @@ test("dashboard does not show reportDataError when artifact_json_url is missing"
 
   assert.equal(model.reportDataError, false);
   assert.equal(model.dataStatus.coverageHint, "Available after first report");
+});
+
+
+test("dashboard recent reports uses absolute artifact URL as external view target", async () => {
+  const model = await buildDashboardModelWithDeps(baseDeps({
+    listReports: async () => ({
+      items: [
+        { report_id: "r2", created_at: "2026-02-12T00:00:00.000Z", status: "ready", artifact_url: "https://cdn.example.test/r2.pdf", artifact_json_url: null, artifact_kind: null, upload_id: "u2", job_id: null, title: "Feb", platforms: ["youtube"], coverage_start: null, coverage_end: null },
+      ], next_offset: 1, has_more: false,
+    }),
+    getReport: async () => ({ id: "r2", title: "Feb", status: "ready", summary: "", artifactJsonUrl: null }),
+  }));
+
+  assert.equal(model.recentReports[0].externalHref, "https://cdn.example.test/r2.pdf");
+  assert.equal(model.recentReports[0].internalHref, null);
+});
+
+test("dashboard recent reports prefixes relative artifact URL with API base origin", async () => {
+  const previous = process.env.NEXT_PUBLIC_API_BASE_URL;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+
+  try {
+    const model = await buildDashboardModelWithDeps(baseDeps({
+      listReports: async () => ({
+        items: [
+          { report_id: "r2", created_at: "2026-02-12T00:00:00.000Z", status: "ready", artifact_url: "/v1/reports/r2/artifact", artifact_json_url: null, artifact_kind: null, upload_id: "u2", job_id: null, title: "Feb", platforms: ["youtube"], coverage_start: null, coverage_end: null },
+        ], next_offset: 1, has_more: false,
+      }),
+      getReport: async () => ({ id: "r2", title: "Feb", status: "ready", summary: "", artifactJsonUrl: null }),
+    }));
+
+    assert.equal(model.recentReports[0].externalHref, "https://api.example.test/v1/reports/r2/artifact");
+    assert.equal(model.recentReports[0].internalHref, null);
+  } finally {
+    if (previous === undefined) delete process.env.NEXT_PUBLIC_API_BASE_URL;
+    else process.env.NEXT_PUBLIC_API_BASE_URL = previous;
+  }
+});
+
+test("dashboard recent reports uses internal route when artifact URL is missing", async () => {
+  const model = await buildDashboardModelWithDeps(baseDeps({
+    listReports: async () => ({
+      items: [
+        { report_id: "r2", created_at: "2026-02-12T00:00:00.000Z", status: "ready", artifact_url: null, artifact_json_url: null, artifact_kind: null, upload_id: "u2", job_id: null, title: "Feb", platforms: ["youtube"], coverage_start: null, coverage_end: null },
+      ], next_offset: 1, has_more: false,
+    }),
+    getReport: async () => ({ id: "r2", title: "Feb", status: "ready", summary: "", artifactJsonUrl: null }),
+  }));
+
+  assert.equal(model.recentReports[0].externalHref, null);
+  assert.equal(model.recentReports[0].internalHref, "/app/report/r2");
+});
+
+test("dashboard recent reports disables view when artifact URL and report_id are missing", async () => {
+  const model = await buildDashboardModelWithDeps(baseDeps({
+    listReports: async () => ({
+      items: [
+        { report_id: null, created_at: "2026-02-12T00:00:00.000Z", status: "running", artifact_url: null, artifact_json_url: null, artifact_kind: null, upload_id: "u2", job_id: null, title: "Feb", platforms: ["youtube"], coverage_start: null, coverage_end: null },
+      ], next_offset: 1, has_more: false,
+    }),
+    getReport: async () => ({ id: "r2", title: "Feb", status: "ready", summary: "", artifactJsonUrl: null }),
+  }));
+
+  assert.equal(model.recentReports[0].externalHref, null);
+  assert.equal(model.recentReports[0].internalHref, null);
+  assert.equal(model.recentReports[0].canView, false);
 });

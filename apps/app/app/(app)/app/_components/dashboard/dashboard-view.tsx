@@ -92,7 +92,7 @@ export function DashboardView({ model, loading, onRefresh }: DashboardViewProps)
           <RecommendedActionsCard />
         </div>
         <div className="col-span-12 lg:col-span-5">
-          <RecentReportsCard reports={model.recentReports} />
+          <RecentReportsCard reports={model.recentReports} loading={loading} />
         </div>
       </div>
     </div>

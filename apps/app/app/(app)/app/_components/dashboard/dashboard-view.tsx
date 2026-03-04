@@ -1,37 +1,13 @@
 import Link from "next/link";
 
-import { Badge } from "./Badge";
-import { EmptyState } from "./EmptyState";
-import { KpiCard } from "./KpiCard";
-import { Panel } from "./Panel";
+import { DashboardKpiCard } from "@/components/dashboard/DashboardKpiCard";
+import { DataStatusCard } from "@/components/dashboard/DataStatusCard";
+import { KeySignalsCard } from "@/components/dashboard/KeySignalsCard";
+import { RecentReportsCard } from "@/components/dashboard/RecentReportsCard";
+import { RecommendedActionsCard } from "@/components/dashboard/RecommendedActionsCard";
+import { RevenueTrendCard } from "@/components/dashboard/RevenueTrendCard";
 import type { DashboardViewModel } from "@/src/lib/dashboard/model";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
-
-const keySignals = [
-  {
-    title: "Revenue trend detection",
-    description: "Momentum and inflection points will appear here after your first upload.",
-  },
-  {
-    title: "Concentration watch",
-    description: "Identify over-reliance on a small set of customers or plans.",
-  },
-  {
-    title: "Retention pressure",
-    description: "Track cohorts with early churn risk and revenue drag.",
-  },
-  {
-    title: "Seasonality fingerprints",
-    description: "Reveal cyclical changes in growth and contraction periods.",
-  },
-];
-
-const recommendedActions = [
-  "Upload your latest exports to initialize baseline trend analysis.",
-  "Reconnect source systems monthly to keep quality and confidence high.",
-  "Review generated reports and share findings with finance and GTM leads.",
-  "Track changes over time to verify whether actions improve net revenue.",
-];
 
 type DashboardViewProps = {
   model: DashboardViewModel;
@@ -40,36 +16,48 @@ type DashboardViewProps = {
 };
 
 export function DashboardView({ model, loading, onRefresh }: DashboardViewProps) {
+  const kpiData = {
+    netRevenue: null,
+    subscribers: null,
+    stabilityIndex: null,
+    churnVelocity: null,
+  };
+
   return (
-    <div className="space-y-10">
+    <div className="relative space-y-6">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] rounded-[36px] bg-[radial-gradient(circle_at_20%_5%,rgba(59,130,246,0.24),transparent_45%),radial-gradient(circle_at_80%_15%,rgba(99,102,241,0.18),transparent_42%)]"
+      />
+
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="mt-2 text-slate-600">High-level revenue signals and structural stability.</p>
+          <h1 className="text-4xl font-bold tracking-tight text-white">Dashboard</h1>
+          <p className="mt-2 text-base text-white/60">High-level revenue signals and structural stability.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="inline-flex w-fit rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-white/15 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "Refreshing…" : "Refresh"}
           </button>
           <Link
-            href="/app/data"
-            className="inline-flex w-fit rounded-xl bg-brand-blue px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+            href="/app/upload"
+            className="inline-flex items-center rounded-xl bg-blue-500 px-5 py-2 text-sm font-medium text-white shadow-[0_8px_28px_rgba(59,130,246,0.38)] transition hover:bg-blue-400"
           >
             Upload data
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Net Revenue" value={model.kpis.netRevenue} subtext={model.hasReports ? "From latest report JSON" : "Available after first report"} />
-        <KpiCard label="Subscribers" value={model.kpis.subscribers} subtext={model.hasReports ? "From latest report JSON" : "Available after first report"} />
-        <KpiCard label="Stability Index" value={model.kpis.stabilityIndex} subtext={model.hasReports ? "From latest report JSON" : "Available after first report"} />
-        <KpiCard label="Churn Velocity" value={model.kpis.churnVelocity} subtext={model.hasReports ? "From latest report JSON" : "Available after first report"} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <DashboardKpiCard title="Net Revenue" subtitle="Last 30 days" value={kpiData.netRevenue ? `$${kpiData.netRevenue}` : "$—"} />
+        <DashboardKpiCard title="Subscribers" subtitle="Current" value={kpiData.subscribers ?? "—"} />
+        <DashboardKpiCard title="Stability Index" subtitle="Revenue concentration" value={kpiData.stabilityIndex ?? "—"} />
+        <DashboardKpiCard title="Churn Velocity" subtitle="Monthly movement" value={kpiData.churnVelocity ?? "—"} />
       </div>
 
       {model.hasReports && model.reportDataError ? (
@@ -77,127 +65,36 @@ export function DashboardView({ model, loading, onRefresh }: DashboardViewProps)
           title="Report data unavailable"
           message="Unable to hydrate dashboard cards from report JSON. Please retry."
           requestId={model.reportDataRequestId}
-          action={<button type="button" onClick={onRefresh} className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50">Retry</button>}
+          action={
+            <button type="button" onClick={onRefresh} className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50">
+              Retry
+            </button>
+          }
         >
           {model.reportDataDiagnostics ? <p className="text-xs text-rose-100/80">{model.reportDataDiagnostics}</p> : null}
         </ErrorBanner>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="space-y-8 lg:col-span-2">
-          <Panel
-            title="Key Signals"
-            description="AI-generated highlights from trend, concentration, and retention analysis."
-          >
-            <ul className="divide-y divide-slate-200">
-              {keySignals.map((signal) => (
-                <li key={signal.title} className="py-3 first:pt-0 last:pb-0">
-                  <p className="text-sm font-medium text-slate-900">{signal.title}</p>
-                  <p className="mt-1 text-sm text-slate-600">{signal.description}</p>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              No signals yet — upload data to generate your first report.
-            </p>
-          </Panel>
-
-          <Panel title="Recommended Actions" description="Practical next steps based on your latest data quality and signals.">
-            <ul className="divide-y divide-slate-200">
-              {recommendedActions.map((action) => (
-                <li key={action} className="py-3 first:pt-0 last:pb-0">
-                  <p className="text-sm text-slate-700">{action}</p>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-              No actions yet — upload data to unlock tailored recommendations.
-            </p>
-          </Panel>
-
-          <Panel title="Trend Preview" description="Charts will render automatically when enough historical data is available.">
-            <EmptyState
-              title="Charts appear once data is connected"
-              body="Upload revenue data to populate trend lines, variance windows, and seasonality insights."
-              ctaLabel="Upload data"
-              ctaHref="/app/data"
-            />
-          </Panel>
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 lg:col-span-7">
+          <RevenueTrendCard />
         </div>
+        <div className="col-span-12 lg:col-span-3">
+          <KeySignalsCard />
+        </div>
+        <div className="col-span-12 lg:col-span-2">
+          <DataStatusCard platformsConnected="None" coverageMonths="— months" lastUpload="—" />
+        </div>
+      </div>
 
-        <div className="space-y-8">
-          <Panel
-            title="Data Status"
-            rightSlot={
-              <Link
-                href="/app/data"
-                className="inline-flex rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-              >
-                Upload data
-              </Link>
-            }
-          >
-            <dl className="space-y-4">
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-600">Platforms connected</dt>
-                <dd className="mt-1 text-sm text-slate-900">{model.dataStatus.platformsConnected}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-600">Coverage</dt>
-                <dd className="mt-1 text-sm text-slate-900">{model.dataStatus.coverageMonths}</dd>
-                {model.dataStatus.coverageHint ? <p className="mt-1 text-xs text-slate-500">{model.dataStatus.coverageHint}</p> : null}
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-600">Last upload</dt>
-                <dd className="mt-1 text-sm text-slate-900">{model.dataStatus.lastUpload}</dd>
-              </div>
-            </dl>
-          </Panel>
-
-          <Panel title="Recent Reports" description="Latest generated analyses and quality status.">
-            {model.hasReports ? (
-              <div className="space-y-2">
-                {model.recentReports.map((report) => (
-                  <div
-                    key={report.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{report.title}</p>
-                      <p className="text-xs text-slate-600">{report.createdAt}</p>
-                    </div>
-                    <Badge variant="neutral">Ready</Badge>
-                    {report.canView ? (
-                      <Link
-                        href={report.href}
-                        className="inline-flex rounded-xl border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-                      >
-                        View
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        className="inline-flex rounded-xl border border-slate-200 px-3 py-1 text-xs font-medium text-slate-500"
-                      >
-                        View
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                title="No reports yet"
-                body="Upload your data and generate analysis to see report quality and summaries here."
-                ctaLabel="Upload data"
-                ctaHref="/app/data"
-              />
-            )}
-          </Panel>
+      <div className="grid grid-cols-12 gap-4">
+        <div className="col-span-12 lg:col-span-7">
+          <RecommendedActionsCard />
+        </div>
+        <div className="col-span-12 lg:col-span-5">
+          <RecentReportsCard reports={model.recentReports} />
         </div>
       </div>
     </div>
   );
 }
-

@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FeatureGuard } from "../../_components/feature-guard";
 import { NotEntitledCallout, SessionExpiredCallout } from "../../_components/gate-callouts";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
 import { listReports, normalizeReportId, type ReportListItem } from "@/src/lib/api/reports";
+import { getReportHref, isReportViewable } from "@/src/lib/report/viewability";
 
 type ReportsViewState = "loading" | "success" | "empty" | "session_expired" | "not_entitled" | "error";
 
@@ -21,6 +21,15 @@ type ReportsPageState = {
 
 const PAGE_SIZE = 25;
 const DEBUG_REPORTS = process.env.NEXT_PUBLIC_DEBUG_REPORTS === "1";
+const DEBUG_AUDIT_FRONTEND = process.env.NEXT_PUBLIC_DEBUG_AUDIT_FRONTEND === "1" || process.env.NODE_ENV !== "production";
+
+function debugReports(message: string, details: Record<string, unknown>) {
+  if (!DEBUG_AUDIT_FRONTEND) {
+    return;
+  }
+
+  console.debug(`[audit:reports-page] ${message}`, details);
+}
 
 const initialState: ReportsPageState = {
   view: "loading",
@@ -96,7 +105,6 @@ function dedupeReports(items: ReportListItem[]): ReportListItem[] {
 export default function ReportsPage() {
   const [state, setState] = useState<ReportsPageState>(initialState);
   const [loadingMore, setLoadingMore] = useState(false);
-  const router = useRouter();
 
   const sortedItems = useMemo(() => [...state.items].sort(compareByCreatedAtDesc), [state.items]);
 
@@ -117,6 +125,20 @@ export default function ReportsPage() {
       const mergedItems = append ? [...state.items, ...response.items] : response.items;
       const deduped = dedupeReports(mergedItems);
       const view: ReportsViewState = deduped.length > 0 ? "success" : "empty";
+
+      debugReports("list-mapped", {
+        append,
+        offset: targetOffset,
+        returnedCount: response.items.length,
+        dedupedCount: deduped.length,
+        items: deduped.map((report) => ({
+          report_id: normalizeReportId(report),
+          status: report.status,
+          artifact_url_present: Boolean(typeof report.artifact_url === "string" && report.artifact_url.trim()),
+          href: getReportHref(report),
+          isViewable: isReportViewable(report),
+        })),
+      });
 
       setState({
         view,
@@ -201,7 +223,18 @@ export default function ReportsPage() {
           <section className="space-y-3" data-testid="reports-list">
             {sortedItems.map((report, index) => {
               const reportId = normalizeReportId(report);
-              const canView = Boolean(reportId) && report.status === "ready";
+              const reportHref = getReportHref(report);
+              const canView = isReportViewable(report);
+
+              if (DEBUG_AUDIT_FRONTEND) {
+                debugReports("row-derived", {
+                  reportId,
+                  status: report.status,
+                  artifactUrlPresent: Boolean(typeof report.artifact_url === "string" && report.artifact_url.trim()),
+                  reportHref,
+                  canView,
+                });
+              }
 
               return (
                 <article key={reportId ?? `report-${index}`} className="rounded-lg border border-slate-200 bg-white p-4" data-testid="report-row">
@@ -219,22 +252,28 @@ export default function ReportsPage() {
                     </span>
                   </div>
                   <div className="mt-3 space-y-2">
-                    <button
-                      type="button"
-                      disabled={!canView}
-                      data-testid={reportId ? `report-view-${reportId}` : `report-view-disabled-${index}`}
-                      onClick={() => {
-                        if (!reportId) {
-                          return;
-                        }
-                        router.push(`/app/report/${encodeURIComponent(reportId)}`);
-                      }}
-                      className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-500"
-                    >
-                      View
-                    </button>
-                    {!reportId && DEBUG_REPORTS ? (
-                      <p className="text-xs text-slate-500" data-testid="report-missing-id-note">debug: report_id missing; View disabled.</p>
+                    {canView && reportHref ? (
+                      <Link
+                        href={reportHref}
+                        target={reportHref.startsWith("http") ? "_blank" : undefined}
+                        rel={reportHref.startsWith("http") ? "noreferrer" : undefined}
+                        data-testid={reportId ? `report-view-${reportId}` : `report-view-artifact-${index}`}
+                        className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100"
+                      >
+                        View
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        data-testid={reportId ? `report-view-${reportId}` : `report-view-disabled-${index}`}
+                        className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:text-slate-500"
+                      >
+                        View
+                      </button>
+                    )}
+                    {!canView && DEBUG_REPORTS ? (
+                      <p className="text-xs text-slate-500" data-testid="report-missing-id-note">debug: report not viewable; requires ready status plus report_id or artifact_url.</p>
                     ) : null}
                   </div>
                 </article>

@@ -1,5 +1,6 @@
 import { listReports, normalizeReportId, type ReportListItem } from "../api/reports";
 import { getLatestUploadStatus, getUploadStatusById, type UploadStatus } from "../api/uploads";
+import { getReportHref, isReportViewable } from "../report/viewability";
 
 export type DashboardReportItem = {
   id: string;
@@ -27,6 +28,16 @@ type DashboardModelDeps = {
   readLastUploadId?: () => string | null;
 };
 
+const DEBUG_AUDIT_FRONTEND = process.env.NEXT_PUBLIC_DEBUG_AUDIT_FRONTEND === "1" || process.env.NODE_ENV !== "production";
+
+function debugDashboard(message: string, details: Record<string, unknown>) {
+  if (!DEBUG_AUDIT_FRONTEND) {
+    return;
+  }
+
+  console.debug(`[audit:dashboard] ${message}`, details);
+}
+
 function formatDate(value: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) {
@@ -34,20 +45,6 @@ function formatDate(value: string): string {
   }
 
   return date.toISOString().slice(0, 10);
-}
-
-function reportHref(report: ReportListItem): string {
-  const artifactUrl = typeof report.artifact_url === "string" ? report.artifact_url.trim() : "";
-  if (artifactUrl) {
-    return artifactUrl;
-  }
-
-  const id = normalizeReportId(report);
-  if (id) {
-    return `/app/report/${encodeURIComponent(id)}`;
-  }
-
-  return "#";
 }
 
 function sortByCreatedAtDesc(a: ReportListItem, b: ReportListItem): number {
@@ -96,12 +93,23 @@ export async function buildDashboardModelWithDeps(deps: DashboardModelDeps): Pro
   const reports = [...reportsResponse.items].sort(sortByCreatedAtDesc);
   const recentReports = reports.slice(0, 3).map((report, index) => {
     const id = normalizeReportId(report);
+    const href = getReportHref(report);
+    const canView = isReportViewable(report);
+
+    debugDashboard("report-row-derived", {
+      report_id: id,
+      status: report.status,
+      artifact_url_present: Boolean(typeof report.artifact_url === "string" && report.artifact_url.trim()),
+      href,
+      canView,
+    });
+
     return {
       id: id ?? `report-${index}`,
       title: report.title || "Report",
       createdAt: formatDate(report.created_at),
-      href: reportHref(report),
-      canView: Boolean(id) && report.status === "ready",
+      href: href ?? "#",
+      canView,
     };
   });
 
@@ -120,15 +128,26 @@ export async function buildDashboardModelWithDeps(deps: DashboardModelDeps): Pro
   }
 
   const coverage = resolveCoverage(uploadStatus);
+  const platformsConnected = resolvePlatforms(uploadStatus, reports);
+  const lastUpload = resolveLastUpload(uploadStatus);
+
+  debugDashboard("model-derived", {
+    reportCount: reports.length,
+    hasReports: recentReports.length > 0,
+    coverageMonths: coverage.value,
+    coverageHint: coverage.hint,
+    platformsConnected,
+    lastUpload,
+  });
 
   return {
     recentReports,
     hasReports: recentReports.length > 0,
     dataStatus: {
-      platformsConnected: resolvePlatforms(uploadStatus, reports),
+      platformsConnected,
       coverageMonths: coverage.value,
       coverageHint: coverage.hint,
-      lastUpload: resolveLastUpload(uploadStatus),
+      lastUpload,
     },
   };
 }
@@ -141,4 +160,3 @@ export async function buildDashboardModel(params?: { readLastUploadId?: () => st
     readLastUploadId: params?.readLastUploadId,
   });
 }
-

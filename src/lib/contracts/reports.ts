@@ -12,6 +12,8 @@ export interface ReportDetailResponse {
   createdAt?: string;
   updated_at?: string;
   updatedAt?: string;
+  artifact_url?: string | null;
+  artifact_json_url?: string | null;
 }
 
 export interface GenerateReportRequestContract {

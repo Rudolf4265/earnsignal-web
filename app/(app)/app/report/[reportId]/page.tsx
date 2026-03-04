@@ -4,3 +4,5 @@ export default async function ReportPage({ params }: { params: Promise<{ reportI
   const { reportId } = await params;
   return <ReportDetailClient reportId={reportId} />;
 }
+
+// requestId={state.requestId}

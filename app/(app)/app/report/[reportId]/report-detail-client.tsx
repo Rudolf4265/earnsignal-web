@@ -8,19 +8,22 @@ import { NotEntitledCallout, SessionExpiredCallout } from "../../../_components/
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { getReport, type ReportDetail } from "@/src/lib/api/reports";
 import { ApiError, getApiBaseOrigin } from "@/src/lib/api/client";
+import { fetchReportJsonArtifact, fetchReportPdfArtifact } from "@/src/lib/report/artifacts";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 
 type ReportPageState = {
   view: ReportViewState;
   report: ReportDetail | null;
+  reportPayload: Record<string, unknown> | null;
+  payloadError?: string;
   requestId?: string;
 };
 
 const initialState: ReportPageState = {
   view: "loading",
   report: null,
+  reportPayload: null,
 };
-
 
 type ArtifactLoadState =
   | { kind: "idle" }
@@ -29,6 +32,29 @@ type ArtifactLoadState =
   | { kind: "session_expired"; message: string; requestId?: string }
   | { kind: "error"; message: string; requestId?: string };
 
+function renderReportPayload(payload: Record<string, unknown>) {
+  const sections = Array.isArray(payload.sections) ? payload.sections : [];
+
+  if (sections.length > 0) {
+    return (
+      <div className="space-y-3" data-testid="report-json-sections">
+        {sections.map((section, index) => {
+          const record = section && typeof section === "object" ? (section as Record<string, unknown>) : {};
+          const heading = typeof record.title === "string" ? record.title : `Section ${index + 1}`;
+          return (
+            <article key={`${heading}-${index}`} className="rounded-lg border border-slate-200 bg-white p-3">
+              <h3 className="font-medium text-slate-900">{heading}</h3>
+              <pre className="mt-2 overflow-x-auto text-xs text-slate-700">{JSON.stringify(record, null, 2)}</pre>
+            </article>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return <pre data-testid="report-json-fallback" className="overflow-x-auto rounded-lg border border-slate-200 bg-white p-3 text-xs">{JSON.stringify(payload, null, 2)}</pre>;
+}
+
 export function ReportDetailClient({ reportId }: { reportId: string }) {
   const [state, setState] = useState<ReportPageState>(initialState);
   const [retryToken, setRetryToken] = useState(0);
@@ -36,20 +62,47 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    setArtifactState({ kind: "idle" });
 
-    getReport(reportId)
-      .then((report) => {
-        if (cancelled) {
+    (async () => {
+      try {
+        const report = await getReport(reportId);
+        const jsonUrl = report.artifactJsonUrl;
+
+        if (!jsonUrl) {
+          if (!cancelled) {
+            setState({
+              view: "success",
+              report,
+              reportPayload: null,
+              payloadError: "Report data unavailable—refresh.",
+            });
+          }
           return;
         }
 
-        setState({
-          view: "success",
-          report,
-        });
-      })
-      .catch((error) => {
+        const { data } = await createClient().auth.getSession();
+        const token = data.session?.access_token ?? null;
+        if (!token) {
+          if (!cancelled) {
+            setState({
+              view: "session_expired",
+              report: null,
+              reportPayload: null,
+            });
+          }
+          return;
+        }
+
+        const payload = await fetchReportJsonArtifact({ artifactJsonUrl: jsonUrl, token, origin: getApiBaseOrigin() });
+
+        if (!cancelled) {
+          setState({
+            view: "success",
+            report,
+            reportPayload: payload,
+          });
+        }
+      } catch (error) {
         if (cancelled) {
           return;
         }
@@ -57,15 +110,16 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
         setState({
           view: getReportViewState(error),
           report: null,
+          reportPayload: null,
           requestId: getRequestId(error),
         });
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;
     };
   }, [reportId, retryToken]);
-
 
   async function openArtifact() {
     const artifactUrl = state.report?.artifactUrl;
@@ -83,55 +137,13 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
         return;
       }
 
-      const origin = getApiBaseOrigin();
-      const response = await fetch(new URL(artifactUrl, origin).toString(), {
-        method: "GET",
-        headers: {
-          Accept: "application/pdf, application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.status === 401) {
-        setArtifactState({
-          kind: "session_expired",
-          message: "Session expired — log in again.",
-          requestId: response.headers.get("x-request-id") ?? undefined,
-        });
-        return;
-      }
-
-      if (!response.ok) {
-        throw new ApiError({
-          status: response.status,
-          code: `HTTP_${response.status}`,
-          message: `Unable to load report artifact (status ${response.status}).`,
-          requestId: response.headers.get("x-request-id") ?? undefined,
-          operation: "report.artifact",
-          path: artifactUrl,
-          method: "GET",
-        });
-      }
-
-      const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
-      if (contentType.includes("application/pdf")) {
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        window.open(objectUrl, "_blank", "noopener,noreferrer");
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-        setArtifactState({ kind: "success", message: "Opened PDF in a new tab." });
-        return;
-      }
-
-      if (contentType.includes("application/json") || contentType.includes("+json")) {
-        await response.json();
-        setArtifactState({ kind: "success", message: "Report data loaded." });
-        return;
-      }
-
-      setArtifactState({ kind: "success", message: "Report file loaded." });
+      const blob = await fetchReportPdfArtifact({ artifactUrl, token, origin: getApiBaseOrigin() });
+      const objectUrl = URL.createObjectURL(blob);
+      window.open(objectUrl, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      setArtifactState({ kind: "success", message: "Opened PDF in a new tab." });
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
         setArtifactState({
           kind: "session_expired",
           message: "Session expired — log in again.",
@@ -142,7 +154,7 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
 
       setArtifactState({
         kind: "error",
-        message: "Unable to open report artifact right now. Please try again.",
+        message: "Unable to open report PDF right now. Please try again.",
         requestId: error instanceof ApiError ? error.requestId : undefined,
       });
     }
@@ -161,34 +173,20 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
         <section className="space-y-4" data-testid="report-content">
           <h1 className="text-2xl font-semibold">{state.report.title}</h1>
           <dl className="grid grid-cols-1 gap-3 text-sm text-slate-700 sm:grid-cols-2">
-            <div>
-              <dt className="text-slate-600">Report ID</dt>
-              <dd>{state.report.id}</dd>
-            </div>
-            <div>
-              <dt className="text-slate-600">Status</dt>
-              <dd>{state.report.status}</dd>
-            </div>
-            {state.report.createdAt ? (
-              <div>
-                <dt className="text-slate-600">Created at</dt>
-                <dd>{state.report.createdAt}</dd>
-              </div>
-            ) : null}
-            {state.report.updatedAt ? (
-              <div>
-                <dt className="text-slate-600">Updated at</dt>
-                <dd>{state.report.updatedAt}</dd>
-              </div>
-            ) : null}
-            {state.report.artifactUrl ? (
-              <div>
-                <dt className="text-slate-600">Artifact kind</dt>
-                <dd>{state.report.artifactKind ?? "report"}</dd>
-              </div>
-            ) : null}
+            <div><dt className="text-slate-600">Report ID</dt><dd>{state.report.id}</dd></div>
+            <div><dt className="text-slate-600">Status</dt><dd>{state.report.status}</dd></div>
           </dl>
           <p className="text-slate-400">{state.report.summary}</p>
+
+          {state.reportPayload ? renderReportPayload(state.reportPayload) : null}
+          {state.payloadError ? (
+            <ErrorBanner
+              title="Report data unavailable"
+              message={state.payloadError}
+              action={<button type="button" onClick={() => setRetryToken((value) => value + 1)} className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50">Retry</button>}
+            />
+          ) : null}
+
           {state.report.artifactUrl ? (
             <div className="space-y-2">
               <button
@@ -197,24 +195,10 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
                 disabled={artifactState.kind === "loading"}
                 className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {artifactState.kind === "loading" ? "Loading report…" : "Download/Open report"}
+                {artifactState.kind === "loading" ? "Loading PDF…" : "Open PDF"}
               </button>
-              {artifactState.kind === "success" ? <p className="text-xs text-slate-500">{artifactState.message}</p> : null}
-              {artifactState.kind === "session_expired" ? (
-                <div className="space-y-1 text-sm text-amber-700" data-testid="report-artifact-session-expired">
-                  <p>{artifactState.message}</p>
-                  {artifactState.requestId ? <p className="text-xs text-slate-500">request_id: {artifactState.requestId}</p> : null}
-                  <Link href="/login" className="inline-flex rounded-lg border border-amber-200 px-3 py-1.5 text-xs hover:bg-amber-50">
-                    Log in again
-                  </Link>
-                </div>
-              ) : null}
-              {artifactState.kind === "error" ? (
-                <p className="text-xs text-rose-600">
-                  {artifactState.message}
-                  {artifactState.requestId ? ` request_id: ${artifactState.requestId}` : ""}
-                </p>
-              ) : null}
+              {artifactState.kind === "session_expired" ? <p className="text-sm text-amber-700">Session expired — log in again.</p> : null}
+              {artifactState.kind === "error" ? <p className="text-xs text-rose-600">{artifactState.message}</p> : null}
             </div>
           ) : null}
         </section>
@@ -224,9 +208,7 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
         <section className="space-y-3" data-testid="report-invalid-link">
           <h1 className="text-2xl font-semibold">Invalid report link</h1>
           <p className="text-slate-400">This report link is invalid. Please return to Reports and choose a valid report.</p>
-          <Link href="/app/report" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
-            Back to Reports
-          </Link>
+          <Link href="/app/report" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">Back to Reports</Link>
         </section>
       ) : null}
 
@@ -234,35 +216,19 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
         <section className="space-y-3" data-testid="report-not-found">
           <h1 className="text-2xl font-semibold">Report not found</h1>
           <p className="text-slate-400">We could not find a report with ID {reportId}. It may have been deleted or never existed.</p>
-          {state.requestId ? <p className="text-xs text-slate-500">request_id: {state.requestId}</p> : null}
-          <Link href="/app/report" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
-            Back to Reports
-          </Link>
+          <Link href="/app/report" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">Back to Reports</Link>
         </section>
       ) : null}
 
       {state.view === "forbidden" ? <NotEntitledCallout /> : null}
-
       {state.view === "session_expired" ? <SessionExpiredCallout requestId={state.requestId} /> : null}
-
       {state.view === "server_error" ? (
         <div data-testid="report-error">
           <ErrorBanner
             title="Report unavailable"
             message="We could not load this report right now. Please try again shortly."
             requestId={state.requestId}
-            action={
-              <button
-                type="button"
-                onClick={() => {
-                  setState(initialState);
-                  setRetryToken((value) => value + 1);
-                }}
-                className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50"
-              >
-                Retry
-              </button>
-            }
+            action={<button type="button" onClick={() => { setState(initialState); setRetryToken((value) => value + 1); }} className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50">Retry</button>}
           />
         </div>
       ) : null}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { appBaseUrl } from "@/src/lib/urls";
 
 export function Hero() {
   return (
@@ -13,10 +14,10 @@ export function Hero() {
             tier migration, and platform risk.
           </p>
           <Link
-            href="/example"
+            href={`${appBaseUrl}/login`}
             className="mt-8 inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_40px_rgba(59,130,246,0.35)] hover:from-blue-400 hover:to-blue-600 transition"
           >
-            View example report
+Get started in app
           </Link>
         </div>
 

@@ -25,6 +25,7 @@ test("report detail success normalization", async () => {
     status: "ready",
     summary: "MRR is up 12% month-over-month.",
     created_at: "2026-02-10T12:00:00Z",
+    artifact_json_url: "/v1/reports/rep_123/artifact.json",
   });
 
   assert.equal(result.id, "rep_123");
@@ -32,6 +33,7 @@ test("report detail success normalization", async () => {
   assert.equal(result.status, "ready");
   assert.equal(result.summary, "MRR is up 12% month-over-month.");
   assert.equal(result.createdAt, "2026-02-10T12:00:00Z");
+  assert.equal(result.artifactJsonUrl, "/v1/reports/rep_123/artifact.json");
 });
 
 test("report detail maps 404 to not_found", async () => {

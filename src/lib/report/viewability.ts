@@ -1,22 +1,12 @@
 import { normalizeReportId, type ReportListItem } from "../api/reports";
 
-function normalizeArtifactUrl(report: ReportListItem): string | null {
-  const artifactUrl = typeof report.artifact_url === "string" ? report.artifact_url.trim() : "";
-  return artifactUrl.length > 0 ? artifactUrl : null;
-}
-
 export function getReportHref(report: ReportListItem): string | null {
   const reportId = normalizeReportId(report);
-  if (reportId) {
-    return `/app/report/${encodeURIComponent(reportId)}`;
+  if (!reportId) {
+    return null;
   }
 
-  const artifactUrl = normalizeArtifactUrl(report);
-  if (artifactUrl) {
-    return artifactUrl;
-  }
-
-  return null;
+  return `/app/report/${encodeURIComponent(reportId)}`;
 }
 
 export function isReportViewable(report: ReportListItem): boolean {
@@ -24,5 +14,5 @@ export function isReportViewable(report: ReportListItem): boolean {
     return false;
   }
 
-  return getReportHref(report) !== null;
+  return normalizeReportId(report) !== null;
 }

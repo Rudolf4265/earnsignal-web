@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClient } from "@/src/lib/supabase/client";
 import Link from "next/link";
 import { FeatureGuard } from "../../../_components/feature-guard";
 import { NotEntitledCallout, SessionExpiredCallout } from "../../../_components/gate-callouts";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { getReport, type ReportDetail } from "@/src/lib/api/reports";
+import { ApiError, getApiBaseOrigin } from "@/src/lib/api/client";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 
 type ReportPageState = {
@@ -19,12 +21,22 @@ const initialState: ReportPageState = {
   report: null,
 };
 
+
+type ArtifactLoadState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "success"; message: string }
+  | { kind: "session_expired"; message: string; requestId?: string }
+  | { kind: "error"; message: string; requestId?: string };
+
 export function ReportDetailClient({ reportId }: { reportId: string }) {
   const [state, setState] = useState<ReportPageState>(initialState);
   const [retryToken, setRetryToken] = useState(0);
+  const [artifactState, setArtifactState] = useState<ArtifactLoadState>({ kind: "idle" });
 
   useEffect(() => {
     let cancelled = false;
+    setArtifactState({ kind: "idle" });
 
     getReport(reportId)
       .then((report) => {
@@ -53,6 +65,88 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
       cancelled = true;
     };
   }, [reportId, retryToken]);
+
+
+  async function openArtifact() {
+    const artifactUrl = state.report?.artifactUrl;
+    if (!artifactUrl) {
+      return;
+    }
+
+    setArtifactState({ kind: "loading" });
+
+    try {
+      const { data } = await createClient().auth.getSession();
+      const token = data.session?.access_token ?? null;
+      if (!token) {
+        setArtifactState({ kind: "session_expired", message: "Session expired — log in again." });
+        return;
+      }
+
+      const origin = getApiBaseOrigin();
+      const response = await fetch(new URL(artifactUrl, origin).toString(), {
+        method: "GET",
+        headers: {
+          Accept: "application/pdf, application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401) {
+        setArtifactState({
+          kind: "session_expired",
+          message: "Session expired — log in again.",
+          requestId: response.headers.get("x-request-id") ?? undefined,
+        });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new ApiError({
+          status: response.status,
+          code: `HTTP_${response.status}`,
+          message: `Unable to load report artifact (status ${response.status}).`,
+          requestId: response.headers.get("x-request-id") ?? undefined,
+          operation: "report.artifact",
+          path: artifactUrl,
+          method: "GET",
+        });
+      }
+
+      const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
+      if (contentType.includes("application/pdf")) {
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        window.open(objectUrl, "_blank", "noopener,noreferrer");
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+        setArtifactState({ kind: "success", message: "Opened PDF in a new tab." });
+        return;
+      }
+
+      if (contentType.includes("application/json") || contentType.includes("+json")) {
+        await response.json();
+        setArtifactState({ kind: "success", message: "Report data loaded." });
+        return;
+      }
+
+      setArtifactState({ kind: "success", message: "Report file loaded." });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setArtifactState({
+          kind: "session_expired",
+          message: "Session expired — log in again.",
+          requestId: error.requestId,
+        });
+        return;
+      }
+
+      setArtifactState({
+        kind: "error",
+        message: "Unable to open report artifact right now. Please try again.",
+        requestId: error instanceof ApiError ? error.requestId : undefined,
+      });
+    }
+  }
 
   return (
     <FeatureGuard feature="report">
@@ -96,14 +190,32 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
           </dl>
           <p className="text-slate-400">{state.report.summary}</p>
           {state.report.artifactUrl ? (
-            <Link
-              href={state.report.artifactUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100"
-            >
-              Download/Open PDF
-            </Link>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => void openArtifact()}
+                disabled={artifactState.kind === "loading"}
+                className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {artifactState.kind === "loading" ? "Loading report…" : "Download/Open report"}
+              </button>
+              {artifactState.kind === "success" ? <p className="text-xs text-slate-500">{artifactState.message}</p> : null}
+              {artifactState.kind === "session_expired" ? (
+                <div className="space-y-1 text-sm text-amber-700" data-testid="report-artifact-session-expired">
+                  <p>{artifactState.message}</p>
+                  {artifactState.requestId ? <p className="text-xs text-slate-500">request_id: {artifactState.requestId}</p> : null}
+                  <Link href="/login" className="inline-flex rounded-lg border border-amber-200 px-3 py-1.5 text-xs hover:bg-amber-50">
+                    Log in again
+                  </Link>
+                </div>
+              ) : null}
+              {artifactState.kind === "error" ? (
+                <p className="text-xs text-rose-600">
+                  {artifactState.message}
+                  {artifactState.requestId ? ` request_id: ${artifactState.requestId}` : ""}
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </section>
       ) : null}

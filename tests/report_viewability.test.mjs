@@ -20,8 +20,8 @@ function baseReport(overrides = {}) {
   };
 }
 
-test("viewability: ready report with report_id and null artifact_url remains viewable", () => {
-  const report = baseReport({ artifact_url: null });
+test("viewability: ready report with report_id prefers app route even when artifact_url exists", () => {
+  const report = baseReport({ artifact_url: "https://cdn.example.test/r-123.pdf" });
 
   assert.equal(getReportHref(report), "/app/report/r-123");
   assert.equal(isReportViewable(report), true);
@@ -37,6 +37,6 @@ test("viewability: ready report with missing report_id but artifact_url is viewa
 test("viewability: non-ready report is not viewable even if href exists", () => {
   const report = baseReport({ status: "running", artifact_url: "https://cdn.example.test/r-123.pdf" });
 
-  assert.equal(getReportHref(report), "https://cdn.example.test/r-123.pdf");
+  assert.equal(getReportHref(report), "/app/report/r-123");
   assert.equal(isReportViewable(report), false);
 });

@@ -1,31 +1,13 @@
 {
-  "name": "earnsignal-web",
-  "version": "0.1.0",
+  "name": "earnsignal-web-monorepo",
   "private": true,
+  "workspaces": [
+    "apps/app",
+    "apps/site"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "test": "node --experimental-specifier-resolution=node --loader ./tests/node-ts-loader.mjs --test tests/**/*.test.mjs && node -e \"require('node:fs').rmSync('.tmp-tests',{ recursive: true, force: true })\"",
-    "test:e2e": "npm --prefix tests/e2e run e2e:ci",
-    "test:e2e:ui": "npm --prefix tests/e2e run e2e:ui",
-    "smoke:launch-gate": "node scripts/launch-gate-smoke.mjs"
-  },
-  "dependencies": {
-    "next": "16.1.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "@supabase/supabase-js": "^2.57.4"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "build:app": "npm --workspace @earnsigma/app run build",
+    "build:site": "npm --workspace @earnsigma/site run build",
+    "test:build-assertions": "node scripts/assert-builds.mjs"
   }
 }

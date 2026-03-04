@@ -13,7 +13,7 @@ export default function MarketingHomePage() {
 
   useEffect(() => {
     if (token) {
-      router.replace("/app");
+      router.replace("https://app.earnsigma.com/app");
     }
   }, [router, token]);
 

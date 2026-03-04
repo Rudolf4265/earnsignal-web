@@ -1,6 +1,6 @@
 import { getReport, listReports, normalizeReportId, type ReportListItem } from "../api/reports";
 import { getLatestUploadStatus, getUploadStatusById, type UploadStatus } from "../api/uploads";
-import { getReportHref, isReportViewable } from "../report/viewability";
+import { getReportHref } from "../report/viewability";
 import { createClient } from "../supabase/client";
 import { ApiError, getApiBaseOrigin } from "../api/client";
 import { fetchReportJsonArtifact } from "../report/artifacts";
@@ -9,7 +9,9 @@ export type DashboardReportItem = {
   id: string;
   title: string;
   createdAt: string;
-  href: string;
+  status: string;
+  externalHref: string | null;
+  internalHref: string | null;
   canView: boolean;
 };
 
@@ -60,6 +62,48 @@ function sortByCreatedAtDesc(a: ReportListItem, b: ReportListItem): number {
   const aTime = new Date(a.created_at).getTime();
   const bTime = new Date(b.created_at).getTime();
   return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+}
+
+function resolveExternalArtifactHref(artifactUrl: string | null): string | null {
+  if (typeof artifactUrl !== "string") {
+    return null;
+  }
+
+  const trimmed = artifactUrl.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  if (!trimmed.startsWith("/")) {
+    return null;
+  }
+
+  try {
+    return new URL(trimmed, getApiBaseOrigin()).toString();
+  } catch {
+    return null;
+  }
+}
+
+function toDashboardStatus(report: ReportListItem): string {
+  if (typeof report.status === "string" && report.status.trim()) {
+    const normalized = report.status.trim().toLowerCase();
+    if (normalized === "ready") return "Ready";
+    if (normalized === "running") return "Processing";
+    if (normalized === "queued") return "Queued";
+    if (normalized === "failed") return "Failed";
+    return report.status;
+  }
+
+  if (resolveExternalArtifactHref(report.artifact_url)) {
+    return "Ready";
+  }
+
+  return "Processing";
 }
 
 function asDisplay(value: unknown): string {
@@ -126,9 +170,19 @@ export async function buildDashboardModelWithDeps(deps: DashboardModelDeps): Pro
 
   const recentReports = reports.slice(0, 3).map((report, index) => {
     const id = normalizeReportId(report);
-    const href = getReportHref(report);
-    const canView = isReportViewable(report);
-    return { id: id ?? `report-${index}`, title: report.title || "Report", createdAt: formatDate(report.created_at), href: href ?? "#", canView };
+    const externalHref = resolveExternalArtifactHref(report.artifact_url);
+    const internalHref = externalHref ? null : getReportHref(report);
+    const canView = Boolean(externalHref) || Boolean(internalHref);
+
+    return {
+      id: id ?? `report-${index}`,
+      title: report.title || "Report",
+      createdAt: formatDate(report.created_at),
+      status: toDashboardStatus(report),
+      externalHref,
+      internalHref,
+      canView,
+    };
   });
 
   let kpis = {

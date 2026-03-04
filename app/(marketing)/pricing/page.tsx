@@ -32,7 +32,7 @@ export default function PricingPage() {
                 ))}
               </ul>
               <a
-                href={`${appBaseUrl}/signup`}
+                href={`${appBaseUrl}/login`}
                 className="mt-8 inline-flex rounded-full bg-zinc-100 px-5 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-white"
               >
                 Start free trial

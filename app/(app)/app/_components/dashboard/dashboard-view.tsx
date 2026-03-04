@@ -73,7 +73,14 @@ export function DashboardView({ model, loading, onRefresh }: DashboardViewProps)
       </div>
 
       {model.hasReports && model.reportDataError ? (
-        <ErrorBanner title="Report data unavailable" message="Unable to hydrate dashboard cards from report JSON." action={<button type="button" onClick={onRefresh} className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50">Retry</button>} />
+        <ErrorBanner
+          title="Report data unavailable"
+          message="Unable to hydrate dashboard cards from report JSON. Please retry."
+          requestId={model.reportDataRequestId}
+          action={<button type="button" onClick={onRefresh} className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50">Retry</button>}
+        >
+          {model.reportDataDiagnostics ? <p className="text-xs text-rose-100/80">{model.reportDataDiagnostics}</p> : null}
+        </ErrorBanner>
       ) : null}
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">

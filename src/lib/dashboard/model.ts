@@ -2,7 +2,7 @@ import { getReport, listReports, normalizeReportId, type ReportListItem } from "
 import { getLatestUploadStatus, getUploadStatusById, type UploadStatus } from "../api/uploads";
 import { getReportHref, isReportViewable } from "../report/viewability";
 import { createClient } from "../supabase/client";
-import { getApiBaseOrigin } from "../api/client";
+import { ApiError, getApiBaseOrigin } from "../api/client";
 import { fetchReportJsonArtifact } from "../report/artifacts";
 
 export type DashboardReportItem = {
@@ -17,6 +17,8 @@ export type DashboardViewModel = {
   recentReports: DashboardReportItem[];
   hasReports: boolean;
   reportDataError: boolean;
+  reportDataDiagnostics?: string;
+  reportDataRequestId?: string;
   kpis: {
     netRevenue: string;
     subscribers: string;
@@ -136,6 +138,8 @@ export async function buildDashboardModelWithDeps(deps: DashboardModelDeps): Pro
     churnVelocity: "—",
   };
   let reportDataError = false;
+  let reportDataDiagnostics: string | undefined;
+  let reportDataRequestId: string | undefined;
 
   const latestReady = reports.find((item) => item.status === "ready" && normalizeReportId(item));
   if (latestReady) {
@@ -144,14 +148,31 @@ export async function buildDashboardModelWithDeps(deps: DashboardModelDeps): Pro
       const detail = await deps.getReport(reportId);
       const artifactJsonUrl = latestReady.artifact_json_url ?? detail.artifactJsonUrl;
       const token = await deps.getAccessToken();
-      if (artifactJsonUrl && token) {
+      if (!artifactJsonUrl) {
+        debugDashboard("kpi-hydration-skipped", { reason: "artifact_json_url_missing", reportId });
+      } else if (token) {
         const payload = await deps.fetchReportJsonArtifact({ artifactJsonUrl, token, origin: safeApiBaseOrigin() });
         kpis = extractKpis(payload);
       } else {
         reportDataError = true;
+        reportDataDiagnostics = "Authentication required to hydrate dashboard from JSON artifact.";
       }
-    } catch {
+    } catch (error) {
       reportDataError = true;
+      if (error instanceof ApiError) {
+        reportDataRequestId = error.requestId;
+        const detailContentType =
+          error.details && typeof error.details === "object" && "contentType" in error.details
+            ? String((error.details as Record<string, unknown>).contentType ?? "unknown")
+            : undefined;
+
+        reportDataDiagnostics =
+          error.code === "UNEXPECTED_CONTENT_TYPE"
+            ? `JSON artifact fetch returned ${error.status} (${detailContentType ?? "unknown content-type"}).`
+            : `JSON artifact fetch failed with status ${error.status}.`;
+      } else {
+        reportDataDiagnostics = "JSON artifact fetch failed unexpectedly.";
+      }
     }
   }
 
@@ -172,6 +193,8 @@ export async function buildDashboardModelWithDeps(deps: DashboardModelDeps): Pro
     recentReports,
     hasReports: recentReports.length > 0,
     reportDataError,
+    reportDataDiagnostics,
+    reportDataRequestId,
     kpis,
     dataStatus: { platformsConnected, coverageMonths: coverage.value, coverageHint: coverage.hint, lastUpload },
   };

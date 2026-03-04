@@ -23,7 +23,7 @@ export default function ExamplePage() {
           </div>
         </div>
         <a
-          href={`${appBaseUrl}/signup`}
+          href={`${appBaseUrl}/login`}
           className="mt-8 inline-flex rounded-full bg-zinc-100 px-6 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-white"
         >
           Start free trial

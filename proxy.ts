@@ -35,7 +35,6 @@ function isStaticPath(pathname: string): boolean {
   );
 }
 
-
 function isAppPath(pathname: string): boolean {
   return APP_ALLOWED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
@@ -49,14 +48,18 @@ function redirectToHost(request: NextRequest, host: string): NextResponse {
   return NextResponse.redirect(url, 308);
 }
 
-function redirectToHostRoot(request: NextRequest, host: string): NextResponse {
+function redirectToPath(request: NextRequest, pathname: string): NextResponse {
   const url = request.nextUrl.clone();
-  url.host = host;
-  url.protocol = host.includes("localhost") ? "http:" : "https:";
-  url.pathname = "/";
+  url.pathname = pathname;
   url.search = "";
   url.hash = "";
   return NextResponse.redirect(url, 308);
+}
+
+export function hasAppSessionCookie(request: NextRequest): boolean {
+  return request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth-token"));
 }
 
 export function proxy(request: NextRequest): NextResponse {
@@ -87,20 +90,18 @@ export function proxy(request: NextRequest): NextResponse {
     return redirectToHost(request, MARKETING_HOST);
   }
 
-  // App host: allow auth utility routes and /app. Otherwise send to marketing root.
   if (isAppHost) {
+    if (pathname === "/") {
+      return redirectToPath(request, hasAppSessionCookie(request) ? "/app" : "/login");
+    }
+
     if (!isAppPath(pathname)) {
-      return redirectToHostRoot(request, MARKETING_HOST);
+      return redirectToPath(request, hasAppSessionCookie(request) ? "/app" : "/login");
     }
     return NextResponse.next();
   }
 
-  // Marketing host: if someone hits an app path, push them to app host.
   if (isMarketingHost) {
-    if (isAppPath(pathname)) {
-      return redirectToHost(request, APP_HOST);
-    }
-
     return NextResponse.next();
   }
 
@@ -110,5 +111,5 @@ export function proxy(request: NextRequest): NextResponse {
 
 export const config = {
   // Keep all /api routes out of host-routing redirects.
-  matcher: ["/((?!api|_next/|favicon.ico|.*\\..*).*)"],
+  matcher: ["/((?!api|_next/|favicon.ico|.*\..*).*)"],
 };

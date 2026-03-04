@@ -39,7 +39,7 @@ export async function fetchReportJsonArtifact(params: {
     throw new ApiError({
       status: response.status,
       code: "UNEXPECTED_CONTENT_TYPE",
-      message: "Report JSON artifact returned non-JSON content.",
+      message: `Expected JSON artifact but received ${response.status} (${contentType || "unknown content-type"}).`,
       operation: "report.artifact.json",
       path: params.artifactJsonUrl,
       method: "GET",
@@ -95,7 +95,7 @@ export async function fetchReportPdfArtifact(params: {
     throw new ApiError({
       status: response.status,
       code: "UNEXPECTED_CONTENT_TYPE",
-      message: "Report PDF artifact returned non-PDF content.",
+      message: `Expected PDF artifact but received ${response.status} (${contentType || "unknown content-type"}).`,
       operation: "report.artifact.pdf",
       path: params.artifactUrl,
       method: "GET",

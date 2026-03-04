@@ -10,6 +10,8 @@ const emptyModel: DashboardViewModel = {
   recentReports: [],
   hasReports: false,
   reportDataError: false,
+  reportDataDiagnostics: undefined,
+  reportDataRequestId: undefined,
   kpis: {
     netRevenue: "—",
     subscribers: "—",

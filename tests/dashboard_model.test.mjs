@@ -57,3 +57,38 @@ test("dashboard sets reportDataError when report exists but JSON fetch fails", a
   assert.equal(model.hasReports, true);
   assert.equal(model.reportDataError, true);
 });
+
+
+test("dashboard prefers artifact_json_url and does not require detail JSON url", async () => {
+  let hydratedFromUrl = null;
+  const model = await buildDashboardModelWithDeps(baseDeps({
+    listReports: async () => ({
+      items: [
+        { report_id: "r2", created_at: "2026-02-12T00:00:00.000Z", status: "ready", artifact_url: "/r2.pdf", artifact_json_url: "/b.json", artifact_kind: null, upload_id: "u2", job_id: null, title: "Feb", platforms: ["youtube"], coverage_start: null, coverage_end: null },
+      ], next_offset: 1, has_more: false,
+    }),
+    getReport: async () => ({ id: "r2", title: "Feb", status: "ready", summary: "", artifactJsonUrl: null }),
+    fetchReportJsonArtifact: async ({ artifactJsonUrl }) => {
+      hydratedFromUrl = artifactJsonUrl;
+      return { kpis: { net_revenue: "$300" } };
+    },
+  }));
+
+  assert.equal(hydratedFromUrl, "/b.json");
+  assert.equal(model.kpis.netRevenue, "$300");
+  assert.equal(model.reportDataError, false);
+});
+
+test("dashboard does not show reportDataError when artifact_json_url is missing", async () => {
+  const model = await buildDashboardModelWithDeps(baseDeps({
+    listReports: async () => ({
+      items: [
+        { report_id: "r2", created_at: "2026-02-12T00:00:00.000Z", status: "ready", artifact_url: "/r2.pdf", artifact_json_url: null, artifact_kind: null, upload_id: "u2", job_id: null, title: "Feb", platforms: ["youtube"], coverage_start: null, coverage_end: null },
+      ], next_offset: 1, has_more: false,
+    }),
+    getReport: async () => ({ id: "r2", title: "Feb", status: "ready", summary: "", artifactJsonUrl: null }),
+  }));
+
+  assert.equal(model.reportDataError, false);
+  assert.equal(model.dataStatus.coverageHint, "Available after first report");
+});

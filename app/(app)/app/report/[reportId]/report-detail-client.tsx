@@ -74,7 +74,7 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
               view: "success",
               report,
               reportPayload: null,
-              payloadError: "Report data unavailable—refresh.",
+              payloadError: "Available after first report",
             });
           }
           return;
@@ -152,9 +152,14 @@ export function ReportDetailClient({ reportId }: { reportId: string }) {
         return;
       }
 
+      const friendlyMessage =
+        error instanceof ApiError && error.code === "UNEXPECTED_CONTENT_TYPE"
+          ? error.message
+          : "Unable to open report PDF right now. Please try again.";
+
       setArtifactState({
         kind: "error",
-        message: "Unable to open report PDF right now. Please try again.",
+        message: friendlyMessage,
         requestId: error instanceof ApiError ? error.requestId : undefined,
       });
     }

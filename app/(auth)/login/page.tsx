@@ -117,7 +117,7 @@ export default function LoginPage() {
                   <span>Password</span>
                   <Link href="/forgot-password" className="transition hover:text-white/90">
                     Forgot?
-                  </a>
+                  </Link>
                 </div>
 
                 <div className="relative">

@@ -155,14 +155,24 @@ export function DashboardView({ model, loading, onRefresh }: DashboardViewProps)
                       <p className="text-xs text-slate-600">{report.createdAt}</p>
                     </div>
                     <Badge variant="neutral">Ready</Badge>
-                    <Link
-                      href={report.href}
-                      target={report.href.startsWith("http") ? "_blank" : undefined}
-                      rel={report.href.startsWith("http") ? "noreferrer" : undefined}
-                      className="inline-flex rounded-xl border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
-                    >
-                      View
-                    </Link>
+                    {report.canView ? (
+                      <Link
+                        href={report.href}
+                        target={report.href.startsWith("http") ? "_blank" : undefined}
+                        rel={report.href.startsWith("http") ? "noreferrer" : undefined}
+                        className="inline-flex rounded-xl border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                      >
+                        View
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        className="inline-flex rounded-xl border border-slate-200 px-3 py-1 text-xs font-medium text-slate-500"
+                      >
+                        View
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

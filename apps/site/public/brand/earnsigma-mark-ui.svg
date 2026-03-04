@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="43.10 -127.05 934.80 934.80" role="img" aria-label="EarnSigma icon">
+  <defs>
+    <linearGradient id="gradIcon" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1B4DFF"/>
+      <stop offset="55%" stop-color="#25A6FF"/>
+      <stop offset="100%" stop-color="#34D399"/>
+    </linearGradient>
+    </defs>
+
+  <g transform="translate(40 30)">
+    <path d="       M 170 20       L 480 20       L 480 100       L 290 100       L 415 245       Q 435 268 415 292       L 290 435       L 480 435       L 480 515       L 170 515       Q 130 515 148 485       L 290 292       L 148 100       Q 130 70 170 70       L 170 20 Z" fill="url(#gradIcon)"/>
+
+    <path d="       M 260 100       L 425 100       L 325 220       L 425 220       L 425 295       L 325 295       L 425 435       L 260 435       L 180 335       Q 165 315 180 295       L 250 295       L 210 245       Q 195 225 210 205       L 250 205       L 180 100 Z" fill="#061526" opacity="0.95"/>
+
+    <path d="       M 95 430       C 120 565, 320 630, 495 555       C 620 500, 675 375, 650 245       C 635 165, 585 100, 520 70" fill="none" stroke="url(#gradIcon)" stroke-width="28" stroke-linecap="round" opacity="0.95"/>
+
+    <path d="       M 135 450       C 165 565, 350 605, 480 545       C 585 495, 635 390, 615 280" fill="none" stroke="url(#gradIcon)" stroke-width="12" stroke-linecap="round" opacity="0.85"/>
+
+    <path d="       M 405 345       L 735 150       Q 760 135 770 162       L 800 250       Q 810 280 780 290       L 695 320       Q 670 330 665 305       L 655 260       L 445 390       Q 425 403 413 385       Q 399 365 405 345 Z" fill="url(#gradIcon)"/>
+
+    <path d="       M 767 130       L 885 90       Q 915 80 905 110       L 870 225       Q 860 255 835 232       L 775 175       Q 755 156 767 130 Z" fill="url(#gradIcon)"/>
+
+    <circle cx="910" cy="100" r="10" fill="#34D399" opacity="0.95"/>
+    <circle cx="945" cy="130" r="6" fill="#34D399" opacity="0.9"/>
+    <circle cx="895" cy="145" r="5" fill="#34D399" opacity="0.85"/>
+  </g>
+</svg>

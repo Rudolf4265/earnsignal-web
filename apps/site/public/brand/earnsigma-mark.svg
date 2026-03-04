@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="110 90 270 390" role="img" aria-label="EarnSigma mark">
+  <defs>
+    <linearGradient id="markGradient" x1="130" y1="470" x2="380" y2="95" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1B4DFF"/>
+      <stop offset="0.55" stop-color="#25A6FF"/>
+      <stop offset="1" stop-color="#34D399"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M142 96h230v62H245l93 96c16 17 16 43 0 60l-93 96h127v62H142c-34 0-53-39-32-67l122-121-122-122c-21-28-2-66 32-66Z" fill="url(#markGradient)"/>
+  <path d="M214 158h133l-72 76h72v54h-72l72 76H214l-66-70c-14-15-14-38 0-53l66-71Z" fill="#061526" opacity="0.9"/>
+</svg>

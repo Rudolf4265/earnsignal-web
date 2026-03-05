@@ -1,62 +1,66 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Badge } from "../_components/dashboard/Badge";
+import { EmptyState } from "../_components/dashboard/EmptyState";
+import { Panel } from "../_components/dashboard/Panel";
+import { SkeletonBlock } from "../../_components/ui/skeleton";
 import { FeatureGuard } from "../../_components/feature-guard";
+import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
-import { fetchReportDetail, type ReportDetail } from "@/src/lib/api/reports";
-import { getLatestUploadStatus } from "@/src/lib/api/upload";
-import { mapUploadStatus } from "@/src/lib/upload/status";
+import { downloadReportArtifactPdf, fetchReportsList, getReportErrorMessage, type ReportListItem } from "@/src/lib/api/reports";
+import { toReportListRows, type ReportListRow } from "@/src/lib/report/list-model";
 
 type ReportsState = {
   loading: boolean;
+  loadingMore: boolean;
   error: string | null;
-  reports: ReportDetail[];
+  requestId?: string;
+  items: ReportListItem[];
+  nextOffset: number | null;
+  hasMore: boolean;
 };
 
 const initialState: ReportsState = {
   loading: true,
+  loadingMore: false,
   error: null,
-  reports: [],
+  requestId: undefined,
+  items: [],
+  nextOffset: null,
+  hasMore: false,
 };
 
-function formatDate(value?: string): string {
-  if (!value) {
-    return "--";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  }).format(date);
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unable to load reports.";
 }
 
 export default function ReportsPage() {
   const [state, setState] = useState<ReportsState>(initialState);
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadRequestId, setDownloadRequestId] = useState<string | undefined>(undefined);
+  const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
+
+  const reportRows = useMemo(() => toReportListRows(state.items), [state.items]);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadReports() {
+    async function loadInitialPage() {
+      setState({
+        loading: true,
+        loadingMore: false,
+        error: null,
+        requestId: undefined,
+        items: [],
+        nextOffset: null,
+        hasMore: false,
+      });
+
       try {
-        let report: ReportDetail | null = null;
-        try {
-          const latestUpload = await getLatestUploadStatus();
-          const mapped = mapUploadStatus(latestUpload);
-          if (mapped.reportId) {
-            report = await fetchReportDetail(mapped.reportId);
-          }
-        } catch (error) {
-          if (!(isApiError(error) && error.status === 404)) {
-            throw error;
-          }
-        }
+        const page = await fetchReportsList();
 
         if (cancelled) {
           return;
@@ -64,8 +68,12 @@ export default function ReportsPage() {
 
         setState({
           loading: false,
+          loadingMore: false,
           error: null,
-          reports: report ? [report] : [],
+          requestId: undefined,
+          items: page.items,
+          nextOffset: page.nextOffset,
+          hasMore: page.hasMore,
         });
       } catch (error) {
         if (cancelled) {
@@ -74,48 +82,175 @@ export default function ReportsPage() {
 
         setState({
           loading: false,
-          error: error instanceof Error ? error.message : "Unable to load reports.",
-          reports: [],
+          loadingMore: false,
+          error: toErrorMessage(error),
+          requestId: isApiError(error) ? error.requestId : undefined,
+          items: [],
+          nextOffset: null,
+          hasMore: false,
         });
       }
     }
 
-    void loadReports();
+    void loadInitialPage();
 
     return () => {
       cancelled = true;
     };
+  }, [reloadNonce]);
+
+  const retryLoad = useCallback(() => {
+    setReloadNonce((prev) => prev + 1);
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (state.loading || state.loadingMore || !state.hasMore || state.nextOffset === null) {
+      return;
+    }
+
+    setState((prev) => ({
+      ...prev,
+      loadingMore: true,
+      error: null,
+      requestId: undefined,
+    }));
+
+    try {
+      const page = await fetchReportsList(state.nextOffset);
+      setState((prev) => ({
+        ...prev,
+        loadingMore: false,
+        items: [...prev.items, ...page.items],
+        nextOffset: page.nextOffset,
+        hasMore: page.hasMore,
+      }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        loadingMore: false,
+        error: toErrorMessage(error),
+        requestId: isApiError(error) ? error.requestId : undefined,
+      }));
+    }
+  }, [state.hasMore, state.loading, state.loadingMore, state.nextOffset]);
+
+  const handleDownload = useCallback(async (row: ReportListRow) => {
+    if (!row.canDownload || !row.artifactUrl || downloadingReportId) {
+      return;
+    }
+
+    setDownloadError(null);
+    setDownloadRequestId(undefined);
+    setDownloadingReportId(row.id);
+
+    try {
+      await downloadReportArtifactPdf({
+        reportId: row.id,
+        title: row.title,
+        artifactUrl: row.artifactUrl,
+      });
+    } catch (error) {
+      setDownloadError(getReportErrorMessage(error));
+      setDownloadRequestId(isApiError(error) ? error.requestId : undefined);
+    } finally {
+      setDownloadingReportId(null);
+    }
+  }, [downloadingReportId]);
 
   return (
     <FeatureGuard feature="report">
-      <div className="space-y-4">
-        <h1 className="text-2xl font-semibold text-slate-900">Reports</h1>
-        <p className="text-slate-600">Choose a report to review analysis details.</p>
-        {state.error ? <p className="text-sm text-rose-700">Report list unavailable: {state.error}</p> : null}
+      <div className="space-y-6">
+        <header>
+          <h1 className="text-2xl font-semibold text-slate-900">Reports</h1>
+          <p className="mt-1 text-slate-600">Choose a report to review analysis details.</p>
+        </header>
 
-        {state.loading ? (
-          <p className="text-sm text-slate-600">Loading reports...</p>
-        ) : state.reports.length > 0 ? (
-          <div className="space-y-2">
-            {state.reports.map((report) => (
-              <Link
-                key={report.id}
-                href={`/app/report/${report.id}`}
-                className="block rounded-lg border border-slate-200 bg-white px-4 py-3 transition hover:bg-slate-100"
-              >
-                <p className="text-sm font-semibold text-slate-900">{report.title}</p>
-                <p className="mt-1 text-xs text-slate-600">
-                  {report.id} - {formatDate(report.createdAt)}
-                </p>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-            No reports yet. Upload data to generate your first report.
-          </div>
-        )}
+        {state.error ? <ErrorBanner title="Report list unavailable" message={state.error} requestId={state.requestId} onRetry={retryLoad} /> : null}
+        {downloadError ? (
+          <ErrorBanner
+            title="Report download unavailable"
+            message={downloadError}
+            requestId={downloadRequestId}
+            retryLabel="Dismiss"
+            onRetry={() => {
+              setDownloadError(null);
+              setDownloadRequestId(undefined);
+            }}
+          />
+        ) : null}
+
+        <Panel
+          title="Recent Reports"
+          description="Generated analyses and processing status."
+          rightSlot={
+            <Link
+              href="/app/data"
+              className="inline-flex rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+            >
+              Upload
+            </Link>
+          }
+        >
+          {state.loading ? (
+            <div className="space-y-2" data-testid="report-list-loading">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                  <div className="flex-1 space-y-2">
+                    <SkeletonBlock className="h-4 w-40" />
+                    <SkeletonBlock className="h-3 w-32" />
+                  </div>
+                  <SkeletonBlock className="h-6 w-24" />
+                  <SkeletonBlock className="h-8 w-16" />
+                </div>
+              ))}
+            </div>
+          ) : reportRows.length > 0 ? (
+            <div className="space-y-2" data-testid="report-list">
+              {reportRows.map((row) => (
+                <div key={row.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                  <div className="min-w-[12rem] flex-1">
+                    <p className="text-sm font-semibold text-slate-900">{row.title}</p>
+                    <p className="mt-1 text-xs text-slate-600">{row.createdAtLabel}</p>
+                  </div>
+                  <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={row.viewHref}
+                      className="inline-flex rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                    >
+                      View
+                    </Link>
+                    {row.canDownload ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleDownload(row)}
+                        disabled={Boolean(downloadingReportId)}
+                        className="inline-flex rounded-xl bg-brand-blue px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {downloadingReportId === row.id ? "Downloading..." : "Download PDF"}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+
+              {state.hasMore ? (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => void loadMore()}
+                    disabled={state.loadingMore}
+                    className="inline-flex rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {state.loadingMore ? "Loading..." : "Load more"}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <EmptyState title="No reports yet" body="Upload data to generate your first report." ctaLabel="Upload" ctaHref="/app/data" />
+          )}
+        </Panel>
       </div>
     </FeatureGuard>
   );

@@ -1,8 +1,9 @@
 import { ApiError, apiFetchBlob, apiFetchJson, getApiBaseOrigin } from "./client";
 import { normalizeReportDetail, type ReportDetail } from "../report/normalize-report-detail";
+import { normalizeReportsListResponse, type ReportListItem, type ReportListResult } from "../report/list-model";
 import type { ReportDetailResponseSchema } from "./generated";
 
-export type { ReportDetail };
+export type { ReportDetail, ReportListItem, ReportListResult };
 
 export async function fetchReportDetail(reportId: string): Promise<ReportDetail> {
   const data = await apiFetchJson<ReportDetailResponseSchema>("report.fetch", `/v1/reports/${encodeURIComponent(reportId)}`, {
@@ -10,6 +11,16 @@ export async function fetchReportDetail(reportId: string): Promise<ReportDetail>
   });
 
   return normalizeReportDetail(reportId, data as Record<string, unknown>);
+}
+
+export async function fetchReportsList(offset?: number | null): Promise<ReportListResult> {
+  const normalizedOffset = typeof offset === "number" && Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : null;
+  const path = normalizedOffset === null ? "/v1/reports" : `/v1/reports?offset=${encodeURIComponent(String(normalizedOffset))}`;
+  const data = await apiFetchJson<Record<string, unknown>>("reports.list", path, {
+    method: "GET",
+  });
+
+  return normalizeReportsListResponse(data);
 }
 
 function isAbsoluteHttpUrl(value: string): boolean {
@@ -22,6 +33,14 @@ function resolveReportPdfPath(report: ReportDetail): string {
   }
 
   return `/v1/reports/${encodeURIComponent(report.id)}/pdf`;
+}
+
+function normalizeFilenameSegment(value: string): string {
+  return value
+    .replace(/[^a-z0-9._-]+/gi, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
 }
 
 async function fetchPdfBlobFromAbsoluteUrl(url: string): Promise<Blob> {
@@ -69,6 +88,46 @@ export async function fetchReportPdfBlobUrl(report: ReportDetail): Promise<strin
 
   validatePdfBlob(blob);
   return URL.createObjectURL(blob);
+}
+
+export async function downloadReportArtifactPdf(report: Pick<ReportListItem, "reportId" | "title" | "artifactUrl">): Promise<void> {
+  if (typeof window === "undefined") {
+    throw new Error("Report downloads are only available in the browser.");
+  }
+
+  const path = report.artifactUrl?.trim();
+  if (!path) {
+    throw new Error("Report artifact is unavailable.");
+  }
+
+  let blob: Blob;
+  if (isAbsoluteHttpUrl(path)) {
+    const apiOrigin = getApiBaseOrigin();
+    const pathOrigin = new URL(path).origin;
+    if (pathOrigin === apiOrigin) {
+      blob = await apiFetchBlob("report.artifact", path, { method: "GET", headers: { Accept: "application/pdf" } });
+    } else {
+      blob = await fetchPdfBlobFromAbsoluteUrl(path);
+    }
+  } else {
+    blob = await apiFetchBlob("report.artifact", path, { method: "GET", headers: { Accept: "application/pdf" } });
+  }
+
+  validatePdfBlob(blob);
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const link = document.createElement("a");
+    const baseName = normalizeFilenameSegment(report.title ?? "");
+    const fallbackName = normalizeFilenameSegment(`report-${report.reportId}`);
+    link.href = objectUrl;
+    link.download = `${baseName || fallbackName || "report"}.pdf`;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
 }
 
 export function getReportErrorMessage(error: unknown): string {

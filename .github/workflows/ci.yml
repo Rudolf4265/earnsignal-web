@@ -154,6 +154,25 @@ EOF
       - name: Lint
         run: npm run lint
 
+      - name: Check generated OpenAPI types (optional)
+        env:
+          OPENAPI_SCHEMA_URL_VAR: ${{ vars.OPENAPI_SCHEMA_URL }}
+          OPENAPI_SCHEMA_URL_SECRET: ${{ secrets.OPENAPI_SCHEMA_URL }}
+        run: |
+          set -euo pipefail
+          OPENAPI_SCHEMA_URL="${OPENAPI_SCHEMA_URL_VAR:-}"
+          if [ -z "$OPENAPI_SCHEMA_URL" ]; then
+            OPENAPI_SCHEMA_URL="${OPENAPI_SCHEMA_URL_SECRET:-}"
+          fi
+
+          if [ -z "$OPENAPI_SCHEMA_URL" ]; then
+            echo "OPENAPI_SCHEMA_URL not set in CI; skipping api:generate:check."
+            exit 0
+          fi
+
+          export OPENAPI_SCHEMA_URL
+          npm run api:generate:check
+
       - name: Build
         run: npm run build
 

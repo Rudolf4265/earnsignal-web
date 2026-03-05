@@ -140,9 +140,19 @@ npm run api:generate:check
 
 Generation inputs:
 
-- `OPENAPI_SCHEMA_URL` (preferred, for example `https://api.earnsigma.com/openapi.json`)
-- or `NEXT_PUBLIC_API_BASE_URL` (generator appends `/openapi.json`)
+- `OPENAPI_SCHEMA_URL` (required for `api:generate`, for example `https://api.earnsigma.com/openapi.json`)
 - optional output override: `OPENAPI_TYPES_OUT` (defaults to `src/lib/api/generated/schema.ts`)
+
+Expected behavior:
+
+- `npm run api:generate` fails fast with a clear message if `OPENAPI_SCHEMA_URL` is missing.
+- `npm run api:generate:check` exits `0` and prints a skip message when `OPENAPI_SCHEMA_URL` is missing.
+- `npm run api:generate:check` validates deterministically when `OPENAPI_SCHEMA_URL` is set and reachable.
+
+CI recommendation:
+
+- Always run lint/type/build/test.
+- Run `api:generate:check` only when `OPENAPI_SCHEMA_URL` is provided in CI environment.
 
 Backend deploy env requirement for live checkout:
 

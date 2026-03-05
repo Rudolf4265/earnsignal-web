@@ -105,3 +105,32 @@ test("apiFetchJson normalizes envelope success payloads with nested details", as
     global.fetch = originalFetch;
   }
 });
+
+test("apiFetchJson valid JSON does not include non-json marker fields", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+
+  global.fetch = async () => ({
+    ok: true,
+    status: 200,
+    headers: {
+      get: (key) => {
+        if (key === "content-type") return "application/json";
+        return null;
+      },
+    },
+    text: async () => JSON.stringify({ ok: true, nested: { value: 1 } }),
+  });
+
+  try {
+    const { apiFetchJson } = await import(`${moduleUrl}?t=${Date.now() + 3}`);
+    const payload = await apiFetchJson("reports.fetch", "/v1/reports/rep_123", { method: "GET" });
+
+    assert.deepEqual(payload, { ok: true, nested: { value: 1 } });
+    assert.equal(Object.prototype.hasOwnProperty.call(payload, "__nonJsonText"), false);
+    assert.equal(Object.prototype.hasOwnProperty.call(payload, "__invalidJsonText"), false);
+    assert.equal(Object.prototype.hasOwnProperty.call(payload, "__responseContentType"), false);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});

@@ -6,6 +6,7 @@ export type ReportDetail = {
   createdAt?: string;
   updatedAt?: string;
   pdfUrl: string | null;
+  artifactJsonUrl: string | null;
   keySignals: string[];
   recommendedActions: string[];
   metrics: {
@@ -190,6 +191,7 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
     createdAt: readString(payload, ["created_at", "createdAt"]) || undefined,
     updatedAt: readString(payload, ["updated_at", "updatedAt"]) || undefined,
     pdfUrl: findPdfUrl(payload),
+    artifactJsonUrl: readString(payload, ["artifact_json_url", "artifactJsonUrl"], "") || null,
     keySignals,
     recommendedActions,
     metrics: {

@@ -100,15 +100,16 @@ async function parseBody(response: Response): Promise<unknown> {
 
   const contentType = response.headers.get("content-type");
   const jsonLike = text.trimStart().startsWith("{") || text.trimStart().startsWith("[");
+  const normalizedContentType = contentType ?? "unknown";
 
   if (!isJsonContentType(contentType) && !jsonLike) {
-    return { __nonJsonText: text };
+    return { __nonJsonText: text, __responseContentType: normalizedContentType };
   }
 
   try {
     return JSON.parse(text) as unknown;
   } catch {
-    return { __invalidJsonText: text };
+    return { __invalidJsonText: text, __responseContentType: normalizedContentType };
   }
 }
 

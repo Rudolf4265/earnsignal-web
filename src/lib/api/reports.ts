@@ -13,6 +13,15 @@ export async function fetchReportDetail(reportId: string): Promise<ReportDetail>
   return normalizeReportDetail(reportId, data as Record<string, unknown>);
 }
 
+export async function fetchReportArtifactJson(artifactJsonUrl: string): Promise<unknown> {
+  return apiFetchJson<unknown>("report.artifact_json", artifactJsonUrl, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+}
+
 export async function fetchReportsList(offset?: number | null): Promise<ReportListResult> {
   const normalizedOffset = typeof offset === "number" && Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : null;
   const path = normalizedOffset === null ? "/v1/reports" : `/v1/reports?offset=${encodeURIComponent(String(normalizedOffset))}`;

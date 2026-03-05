@@ -75,11 +75,13 @@ function isFresh(fetchedAt: number): boolean {
 
 function normalizeEntitlements(value: Record<string, unknown>): EntitlementsResponse {
   const features = (value.features as EntitlementFeatures | undefined) ?? {};
-  const plan = (value.plan as string | null | undefined) ?? null;
+  const plan = (value.plan as string | null | undefined) ?? (value.plan_tier as string | null | undefined) ?? null;
   const status = (value.status as string | null | undefined) ?? null;
-  const entitled =
+  const explicitEntitled =
     (value.entitled as boolean | undefined) ??
-    Boolean((features.app ?? features.upload ?? features.report ?? (status === "active" || status === "trialing")));
+    (value.is_active as boolean | undefined);
+  const featureEntitled = features.app === true || features.upload === true || features.report === true;
+  const entitled = explicitEntitled ?? (featureEntitled || status === "active" || status === "trialing");
 
   return {
     plan,

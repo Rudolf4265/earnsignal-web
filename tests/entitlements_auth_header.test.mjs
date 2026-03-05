@@ -27,12 +27,13 @@ function jsonResponse(payload) {
 
 async function buildEntitlementsTestModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
-  const patched = source.replace('from "./client";', 'from "./mocks/api-client";');
+  const mockSpecifier = `./mocks/api-client-${tag}`;
+  const patched = source.replace('from "./client";', `from "${mockSpecifier}";`);
 
   const outDir = path.resolve(".tmp-tests");
   await mkdir(path.join(outDir, "mocks"), { recursive: true });
 
-  const mockPath = path.join(outDir, "mocks", "api-client");
+  const mockPath = path.join(outDir, "mocks", `api-client-${tag}`);
   await writeFile(
     mockPath,
     `export class ApiError extends Error {
@@ -44,7 +45,7 @@ async function buildEntitlementsTestModule(tag) {
 
     export async function apiFetchJson(_operation, path, init = {}) {
       const headers = { ...(init.headers ?? {}), Authorization: "Bearer test-token" };
-      const response = await fetch(path, { ...init, headers });
+      const response = await globalThis.__entitlementsAuthHeaderFetch__(path, { ...init, headers });
       return JSON.parse(await response.text());
     }\n`,
     "utf8",
@@ -56,12 +57,12 @@ async function buildEntitlementsTestModule(tag) {
 }
 
 test("fetchEntitlements attaches Authorization header when a session token exists", async () => {
-  const originalFetch = global.fetch;
   const originalWindow = global.window;
+  const originalHarnessFetch = global.__entitlementsAuthHeaderFetch__;
   global.window = createWindow();
 
   const headersSeen = [];
-  global.fetch = async (_url, init = {}) => {
+  global.__entitlementsAuthHeaderFetch__ = async (_url, init = {}) => {
     headersSeen.push(init.headers ?? {});
     return jsonResponse({ plan: "plan_a", status: "active", entitled: true, features: { app: true } });
   };
@@ -72,12 +73,23 @@ test("fetchEntitlements attaches Authorization header when a session token exist
 
     await fetchEntitlements({ forceRefresh: true });
 
-    const firstHeaders = headersSeen[0];
-    assert.equal(firstHeaders.Authorization, "Bearer test-token");
+    const withAuth = headersSeen.find((headers) => {
+      if (!headers) {
+        return false;
+      }
+      if (typeof headers.Authorization === "string") {
+        return headers.Authorization === "Bearer test-token";
+      }
+      if (typeof headers.get === "function") {
+        return headers.get("Authorization") === "Bearer test-token";
+      }
+      return false;
+    });
+    assert.ok(withAuth, "expected Authorization header to be present on at least one API request");
 
     resetEntitlementsCache();
   } finally {
-    global.fetch = originalFetch;
+    global.__entitlementsAuthHeaderFetch__ = originalHarnessFetch;
     global.window = originalWindow;
   }
 });

@@ -6,8 +6,12 @@ import { Badge } from "./_components/dashboard/Badge";
 import { EmptyState } from "./_components/dashboard/EmptyState";
 import { KpiCard } from "./_components/dashboard/KpiCard";
 import { Panel } from "./_components/dashboard/Panel";
+import { useAppGate } from "../_components/app-gate-provider";
+import { SkeletonBlock } from "../_components/ui/skeleton";
+import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
-import { fetchReportDetail, type ReportDetail } from "@/src/lib/api/reports";
+import { fetchReportDetail, fetchReportsList, type ReportDetail } from "@/src/lib/api/reports";
+import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
 import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
 
@@ -24,12 +28,20 @@ const fallbackActions = [
   "Track changes over time to verify whether actions improve net revenue.",
 ];
 
+type LatestReportRow = {
+  id: string;
+  date: string;
+  status: string;
+};
+
 type DashboardState = {
   loading: boolean;
   refreshing: boolean;
   error: string | null;
   latestUpload: UploadStatusView | null;
   latestReport: ReportDetail | null;
+  latestReportRow: LatestReportRow | null;
+  hasReports: boolean;
 };
 
 const initialState: DashboardState = {
@@ -38,6 +50,8 @@ const initialState: DashboardState = {
   error: null,
   latestUpload: null,
   latestReport: null,
+  latestReportRow: null,
+  hasReports: false,
 };
 
 function formatCurrency(value: number | null): string {
@@ -100,10 +114,32 @@ function toBadgeLabel(status: string): string {
     return "Processing";
   }
 
-  return status;
+  if (!status.trim()) {
+    return "Unknown";
+  }
+
+  return status
+    .split(/[_\s-]+/)
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function toPlanBadgeVariant(status: string | null, entitled: boolean): "good" | "warn" | "neutral" {
+  const normalized = (status ?? "").toLowerCase();
+  if (entitled && (normalized === "active" || normalized === "trialing")) {
+    return "good";
+  }
+
+  if (!entitled || ["inactive", "past_due", "canceled", "cancelled", "incomplete", "unpaid"].includes(normalized)) {
+    return "warn";
+  }
+
+  return "neutral";
 }
 
 export default function DashboardPage() {
+  const { entitlements } = useAppGate();
   const [state, setState] = useState<DashboardState>(initialState);
   const [refreshNonce, setRefreshNonce] = useState(0);
 
@@ -130,11 +166,39 @@ export default function DashboardPage() {
           }
         }
 
+        let latestReportRow: LatestReportRow | null = null;
+        let hasReports = false;
+
+        try {
+          const reports = await fetchReportsList();
+          const firstReport = reports.items[0] ?? null;
+          if (firstReport) {
+            latestReportRow = {
+              id: firstReport.reportId,
+              date: formatDate(firstReport.createdAt),
+              status: firstReport.status || "unknown",
+            };
+            hasReports = true;
+          }
+        } catch (error) {
+          if (!(isApiError(error) && error.status === 404)) {
+            throw error;
+          }
+        }
+
         let latestReport: ReportDetail | null = null;
-        const reportId = latestUpload?.reportId;
+        const reportId = latestReportRow?.id ?? latestUpload?.reportId;
         if (reportId) {
           try {
             latestReport = await fetchReportDetail(reportId);
+            hasReports = true;
+            if (!latestReportRow) {
+              latestReportRow = {
+                id: latestReport.id,
+                date: formatDate(latestReport.createdAt),
+                status: latestReport.status || "unknown",
+              };
+            }
           } catch (error) {
             if (!(isApiError(error) && error.status === 404)) {
               throw error;
@@ -152,6 +216,8 @@ export default function DashboardPage() {
           error: null,
           latestUpload,
           latestReport,
+          latestReportRow,
+          hasReports,
         });
       } catch (error) {
         if (cancelled) {
@@ -188,13 +254,19 @@ export default function DashboardPage() {
     return values.length > 0 ? values : fallbackActions;
   }, [state.latestReport]);
 
-  const latestReportRow = state.latestReport
-    ? {
-        id: state.latestReport.id,
-        date: formatDate(state.latestReport.createdAt),
-        status: state.latestReport.status || "unknown",
-      }
-    : null;
+  const planTier = entitlements?.plan ?? "None";
+  const planStatus = entitlements?.status ?? "inactive";
+  const entitled = entitlements?.entitled === true;
+
+  const primaryCta = useMemo(
+    () =>
+      decideDashboardPrimaryCta({
+        entitled,
+        hasUploads: state.latestUpload !== null,
+        hasReports: state.hasReports,
+      }),
+    [entitled, state.hasReports, state.latestUpload],
+  );
 
   const kpis = state.latestReport?.metrics ?? {
     netRevenue: null,
@@ -213,7 +285,13 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>
           <p className="mt-2 text-slate-600">High-level revenue signals and structural stability.</p>
-          {state.error ? <p className="mt-2 text-sm text-rose-700">Data refresh failed: {state.error}</p> : null}
+          {state.error ? (
+            <ErrorBanner
+              className="mt-3 border-rose-200 bg-rose-50 [&>p]:text-rose-900 [&>p+p]:text-rose-700"
+              title="Data refresh failed"
+              message={state.error}
+            />
+          ) : null}
         </div>
         <div className="flex gap-2">
           <button
@@ -225,10 +303,10 @@ export default function DashboardPage() {
             {state.refreshing ? "Refreshing..." : "Refresh"}
           </button>
           <Link
-            href="/app/data"
+            href={primaryCta.href}
             className="inline-flex w-fit rounded-xl bg-brand-blue px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
           >
-            Upload data
+            {primaryCta.label}
           </Link>
         </div>
       </div>
@@ -271,8 +349,8 @@ export default function DashboardPage() {
               <EmptyState
                 title="Charts appear once data is connected"
                 body="Upload revenue data to populate trend lines, variance windows, and seasonality insights."
-                ctaLabel="Upload data"
-                ctaHref="/app/data"
+                ctaLabel={primaryCta.label}
+                ctaHref={primaryCta.href}
               />
             )}
           </Panel>
@@ -280,13 +358,57 @@ export default function DashboardPage() {
 
         <div className="space-y-8">
           <Panel
+            title="Plan & Status"
+            rightSlot={
+              !entitled ? (
+                <Link
+                  href="/app/billing"
+                  className="inline-flex rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                >
+                  Upgrade
+                </Link>
+              ) : undefined
+            }
+          >
+            <dl className="space-y-4">
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-600">Plan tier</dt>
+                <dd className="mt-1 text-sm text-slate-900">{planTier}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-600">Status</dt>
+                <dd className="mt-1">
+                  <Badge variant={toPlanBadgeVariant(planStatus, entitled)}>{toBadgeLabel(planStatus)}</Badge>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-600">Gated state</dt>
+                <dd className="mt-1 text-sm text-slate-900">{entitled ? "Active" : "Upgrade required"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-slate-600">Workspace readiness</dt>
+                <dd className="mt-1 text-sm text-slate-900">
+                  {state.loading ? (
+                    <div className="space-y-2 pt-1">
+                      <SkeletonBlock className="h-3 w-32 bg-slate-200" />
+                      <SkeletonBlock className="h-3 w-40 bg-slate-200" />
+                    </div>
+                  ) : (
+                    `${state.latestUpload ? "Uploads detected" : "No uploads yet"} - ${state.hasReports ? "Reports available" : "No reports yet"}`
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </Panel>
+
+          <Panel
             title="Data Status"
             rightSlot={
               <Link
-                href="/app/data"
+                href={primaryCta.href}
                 className="inline-flex rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
               >
-                Upload data
+                {primaryCta.label}
               </Link>
             }
           >
@@ -309,15 +431,15 @@ export default function DashboardPage() {
           </Panel>
 
           <Panel title="Recent Reports" description="Latest generated analyses and quality status.">
-            {latestReportRow ? (
+            {state.latestReportRow ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <div>
-                    <p className="text-sm text-slate-900">{latestReportRow.date}</p>
+                    <p className="text-sm text-slate-900">{state.latestReportRow.date}</p>
                   </div>
-                  <Badge variant={toBadgeVariant(latestReportRow.status)}>{toBadgeLabel(latestReportRow.status)}</Badge>
+                  <Badge variant={toBadgeVariant(state.latestReportRow.status)}>{toBadgeLabel(state.latestReportRow.status)}</Badge>
                   <Link
-                    href={`/app/report/${latestReportRow.id}`}
+                    href={`/app/report/${state.latestReportRow.id}`}
                     className="inline-flex rounded-xl border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                   >
                     View
@@ -328,8 +450,8 @@ export default function DashboardPage() {
               <EmptyState
                 title={state.loading ? "Loading report data..." : "No reports generated yet."}
                 body="Upload your data and generate analysis to see report quality and summaries here."
-                ctaLabel="Upload data"
-                ctaHref="/app/data"
+                ctaLabel={primaryCta.label}
+                ctaHref={primaryCta.href}
               />
             )}
           </Panel>

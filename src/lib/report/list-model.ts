@@ -129,6 +129,14 @@ export function normalizeReportsListResponse(payload: Record<string, unknown>): 
   };
 }
 
+export function computeHasReportsFromListResult(result: Pick<ReportListResult, "items">): boolean {
+  return result.items.length > 0;
+}
+
+export function computeHasReportsFromListResponse(payload: Record<string, unknown>): boolean {
+  return computeHasReportsFromListResult(normalizeReportsListResponse(payload));
+}
+
 export function formatReportCreatedAt(value: string | null | undefined): string {
   if (!value) {
     return "--";

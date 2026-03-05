@@ -14,6 +14,7 @@ import { fetchReportDetail, fetchReportsList, type ReportDetail } from "@/src/li
 import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
 import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
+import { computeHasReportsFromListResult } from "@/src/lib/report/list-model";
 
 const fallbackSignals = [
   "Revenue trend detection will appear after your first completed report.",
@@ -38,20 +39,22 @@ type DashboardState = {
   loading: boolean;
   refreshing: boolean;
   error: string | null;
+  reportsCheckError: string | null;
   latestUpload: UploadStatusView | null;
   latestReport: ReportDetail | null;
   latestReportRow: LatestReportRow | null;
-  hasReports: boolean;
+  hasReports: boolean | null;
 };
 
 const initialState: DashboardState = {
   loading: true,
   refreshing: false,
   error: null,
+  reportsCheckError: null,
   latestUpload: null,
   latestReport: null,
   latestReportRow: null,
-  hasReports: false,
+  hasReports: null,
 };
 
 function formatCurrency(value: number | null): string {
@@ -166,39 +169,17 @@ export default function DashboardPage() {
           }
         }
 
-        let latestReportRow: LatestReportRow | null = null;
-        let hasReports = false;
-
-        try {
-          const reports = await fetchReportsList();
-          const firstReport = reports.items[0] ?? null;
-          if (firstReport) {
-            latestReportRow = {
-              id: firstReport.reportId,
-              date: formatDate(firstReport.createdAt),
-              status: firstReport.status || "unknown",
-            };
-            hasReports = true;
-          }
-        } catch (error) {
-          if (!(isApiError(error) && error.status === 404)) {
-            throw error;
-          }
-        }
-
         let latestReport: ReportDetail | null = null;
-        const reportId = latestReportRow?.id ?? latestUpload?.reportId;
+        let latestReportRow: LatestReportRow | null = null;
+        const reportId = latestUpload?.reportId;
         if (reportId) {
           try {
             latestReport = await fetchReportDetail(reportId);
-            hasReports = true;
-            if (!latestReportRow) {
-              latestReportRow = {
-                id: latestReport.id,
-                date: formatDate(latestReport.createdAt),
-                status: latestReport.status || "unknown",
-              };
-            }
+            latestReportRow = {
+              id: latestReport.id,
+              date: formatDate(latestReport.createdAt),
+              status: latestReport.status || "unknown",
+            };
           } catch (error) {
             if (!(isApiError(error) && error.status === 404)) {
               throw error;
@@ -210,15 +191,16 @@ export default function DashboardPage() {
           return;
         }
 
-        setState({
+        setState((prev) => ({
+          ...prev,
           loading: false,
           refreshing: false,
           error: null,
           latestUpload,
           latestReport,
-          latestReportRow,
-          hasReports,
-        });
+          latestReportRow: latestReportRow ?? prev.latestReportRow,
+          hasReports: latestReport ? true : prev.hasReports,
+        }));
       } catch (error) {
         if (cancelled) {
           return;
@@ -234,6 +216,63 @@ export default function DashboardPage() {
     }
 
     void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshNonce]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setState((prev) => {
+      if (prev.reportsCheckError === null) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        reportsCheckError: null,
+      };
+    });
+
+    async function loadHasReports() {
+      try {
+        const reports = await fetchReportsList();
+        const hasReports = computeHasReportsFromListResult(reports);
+        const firstReport = reports.items[0] ?? null;
+        if (cancelled) {
+          return;
+        }
+
+        setState((prev) => ({
+          ...prev,
+          hasReports: prev.hasReports === true ? true : hasReports,
+          reportsCheckError: null,
+          latestReportRow:
+            prev.latestReportRow ??
+            (firstReport
+              ? {
+                  id: firstReport.reportId,
+                  date: formatDate(firstReport.createdAt),
+                  status: firstReport.status || "unknown",
+                }
+              : null),
+        }));
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        setState((prev) => ({
+          ...prev,
+          hasReports: prev.hasReports === true ? true : null,
+          reportsCheckError: "Unable to verify report availability right now.",
+        }));
+      }
+    }
+
+    void loadHasReports();
 
     return () => {
       cancelled = true;
@@ -394,9 +433,18 @@ export default function DashboardPage() {
                       <SkeletonBlock className="h-3 w-40 bg-slate-200" />
                     </div>
                   ) : (
-                    `${state.latestUpload ? "Uploads detected" : "No uploads yet"} - ${state.hasReports ? "Reports available" : "No reports yet"}`
+                    `${state.latestUpload ? "Uploads detected" : "No uploads yet"} - ${
+                      state.hasReports === true
+                        ? "Reports available"
+                        : state.hasReports === false
+                          ? "No reports yet"
+                          : "Checking reports..."
+                    }`
                   )}
                 </dd>
+                {!state.loading && state.reportsCheckError ? (
+                  <p className="mt-1 text-xs text-slate-500">{state.reportsCheckError}</p>
+                ) : null}
               </div>
             </dl>
           </Panel>

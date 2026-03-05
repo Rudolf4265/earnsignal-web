@@ -91,3 +91,34 @@ test("report list row mapping formats created_at, status badge, and title fallba
   assert.equal(rows[1].canDownload, false);
   assert.equal(rows[1].viewHref, "/app/report/rep_failed");
 });
+
+test("hasReports extraction prefers items over legacy reports when items is present", async () => {
+  const { computeHasReportsFromListResponse } = await loadListModel(Date.now() + 4);
+
+  const hasReports = computeHasReportsFromListResponse({
+    items: [],
+    reports: [
+      {
+        report_id: "rep_legacy_only",
+        status: "ready",
+      },
+    ],
+  });
+
+  assert.equal(hasReports, false);
+});
+
+test("hasReports extraction falls back to legacy reports when items is missing", async () => {
+  const { computeHasReportsFromListResponse } = await loadListModel(Date.now() + 5);
+
+  const hasReports = computeHasReportsFromListResponse({
+    reports: [
+      {
+        report_id: "rep_legacy",
+        status: "ready",
+      },
+    ],
+  });
+
+  assert.equal(hasReports, true);
+});

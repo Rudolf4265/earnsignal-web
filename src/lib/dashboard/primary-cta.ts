@@ -7,7 +7,7 @@ export type DashboardPrimaryCta = {
 export type DashboardPrimaryCtaInput = {
   entitled: boolean;
   hasUploads: boolean;
-  hasReports: boolean;
+  hasReports: boolean | null;
 };
 
 export function decideDashboardPrimaryCta(input: DashboardPrimaryCtaInput): DashboardPrimaryCta {

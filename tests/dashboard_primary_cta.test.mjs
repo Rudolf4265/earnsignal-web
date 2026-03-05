@@ -57,6 +57,22 @@ test("returns Generate report when uploads exist but reports do not", async () =
   });
 });
 
+test("returns Generate report when report availability is still unknown", async () => {
+  const { decideDashboardPrimaryCta } = await loadModule(Date.now() + 31);
+
+  const cta = decideDashboardPrimaryCta({
+    entitled: true,
+    hasUploads: true,
+    hasReports: null,
+  });
+
+  assert.deepEqual(cta, {
+    kind: "generate_report",
+    label: "Generate report",
+    href: "/app/data",
+  });
+});
+
 test("returns View reports when entitled user has uploads and reports", async () => {
   const { decideDashboardPrimaryCta } = await loadModule(Date.now() + 4);
 

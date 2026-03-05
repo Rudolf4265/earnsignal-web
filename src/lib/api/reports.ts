@@ -1,4 +1,4 @@
-import { ApiError, apiFetchBlob, apiFetchJson, getApiBaseOrigin } from "./client";
+import { ApiError, apiFetchBlobWithMeta, apiFetchJson, getApiBaseOrigin, getApiBaseUrl } from "./client";
 import { normalizeReportDetail, type ReportDetail } from "../report/normalize-report-detail";
 import { normalizeReportsListResponse, type ReportListItem, type ReportListResult } from "../report/list-model";
 import type { ReportDetailResponseSchema } from "./generated";
@@ -36,12 +36,35 @@ function isAbsoluteHttpUrl(value: string): boolean {
   return value.startsWith("http://") || value.startsWith("https://");
 }
 
-function resolveReportPdfPath(report: ReportDetail): string {
-  if (report.pdfUrl && report.pdfUrl.trim()) {
-    return report.pdfUrl.trim();
+function isDirectBrowserUrl(value: string): boolean {
+  return value.startsWith("blob:") || value.startsWith("data:");
+}
+
+type ReportArtifactTarget = {
+  reportId: string;
+  artifactUrl?: string | null;
+};
+
+function resolveReportArtifactPath({ reportId, artifactUrl }: ReportArtifactTarget): string {
+  const trimmed = artifactUrl?.trim();
+  if (trimmed) {
+    return trimmed;
   }
 
-  return `/v1/reports/${encodeURIComponent(report.id)}/pdf`;
+  return `/v1/reports/${encodeURIComponent(reportId)}/artifact`;
+}
+
+function toAbsoluteApiUrl(pathOrUrl: string): string {
+  if (isAbsoluteHttpUrl(pathOrUrl) || isDirectBrowserUrl(pathOrUrl)) {
+    return pathOrUrl;
+  }
+
+  const base = getApiBaseUrl();
+  return `${base}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`;
+}
+
+export function buildReportArtifactPdfUrl(target: ReportArtifactTarget): string {
+  return toAbsoluteApiUrl(resolveReportArtifactPath(target));
 }
 
 function normalizeFilenameSegment(value: string): string {
@@ -52,7 +75,38 @@ function normalizeFilenameSegment(value: string): string {
     .slice(0, 80);
 }
 
-async function fetchPdfBlobFromAbsoluteUrl(url: string): Promise<Blob> {
+function formatPdfContentTypeError(status: number, contentType: string | null): string {
+  const normalizedContentType = contentType && contentType.trim() ? contentType : "unknown";
+  return `PDF endpoint returned non-PDF content (HTTP ${status}, content-type: ${normalizedContentType}).`;
+}
+
+function hasPdfFilenameInContentDisposition(contentDisposition: string | null): boolean {
+  if (!contentDisposition) {
+    return false;
+  }
+
+  return /\.pdf(?:["';\s]|$)/i.test(contentDisposition);
+}
+
+function validatePdfResponse(status: number, contentType: string | null, contentDisposition: string | null): void {
+  const normalized = contentType?.toLowerCase().trim() ?? "";
+  const isPdfContentType = normalized.startsWith("application/pdf");
+  const isPdfOctetStream = normalized.startsWith("application/octet-stream") && hasPdfFilenameInContentDisposition(contentDisposition);
+  if (!isPdfContentType && !isPdfOctetStream) {
+    throw new Error(formatPdfContentTypeError(status, contentType));
+  }
+}
+
+async function fetchPdfBlobFromAbsoluteUrl(
+  operation: string,
+  url: string,
+): Promise<{ blob: Blob; status: number; contentType: string | null; contentDisposition: string | null }> {
+  const apiOrigin = getApiBaseOrigin();
+  const urlOrigin = new URL(url).origin;
+  if (urlOrigin === apiOrigin) {
+    return apiFetchBlobWithMeta(operation, url, { method: "GET", headers: { Accept: "application/pdf" } });
+  }
+
   const response = await fetch(url, {
     method: "GET",
     headers: { Accept: "application/pdf" },
@@ -62,68 +116,42 @@ async function fetchPdfBlobFromAbsoluteUrl(url: string): Promise<Blob> {
     throw new Error(`PDF request failed with status ${response.status}.`);
   }
 
-  return response.blob();
+  return {
+    blob: await response.blob(),
+    status: response.status,
+    contentType: response.headers.get("content-type"),
+    contentDisposition: response.headers.get("content-disposition"),
+  };
 }
 
 function validatePdfBlob(blob: Blob): void {
-  const contentType = blob.type.toLowerCase();
   if (blob.size === 0) {
     throw new Error("Report PDF download returned an empty file.");
-  }
-
-  if (contentType && !contentType.includes("pdf")) {
-    throw new Error(`Expected PDF content but received "${blob.type}".`);
   }
 }
 
 export async function fetchReportPdfBlobUrl(report: ReportDetail): Promise<string> {
-  const path = resolveReportPdfPath(report);
-  if (path.startsWith("blob:") || path.startsWith("data:")) {
-    return path;
+  const absoluteUrl = buildReportArtifactPdfUrl({ reportId: report.id, artifactUrl: report.artifactUrl });
+  if (isDirectBrowserUrl(absoluteUrl)) {
+    return absoluteUrl;
   }
 
-  let blob: Blob;
-  if (isAbsoluteHttpUrl(path)) {
-    const apiOrigin = getApiBaseOrigin();
-    const pathOrigin = new URL(path).origin;
-    if (pathOrigin === apiOrigin) {
-      blob = await apiFetchBlob("report.pdf", path, { method: "GET", headers: { Accept: "application/pdf" } });
-    } else {
-      blob = await fetchPdfBlobFromAbsoluteUrl(path);
-    }
-  } else {
-    blob = await apiFetchBlob("report.pdf", path, { method: "GET", headers: { Accept: "application/pdf" } });
-  }
-
-  validatePdfBlob(blob);
-  return URL.createObjectURL(blob);
+  const result = await fetchPdfBlobFromAbsoluteUrl("report.pdf", absoluteUrl);
+  validatePdfResponse(result.status, result.contentType, result.contentDisposition);
+  validatePdfBlob(result.blob);
+  return URL.createObjectURL(result.blob);
 }
 
-export async function downloadReportArtifactPdf(report: Pick<ReportListItem, "reportId" | "title" | "artifactUrl">): Promise<void> {
+export async function downloadReportArtifactPdf(report: Pick<ReportListItem, "reportId" | "title"> & { artifactUrl?: string | null }): Promise<void> {
   if (typeof window === "undefined") {
     throw new Error("Report downloads are only available in the browser.");
   }
 
-  const path = report.artifactUrl?.trim();
-  if (!path) {
-    throw new Error("Report artifact is unavailable.");
-  }
-
-  let blob: Blob;
-  if (isAbsoluteHttpUrl(path)) {
-    const apiOrigin = getApiBaseOrigin();
-    const pathOrigin = new URL(path).origin;
-    if (pathOrigin === apiOrigin) {
-      blob = await apiFetchBlob("report.artifact", path, { method: "GET", headers: { Accept: "application/pdf" } });
-    } else {
-      blob = await fetchPdfBlobFromAbsoluteUrl(path);
-    }
-  } else {
-    blob = await apiFetchBlob("report.artifact", path, { method: "GET", headers: { Accept: "application/pdf" } });
-  }
-
-  validatePdfBlob(blob);
-  const objectUrl = URL.createObjectURL(blob);
+  const absoluteUrl = buildReportArtifactPdfUrl({ reportId: report.reportId, artifactUrl: report.artifactUrl });
+  const result = await fetchPdfBlobFromAbsoluteUrl("report.artifact", absoluteUrl);
+  validatePdfResponse(result.status, result.contentType, result.contentDisposition);
+  validatePdfBlob(result.blob);
+  const objectUrl = URL.createObjectURL(result.blob);
   try {
     const link = document.createElement("a");
     const baseName = normalizeFilenameSegment(report.title ?? "");

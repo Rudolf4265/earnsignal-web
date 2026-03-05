@@ -42,7 +42,7 @@ function normalizeBaseUrl(raw: string): string {
   return raw.replace(/\/+$/, "");
 }
 
-function getApiBaseUrl(): string {
+export function getApiBaseUrl(): string {
   const configured = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
   if (!configured) {
     throw new Error(
@@ -342,6 +342,18 @@ export async function publicFetchJson<T>(operation: string, path: string, init: 
 }
 
 async function fetchBlob(operation: string, path: string, init: ApiFetchJsonInit = {}, withAuth: boolean): Promise<Blob> {
+  const result = await fetchBlobWithMeta(operation, path, init, withAuth);
+  return result.blob;
+}
+
+export type ApiBlobFetchResult = {
+  blob: Blob;
+  status: number;
+  contentType: string | null;
+  contentDisposition: string | null;
+};
+
+async function fetchBlobWithMeta(operation: string, path: string, init: ApiFetchJsonInit = {}, withAuth: boolean): Promise<ApiBlobFetchResult> {
   const method = init.method ?? "GET";
   const timeoutMs = init.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const url = buildUrl(path);
@@ -420,7 +432,12 @@ async function fetchBlob(operation: string, path: string, init: ApiFetchJsonInit
   }
 
   try {
-    return await response.blob();
+    return {
+      blob: await response.blob(),
+      status: response.status,
+      contentType: response.headers.get("content-type"),
+      contentDisposition: response.headers.get("content-disposition"),
+    };
   } finally {
     cleanup();
   }
@@ -432,4 +449,12 @@ export async function apiFetchBlob(operation: string, path: string, init: ApiFet
 
 export async function publicFetchBlob(operation: string, path: string, init: ApiFetchJsonInit = {}): Promise<Blob> {
   return fetchBlob(operation, path, init, false);
+}
+
+export async function apiFetchBlobWithMeta(operation: string, path: string, init: ApiFetchJsonInit = {}): Promise<ApiBlobFetchResult> {
+  return fetchBlobWithMeta(operation, path, init, true);
+}
+
+export async function publicFetchBlobWithMeta(operation: string, path: string, init: ApiFetchJsonInit = {}): Promise<ApiBlobFetchResult> {
+  return fetchBlobWithMeta(operation, path, init, false);
 }

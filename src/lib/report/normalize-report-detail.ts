@@ -5,6 +5,7 @@ export type ReportDetail = {
   summary: string;
   createdAt?: string;
   updatedAt?: string;
+  artifactUrl: string | null;
   pdfUrl: string | null;
   artifactJsonUrl: string | null;
   keySignals: string[];
@@ -99,18 +100,18 @@ function readStringArray(record: Record<string, unknown>, keys: string[]): strin
   return [];
 }
 
-function findPdfUrl(record: Record<string, unknown>): string | null {
+function findArtifactUrl(record: Record<string, unknown>): string | null {
   const direct = readString(
     record,
     [
+      "artifact_url",
+      "artifactUrl",
       "pdf_url",
       "pdfUrl",
       "report_pdf_url",
       "reportPdfUrl",
       "download_url",
       "downloadUrl",
-      "artifact_url",
-      "artifactUrl",
       "pdf.url",
       "files.pdf_url",
       "files.pdfUrl",
@@ -169,6 +170,7 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
     "nextActions",
     "report_body.executive_summary.top_90_day_actions",
   ]);
+  const artifactUrl = findArtifactUrl(payload);
 
   return {
     id: readString(payload, ["id", "report_id", "reportId"], reportId),
@@ -190,7 +192,8 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
     ),
     createdAt: readString(payload, ["created_at", "createdAt"]) || undefined,
     updatedAt: readString(payload, ["updated_at", "updatedAt"]) || undefined,
-    pdfUrl: findPdfUrl(payload),
+    artifactUrl,
+    pdfUrl: artifactUrl,
     artifactJsonUrl: readString(payload, ["artifact_json_url", "artifactJsonUrl"], "") || null,
     keySignals,
     recommendedActions,

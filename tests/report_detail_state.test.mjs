@@ -32,6 +32,7 @@ test("report detail success normalization", async () => {
   assert.equal(result.status, "ready");
   assert.equal(result.summary, "MRR is up 12% month-over-month.");
   assert.equal(result.createdAt, "2026-02-10T12:00:00Z");
+  assert.equal(result.artifactUrl, null);
   assert.equal(result.pdfUrl, null);
   assert.deepEqual(result.keySignals, []);
   assert.deepEqual(result.recommendedActions, []);
@@ -67,6 +68,7 @@ test("report detail normalization supports nested payloads and pdf artifacts", a
   });
 
   assert.equal(result.summary, "Creator revenue briefing");
+  assert.equal(result.artifactUrl, "https://cdn.example.test/reports/rep_nested.pdf");
   assert.equal(result.pdfUrl, "https://cdn.example.test/reports/rep_nested.pdf");
   assert.deepEqual(result.keySignals, ["Upward trend detected", "High platform dependence"]);
   assert.deepEqual(result.recommendedActions, ["Diversify acquisition channels"]);

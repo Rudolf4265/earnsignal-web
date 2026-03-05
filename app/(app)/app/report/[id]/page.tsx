@@ -10,6 +10,7 @@ import { SessionExpiredCallout } from "../../../_components/gate-callouts";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
 import {
+  downloadReportArtifactPdf,
   fetchReportArtifactJson,
   fetchReportDetail,
   fetchReportPdfBlobUrl,
@@ -83,6 +84,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const [state, setState] = useState<ReportPageState>(initialState);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [debugOpen, setDebugOpen] = useState(false);
@@ -194,6 +196,27 @@ export default function ReportPage({ params }: { params: { id: string } }) {
     }
   };
 
+  const downloadPdf = async () => {
+    if (!state.report || downloadLoading) {
+      return;
+    }
+
+    setPdfError(null);
+    setDownloadLoading(true);
+
+    try {
+      await downloadReportArtifactPdf({
+        reportId: state.report.id,
+        title: state.report.title,
+        artifactUrl: state.report.artifactUrl,
+      });
+    } catch (error) {
+      setPdfError(getReportErrorMessage(error));
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
+
   const displayKpis = useMemo(
     () => ({
       netRevenue: state.artifactModel?.kpis.netRevenue ?? state.report?.metrics.netRevenue ?? null,
@@ -263,10 +286,18 @@ export default function ReportPage({ params }: { params: { id: string } }) {
               >
                 {pdfLoading ? "Opening PDF..." : "Open PDF"}
               </button>
+              <button
+                type="button"
+                onClick={() => void downloadPdf()}
+                disabled={downloadLoading}
+                className="inline-flex rounded-xl bg-brand-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {downloadLoading ? "Downloading PDF..." : "Download PDF"}
+              </button>
             </div>
           </div>
 
-          {pdfError ? <p className="text-sm text-rose-700">PDF unavailable: {pdfError}</p> : null}
+          {pdfError ? <ErrorBanner title="PDF unavailable" message={pdfError} /> : null}
 
           {state.artifactJsonMissing ? (
             <Panel title="Artifact JSON Unavailable" description="This report does not include a JSON artifact yet.">

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { FeatureGuard } from "../../../_components/feature-guard";
 import { SessionExpiredCallout } from "../../../_components/gate-callouts";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
-import { fetchReportDetail, type ReportDetail } from "@/src/lib/api/reports";
+import { fetchReportDetail, fetchReportPdfBlobUrl, getReportErrorMessage, type ReportDetail } from "@/src/lib/api/reports";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 
 type ReportPageState = {
@@ -22,6 +22,8 @@ const initialState: ReportPageState = {
 export default function ReportPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const [state, setState] = useState<ReportPageState>(initialState);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,18 +56,59 @@ export default function ReportPage({ params }: { params: { id: string } }) {
     };
   }, [id]);
 
+  const openPdf = async () => {
+    if (!state.report || pdfLoading) {
+      return;
+    }
+
+    setPdfError(null);
+    setPdfLoading(true);
+    const popup = window.open("", "_blank", "noopener,noreferrer");
+
+    try {
+      const pdfBlobUrl = await fetchReportPdfBlobUrl(state.report);
+      if (popup) {
+        popup.location.href = pdfBlobUrl;
+      } else {
+        window.open(pdfBlobUrl, "_blank", "noopener,noreferrer");
+      }
+
+      window.setTimeout(() => {
+        if (pdfBlobUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(pdfBlobUrl);
+        }
+      }, 120_000);
+    } catch (error) {
+      popup?.close();
+      setPdfError(getReportErrorMessage(error));
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   return (
     <FeatureGuard feature="report">
       {state.view === "loading" ? (
         <div className="space-y-3" data-testid="report-loading">
-          <h1 className="text-2xl font-semibold">Loading report…</h1>
+          <h1 className="text-2xl font-semibold">Loading report...</h1>
           <p className="text-sm text-slate-400">Fetching report details for {id}.</p>
         </div>
       ) : null}
 
       {state.view === "success" && state.report ? (
         <section className="space-y-4" data-testid="report-content">
-          <h1 className="text-2xl font-semibold">{state.report.title}</h1>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-2xl font-semibold">{state.report.title}</h1>
+            <button
+              type="button"
+              onClick={() => void openPdf()}
+              disabled={pdfLoading}
+              className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {pdfLoading ? "Opening PDF..." : "Open PDF"}
+            </button>
+          </div>
+
           <dl className="grid grid-cols-1 gap-3 text-sm text-slate-700 sm:grid-cols-2">
             <div>
               <dt className="text-slate-600">Report ID</dt>
@@ -88,7 +131,8 @@ export default function ReportPage({ params }: { params: { id: string } }) {
               </div>
             ) : null}
           </dl>
-          <p className="text-slate-400">{state.report.summary}</p>
+          <p className="text-slate-600">{state.report.summary}</p>
+          {pdfError ? <p className="text-sm text-rose-700">PDF unavailable: {pdfError}</p> : null}
         </section>
       ) : null}
 

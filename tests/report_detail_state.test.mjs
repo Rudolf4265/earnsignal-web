@@ -32,6 +32,52 @@ test("report detail success normalization", async () => {
   assert.equal(result.status, "ready");
   assert.equal(result.summary, "MRR is up 12% month-over-month.");
   assert.equal(result.createdAt, "2026-02-10T12:00:00Z");
+  assert.equal(result.pdfUrl, null);
+  assert.deepEqual(result.keySignals, []);
+  assert.deepEqual(result.recommendedActions, []);
+  assert.deepEqual(result.metrics, {
+    netRevenue: null,
+    subscribers: null,
+    stabilityIndex: null,
+    churnVelocity: null,
+    coverageMonths: null,
+    platformsConnected: null,
+  });
+});
+
+test("report detail normalization supports nested payloads and pdf artifacts", async () => {
+  const { normalizeReportDetail } = await loadModules(Date.now() + 11);
+  const result = normalizeReportDetail("rep_nested", {
+    id: "rep_nested",
+    report_body: {
+      executive_summary: {
+        headline: "Creator revenue briefing",
+        kpis: { net_revenue: 1550, subscribers: 240 },
+        insights: ["Upward trend detected", "High platform dependence"],
+        top_90_day_actions: ["Diversify acquisition channels"],
+      },
+      risk_summary: {
+        stability_index: 66,
+        components: { churn: 72 },
+      },
+      coverage: { months: 6 },
+      platforms: ["patreon", "shopify"],
+    },
+    files: [{ type: "pdf", url: "https://cdn.example.test/reports/rep_nested.pdf" }],
+  });
+
+  assert.equal(result.summary, "Creator revenue briefing");
+  assert.equal(result.pdfUrl, "https://cdn.example.test/reports/rep_nested.pdf");
+  assert.deepEqual(result.keySignals, ["Upward trend detected", "High platform dependence"]);
+  assert.deepEqual(result.recommendedActions, ["Diversify acquisition channels"]);
+  assert.deepEqual(result.metrics, {
+    netRevenue: 1550,
+    subscribers: 240,
+    stabilityIndex: 66,
+    churnVelocity: 72,
+    coverageMonths: 6,
+    platformsConnected: 2,
+  });
 });
 
 test("report detail maps 404 to not_found", async () => {

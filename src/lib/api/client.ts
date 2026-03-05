@@ -312,3 +312,96 @@ export async function apiFetchJson<T>(operation: string, path: string, init: Api
 export async function publicFetchJson<T>(operation: string, path: string, init: ApiFetchJsonInit = {}): Promise<T> {
   return fetchJson<T>(operation, path, init, false);
 }
+
+async function fetchBlob(operation: string, path: string, init: ApiFetchJsonInit = {}, withAuth: boolean): Promise<Blob> {
+  const method = init.method ?? "GET";
+  const timeoutMs = init.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const url = buildUrl(path);
+  const { signal, cleanup, timedOut } = mergeSignals(init.signal, timeoutMs);
+
+  const headers: Record<string, string> = {
+    Accept: "application/pdf",
+    ...(init.headers as Record<string, string> | undefined),
+  };
+
+  if (withAuth) {
+    const token = await getBrowserAccessToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...init,
+      method,
+      headers,
+      signal,
+    });
+  } catch (error) {
+    cleanup();
+
+    if (timedOut()) {
+      throw new ApiError({
+        status: 0,
+        code: "TIMEOUT",
+        message: `Request timed out after ${timeoutMs}ms.`,
+        operation,
+        path,
+        method,
+      });
+    }
+
+    if (init.signal?.aborted) {
+      throw new ApiError({
+        status: 0,
+        code: "ABORTED",
+        message: "Request was aborted.",
+        operation,
+        path,
+        method,
+      });
+    }
+
+    throw new ApiError({
+      status: 0,
+      code: "NETWORK_ERROR",
+      message: "Network request failed.",
+      details: String(error),
+      operation,
+      path,
+      method,
+    });
+  }
+
+  const requestId = response.headers.get("x-request-id") ?? undefined;
+
+  if (!response.ok) {
+    const parsed = await parseBody(response);
+    cleanup();
+    throw buildApiError({
+      operation,
+      path,
+      method,
+      status: response.status,
+      requestId,
+      parsed,
+      fallbackMessage: `Request failed with status ${response.status}.`,
+    });
+  }
+
+  try {
+    return await response.blob();
+  } finally {
+    cleanup();
+  }
+}
+
+export async function apiFetchBlob(operation: string, path: string, init: ApiFetchJsonInit = {}): Promise<Blob> {
+  return fetchBlob(operation, path, init, true);
+}
+
+export async function publicFetchBlob(operation: string, path: string, init: ApiFetchJsonInit = {}): Promise<Blob> {
+  return fetchBlob(operation, path, init, false);
+}

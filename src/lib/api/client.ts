@@ -164,6 +164,33 @@ function buildApiError(params: {
   });
 }
 
+function normalizeSuccessPayload(parsed: unknown): unknown {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return parsed;
+  }
+
+  const body = parsed as Record<string, unknown>;
+  const hasEnvelopeHints =
+    typeof body.status === "string" ||
+    typeof body.code === "string" ||
+    "request_id" in body ||
+    "requestId" in body;
+
+  if (!hasEnvelopeHints) {
+    return parsed;
+  }
+
+  const nested = body.details ?? body.data ?? body.result;
+  if (!nested || typeof nested !== "object" || Array.isArray(nested)) {
+    return parsed;
+  }
+
+  return {
+    ...body,
+    ...(nested as Record<string, unknown>),
+  };
+}
+
 function mergeSignals(signal: AbortSignal | undefined, timeoutMs: number): { signal: AbortSignal; cleanup: () => void; timedOut: () => boolean } {
   const controller = new AbortController();
   let timeoutTriggered = false;
@@ -294,7 +321,7 @@ async function fetchJson<T>(
     });
   }
 
-  return parsed as T;
+  return normalizeSuccessPayload(parsed) as T;
 }
 
 export function isApiError(error: unknown): error is ApiError {

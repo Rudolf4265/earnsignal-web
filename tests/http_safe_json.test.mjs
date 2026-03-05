@@ -70,3 +70,38 @@ test("apiFetchJson returns timeout ApiError", async () => {
     global.fetch = originalFetch;
   }
 });
+
+test("apiFetchJson normalizes envelope success payloads with nested details", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+
+  global.fetch = async () => ({
+    ok: true,
+    status: 200,
+    headers: {
+      get: (key) => {
+        if (key === "content-type") return "application/json";
+        return null;
+      },
+    },
+    text: async () =>
+      JSON.stringify({
+        status: "ok",
+        code: "OK",
+        message: "done",
+        details: {
+          upload_id: "upl_123",
+          report_id: "rep_123",
+        },
+      }),
+  });
+
+  try {
+    const { apiFetchJson } = await import(`${moduleUrl}?t=${Date.now() + 2}`);
+    const payload = await apiFetchJson("uploads.latestStatus", "/v1/uploads/latest/status", { method: "GET" });
+    assert.equal(payload.upload_id, "upl_123");
+    assert.equal(payload.report_id, "rep_123");
+  } finally {
+    global.fetch = originalFetch;
+  }
+});

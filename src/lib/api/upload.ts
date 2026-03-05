@@ -1,73 +1,29 @@
 import { ApiError, apiFetchJson, getApiBaseOrigin } from "./client";
+import type {
+  ReportGenerateRequestSchema,
+  ReportGenerateResponseSchema,
+  UploadCallbackRequestSchema,
+  UploadCallbackResponseSchema,
+  UploadPresignRequestSchema,
+  UploadPresignResponseSchema,
+  UploadStatusResponseSchema,
+} from "./generated";
 
-export type UploadPlatform =
-  | "patreon"
-  | "substack"
-  | "youtube"
-  | "instagram"
-  | "tiktok"
-  | "onlyfans";
-
-export type PresignRequest = {
-  platform: string;
-  filename: string;
-  content_type: string;
-  size: number;
-  checksum?: string;
-  sha256?: string;
-  content_md5?: string;
-};
-
-export type PresignResponse = {
+export type UploadPlatform = UploadPresignRequestSchema["platform"];
+export type PresignRequest = UploadPresignRequestSchema;
+export type PresignResponse = Omit<UploadPresignResponseSchema, "upload_id" | "presigned_url"> & {
   upload_id: string;
-  object_key?: string;
   presigned_url: string;
-  callback_url?: string;
-  callback_proof?: Record<string, unknown> | string;
-  headers?: Record<string, string>;
 };
-
-export type UploadCallbackRequest = {
+export type UploadCallbackRequest = UploadCallbackRequestSchema;
+export type UploadCallbackResponse = Omit<UploadCallbackResponseSchema, "upload_id"> & {
   upload_id: string;
-  success: boolean;
-  size_bytes: number;
-  callback_proof: Record<string, unknown> | string;
-  platform: string;
-  object_key?: string;
-  filename: string;
-  content_type: string;
-  sha256?: string;
-  content_md5?: string;
 };
-
-export type UploadCallbackResponse = {
-  upload_id: string;
-  status?: string;
-  warnings?: string[];
-};
-
-export type GenerateReportRequest = {
-  upload_id: string;
-  platform: string;
-};
-
-export type GenerateReportResponse = {
+export type GenerateReportRequest = ReportGenerateRequestSchema;
+export type GenerateReportResponse = Omit<ReportGenerateResponseSchema, "report_id"> & {
   report_id: string;
-  warnings?: string[];
 };
-
-export type UploadStatusResponse = {
-  upload_id?: string;
-  uploadId?: string;
-  status?: string;
-  reason_code?: string;
-  reasonCode?: string;
-  message?: string;
-  report_id?: string;
-  reportId?: string;
-  updated_at?: string;
-  updatedAt?: string;
-};
+export type UploadStatusResponse = UploadStatusResponseSchema;
 
 function normalizeCallbackPath(callbackUrl?: string): string {
   const fallback = "/v1/uploads/callback";
@@ -92,7 +48,7 @@ function normalizeCallbackPath(callbackUrl?: string): string {
 }
 
 export async function createUploadPresign(payload: PresignRequest): Promise<PresignResponse> {
-  const data = await apiFetchJson<Record<string, unknown>>("uploads.presign", "/v1/uploads/presign", {
+  const data = await apiFetchJson<Partial<UploadPresignResponseSchema> & Record<string, unknown>>("uploads.presign", "/v1/uploads/presign", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -128,7 +84,7 @@ export async function finalizeUploadCallback(
   callbackUrl?: string,
 ): Promise<UploadCallbackResponse> {
   const endpoint = normalizeCallbackPath(callbackUrl);
-  const data = await apiFetchJson<Record<string, unknown>>("uploads.callback", endpoint, {
+  const data = await apiFetchJson<Partial<UploadCallbackResponseSchema> & Record<string, unknown>>("uploads.callback", endpoint, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -141,7 +97,7 @@ export async function finalizeUploadCallback(
 }
 
 export async function generateReport(payload: GenerateReportRequest): Promise<GenerateReportResponse> {
-  const data = await apiFetchJson<Record<string, unknown>>("reports.generate", "/v1/reports", {
+  const data = await apiFetchJson<Partial<ReportGenerateResponseSchema> & Record<string, unknown>>("reports.generate", "/v1/reports", {
     method: "POST",
     body: JSON.stringify({ upload_ids: [payload.upload_id] }),
   });

@@ -121,6 +121,34 @@ Centralized URL config lives in `src/lib/urls.ts`:
 
 Use these constants in Stripe checkout session creation.
 
+## OpenAPI type generation
+
+Frontend API wrappers now consume generated backend schema types from `src/lib/api/generated/schema.ts`.
+Policy: generated API types are committed to git in this repo.
+
+Generate/update the snapshot:
+
+```bash
+npm run api:generate
+```
+
+Verify in CI/local that the snapshot is current:
+
+```bash
+npm run api:generate:check
+```
+
+Generation inputs:
+
+- `OPENAPI_SCHEMA_URL` (preferred, for example `https://api.earnsigma.com/openapi.json`)
+- or `NEXT_PUBLIC_API_BASE_URL` (generator appends `/openapi.json`)
+- optional output override: `OPENAPI_TYPES_OUT` (defaults to `src/lib/api/generated/schema.ts`)
+
+Backend deploy env requirement for live checkout:
+
+- `STRIPE_CHECKOUT_URL_PLAN_A`
+- `STRIPE_CHECKOUT_URL_PLAN_B`
+
 
 ## Billing entitlements troubleshooting
 

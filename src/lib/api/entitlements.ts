@@ -1,24 +1,21 @@
 import { ApiError, apiFetchJson } from "./client";
+import type {
+  CheckoutCreateRequestSchema,
+  CheckoutSessionResponseSchema,
+  EntitlementsResponseSchema,
+} from "./generated";
 
-export type EntitlementFeatures = {
-  app?: boolean;
-  upload?: boolean;
-  report?: boolean;
-  [key: string]: boolean | undefined;
-};
-
-export type EntitlementsResponse = {
+export type EntitlementFeatures = Record<string, boolean | undefined>;
+export type EntitlementsResponse = Omit<EntitlementsResponseSchema, "plan" | "status" | "entitled" | "features" | "portal_url"> & {
   plan: string | null;
   status: string | null;
   entitled: boolean;
   features: EntitlementFeatures;
   portal_url?: string;
 };
-
-export type CheckoutPlan = "plan_a" | "plan_b";
-
+export type CheckoutPlan = CheckoutCreateRequestSchema["plan"];
 export type CheckoutResponse = {
-  checkout_url: string;
+  checkout_url: CheckoutSessionResponseSchema["checkout_url"];
 };
 
 const ENTITLEMENTS_CACHE_KEY = "earnsignal.entitlements.v1";
@@ -73,7 +70,7 @@ function isFresh(fetchedAt: number): boolean {
   return Date.now() - fetchedAt < ENTITLEMENTS_TTL_MS;
 }
 
-function normalizeEntitlements(value: Record<string, unknown>): EntitlementsResponse {
+function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string, unknown>): EntitlementsResponse {
   const features = (value.features as EntitlementFeatures | undefined) ?? {};
   const plan = (value.plan as string | null | undefined) ?? (value.plan_tier as string | null | undefined) ?? null;
   const status = (value.status as string | null | undefined) ?? null;
@@ -88,7 +85,7 @@ function normalizeEntitlements(value: Record<string, unknown>): EntitlementsResp
     status,
     entitled,
     features,
-    portal_url: (value.portal_url as string | undefined) ?? (value.portalUrl as string | undefined),
+    portal_url: (value.portal_url as string | undefined) ?? (value.portalUrl as string | undefined) ?? undefined,
   };
 }
 
@@ -112,7 +109,7 @@ export async function fetchEntitlements(options?: { forceRefresh?: boolean }): P
   }
 
   inFlightEntitlements = (async () => {
-    const body = await apiFetchJson<Record<string, unknown>>("entitlements.fetch", "/v1/entitlements", {
+    const body = await apiFetchJson<EntitlementsResponseSchema | Record<string, unknown>>("entitlements.fetch", "/v1/entitlements", {
       method: "GET",
     });
     const value = normalizeEntitlements(body);
@@ -130,7 +127,7 @@ export async function fetchEntitlements(options?: { forceRefresh?: boolean }): P
   }
 }
 
-function extractCheckoutUrl(payload: Record<string, unknown>): string | null {
+function extractCheckoutUrl(payload: Partial<CheckoutSessionResponseSchema> & Record<string, unknown>): string | null {
   const checkoutUrl =
     (payload.checkout_url as string | undefined) ??
     (payload.checkoutUrl as string | undefined) ??
@@ -205,9 +202,10 @@ export function clearCheckoutAttempt() {
 }
 
 async function requestCheckout(path: string, plan: CheckoutPlan): Promise<CheckoutResponse> {
-  const body = await apiFetchJson<Record<string, unknown>>("billing.checkout", path, {
+  const requestPayload: CheckoutCreateRequestSchema = { plan };
+  const body = await apiFetchJson<Partial<CheckoutSessionResponseSchema> & Record<string, unknown>>("billing.checkout", path, {
     method: "POST",
-    body: JSON.stringify({ plan }),
+    body: JSON.stringify(requestPayload),
   });
   const checkoutUrl = extractCheckoutUrl(body);
 

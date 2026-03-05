@@ -1,14 +1,22 @@
 import { ApiError, apiFetchJson } from "./client";
 import { isSessionExpiredError } from "../auth/isSessionExpiredError";
+import type {
+  AdminHealthItemSchema,
+  AdminLatestReportResponseSchema,
+  AdminLatestUploadResponseSchema,
+  AdminUserRowSchema,
+  AdminUsersListResponseSchema,
+  AdminWhoAmIResponseSchema,
+} from "./generated";
 
 export type AdminWhoAmIResponse = {
   isAdmin: boolean;
-  email: string | null;
+  email: AdminWhoAmIResponseSchema["email"] | null;
 };
 
 export type AdminUserRow = {
   creatorId: string;
-  email: string | null;
+  email: AdminUserRowSchema["email"] | null;
   plan: string | null;
   status: string | null;
   blocked: boolean;
@@ -48,7 +56,7 @@ function asBoolean(value: unknown): boolean {
   return value === true;
 }
 
-function mapUserRow(raw: Record<string, unknown>): AdminUserRow {
+function mapUserRow(raw: AdminUserRowSchema | Record<string, unknown>): AdminUserRow {
   return {
     creatorId: asString(raw.creator_id) ?? asString(raw.creatorId) ?? "",
     email: asString(raw.email),
@@ -73,7 +81,9 @@ export async function fetchAdminWhoAmI(options?: { forceRefresh?: boolean }): Pr
 
   inFlightWhoAmI = (async () => {
     try {
-      const payload = await apiFetchJson<Record<string, unknown>>("admin.whoami", "/v1/admin/whoami", { method: "GET" });
+      const payload = await apiFetchJson<AdminWhoAmIResponseSchema | Record<string, unknown>>("admin.whoami", "/v1/admin/whoami", {
+        method: "GET",
+      });
       const value = {
         isAdmin: asBoolean(payload.is_admin) || asBoolean(payload.admin) || asBoolean(payload.isAdmin),
         email: asString(payload.email),
@@ -99,8 +109,10 @@ export async function fetchAdminWhoAmI(options?: { forceRefresh?: boolean }): Pr
 
 export async function fetchAdminUsers(search?: string): Promise<AdminUserListResponse> {
   const query = search ? `?query=${encodeURIComponent(search)}` : "";
-  const payload = await apiFetchJson<Record<string, unknown>>("admin.users.list", `/v1/admin/users${query}`, { method: "GET" });
-  const rowsRaw = ((payload.items as Record<string, unknown>[] | undefined) ?? (payload.users as Record<string, unknown>[] | undefined) ?? []);
+  const payload = await apiFetchJson<AdminUsersListResponseSchema | Record<string, unknown>>("admin.users.list", `/v1/admin/users${query}`, {
+    method: "GET",
+  });
+  const rowsRaw = ((payload.items as AdminUserRowSchema[] | undefined) ?? (payload.users as AdminUserRowSchema[] | undefined) ?? []);
   const users = rowsRaw.map(mapUserRow).filter((user) => Boolean(user.creatorId));
 
   return {
@@ -109,7 +121,7 @@ export async function fetchAdminUsers(search?: string): Promise<AdminUserListRes
   };
 }
 
-function normalizeHealth(raw: unknown): { id: string | null; status: string | null; createdAt: string | null; link: string | null } | null {
+function normalizeHealth(raw: AdminHealthItemSchema | unknown): { id: string | null; status: string | null; createdAt: string | null; link: string | null } | null {
   if (!raw || typeof raw !== "object") {
     return null;
   }
@@ -125,15 +137,19 @@ function normalizeHealth(raw: unknown): { id: string | null; status: string | nu
 
 export async function fetchAdminUserDetail(creatorId: string): Promise<AdminUserDetail> {
   const [usersPayload, uploadPayload, reportPayload] = await Promise.all([
-    apiFetchJson<Record<string, unknown>>("admin.users.list", `/v1/admin/users?query=${encodeURIComponent(creatorId)}`, {
-      method: "GET",
-    }),
-    apiFetchJson<Record<string, unknown>>(
+    apiFetchJson<AdminUsersListResponseSchema | Record<string, unknown>>(
+      "admin.users.list",
+      `/v1/admin/users?query=${encodeURIComponent(creatorId)}`,
+      {
+        method: "GET",
+      },
+    ),
+    apiFetchJson<AdminLatestUploadResponseSchema | Record<string, unknown>>(
       "admin.users.latestUpload",
       `/v1/admin/users/${encodeURIComponent(creatorId)}/uploads/latest`,
       { method: "GET" },
     ),
-    apiFetchJson<Record<string, unknown>>(
+    apiFetchJson<AdminLatestReportResponseSchema | Record<string, unknown>>(
       "admin.users.latestReport",
       `/v1/admin/users/${encodeURIComponent(creatorId)}/reports/latest`,
       { method: "GET" },
@@ -141,14 +157,14 @@ export async function fetchAdminUserDetail(creatorId: string): Promise<AdminUser
   ]);
 
   const rowsRaw =
-    ((usersPayload.items as Record<string, unknown>[] | undefined) ??
-      (usersPayload.users as Record<string, unknown>[] | undefined) ??
+    ((usersPayload.items as AdminUserRowSchema[] | undefined) ??
+      (usersPayload.users as AdminUserRowSchema[] | undefined) ??
       []);
   const exact = rowsRaw.find((row) => {
     const id = asString(row.creator_id) ?? asString(row.creatorId);
     return id === creatorId;
   });
-  const base = mapUserRow((exact ?? rowsRaw[0] ?? { creator_id: creatorId }) as Record<string, unknown>);
+  const base = mapUserRow((exact ?? rowsRaw[0] ?? { creator_id: creatorId }) as AdminUserRowSchema);
 
   return {
     ...base,
@@ -159,7 +175,7 @@ export async function fetchAdminUserDetail(creatorId: string): Promise<AdminUser
 }
 
 export async function updateAdminUserBlocked(creatorId: string, blocked: boolean): Promise<AdminUserRow> {
-  const payload = await apiFetchJson<Record<string, unknown>>(
+  const payload = await apiFetchJson<AdminUserRowSchema | Record<string, unknown>>(
     "admin.users.updateBlocked",
     `/v1/admin/users/${encodeURIComponent(creatorId)}/block`,
     {
@@ -172,7 +188,7 @@ export async function updateAdminUserBlocked(creatorId: string, blocked: boolean
 }
 
 export async function updateAdminUserCompUntil(creatorId: string, compUntil: string | null): Promise<AdminUserRow> {
-  const payload = await apiFetchJson<Record<string, unknown>>(
+  const payload = await apiFetchJson<AdminUserRowSchema | Record<string, unknown>>(
     "admin.users.updateCompUntil",
     `/v1/admin/users/${encodeURIComponent(creatorId)}/comp`,
     {

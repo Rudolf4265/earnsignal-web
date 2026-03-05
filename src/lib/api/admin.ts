@@ -52,9 +52,9 @@ function mapUserRow(raw: Record<string, unknown>): AdminUserRow {
   return {
     creatorId: asString(raw.creator_id) ?? asString(raw.creatorId) ?? "",
     email: asString(raw.email),
-    plan: asString(raw.plan),
-    status: asString(raw.status),
-    blocked: asBoolean(raw.blocked),
+    plan: asString(raw.plan) ?? asString(raw.plan_tier) ?? asString(raw.planTier),
+    status: asString(raw.status) ?? asString(raw.billing_status) ?? asString(raw.billingStatus),
+    blocked: asBoolean(raw.blocked) || asBoolean(raw.is_blocked) || asBoolean(raw.isBlocked),
     compUntil: asString(raw.comp_until) ?? asString(raw.compUntil),
     uploadState: asString(raw.upload_state) ?? asString(raw.last_upload_status) ?? asString(raw.uploadState),
   };
@@ -98,9 +98,9 @@ export async function fetchAdminWhoAmI(options?: { forceRefresh?: boolean }): Pr
 }
 
 export async function fetchAdminUsers(search?: string): Promise<AdminUserListResponse> {
-  const query = search ? `?search=${encodeURIComponent(search)}` : "";
+  const query = search ? `?query=${encodeURIComponent(search)}` : "";
   const payload = await apiFetchJson<Record<string, unknown>>("admin.users.list", `/v1/admin/users${query}`, { method: "GET" });
-  const rowsRaw = (payload.users as Record<string, unknown>[] | undefined) ?? [];
+  const rowsRaw = ((payload.items as Record<string, unknown>[] | undefined) ?? (payload.users as Record<string, unknown>[] | undefined) ?? []);
   const users = rowsRaw.map(mapUserRow).filter((user) => Boolean(user.creatorId));
 
   return {
@@ -124,17 +124,36 @@ function normalizeHealth(raw: unknown): { id: string | null; status: string | nu
 }
 
 export async function fetchAdminUserDetail(creatorId: string): Promise<AdminUserDetail> {
-  const payload = await apiFetchJson<Record<string, unknown>>(
-    "admin.users.detail",
-    `/v1/admin/users/${encodeURIComponent(creatorId)}`,
-    { method: "GET" },
-  );
-  const base = mapUserRow(payload);
+  const [usersPayload, uploadPayload, reportPayload] = await Promise.all([
+    apiFetchJson<Record<string, unknown>>("admin.users.list", `/v1/admin/users?query=${encodeURIComponent(creatorId)}`, {
+      method: "GET",
+    }),
+    apiFetchJson<Record<string, unknown>>(
+      "admin.users.latestUpload",
+      `/v1/admin/users/${encodeURIComponent(creatorId)}/uploads/latest`,
+      { method: "GET" },
+    ),
+    apiFetchJson<Record<string, unknown>>(
+      "admin.users.latestReport",
+      `/v1/admin/users/${encodeURIComponent(creatorId)}/reports/latest`,
+      { method: "GET" },
+    ),
+  ]);
+
+  const rowsRaw =
+    ((usersPayload.items as Record<string, unknown>[] | undefined) ??
+      (usersPayload.users as Record<string, unknown>[] | undefined) ??
+      []);
+  const exact = rowsRaw.find((row) => {
+    const id = asString(row.creator_id) ?? asString(row.creatorId);
+    return id === creatorId;
+  });
+  const base = mapUserRow((exact ?? rowsRaw[0] ?? { creator_id: creatorId }) as Record<string, unknown>);
 
   return {
     ...base,
-    latestUpload: normalizeHealth(payload.latest_upload ?? payload.upload ?? payload.last_upload),
-    latestReport: normalizeHealth(payload.latest_report ?? payload.report ?? payload.last_report),
+    latestUpload: normalizeHealth(uploadPayload.latest_upload ?? uploadPayload.upload ?? uploadPayload.last_upload),
+    latestReport: normalizeHealth(reportPayload.latest_report ?? reportPayload.report ?? reportPayload.last_report),
     fetchedAtIso: new Date().toISOString(),
   };
 }
@@ -142,9 +161,9 @@ export async function fetchAdminUserDetail(creatorId: string): Promise<AdminUser
 export async function updateAdminUserBlocked(creatorId: string, blocked: boolean): Promise<AdminUserRow> {
   const payload = await apiFetchJson<Record<string, unknown>>(
     "admin.users.updateBlocked",
-    `/v1/admin/users/${encodeURIComponent(creatorId)}/blocked`,
+    `/v1/admin/users/${encodeURIComponent(creatorId)}/block`,
     {
-      method: "PATCH",
+      method: "POST",
       body: JSON.stringify({ blocked }),
     },
   );
@@ -155,9 +174,9 @@ export async function updateAdminUserBlocked(creatorId: string, blocked: boolean
 export async function updateAdminUserCompUntil(creatorId: string, compUntil: string | null): Promise<AdminUserRow> {
   const payload = await apiFetchJson<Record<string, unknown>>(
     "admin.users.updateCompUntil",
-    `/v1/admin/users/${encodeURIComponent(creatorId)}/comp_until`,
+    `/v1/admin/users/${encodeURIComponent(creatorId)}/comp`,
     {
-      method: "PATCH",
+      method: "POST",
       body: JSON.stringify({ comp_until: compUntil }),
     },
   );

@@ -103,7 +103,7 @@ export async function createUploadPresign(payload: PresignRequest): Promise<Pres
     presigned_url: (data.presigned_url as string) ?? (data.presign_url as string) ?? (data.url as string),
     callback_url: (data.callback_url as string) ?? (data.callbackUrl as string) ?? undefined,
     callback_proof: (data.callback_proof as Record<string, unknown> | string) ?? (data.callbackProof as Record<string, unknown> | string) ?? undefined,
-    headers: (data.headers as Record<string, string>) ?? undefined,
+    headers: ((data.headers as Record<string, string>) ?? (data.required_headers as Record<string, string>) ?? undefined),
   };
 }
 
@@ -141,9 +141,9 @@ export async function finalizeUploadCallback(
 }
 
 export async function generateReport(payload: GenerateReportRequest): Promise<GenerateReportResponse> {
-  const data = await apiFetchJson<Record<string, unknown>>("reports.generate", "/v1/reports/generate", {
+  const data = await apiFetchJson<Record<string, unknown>>("reports.generate", "/v1/reports", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ upload_ids: [payload.upload_id] }),
   });
 
   return {

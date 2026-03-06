@@ -43,6 +43,28 @@ test("buildReportArtifactPdfUrl falls back to /v1/reports/:id/artifact when arti
   assert.equal(url, "https://api.example.test/v1/reports/rep_123/artifact");
 });
 
+test("buildReportArtifactPdfUrl ignores invalid artifact_url report_id tokens", async () => {
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  const { buildReportArtifactPdfUrl } = await import(`${reportsModuleUrl}?t=${Date.now() + 10}`);
+  const url = buildReportArtifactPdfUrl({
+    reportId: "rep_123",
+    artifactUrl: "/v1/reports/undefined/artifact",
+  });
+
+  assert.equal(url, "https://api.example.test/v1/reports/rep_123/artifact");
+});
+
+test("buildReportArtifactPdfUrl ignores mismatched artifact_url report_id values", async () => {
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  const { buildReportArtifactPdfUrl } = await import(`${reportsModuleUrl}?t=${Date.now() + 11}`);
+  const url = buildReportArtifactPdfUrl({
+    reportId: "rep_123",
+    artifactUrl: "/v1/reports/rep_other/artifact",
+  });
+
+  assert.equal(url, "https://api.example.test/v1/reports/rep_123/artifact");
+});
+
 test("fetchReportPdfBlobUrl falls back to /v1/reports/:id/artifact when url is missing", async () => {
   const originalFetch = global.fetch;
   process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";

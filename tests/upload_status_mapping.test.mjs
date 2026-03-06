@@ -4,8 +4,10 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const statusModuleUrl = pathToFileURL(path.resolve("src/lib/upload/status.ts")).href;
+const reportPathModuleUrl = pathToFileURL(path.resolve("src/lib/report/path.ts")).href;
 
 const { mapUploadStatus, buildUploadDiagnostics } = await import(`${statusModuleUrl}?t=${Date.now()}`);
+const { buildReportDetailPathOrIndex } = await import(`${reportPathModuleUrl}?t=${Date.now() + 1}`);
 
 test("mapUploadStatus maps terminal and processing states", () => {
   assert.equal(mapUploadStatus({ status: "ready" }).status, "ready");
@@ -36,4 +38,15 @@ test("buildUploadDiagnostics returns deterministic safe json", () => {
     request_id: null,
     operation: null,
   });
+});
+
+test("ready upload with sentinel report_id falls back to report index href", () => {
+  const mapped = mapUploadStatus({
+    status: "report_ready",
+    report_id: "undefined",
+  });
+
+  assert.equal(mapped.status, "ready");
+  assert.equal(mapped.reportId, null);
+  assert.equal(buildReportDetailPathOrIndex(mapped.reportId), "/app/report");
 });

@@ -16,6 +16,7 @@ import { mapApiErrorToUploadFailure } from "@/src/lib/upload/errors";
 import { buildUploadDiagnostics, mapUploadStatus, type UploadUiStatus } from "@/src/lib/upload/status";
 import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/lib/upload/resume";
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
+import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import InlineAlert from "./InlineAlert";
 import StepHeader from "./StepHeader";
 import Stepper from "./Stepper";
@@ -717,7 +718,7 @@ export default function UploadStepper() {
           </InlineAlert>
           <div className="flex flex-wrap gap-2">
             <Link
-              href={reportId ? `/app/report/${reportId}` : "/app/report"}
+              href={buildReportDetailPathOrIndex(reportId)}
               data-testid="upload-view-report"
               className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90"
             >

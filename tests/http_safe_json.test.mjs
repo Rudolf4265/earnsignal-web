@@ -134,3 +134,30 @@ test("apiFetchJson valid JSON does not include non-json marker fields", async ()
     global.fetch = originalFetch;
   }
 });
+
+test("apiFetchJson blocks invalid report detail paths before network request", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  let fetchCalled = false;
+
+  global.fetch = async () => {
+    fetchCalled = true;
+    throw new Error("network should not be called");
+  };
+
+  try {
+    const { apiFetchJson, ApiError } = await import(`${moduleUrl}?t=${Date.now() + 4}`);
+    await assert.rejects(
+      () => apiFetchJson("report.fetch", "/v1/reports/undefined", { method: "GET" }),
+      (error) => {
+        assert.equal(error instanceof ApiError, true);
+        assert.equal(error.code, "INVALID_REPORT_ID");
+        assert.equal(error.status, 0);
+        return true;
+      },
+    );
+    assert.equal(fetchCalled, false);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});

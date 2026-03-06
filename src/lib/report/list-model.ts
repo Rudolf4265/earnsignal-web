@@ -1,4 +1,5 @@
 import { normalizeReportId } from "./id";
+import { buildReportDetailPath } from "./path";
 
 export type ReportListItem = {
   reportId: string | null;
@@ -81,8 +82,8 @@ function readStringArray(value: unknown): string[] | null {
 }
 
 function readItemsSource(payload: Record<string, unknown>): unknown[] {
-  if (Array.isArray(payload.items)) {
-    return payload.items;
+  if (Object.prototype.hasOwnProperty.call(payload, "items")) {
+    return Array.isArray(payload.items) ? payload.items : [];
   }
 
   if (Array.isArray(payload.reports)) {
@@ -192,11 +193,11 @@ export function toReportStatusLabel(status: string): string {
 export function toReportListRows(items: ReportListItem[]): ReportListRow[] {
   return items.map((item, index) => {
     const normalizedStatus = item.status.trim() ? item.status : "unknown";
-    const canView = item.reportId !== null;
+    const viewHref = buildReportDetailPath(item.reportId);
+    const canView = viewHref !== null;
     const rowId =
       item.reportId ??
       `report-missing-id-${index}-${item.uploadId ?? item.jobId ?? item.createdAt ?? item.finishedAt ?? item.artifactUrl ?? "row"}`;
-    const viewHref = item.reportId ? `/app/report/${item.reportId}` : null;
 
     return {
       id: rowId,

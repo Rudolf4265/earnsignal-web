@@ -18,6 +18,7 @@ import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
 import { computeHasReportsFromListResult } from "@/src/lib/report/list-model";
 import { normalizeReportId } from "@/src/lib/report/id";
+import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 
 const fallbackSignals = [
   "Revenue trend detection will appear after your first completed report.",
@@ -148,6 +149,7 @@ export default function DashboardPage() {
   const { entitlements } = useAppGate();
   const [state, setState] = useState<DashboardState>(initialState);
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const latestReportHref = useMemo(() => buildReportDetailPathOrIndex(state.latestReportRow?.id), [state.latestReportRow?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -477,7 +479,7 @@ export default function DashboardPage() {
                   </div>
                   <Badge variant={toBadgeVariant(state.latestReportRow.status)}>{toBadgeLabel(state.latestReportRow.status)}</Badge>
                   <Link
-                    href={`/app/report/${state.latestReportRow.id}`}
+                    href={latestReportHref}
                     className={buttonClassName({ variant: "primary", size: "sm" })}
                   >
                     View

@@ -63,13 +63,50 @@ type ReportArtifactTarget = {
   artifactUrl?: string | null;
 };
 
-function resolveReportArtifactPath({ reportId, artifactUrl }: ReportArtifactTarget): string {
-  const trimmed = artifactUrl?.trim();
-  if (trimmed) {
-    return trimmed;
+function extractReportIdFromReportsPath(pathOrUrl: string): { matched: boolean; reportId: string | null } {
+  let pathname = pathOrUrl;
+  try {
+    pathname = new URL(pathOrUrl, "https://report-id-check.local").pathname;
+  } catch {
+    return { matched: false, reportId: null };
   }
 
+  const match = pathname.match(/^\/v1\/reports\/([^/?#]+)(?:\/artifact(?:\.json)?)?\/?$/i);
+  if (!match) {
+    return { matched: false, reportId: null };
+  }
+
+  let candidate = match[1];
+  try {
+    candidate = decodeURIComponent(candidate);
+  } catch {
+    // Ignore decode errors and use raw path token.
+  }
+
+  return {
+    matched: true,
+    reportId: normalizeReportId(candidate),
+  };
+}
+
+function resolveReportArtifactPath({ reportId, artifactUrl }: ReportArtifactTarget): string {
   const canonicalReportId = requireReportId(reportId, "report.artifact");
+  const trimmed = artifactUrl?.trim();
+  if (trimmed) {
+    const embedded = extractReportIdFromReportsPath(trimmed);
+    if (!embedded.matched || embedded.reportId === canonicalReportId) {
+      return trimmed;
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[report.api] ignoring artifact_url with invalid or mismatched report_id.", {
+        artifactUrl: trimmed,
+        expectedReportId: canonicalReportId,
+        embeddedReportId: embedded.reportId,
+      });
+    }
+  }
+
   return `/v1/reports/${encodeURIComponent(canonicalReportId)}/artifact`;
 }
 

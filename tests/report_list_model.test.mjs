@@ -56,6 +56,23 @@ test("report list falls back to legacy reports when items is missing", async () 
   assert.equal(page.hasMore, true);
 });
 
+test("report list does not fall back to legacy reports when items key is present but invalid", async () => {
+  const { normalizeReportsListResponse } = await loadListModel(Date.now() + 8);
+
+  const page = normalizeReportsListResponse({
+    items: null,
+    reports: [
+      {
+        report_id: "rep_legacy_should_be_ignored",
+        status: "ready",
+      },
+    ],
+    has_more: false,
+  });
+
+  assert.equal(page.items.length, 0);
+});
+
 test("report list row mapping formats created_at, status badge, and title fallback", async () => {
   const { normalizeReportsListResponse, toReportListRows } = await loadListModel(Date.now() + 3);
 

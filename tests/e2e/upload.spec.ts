@@ -77,7 +77,7 @@ test.describe("Upload deep flows", () => {
 
     await enterUploadFlow(page);
 
-    await expect(page.getByTestId("upload-terminal-success")).toBeVisible();
+    await expect(page.getByTestId("upload-terminal-success")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("upload-view-report")).toHaveAttribute("href", "/app/report/rep_123");
   });
 

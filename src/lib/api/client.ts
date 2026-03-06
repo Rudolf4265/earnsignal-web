@@ -37,6 +37,7 @@ export type ApiFetchJsonInit = Omit<RequestInit, "signal"> & {
 };
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+const INVALID_REPORT_ID_TOKENS = new Set(["undefined", "null", "nan"]);
 
 function normalizeBaseUrl(raw: string): string {
   return raw.replace(/\/+$/, "");
@@ -60,6 +61,77 @@ function buildUrl(path: string): string {
 
   const base = getApiBaseUrl();
   return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
+function normalizeReportIdToken(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (INVALID_REPORT_ID_TOKENS.has(trimmed.toLowerCase())) {
+    return null;
+  }
+
+  return trimmed;
+}
+
+function extractReportIdFromApiPath(path: string): string | null {
+  let pathname = path;
+  try {
+    pathname = new URL(path, "https://api-path-check.local").pathname;
+  } catch {
+    return null;
+  }
+
+  const match = pathname.match(/^\/v1\/reports\/([^/?#]+)(?:\/artifact(?:\.json)?)?\/?$/i);
+  if (!match) {
+    return null;
+  }
+
+  let candidate = match[1];
+  try {
+    candidate = decodeURIComponent(candidate);
+  } catch {
+    // Ignore malformed URI encoding and keep raw candidate.
+  }
+
+  return normalizeReportIdToken(candidate);
+}
+
+function assertNoInvalidReportPath(path: string, operation: string, method: string): void {
+  let pathname = path;
+  try {
+    pathname = new URL(path, "https://api-path-check.local").pathname;
+  } catch {
+    return;
+  }
+
+  if (!/^\/v1\/reports\/[^/?#]+(?:\/artifact(?:\.json)?)?\/?$/i.test(pathname)) {
+    return;
+  }
+
+  const reportId = extractReportIdFromApiPath(path);
+  if (reportId) {
+    return;
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    console.error("[api.client] blocked request with invalid report_id in report path.", {
+      operation,
+      method,
+      path,
+    });
+  }
+
+  throw new ApiError({
+    status: 0,
+    code: "INVALID_REPORT_ID",
+    message: `Report ID is unavailable for ${operation}.`,
+    operation,
+    path,
+    method,
+  });
 }
 
 async function getBrowserAccessToken(): Promise<string | null> {
@@ -225,6 +297,7 @@ async function fetchJson<T>(
 ): Promise<T> {
   const method = init.method ?? "GET";
   const timeoutMs = init.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  assertNoInvalidReportPath(path, operation, method);
   const url = buildUrl(path);
   const { signal, cleanup, timedOut } = mergeSignals(init.signal, timeoutMs);
 
@@ -356,6 +429,7 @@ export type ApiBlobFetchResult = {
 async function fetchBlobWithMeta(operation: string, path: string, init: ApiFetchJsonInit = {}, withAuth: boolean): Promise<ApiBlobFetchResult> {
   const method = init.method ?? "GET";
   const timeoutMs = init.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  assertNoInvalidReportPath(path, operation, method);
   const url = buildUrl(path);
   const { signal, cleanup, timedOut } = mergeSignals(init.signal, timeoutMs);
 

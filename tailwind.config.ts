@@ -6,17 +6,25 @@ const config: Config = {
     extend: {
       colors: {
         navy: {
-          950: "#0B1220",
-          900: "#111827",
+          950: "var(--es-color-bg)",
+          900: "var(--es-color-bg-elevated)",
+          850: "var(--es-color-panel)",
         },
         brand: {
-          primary: "#1F3C88",
-          blue: "#2F80ED",
-          teal: "#2FD9C5",
+          primary: "var(--es-color-accent-blue-strong)",
+          blue: "var(--es-color-accent-blue)",
+          teal: "var(--es-color-accent-teal)",
+          emerald: "var(--es-color-accent-emerald)",
+          border: "var(--es-color-border)",
+          panel: "var(--es-color-panel)",
+          panelMuted: "var(--es-color-panel-muted)",
+          text: "var(--es-color-text-primary)",
+          textMuted: "var(--es-color-text-secondary)",
         },
       },
       boxShadow: {
-        brandGlow: "0 0 40px rgba(47,128,237,0.15)",
+        brandGlow: "var(--es-shadow-glow)",
+        brandCard: "var(--es-shadow-card)",
       },
       borderRadius: {
         xl2: "1.25rem",

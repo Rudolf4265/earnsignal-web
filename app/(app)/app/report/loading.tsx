@@ -9,7 +9,7 @@ export default function ReportLoading() {
       </div>
       <div className="space-y-2">
         {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="rounded-xl border border-slate-200 bg-white px-4 py-4">
+          <div key={index} className="rounded-xl border border-brand-border bg-brand-panel px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 space-y-2">
                 <SkeletonBlock className="h-4 w-40" />

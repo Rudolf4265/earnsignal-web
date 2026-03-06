@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "../_components/auth-shell";
+import { buttonClassName } from "@/src/components/ui/button";
 import { createClient } from "@/src/lib/supabase/client";
 import { signInWithGoogle } from "@/src/lib/supabase/oauth";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
@@ -67,8 +68,8 @@ export default function LoginPage() {
 
   return (
     <AuthShell>
-      <h1 className="text-2xl font-semibold tracking-tight text-white">Welcome back</h1>
-      <p className="mt-2 text-sm text-gray-400">Log in to access your EarnSigma workspace.</p>
+      <h1 className="text-2xl font-semibold tracking-tight text-brand-text-primary">Welcome back</h1>
+      <p className="mt-2 text-sm text-brand-text-secondary">Log in to access your EarnSigma workspace.</p>
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         {error ? <ErrorBanner title="Login failed" message={error} /> : null}
@@ -77,7 +78,10 @@ export default function LoginPage() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={googleLoading || loading}
-          className="w-full rounded-xl border border-white/10 bg-navy-950 py-3 text-sm font-medium text-white transition hover:border-white/20 disabled:opacity-50"
+          className={buttonClassName({
+            variant: "secondary",
+            className: "w-full border-brand-border bg-brand-bg-elevated py-3 text-brand-text-primary hover:border-brand-border-strong",
+          })}
         >
           <span className="inline-flex items-center justify-center">
             {googleLoading && (
@@ -88,21 +92,21 @@ export default function LoginPage() {
         </button>
 
         <label className="block text-sm">
-          <span className="mb-2 block text-gray-300">Email</span>
+          <span className="mb-2 block text-brand-text-secondary">Email</span>
           <input
             required
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
-            className="w-full rounded-xl border border-white/10 bg-navy-950 px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue"
+            className="w-full rounded-xl border border-brand-border bg-brand-bg-elevated px-4 py-3 text-sm text-brand-text-primary placeholder-brand-text-muted focus:outline-none focus:ring-2 focus:ring-brand-accent-blue"
           />
         </label>
 
         <label className="block text-sm">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-gray-300">Password</span>
-            <Link href="/forgot-password" className="text-xs text-brand-blue hover:underline">
+            <span className="text-brand-text-secondary">Password</span>
+            <Link href="/forgot-password" className="text-xs text-brand-accent-blue hover:underline">
               Forgot password?
             </Link>
           </div>
@@ -114,12 +118,12 @@ export default function LoginPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              className="w-full rounded-xl border border-white/10 bg-navy-950 px-4 py-3 pr-12 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              className="w-full rounded-xl border border-brand-border bg-brand-bg-elevated px-4 py-3 pr-12 text-sm text-brand-text-primary placeholder-brand-text-muted focus:outline-none focus:ring-2 focus:ring-brand-accent-blue"
             />
             <button
               type="button"
               onClick={() => setShowPassword((current) => !current)}
-              className="absolute inset-y-0 right-3 text-xs font-medium text-gray-400 transition hover:text-white"
+              className="absolute inset-y-0 right-3 text-xs font-medium text-brand-text-muted transition hover:text-brand-text-primary"
             >
               {showPassword ? "Hide" : "Show"}
             </button>
@@ -129,7 +133,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-brand-blue py-3 text-sm font-medium text-white shadow-brandGlow transition hover:opacity-90 disabled:opacity-50"
+          className={buttonClassName({ variant: "primary", className: "w-full py-3" })}
         >
           <span className="inline-flex items-center justify-center">
             {loading && (
@@ -140,9 +144,9 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-400">
+      <p className="mt-6 text-center text-sm text-brand-text-secondary">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="text-brand-blue hover:underline">
+        <Link href="/signup" className="text-brand-accent-blue hover:underline">
           Create one
         </Link>
       </p>

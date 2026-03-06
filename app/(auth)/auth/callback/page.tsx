@@ -71,13 +71,13 @@ export default function AuthCallbackPage() {
 
   return (
     <AuthShell>
-      <h1 className="text-2xl font-semibold tracking-tight text-white">Finishing sign in</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-brand-text-primary">Finishing sign in</h1>
       {loading ? (
-        <p className="mt-2 text-sm text-gray-400">Please wait while we verify your session...</p>
+        <p className="mt-2 text-sm text-brand-text-secondary">Please wait while we verify your session...</p>
       ) : (
-        <p className="mt-2 text-sm text-gray-400">
+        <p className="mt-2 text-sm text-brand-text-secondary">
           We couldn&apos;t find an active session. Please{" "}
-          <Link href="/login" className="text-brand-blue hover:underline">
+          <Link href="/login" className="text-brand-accent-blue hover:underline">
             log in
           </Link>
           .

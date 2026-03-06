@@ -1,5 +1,5 @@
 export type ReportListItem = {
-  reportId: string;
+  reportId: string | null;
   status: string;
   createdAt: string | null;
   finishedAt: string | null;
@@ -22,12 +22,14 @@ export type ReportListResult = {
 
 export type ReportListRow = {
   id: string;
+  reportId: string | null;
   title: string;
   status: string;
   statusLabel: string;
   statusVariant: "good" | "warn" | "neutral";
   createdAtLabel: string;
-  viewHref: string;
+  viewHref: string | null;
+  canView: boolean;
   canDownload: boolean;
   artifactUrl: string | null;
 };
@@ -94,10 +96,7 @@ function normalizeItem(raw: unknown): ReportListItem | null {
   }
 
   const record = raw as Record<string, unknown>;
-  const reportId = readString(record.report_id) ?? readString(record.reportId) ?? readString(record.id);
-  if (!reportId) {
-    return null;
-  }
+  const reportId = readString(record.report_id) ?? readString(record.reportId);
 
   return {
     reportId,
@@ -130,7 +129,7 @@ export function normalizeReportsListResponse(payload: Record<string, unknown>): 
 }
 
 export function computeHasReportsFromListResult(result: Pick<ReportListResult, "items">): boolean {
-  return result.items.length > 0;
+  return result.items.some((item) => item.reportId !== null);
 }
 
 export function computeHasReportsFromListResponse(payload: Record<string, unknown>): boolean {
@@ -189,18 +188,25 @@ export function toReportStatusLabel(status: string): string {
 }
 
 export function toReportListRows(items: ReportListItem[]): ReportListRow[] {
-  return items.map((item) => {
+  return items.map((item, index) => {
     const normalizedStatus = item.status.trim() ? item.status : "unknown";
+    const canView = item.reportId !== null;
+    const rowId =
+      item.reportId ??
+      `report-missing-id-${index}-${item.uploadId ?? item.jobId ?? item.createdAt ?? item.finishedAt ?? item.artifactUrl ?? "row"}`;
+    const viewHref = item.reportId ? `/app/report/${item.reportId}` : null;
 
     return {
-      id: item.reportId,
+      id: rowId,
+      reportId: item.reportId,
       title: item.title ?? "Report",
       status: normalizedStatus,
       statusLabel: toReportStatusLabel(normalizedStatus),
       statusVariant: toReportStatusVariant(normalizedStatus),
       createdAtLabel: formatReportCreatedAt(item.createdAt),
-      viewHref: `/app/report/${item.reportId}`,
-      canDownload: normalizedStatus.toLowerCase() === "ready" && Boolean(item.artifactUrl),
+      viewHref,
+      canView,
+      canDownload: canView && normalizedStatus.toLowerCase() === "ready" && Boolean(item.artifactUrl),
       artifactUrl: item.artifactUrl,
     };
   });

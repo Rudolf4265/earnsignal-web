@@ -2,9 +2,12 @@ import { expect, test } from "@playwright/test";
 import { stubAuthenticatedSession, stubEntitlements } from "./test-helpers";
 
 test.describe("Reports smoke", () => {
-  test("report list to detail renders core analysis blocks", async ({ page }) => {
+  test("report list uses canonical report_id for view route and allows PDF download", async ({ page }) => {
     await stubAuthenticatedSession(page);
     await stubEntitlements(page, "entitled");
+
+    let wrongDetailHits = 0;
+    let artifactPdfHits = 0;
 
     await page.route("**/v1/reports", async (route) => {
       await route.fulfill({
@@ -12,6 +15,13 @@ test.describe("Reports smoke", () => {
         contentType: "application/json",
         body: JSON.stringify({
           items: [
+            {
+              id: "artifact_uuid_only_001",
+              status: "ready",
+              title: "Legacy Artifact Row",
+              created_at: "2026-03-01T09:00:00Z",
+              artifact_url: "/v1/reports/artifact_uuid_only_001/artifact",
+            },
             {
               report_id: "rep_smoke_001",
               status: "ready",
@@ -24,6 +34,15 @@ test.describe("Reports smoke", () => {
           has_more: false,
           next_offset: null,
         }),
+      });
+    });
+
+    await page.route("**/v1/reports/artifact_uuid_only_001", async (route) => {
+      wrongDetailHits += 1;
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "Report not found", code: "NOT_FOUND" }),
       });
     });
 
@@ -46,6 +65,18 @@ test.describe("Reports smoke", () => {
           artifact_json_url: "https://artifacts.test/rep_smoke_001.json",
           artifact_url: "/v1/reports/rep_smoke_001/artifact",
         }),
+      });
+    });
+
+    await page.route("**/v1/reports/rep_smoke_001/artifact", async (route) => {
+      artifactPdfHits += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/pdf",
+        headers: {
+          "content-disposition": 'attachment; filename="smoke-report.pdf"',
+        },
+        body: "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<<>>\n%%EOF",
       });
     });
 
@@ -74,11 +105,20 @@ test.describe("Reports smoke", () => {
     expect(hasRows || hasEmptyState).toBeTruthy();
     expect(hasRows).toBeTruthy();
 
+    const legacyRow = page.locator('[data-testid="report-list"] > div').filter({ hasText: "Legacy Artifact Row" }).first();
+    await expect(legacyRow.getByText("Unavailable")).toBeVisible();
+    await expect(legacyRow.getByRole("link", { name: "View" })).toHaveCount(0);
+
     await page.getByRole("link", { name: "View" }).first().click();
     await expect(page).toHaveURL("/app/report/rep_smoke_001");
+    await expect(page.getByTestId("report-not-found")).toHaveCount(0);
 
     const kpiVisible = await page.getByText("Net Revenue").isVisible().catch(() => false);
     const executiveSummaryVisible = await page.getByText("Executive Summary").isVisible().catch(() => false);
     expect(kpiVisible || executiveSummaryVisible).toBeTruthy();
+
+    await page.getByRole("button", { name: "Download PDF" }).click();
+    await expect.poll(() => artifactPdfHits).toBeGreaterThan(0);
+    expect(wrongDetailHits).toBe(0);
   });
 });

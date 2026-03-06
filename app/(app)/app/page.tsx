@@ -9,6 +9,8 @@ import { Panel } from "./_components/dashboard/Panel";
 import { useAppGate } from "../_components/app-gate-provider";
 import { SkeletonBlock } from "../_components/ui/skeleton";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
+import { Button, buttonClassName } from "@/src/components/ui/button";
+import { PageHeader } from "@/src/components/ui/page-header";
 import { isApiError } from "@/src/lib/api/client";
 import { fetchReportDetail, fetchReportsList, type ReportDetail } from "@/src/lib/api/reports";
 import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
@@ -240,7 +242,7 @@ export default function DashboardPage() {
       try {
         const reports = await fetchReportsList();
         const hasReports = computeHasReportsFromListResult(reports);
-        const firstReport = reports.items[0] ?? null;
+        const firstReport = reports.items.find((entry) => entry.reportId !== null) ?? null;
         if (cancelled) {
           return;
         }
@@ -251,7 +253,7 @@ export default function DashboardPage() {
           reportsCheckError: null,
           latestReportRow:
             prev.latestReportRow ??
-            (firstReport
+            (firstReport && firstReport.reportId
               ? {
                   id: firstReport.reportId,
                   date: formatDate(firstReport.createdAt),
@@ -320,35 +322,22 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-10">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="mt-2 text-slate-600">High-level revenue signals and structural stability.</p>
-          {state.error ? (
-            <ErrorBanner
-              className="mt-3 border-rose-200 bg-rose-50 [&>p]:text-rose-900 [&>p+p]:text-rose-700"
-              title="Data refresh failed"
-              message={state.error}
-            />
-          ) : null}
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={refresh}
-            disabled={state.loading || state.refreshing}
-            className="inline-flex w-fit rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {state.refreshing ? "Refreshing..." : "Refresh"}
-          </button>
-          <Link
-            href={primaryCta.href}
-            className="inline-flex w-fit rounded-xl bg-brand-blue px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
-          >
-            {primaryCta.label}
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        subtitle="High-level revenue signals and structural stability."
+        actions={
+          <>
+            <Button type="button" variant="secondary" onClick={refresh} disabled={state.loading || state.refreshing}>
+              {state.refreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+            <Link href={primaryCta.href} className={buttonClassName({ variant: "primary" })}>
+              {primaryCta.label}
+            </Link>
+          </>
+        }
+      />
+
+      {state.error ? <ErrorBanner title="Data refresh failed" message={state.error} /> : null}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Net Revenue" value={formatCurrency(kpis.netRevenue)} subtext="Last 30 days" />
@@ -402,7 +391,7 @@ export default function DashboardPage() {
               !entitled ? (
                 <Link
                   href="/app/billing"
-                  className="inline-flex rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                  className={buttonClassName({ variant: "secondary", size: "sm" })}
                 >
                   Upgrade
                 </Link>
@@ -454,7 +443,7 @@ export default function DashboardPage() {
             rightSlot={
               <Link
                 href={primaryCta.href}
-                className="inline-flex rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                className={buttonClassName({ variant: "secondary", size: "sm" })}
               >
                 {primaryCta.label}
               </Link>
@@ -488,7 +477,7 @@ export default function DashboardPage() {
                   <Badge variant={toBadgeVariant(state.latestReportRow.status)}>{toBadgeLabel(state.latestReportRow.status)}</Badge>
                   <Link
                     href={`/app/report/${state.latestReportRow.id}`}
-                    className="inline-flex rounded-xl border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                    className={buttonClassName({ variant: "primary", size: "sm" })}
                   >
                     View
                   </Link>

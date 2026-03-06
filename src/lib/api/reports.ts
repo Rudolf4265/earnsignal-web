@@ -146,6 +146,9 @@ export async function downloadReportArtifactPdf(report: Pick<ReportListItem, "re
   if (typeof window === "undefined") {
     throw new Error("Report downloads are only available in the browser.");
   }
+  if (!report.reportId) {
+    throw new Error("Report ID is unavailable. Reload reports and try again.");
+  }
 
   const absoluteUrl = buildReportArtifactPdfUrl({ reportId: report.reportId, artifactUrl: report.artifactUrl });
   const result = await fetchPdfBlobFromAbsoluteUrl("report.artifact", absoluteUrl);

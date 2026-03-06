@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "../_components/auth-shell";
+import { buttonClassName } from "@/src/components/ui/button";
 import { createClient } from "@/src/lib/supabase/client";
 import { signInWithGoogle } from "@/src/lib/supabase/oauth";
 import { appBaseUrl } from "@/src/lib/urls";
@@ -93,8 +94,8 @@ export default function SignupPage() {
 
   return (
     <AuthShell>
-      <h1 className="text-2xl font-semibold tracking-tight text-white">Create your account</h1>
-      <p className="mt-2 text-sm text-gray-400">Start using EarnSigma in minutes.</p>
+      <h1 className="text-2xl font-semibold tracking-tight text-brand-text-primary">Create your account</h1>
+      <p className="mt-2 text-sm text-brand-text-secondary">Start using EarnSigma in minutes.</p>
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         {error && (
@@ -117,7 +118,10 @@ export default function SignupPage() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={googleLoading || loading}
-          className="w-full rounded-xl border border-white/10 bg-navy-950 py-3 text-sm font-medium text-white transition hover:border-white/20 disabled:opacity-50"
+          className={buttonClassName({
+            variant: "secondary",
+            className: "w-full border-brand-border bg-brand-bg-elevated py-3 text-brand-text-primary hover:border-brand-border-strong",
+          })}
         >
           <span className="inline-flex items-center justify-center">
             {googleLoading && (
@@ -128,19 +132,19 @@ export default function SignupPage() {
         </button>
 
         <label className="block text-sm">
-          <span className="mb-2 block text-gray-300">Email</span>
+          <span className="mb-2 block text-brand-text-secondary">Email</span>
           <input
             required
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
-            className="w-full rounded-xl border border-white/10 bg-navy-950 px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue"
+            className="w-full rounded-xl border border-brand-border bg-brand-bg-elevated px-4 py-3 text-sm text-brand-text-primary placeholder-brand-text-muted focus:outline-none focus:ring-2 focus:ring-brand-accent-blue"
           />
         </label>
 
         <label className="block text-sm">
-          <span className="mb-2 block text-gray-300">Password</span>
+          <span className="mb-2 block text-brand-text-secondary">Password</span>
           <div className="relative">
             <input
               required
@@ -148,12 +152,12 @@ export default function SignupPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="new-password"
-              className="w-full rounded-xl border border-white/10 bg-navy-950 px-4 py-3 pr-12 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue"
+              className="w-full rounded-xl border border-brand-border bg-brand-bg-elevated px-4 py-3 pr-12 text-sm text-brand-text-primary placeholder-brand-text-muted focus:outline-none focus:ring-2 focus:ring-brand-accent-blue"
             />
             <button
               type="button"
               onClick={() => setShowPassword((current) => !current)}
-              className="absolute inset-y-0 right-3 text-xs font-medium text-gray-400 transition hover:text-white"
+              className="absolute inset-y-0 right-3 text-xs font-medium text-brand-text-muted transition hover:text-brand-text-primary"
             >
               {showPassword ? "Hide" : "Show"}
             </button>
@@ -161,14 +165,14 @@ export default function SignupPage() {
         </label>
 
         <label className="block text-sm">
-          <span className="mb-2 block text-gray-300">Confirm password</span>
+          <span className="mb-2 block text-brand-text-secondary">Confirm password</span>
           <input
             required
             type={showPassword ? "text" : "password"}
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             autoComplete="new-password"
-            className="w-full rounded-xl border border-white/10 bg-navy-950 px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue"
+            className="w-full rounded-xl border border-brand-border bg-brand-bg-elevated px-4 py-3 text-sm text-brand-text-primary placeholder-brand-text-muted focus:outline-none focus:ring-2 focus:ring-brand-accent-blue"
           />
         </label>
 
@@ -181,7 +185,7 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading || passwordsMismatch}
-          className="w-full rounded-xl bg-brand-blue py-3 text-sm font-medium text-white shadow-brandGlow transition hover:opacity-90 disabled:opacity-50"
+          className={buttonClassName({ variant: "primary", className: "w-full py-3" })}
         >
           <span className="inline-flex items-center justify-center">
             {loading && (
@@ -192,7 +196,7 @@ export default function SignupPage() {
         </button>
       </form>
 
-      <p className="mt-4 text-xs text-gray-500">
+      <p className="mt-4 text-xs text-brand-text-muted">
         By continuing, you agree to our{" "}
         <a href="https://earnsigma.com/terms" target="_blank" rel="noreferrer" className="hover:underline">
           Terms
@@ -209,9 +213,9 @@ export default function SignupPage() {
         .
       </p>
 
-      <p className="mt-6 text-center text-sm text-gray-400">
+      <p className="mt-6 text-center text-sm text-brand-text-secondary">
         Already have an account?{" "}
-        <Link href="/login" className="text-brand-blue hover:underline">
+        <Link href="/login" className="text-brand-accent-blue hover:underline">
           Log in
         </Link>
       </p>

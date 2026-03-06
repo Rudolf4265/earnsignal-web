@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import AuthShell from "../_components/auth-shell";
+import { buttonClassName } from "@/src/components/ui/button";
 import { createClient } from "@/src/lib/supabase/client";
 import { appBaseUrl } from "@/src/lib/urls";
 
@@ -43,8 +44,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell>
-      <h1 className="text-2xl font-semibold tracking-tight text-white">Reset your password</h1>
-      <p className="mt-2 text-sm text-gray-400">
+      <h1 className="text-2xl font-semibold tracking-tight text-brand-text-primary">Reset your password</h1>
+      <p className="mt-2 text-sm text-brand-text-secondary">
         Enter your account email and we&apos;ll send you a password reset link.
       </p>
 
@@ -62,29 +63,29 @@ export default function ForgotPasswordPage() {
         )}
 
         <label className="block text-sm">
-          <span className="mb-2 block text-gray-300">Email</span>
+          <span className="mb-2 block text-brand-text-secondary">Email</span>
           <input
             required
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
-            className="w-full rounded-xl border border-white/10 bg-navy-950 px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue"
+            className="w-full rounded-xl border border-brand-border bg-brand-bg-elevated px-4 py-3 text-sm text-brand-text-primary placeholder-brand-text-muted focus:outline-none focus:ring-2 focus:ring-brand-accent-blue"
           />
         </label>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-brand-blue py-3 text-sm font-medium text-white shadow-brandGlow transition hover:opacity-90 disabled:opacity-50"
+          className={buttonClassName({ variant: "primary", className: "w-full py-3" })}
         >
           {loading ? "Sending link..." : "Send reset link"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-400">
+      <p className="mt-6 text-center text-sm text-brand-text-secondary">
         Remembered your password?{" "}
-        <Link href="/login" className="text-brand-blue hover:underline">
+        <Link href="/login" className="text-brand-accent-blue hover:underline">
           Back to log in
         </Link>
       </p>

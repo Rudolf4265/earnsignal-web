@@ -16,8 +16,8 @@ export function AppShell({
   const pathname = usePathname();
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-10">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+    <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-10 text-brand-text-primary">
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-brand-border pb-5">
         <div className="flex items-center gap-4">
           <Link href="/" className="inline-flex items-center" aria-label={BRAND_NAME}>
             <BrandMark variant="lockup" priority iconClassName="h-8 w-auto" />
@@ -29,12 +29,12 @@ export function AppShell({
           pathname={pathname}
           adminStatus="not_admin"
           className="flex flex-wrap gap-3 text-sm"
-          linkClassName="rounded-full border border-zinc-700 px-3 py-1.5 text-zinc-300 transition hover:border-zinc-500 hover:text-zinc-100"
-          activeLinkClassName="border-zinc-400 text-zinc-100"
+          linkClassName="rounded-full border border-brand-border px-3 py-1.5 text-brand-text-secondary transition hover:border-brand-border-strong hover:text-brand-text-primary"
+          activeLinkClassName="border-brand-border-strong bg-[var(--es-gradient-nav-active)] text-brand-text-primary"
         />
       </header>
 
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6">
+      <section className="rounded-2xl border border-brand-border bg-brand-panel p-6 shadow-brand-card">
         {children}
       </section>
     </main>

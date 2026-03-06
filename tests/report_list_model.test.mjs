@@ -90,10 +90,35 @@ test("report list row mapping formats created_at, status badge, and title fallba
   assert.equal(rows[1].statusVariant, "warn");
   assert.equal(rows[1].canDownload, false);
   assert.equal(rows[1].viewHref, "/app/report/rep_failed");
+  assert.equal(rows[1].canView, true);
+});
+
+test("report list does not treat legacy id as canonical report_id", async () => {
+  const { normalizeReportsListResponse, toReportListRows } = await loadListModel(Date.now() + 4);
+
+  const page = normalizeReportsListResponse({
+    items: [
+      {
+        id: "artifact_legacy_123",
+        status: "ready",
+        title: "Legacy Artifact",
+        created_at: "2026-03-03T18:00:00Z",
+        artifact_url: "/v1/reports/artifact_legacy_123/artifact",
+      },
+    ],
+    has_more: false,
+  });
+
+  assert.equal(page.items.length, 1);
+  assert.equal(page.items[0].reportId, null);
+  const rows = toReportListRows(page.items);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].canView, false);
+  assert.equal(rows[0].viewHref, null);
 });
 
 test("hasReports extraction prefers items over legacy reports when items is present", async () => {
-  const { computeHasReportsFromListResponse } = await loadListModel(Date.now() + 4);
+  const { computeHasReportsFromListResponse } = await loadListModel(Date.now() + 5);
 
   const hasReports = computeHasReportsFromListResponse({
     items: [],
@@ -109,7 +134,7 @@ test("hasReports extraction prefers items over legacy reports when items is pres
 });
 
 test("hasReports extraction falls back to legacy reports when items is missing", async () => {
-  const { computeHasReportsFromListResponse } = await loadListModel(Date.now() + 5);
+  const { computeHasReportsFromListResponse } = await loadListModel(Date.now() + 6);
 
   const hasReports = computeHasReportsFromListResponse({
     reports: [

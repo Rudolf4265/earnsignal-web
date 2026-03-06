@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import "./globals.css";
 import { HostIntegrityGuard } from "@/src/components/runtime/host-integrity-guard";
+import { BRAND_CSS_VARIABLES } from "@/src/lib/brand";
 import { PRIMARY_DOMAIN } from "@/src/lib/config/domains";
 
 export const metadata: Metadata = {
@@ -47,7 +49,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-background text-foreground antialiased"><HostIntegrityGuard />{children}</body>
+      <body className="bg-background text-foreground antialiased" style={BRAND_CSS_VARIABLES as CSSProperties}>
+        <HostIntegrityGuard />
+        {children}
+      </body>
     </html>
   );
 }

@@ -17,6 +17,7 @@ import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
 import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
 import { computeHasReportsFromListResult } from "@/src/lib/report/list-model";
+import { normalizeReportId } from "@/src/lib/report/id";
 
 const fallbackSignals = [
   "Revenue trend detection will appear after your first completed report.",
@@ -173,7 +174,7 @@ export default function DashboardPage() {
 
         let latestReport: ReportDetail | null = null;
         let latestReportRow: LatestReportRow | null = null;
-        const reportId = latestUpload?.reportId;
+        const reportId = normalizeReportId(latestUpload?.reportId);
         if (reportId) {
           try {
             latestReport = await fetchReportDetail(reportId);

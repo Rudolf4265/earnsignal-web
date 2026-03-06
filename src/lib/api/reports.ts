@@ -1,16 +1,27 @@
 import { ApiError, apiFetchBlobWithMeta, apiFetchJson, getApiBaseOrigin, getApiBaseUrl } from "./client";
 import { normalizeReportDetail, type ReportDetail } from "../report/normalize-report-detail";
 import { normalizeReportsListResponse, type ReportListItem, type ReportListResult } from "../report/list-model";
+import { normalizeReportId } from "../report/id";
 import type { ReportDetailResponseSchema } from "./generated";
 
 export type { ReportDetail, ReportListItem, ReportListResult };
 
+function requireReportId(reportId: unknown, context: string): string {
+  const normalized = normalizeReportId(reportId);
+  if (!normalized) {
+    throw new Error(`Report ID is unavailable for ${context}.`);
+  }
+
+  return normalized;
+}
+
 export async function fetchReportDetail(reportId: string): Promise<ReportDetail> {
-  const data = await apiFetchJson<ReportDetailResponseSchema>("report.fetch", `/v1/reports/${encodeURIComponent(reportId)}`, {
+  const canonicalReportId = requireReportId(reportId, "report.fetch");
+  const data = await apiFetchJson<ReportDetailResponseSchema>("report.fetch", `/v1/reports/${encodeURIComponent(canonicalReportId)}`, {
     method: "GET",
   });
 
-  return normalizeReportDetail(reportId, data as Record<string, unknown>);
+  return normalizeReportDetail(canonicalReportId, data as Record<string, unknown>);
 }
 
 export async function fetchReportArtifactJson(artifactJsonUrl: string): Promise<unknown> {
@@ -51,7 +62,8 @@ function resolveReportArtifactPath({ reportId, artifactUrl }: ReportArtifactTarg
     return trimmed;
   }
 
-  return `/v1/reports/${encodeURIComponent(reportId)}/artifact`;
+  const canonicalReportId = requireReportId(reportId, "report.artifact");
+  return `/v1/reports/${encodeURIComponent(canonicalReportId)}/artifact`;
 }
 
 function toAbsoluteApiUrl(pathOrUrl: string): string {
@@ -146,11 +158,9 @@ export async function downloadReportArtifactPdf(report: Pick<ReportListItem, "re
   if (typeof window === "undefined") {
     throw new Error("Report downloads are only available in the browser.");
   }
-  if (!report.reportId) {
-    throw new Error("Report ID is unavailable. Reload reports and try again.");
-  }
+  const canonicalReportId = requireReportId(report.reportId, "report.artifact_download");
 
-  const absoluteUrl = buildReportArtifactPdfUrl({ reportId: report.reportId, artifactUrl: report.artifactUrl });
+  const absoluteUrl = buildReportArtifactPdfUrl({ reportId: canonicalReportId, artifactUrl: report.artifactUrl });
   const result = await fetchPdfBlobFromAbsoluteUrl("report.artifact", absoluteUrl);
   validatePdfResponse(result.status, result.contentType, result.contentDisposition);
   validatePdfBlob(result.blob);
@@ -158,7 +168,7 @@ export async function downloadReportArtifactPdf(report: Pick<ReportListItem, "re
   try {
     const link = document.createElement("a");
     const baseName = normalizeFilenameSegment(report.title ?? "");
-    const fallbackName = normalizeFilenameSegment(`report-${report.reportId}`);
+    const fallbackName = normalizeFilenameSegment(`report-${canonicalReportId}`);
     link.href = objectUrl;
     link.download = `${baseName || fallbackName || "report"}.pdf`;
     link.rel = "noopener";

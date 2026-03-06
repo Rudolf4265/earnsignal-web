@@ -82,6 +82,18 @@ test("report detail normalization supports nested payloads and pdf artifacts", a
   });
 });
 
+test("report detail normalization keeps canonical route id when payload id is a sentinel", async () => {
+  const { normalizeReportDetail } = await loadModules(Date.now() + 12);
+  const result = normalizeReportDetail("rep_route_123", {
+    id: "undefined",
+    report_id: "null",
+    title: "Route ID should win",
+  });
+
+  assert.equal(result.id, "rep_route_123");
+  assert.equal(result.title, "Route ID should win");
+});
+
 test("report detail maps 404 to not_found", async () => {
   const { ApiError, getReportViewState } = await loadModules(Date.now() + 2);
   const error = new ApiError({ status: 404, code: "NOT_FOUND", message: "missing", operation: "report.fetch", path: "/v1/reports/1", method: "GET" });

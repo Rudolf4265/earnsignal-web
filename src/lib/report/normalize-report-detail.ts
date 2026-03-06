@@ -1,3 +1,5 @@
+import { normalizeReportId } from "./id";
+
 export type ReportDetail = {
   id: string;
   title: string;
@@ -160,6 +162,9 @@ function findArtifactUrl(record: Record<string, unknown>): string | null {
 }
 
 export function normalizeReportDetail(reportId: string, payload: Record<string, unknown>): ReportDetail {
+  const fallbackReportId = normalizeReportId(reportId) ?? "unknown";
+  const normalizedReportId =
+    normalizeReportId(readString(payload, ["id", "report_id", "reportId"], "")) ?? fallbackReportId;
   const platforms = readStringArray(payload, ["platforms", "sources", "report_body.platforms"]);
   const keySignals = readStringArray(payload, ["key_signals", "keySignals", "signals", "insights", "report_body.executive_summary.insights"]);
   const recommendedActions = readStringArray(payload, [
@@ -173,8 +178,8 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
   const artifactUrl = findArtifactUrl(payload);
 
   return {
-    id: readString(payload, ["id", "report_id", "reportId"], reportId),
-    title: readString(payload, ["title", "name", "report_body.title"], `Report ${reportId}`),
+    id: normalizedReportId,
+    title: readString(payload, ["title", "name", "report_body.title"], `Report ${normalizedReportId}`),
     status: readString(payload, ["status"], "unknown"),
     summary: readString(
       payload,

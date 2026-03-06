@@ -1,3 +1,5 @@
+import { normalizeReportId } from "../report/id";
+
 export type UploadBackendStatus =
   | "pending"
   | "uploaded"
@@ -63,7 +65,7 @@ export function mapUploadStatus(input: UploadStatusEnvelope): UploadStatusView {
     status,
     reasonCode: input.reason_code ?? input.reasonCode ?? null,
     message: input.message ?? null,
-    reportId: input.report_id ?? input.reportId ?? null,
+    reportId: normalizeReportId(input.report_id) ?? normalizeReportId(input.reportId),
     rawStatus,
     updatedAt: input.updated_at ?? input.updatedAt ?? null,
   };

@@ -117,6 +117,27 @@ test("report list does not treat legacy id as canonical report_id", async () => 
   assert.equal(rows[0].viewHref, null);
 });
 
+test("report list rejects sentinel report_id values", async () => {
+  const { normalizeReportsListResponse, toReportListRows } = await loadListModel(Date.now() + 7);
+
+  const page = normalizeReportsListResponse({
+    items: [
+      {
+        report_id: "undefined",
+        status: "ready",
+        created_at: "2026-03-04T18:00:00Z",
+      },
+    ],
+    has_more: false,
+  });
+
+  assert.equal(page.items.length, 1);
+  assert.equal(page.items[0].reportId, null);
+  const rows = toReportListRows(page.items);
+  assert.equal(rows[0].canView, false);
+  assert.equal(rows[0].viewHref, null);
+});
+
 test("hasReports extraction prefers items over legacy reports when items is present", async () => {
   const { computeHasReportsFromListResponse } = await loadListModel(Date.now() + 5);
 

@@ -1,3 +1,5 @@
+import { normalizeReportId } from "./id";
+
 export type ReportListItem = {
   reportId: string | null;
   status: string;
@@ -96,7 +98,7 @@ function normalizeItem(raw: unknown): ReportListItem | null {
   }
 
   const record = raw as Record<string, unknown>;
-  const reportId = readString(record.report_id) ?? readString(record.reportId);
+  const reportId = normalizeReportId(record.report_id) ?? normalizeReportId(record.reportId);
 
   return {
     reportId,

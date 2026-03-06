@@ -82,6 +82,73 @@ test("report detail normalization supports nested payloads and pdf artifacts", a
   });
 });
 
+test("report detail normalization supports report wrapper aliases", async () => {
+  const { normalizeReportDetail } = await loadModules(Date.now() + 13);
+  const result = normalizeReportDetail("rep_wrapped", {
+    report: {
+      summary: "Wrapped summary from report payload.",
+      key_signals: ["Revenue momentum remains positive"],
+      recommended_actions: ["Rebalance channel spend toward retained cohorts"],
+      metrics: {
+        net_revenue: "4800",
+        subscribers: "530",
+        stability_index: "93",
+        churn_velocity: "4",
+      },
+      trend_preview: {
+        coverage_months: "10",
+        platforms_connected: "3",
+      },
+    },
+  });
+
+  assert.equal(result.id, "rep_wrapped");
+  assert.equal(result.summary, "Wrapped summary from report payload.");
+  assert.deepEqual(result.keySignals, ["Revenue momentum remains positive"]);
+  assert.deepEqual(result.recommendedActions, ["Rebalance channel spend toward retained cohorts"]);
+  assert.deepEqual(result.metrics, {
+    netRevenue: 4800,
+    subscribers: 530,
+    stabilityIndex: 93,
+    churnVelocity: 4,
+    coverageMonths: 10,
+    platformsConnected: 3,
+  });
+});
+
+test("report detail normalization supports report trend preview aliases", async () => {
+  const { normalizeReportDetail } = await loadModules(Date.now() + 14);
+  const result = normalizeReportDetail("rep_trend", {
+    report: {
+      trend_preview: {
+        summary: "Trend preview summary from wrapped payload.",
+        key_signals: ["Subscriber growth is stabilizing"],
+        recommended_actions: ["Test annual plan discount sensitivity"],
+        metrics: {
+          net_revenue: 3200,
+          stability_index: 81,
+          subscribers: 410,
+          churn_velocity: 6,
+        },
+        coverage_months: 8,
+        platforms: ["patreon", "substack"],
+      },
+    },
+  });
+
+  assert.equal(result.summary, "Trend preview summary from wrapped payload.");
+  assert.deepEqual(result.keySignals, ["Subscriber growth is stabilizing"]);
+  assert.deepEqual(result.recommendedActions, ["Test annual plan discount sensitivity"]);
+  assert.deepEqual(result.metrics, {
+    netRevenue: 3200,
+    subscribers: 410,
+    stabilityIndex: 81,
+    churnVelocity: 6,
+    coverageMonths: 8,
+    platformsConnected: 2,
+  });
+});
+
 test("report detail normalization keeps canonical route id when payload id is a sentinel", async () => {
   const { normalizeReportDetail } = await loadModules(Date.now() + 12);
   const result = normalizeReportDetail("rep_route_123", {

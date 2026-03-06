@@ -14,10 +14,10 @@ import { PageHeader } from "@/src/components/ui/page-header";
 import { isApiError } from "@/src/lib/api/client";
 import { fetchReportDetail, fetchReportsList, type ReportDetail } from "@/src/lib/api/reports";
 import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
+import { findFirstCompletedReport, loadLatestDashboardReport } from "@/src/lib/dashboard/latest-report";
 import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
 import { computeHasReportsFromListResult } from "@/src/lib/report/list-model";
-import { normalizeReportId } from "@/src/lib/report/id";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 
 const fallbackSignals = [
@@ -174,23 +174,18 @@ export default function DashboardPage() {
           }
         }
 
-        let latestReport: ReportDetail | null = null;
-        let latestReportRow: LatestReportRow | null = null;
-        const reportId = normalizeReportId(latestUpload?.reportId);
-        if (reportId) {
-          try {
-            latestReport = await fetchReportDetail(reportId);
-            latestReportRow = {
+        const latestReport = await loadLatestDashboardReport({
+          latestUploadReportId: latestUpload?.reportId ?? null,
+          fetchReportDetail,
+          fetchReportsList,
+        });
+        const latestReportRow: LatestReportRow | null = latestReport
+          ? {
               id: latestReport.id,
               date: formatDate(latestReport.createdAt),
               status: latestReport.status || "unknown",
-            };
-          } catch (error) {
-            if (!(isApiError(error) && error.status === 404)) {
-              throw error;
             }
-          }
-        }
+          : null;
 
         if (cancelled) {
           return;
@@ -245,7 +240,7 @@ export default function DashboardPage() {
       try {
         const reports = await fetchReportsList();
         const hasReports = computeHasReportsFromListResult(reports);
-        const firstReport = reports.items.find((entry) => entry.reportId !== null) ?? null;
+        const firstReport = findFirstCompletedReport(reports.items);
         if (cancelled) {
           return;
         }

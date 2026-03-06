@@ -81,16 +81,40 @@ function readStringArray(value: unknown): string[] | null {
   return values.length > 0 ? values : null;
 }
 
-function readItemsSource(payload: Record<string, unknown>): unknown[] {
-  if (Object.prototype.hasOwnProperty.call(payload, "items")) {
-    return Array.isArray(payload.items) ? payload.items : [];
+function readItemsFromRecord(record: Record<string, unknown>): unknown[] {
+  if (Array.isArray(record.items)) {
+    return record.items;
   }
 
-  if (Array.isArray(payload.reports)) {
-    return payload.reports;
+  if (Array.isArray(record.reports)) {
+    return record.reports;
   }
 
   return [];
+}
+
+function readItemsSource(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (!payload || typeof payload !== "object") {
+    return [];
+  }
+
+  const record = payload as Record<string, unknown>;
+  const direct = readItemsFromRecord(record);
+  if (direct.length > 0) {
+    return direct;
+  }
+
+  // Some backends wrap list data under data/result/details without envelope hints.
+  const wrapped = record.data ?? record.result ?? record.details;
+  if (!wrapped || typeof wrapped !== "object" || Array.isArray(wrapped)) {
+    return direct;
+  }
+
+  return readItemsFromRecord(wrapped as Record<string, unknown>);
 }
 
 function normalizeItem(raw: unknown): ReportListItem | null {
@@ -118,11 +142,30 @@ function normalizeItem(raw: unknown): ReportListItem | null {
   };
 }
 
-export function normalizeReportsListResponse(payload: Record<string, unknown>): ReportListResult {
+export function normalizeReportsListResponse(payload: unknown): ReportListResult {
   const source = readItemsSource(payload);
   const items = source.map((entry) => normalizeItem(entry)).filter((entry): entry is ReportListItem => entry !== null);
-  const nextOffset = readNumber(payload.next_offset) ?? readNumber(payload.nextOffset);
-  const hasMore = readBoolean(payload.has_more) ?? readBoolean(payload.hasMore) ?? nextOffset !== null;
+  const metadata = !payload || typeof payload !== "object" || Array.isArray(payload) ? {} : (payload as Record<string, unknown>);
+  const wrappedMetadata =
+    metadata.data && typeof metadata.data === "object" && !Array.isArray(metadata.data)
+      ? (metadata.data as Record<string, unknown>)
+      : metadata.result && typeof metadata.result === "object" && !Array.isArray(metadata.result)
+        ? (metadata.result as Record<string, unknown>)
+        : metadata.details && typeof metadata.details === "object" && !Array.isArray(metadata.details)
+          ? (metadata.details as Record<string, unknown>)
+          : null;
+
+  const nextOffset =
+    readNumber(metadata.next_offset) ??
+    readNumber(metadata.nextOffset) ??
+    readNumber(wrappedMetadata?.next_offset) ??
+    readNumber(wrappedMetadata?.nextOffset);
+  const hasMore =
+    readBoolean(metadata.has_more) ??
+    readBoolean(metadata.hasMore) ??
+    readBoolean(wrappedMetadata?.has_more) ??
+    readBoolean(wrappedMetadata?.hasMore) ??
+    nextOffset !== null;
 
   return {
     items,
@@ -135,7 +178,7 @@ export function computeHasReportsFromListResult(result: Pick<ReportListResult, "
   return result.items.some((item) => item.reportId !== null);
 }
 
-export function computeHasReportsFromListResponse(payload: Record<string, unknown>): boolean {
+export function computeHasReportsFromListResponse(payload: unknown): boolean {
   return computeHasReportsFromListResult(normalizeReportsListResponse(payload));
 }
 

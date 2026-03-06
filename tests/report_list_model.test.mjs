@@ -56,21 +56,22 @@ test("report list falls back to legacy reports when items is missing", async () 
   assert.equal(page.hasMore, true);
 });
 
-test("report list does not fall back to legacy reports when items key is present but invalid", async () => {
+test("report list falls back to legacy reports when items key is present but invalid", async () => {
   const { normalizeReportsListResponse } = await loadListModel(Date.now() + 8);
 
   const page = normalizeReportsListResponse({
     items: null,
     reports: [
       {
-        report_id: "rep_legacy_should_be_ignored",
+        report_id: "rep_legacy_fallback",
         status: "ready",
       },
     ],
     has_more: false,
   });
 
-  assert.equal(page.items.length, 0);
+  assert.equal(page.items.length, 1);
+  assert.equal(page.items[0].reportId, "rep_legacy_fallback");
 });
 
 test("report list row mapping formats created_at, status badge, and title fallback", async () => {
@@ -184,4 +185,20 @@ test("hasReports extraction falls back to legacy reports when items is missing",
   });
 
   assert.equal(hasReports, true);
+});
+
+test("report list supports root-array payloads with canonical report_id", async () => {
+  const { normalizeReportsListResponse } = await loadListModel(Date.now() + 9);
+
+  const page = normalizeReportsListResponse([
+    {
+      report_id: "rep_array_001",
+      status: "ready",
+      created_at: "2026-03-01T18:00:00Z",
+    },
+  ]);
+
+  assert.equal(page.items.length, 1);
+  assert.equal(page.items[0].reportId, "rep_array_001");
+  assert.equal(page.hasMore, false);
 });

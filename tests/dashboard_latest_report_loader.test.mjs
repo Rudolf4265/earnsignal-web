@@ -4,9 +4,11 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const dashboardModuleUrl = pathToFileURL(path.resolve("src/lib/dashboard/latest-report.ts")).href;
+const listModelModuleUrl = pathToFileURL(path.resolve("src/lib/report/list-model.ts")).href;
 
 async function loadModules() {
-  return import(dashboardModuleUrl);
+  const [dashboard, listModel] = await Promise.all([import(dashboardModuleUrl), import(listModelModuleUrl)]);
+  return { ...dashboard, ...listModel };
 }
 
 function makeReportDetail(id, status = "ready") {
@@ -113,4 +115,38 @@ test("dashboard latest report loader falls back to upload report_id when list ha
 
   assert.equal(result?.id, "rep_upload_fallback");
   assert.deepEqual(detailCalls, ["rep_upload_fallback"]);
+});
+
+test("dashboard latest report loader triggers detail fetch from /v1/reports payload report_id values", async () => {
+  const { loadLatestDashboardReport, normalizeReportsListResponse } = await loadModules();
+  const detailCalls = [];
+
+  const rawPayload = {
+    items: [
+      {
+        report_id: "rep_payload_first",
+        status: "ready",
+        created_at: "2026-03-01T10:00:00Z",
+      },
+      {
+        report_id: "rep_payload_second",
+        status: "ready",
+        created_at: "2026-03-01T09:00:00Z",
+      },
+    ],
+    has_more: false,
+    next_offset: null,
+  };
+
+  const result = await loadLatestDashboardReport({
+    latestUploadReportId: null,
+    fetchReportDetail: async (reportId) => {
+      detailCalls.push(reportId);
+      return makeReportDetail(reportId, "ready");
+    },
+    fetchReportsList: async () => normalizeReportsListResponse(rawPayload),
+  });
+
+  assert.equal(result?.id, "rep_payload_first");
+  assert.deepEqual(detailCalls, ["rep_payload_first"]);
 });

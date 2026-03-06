@@ -20,6 +20,16 @@ export function findFirstCompletedReport(items: ReportListResult["items"]): Comp
   return null;
 }
 
+function findFirstReportWithId(items: ReportListResult["items"]): Pick<ReportListItem, "reportId"> | null {
+  for (const item of items) {
+    if (item.reportId) {
+      return item;
+    }
+  }
+
+  return null;
+}
+
 async function fetchReportDetailOrNull(
   reportId: string | null,
   fetchReportDetail: (reportId: string) => Promise<ReportDetail>,
@@ -46,19 +56,19 @@ type LoadLatestDashboardReportInput = {
 };
 
 export async function loadLatestDashboardReport(input: LoadLatestDashboardReportInput): Promise<ReportDetail | null> {
-  const canonicalUploadReportId = normalizeReportId(input.latestUploadReportId);
-  const latestFromUpload = await fetchReportDetailOrNull(canonicalUploadReportId, input.fetchReportDetail);
-  if (latestFromUpload) {
-    return latestFromUpload;
-  }
-
-  let reports: ReportListResult;
+  let reports: ReportListResult | null = null;
   try {
     reports = await input.fetchReportsList();
   } catch {
-    return null;
+    reports = null;
   }
 
-  const firstReport = findFirstCompletedReport(reports.items);
-  return fetchReportDetailOrNull(firstReport?.reportId ?? null, input.fetchReportDetail);
+  const firstReport = reports ? findFirstReportWithId(reports.items) : null;
+  const latestFromReports = await fetchReportDetailOrNull(firstReport?.reportId ?? null, input.fetchReportDetail);
+  if (latestFromReports) {
+    return latestFromReports;
+  }
+
+  const canonicalUploadReportId = normalizeReportId(input.latestUploadReportId);
+  return fetchReportDetailOrNull(canonicalUploadReportId, input.fetchReportDetail);
 }

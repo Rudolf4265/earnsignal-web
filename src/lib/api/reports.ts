@@ -9,6 +9,13 @@ export type { ReportDetail, ReportListItem, ReportListResult };
 function requireReportId(reportId: unknown, context: string): string {
   const normalized = normalizeReportId(reportId);
   if (!normalized) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[report.api] blocked request without a valid report_id.", {
+        context,
+        reportId: reportId ?? null,
+      });
+    }
+
     throw new Error(`Report ID is unavailable for ${context}.`);
   }
 

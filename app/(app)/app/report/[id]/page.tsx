@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { Badge } from "../../_components/dashboard/Badge";
 import { KpiCard } from "../../_components/dashboard/KpiCard";
 import { Panel } from "../../_components/dashboard/Panel";
@@ -19,11 +20,11 @@ import {
 } from "@/src/lib/api/reports";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 import { formatReportCreatedAt, toReportStatusLabel, toReportStatusVariant } from "@/src/lib/report/list-model";
-import { normalizeReportId } from "@/src/lib/report/id";
+import { readReportRouteParamId } from "@/src/lib/report/route-id";
 import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/report/normalize-artifact-to-report-model";
 
 type ReportPageState = {
-  view: ReportViewState;
+  view: ReportViewState | "invalid_route";
   report: ReportDetail | null;
   artifactModel: ReportViewModel | null;
   artifactWarnings: string[];
@@ -81,9 +82,17 @@ function toArtifactErrorMessage(error: unknown): string {
   return getReportErrorMessage(error);
 }
 
-export default function ReportPage({ params }: { params: { id: string } }) {
-  const { id } = params;
-  const canonicalReportId = useMemo(() => normalizeReportId(id), [id]);
+export default function ReportPage() {
+  const params = useParams<{ id?: string | string[] }>();
+  const routeParamId = params?.id;
+  const routeParamIdForDebug = useMemo(() => {
+    if (Array.isArray(routeParamId)) {
+      return routeParamId.join(",");
+    }
+
+    return routeParamId ?? null;
+  }, [routeParamId]);
+  const canonicalReportId = useMemo(() => readReportRouteParamId({ id: routeParamId }), [routeParamId]);
   const [state, setState] = useState<ReportPageState>(initialState);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
@@ -99,9 +108,15 @@ export default function ReportPage({ params }: { params: { id: string } }) {
     setPdfError(null);
 
     if (!activeReportId) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[report.detail] route parameter [id] is missing or invalid; blocking detail fetch.", {
+          routeParamId: routeParamIdForDebug,
+        });
+      }
+
       setState({
         ...initialState,
-        view: "not_found",
+        view: "invalid_route",
       });
       return () => {
         cancelled = true;
@@ -178,7 +193,7 @@ export default function ReportPage({ params }: { params: { id: string } }) {
     return () => {
       cancelled = true;
     };
-  }, [canonicalReportId, reloadNonce]);
+  }, [canonicalReportId, reloadNonce, routeParamIdForDebug]);
 
   const openPdf = async () => {
     if (!state.report || pdfLoading) {
@@ -416,6 +431,16 @@ export default function ReportPage({ params }: { params: { id: string } }) {
           <p className="text-slate-400">
             We could not find a report with ID {canonicalReportId ?? "unknown"}. It may have been deleted or never existed.
           </p>
+          <Link href="/app/report" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
+            Back to Reports
+          </Link>
+        </section>
+      ) : null}
+
+      {state.view === "invalid_route" ? (
+        <section className="space-y-3" data-testid="report-invalid-route">
+          <h1 className="text-2xl font-semibold">Invalid report route</h1>
+          <p className="text-slate-400">The report URL is missing a valid report ID.</p>
           <Link href="/app/report" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
             Back to Reports
           </Link>

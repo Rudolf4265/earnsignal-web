@@ -59,4 +59,40 @@ test.describe("Report detail route", () => {
     await expect(page.getByTestId("report-forbidden")).toBeVisible();
     await expect(page.getByRole("link", { name: "Back to Dashboard" })).toBeVisible();
   });
+
+  test("never requests /v1/reports/undefined for a valid /app/report/[id] route", async ({ page }) => {
+    const reportRequests = new Set<string>();
+
+    await page.route("**/v1/reports/**", async (route) => {
+      const url = new URL(route.request().url());
+      reportRequests.add(url.pathname);
+
+      if (url.pathname.endsWith("/v1/reports/rep_guard")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            id: "rep_guard",
+            title: "Guarded report",
+            status: "ready",
+            summary: "Regression guard",
+            created_at: "2026-03-01T10:00:00Z",
+          }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "Not found", code: "NOT_FOUND" }),
+      });
+    });
+
+    await page.goto("/app/report/rep_guard");
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    expect(Array.from(reportRequests).some((path) => /\/v1\/reports\/undefined$/i.test(path))).toBeFalsy();
+    expect(reportRequests.has("/v1/reports/rep_guard")).toBeTruthy();
+  });
 });

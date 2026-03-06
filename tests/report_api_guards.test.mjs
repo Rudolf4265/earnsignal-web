@@ -33,6 +33,25 @@ test("fetchReportDetail rejects invalid report id before making a network reques
   }
 });
 
+test("fetchReportDetail rejects undefined/nullish ids before making a network request", async () => {
+  const originalFetch = global.fetch;
+  let fetchCalled = false;
+  global.fetch = async () => {
+    fetchCalled = true;
+    throw new Error("network should not be called");
+  };
+
+  try {
+    const { fetchReportDetail } = await loadReportsModule(Date.now() + 11);
+    await assert.rejects(() => fetchReportDetail(undefined), /Report ID is unavailable/);
+    await assert.rejects(() => fetchReportDetail(null), /Report ID is unavailable/);
+    await assert.rejects(() => fetchReportDetail(""), /Report ID is unavailable/);
+    assert.equal(fetchCalled, false);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
 test("buildReportArtifactPdfUrl rejects invalid report id when artifact url is missing", async () => {
   process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
   const { buildReportArtifactPdfUrl } = await loadReportsModule(Date.now() + 2);

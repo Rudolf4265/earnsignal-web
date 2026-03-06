@@ -1,18 +1,19 @@
 import { isApiError } from "../api/client";
 import type { ReportDetail, ReportListItem, ReportListResult } from "../api/reports";
 import { normalizeReportId } from "../report/id";
+import { hasUsableReportArtifact } from "../report/artifact-availability";
 
-const COMPLETED_REPORT_STATUSES = new Set(["ready", "completed", "complete", "success", "succeeded"]);
-
-type CompletedReportCandidate = Pick<ReportListItem, "reportId" | "status" | "createdAt">;
-
-function isCompletedReportStatus(status: string): boolean {
-  return COMPLETED_REPORT_STATUSES.has(status.trim().toLowerCase());
-}
+type CompletedReportCandidate = Pick<ReportListItem, "reportId" | "status" | "createdAt" | "artifactUrl">;
 
 export function findFirstCompletedReport(items: ReportListResult["items"]): CompletedReportCandidate | null {
   for (const item of items) {
-    if (item.reportId && isCompletedReportStatus(item.status)) {
+    if (
+      hasUsableReportArtifact({
+        reportId: item.reportId,
+        status: item.status,
+        artifactUrl: item.artifactUrl,
+      })
+    ) {
       return item;
     }
   }
@@ -63,12 +64,23 @@ export async function loadLatestDashboardReport(input: LoadLatestDashboardReport
     reports = null;
   }
 
+  const firstCompletedReport = reports ? findFirstCompletedReport(reports.items) : null;
+  const latestCompletedFromReports = await fetchReportDetailOrNull(firstCompletedReport?.reportId ?? null, input.fetchReportDetail);
+  if (latestCompletedFromReports) {
+    return latestCompletedFromReports;
+  }
+
+  const canonicalUploadReportId = normalizeReportId(input.latestUploadReportId);
+  const latestFromUpload = await fetchReportDetailOrNull(canonicalUploadReportId, input.fetchReportDetail);
+  if (latestFromUpload) {
+    return latestFromUpload;
+  }
+
   const firstReport = reports ? findFirstReportWithId(reports.items) : null;
   const latestFromReports = await fetchReportDetailOrNull(firstReport?.reportId ?? null, input.fetchReportDetail);
   if (latestFromReports) {
     return latestFromReports;
   }
 
-  const canonicalUploadReportId = normalizeReportId(input.latestUploadReportId);
-  return fetchReportDetailOrNull(canonicalUploadReportId, input.fetchReportDetail);
+  return null;
 }

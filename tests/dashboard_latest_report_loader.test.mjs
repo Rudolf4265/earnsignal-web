@@ -17,8 +17,8 @@ function makeReportDetail(id, status = "ready") {
     title: `Report ${id}`,
     status,
     summary: `Summary ${id}`,
-    artifactUrl: null,
-    pdfUrl: null,
+    artifactUrl: `/v1/reports/${id}/artifact`,
+    pdfUrl: `/v1/reports/${id}/artifact`,
     artifactJsonUrl: null,
     keySignals: [],
     recommendedActions: [],
@@ -33,7 +33,7 @@ function makeReportDetail(id, status = "ready") {
   };
 }
 
-test("dashboard latest report loader fetches detail from first report in list when upload report_id is missing", async () => {
+test("dashboard latest report loader fetches detail from first completed report with a canonical artifact in list", async () => {
   const { loadLatestDashboardReport } = await loadModules();
   const detailCalls = [];
   let listCalls = 0;
@@ -42,8 +42,8 @@ test("dashboard latest report loader fetches detail from first report in list wh
     latestUploadReportId: null,
     fetchReportDetail: async (reportId) => {
       detailCalls.push(reportId);
-      if (reportId === "rep_first_1") {
-        return makeReportDetail("rep_first_1", "processing");
+      if (reportId === "rep_second_2") {
+        return makeReportDetail("rep_second_2", "completed");
       }
 
       throw new Error(`Unexpected report id ${reportId}`);
@@ -52,9 +52,9 @@ test("dashboard latest report loader fetches detail from first report in list wh
       listCalls += 1;
       return {
         items: [
-          { reportId: "rep_first_1", status: "processing" },
-          { reportId: "rep_second_2", status: "completed" },
-          { reportId: "rep_third_3", status: "ready" },
+          { reportId: "rep_first_1", status: "processing", artifactUrl: null },
+          { reportId: "rep_second_2", status: "completed", artifactUrl: "/v1/reports/rep_second_2/artifact" },
+          { reportId: "rep_third_3", status: "ready", artifactUrl: "/v1/reports/rep_third_3/artifact" },
         ],
         nextOffset: null,
         hasMore: false,
@@ -62,9 +62,9 @@ test("dashboard latest report loader fetches detail from first report in list wh
     },
   });
 
-  assert.equal(result?.id, "rep_first_1");
+  assert.equal(result?.id, "rep_second_2");
   assert.equal(listCalls, 1);
-  assert.deepEqual(detailCalls, ["rep_first_1"]);
+  assert.deepEqual(detailCalls, ["rep_second_2"]);
 });
 
 test("dashboard latest report loader prefers list-based hydration over upload report_id optimization", async () => {
@@ -82,7 +82,7 @@ test("dashboard latest report loader prefers list-based hydration over upload re
       throw new Error(`Unexpected report id ${reportId}`);
     },
     fetchReportsList: async () => ({
-      items: [{ reportId: "rep_list_primary", status: "ready" }],
+      items: [{ reportId: "rep_list_primary", status: "ready", artifactUrl: "/v1/reports/rep_list_primary/artifact" }],
       nextOffset: null,
       hasMore: false,
     }),
@@ -107,7 +107,7 @@ test("dashboard latest report loader falls back to upload report_id when list ha
       throw new Error(`Unexpected report id ${reportId}`);
     },
     fetchReportsList: async () => ({
-      items: [{ reportId: null, status: "ready" }],
+      items: [{ reportId: null, status: "ready", artifactUrl: "/v1/reports/rep_upload_fallback/artifact" }],
       nextOffset: null,
       hasMore: false,
     }),
@@ -126,11 +126,13 @@ test("dashboard latest report loader triggers detail fetch from /v1/reports payl
       {
         report_id: "rep_payload_first",
         status: "ready",
+        artifact_url: "/v1/reports/rep_payload_first/artifact",
         created_at: "2026-03-01T10:00:00Z",
       },
       {
         report_id: "rep_payload_second",
         status: "ready",
+        artifact_url: "/v1/reports/rep_payload_second/artifact",
         created_at: "2026-03-01T09:00:00Z",
       },
     ],
@@ -149,4 +151,29 @@ test("dashboard latest report loader triggers detail fetch from /v1/reports payl
 
   assert.equal(result?.id, "rep_payload_first");
   assert.deepEqual(detailCalls, ["rep_payload_first"]);
+});
+
+test("dashboard latest report loader ignores completed rows with missing artifact_url and falls back to canonical upload report_id", async () => {
+  const { loadLatestDashboardReport } = await loadModules();
+  const detailCalls = [];
+
+  const result = await loadLatestDashboardReport({
+    latestUploadReportId: "rep_upload_usable",
+    fetchReportDetail: async (reportId) => {
+      detailCalls.push(reportId);
+      if (reportId === "rep_upload_usable") {
+        return makeReportDetail("rep_upload_usable", "ready");
+      }
+
+      throw new Error(`Unexpected report id ${reportId}`);
+    },
+    fetchReportsList: async () => ({
+      items: [{ reportId: "rep_missing_artifact", status: "ready", artifactUrl: null }],
+      nextOffset: null,
+      hasMore: false,
+    }),
+  });
+
+  assert.equal(result?.id, "rep_upload_usable");
+  assert.deepEqual(detailCalls, ["rep_upload_usable"]);
 });

@@ -202,3 +202,33 @@ test("report list supports root-array payloads with canonical report_id", async 
   assert.equal(page.items[0].reportId, "rep_array_001");
   assert.equal(page.hasMore, false);
 });
+
+test("report list row download action requires canonical artifact endpoint linkage", async () => {
+  const { normalizeReportsListResponse, toReportListRows } = await loadListModel(Date.now() + 10);
+
+  const page = normalizeReportsListResponse({
+    items: [
+      {
+        report_id: "rep_good",
+        status: "ready",
+        artifact_url: "/v1/reports/rep_good/artifact",
+      },
+      {
+        report_id: "rep_bad_json",
+        status: "ready",
+        artifact_url: "/v1/reports/rep_bad_json/artifact.json",
+      },
+      {
+        report_id: "rep_mismatch",
+        status: "ready",
+        artifact_url: "/v1/reports/rep_other/artifact",
+      },
+    ],
+    has_more: false,
+  });
+
+  const rows = toReportListRows(page.items);
+  assert.equal(rows[0].canDownload, true);
+  assert.equal(rows[1].canDownload, false);
+  assert.equal(rows[2].canDownload, false);
+});

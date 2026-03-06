@@ -19,6 +19,7 @@ import {
   type ReportDetail,
 } from "@/src/lib/api/reports";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
+import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability";
 import { formatReportCreatedAt, toReportStatusLabel, toReportStatusVariant } from "@/src/lib/report/list-model";
 import { readReportRouteParamId } from "@/src/lib/report/route-id";
 import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/report/normalize-artifact-to-report-model";
@@ -99,6 +100,17 @@ export default function ReportPage() {
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [debugOpen, setDebugOpen] = useState(false);
+  const canAccessPdf = useMemo(
+    () =>
+      state.report
+        ? hasUsableReportArtifact({
+            reportId: state.report.id,
+            status: state.report.status,
+            artifactUrl: state.report.artifactUrl,
+          })
+        : false,
+    [state.report],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -196,7 +208,7 @@ export default function ReportPage() {
   }, [canonicalReportId, reloadNonce, routeParamIdForDebug]);
 
   const openPdf = async () => {
-    if (!state.report || pdfLoading) {
+    if (!state.report || !canAccessPdf || pdfLoading) {
       return;
     }
 
@@ -226,7 +238,7 @@ export default function ReportPage() {
   };
 
   const downloadPdf = async () => {
-    if (!state.report || downloadLoading) {
+    if (!state.report || !canAccessPdf || downloadLoading) {
       return;
     }
 
@@ -307,22 +319,30 @@ export default function ReportPage() {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant={statusVariant}>{statusLabel}</Badge>
-              <button
-                type="button"
-                onClick={() => void openPdf()}
-                disabled={pdfLoading}
-                className="inline-flex rounded-xl bg-brand-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {pdfLoading ? "Opening PDF..." : "Open PDF"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void downloadPdf()}
-                disabled={downloadLoading}
-                className="inline-flex rounded-xl bg-brand-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {downloadLoading ? "Downloading PDF..." : "Download PDF"}
-              </button>
+              {canAccessPdf ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void openPdf()}
+                    disabled={pdfLoading}
+                    className="inline-flex rounded-xl bg-brand-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {pdfLoading ? "Opening PDF..." : "Open PDF"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void downloadPdf()}
+                    disabled={downloadLoading}
+                    className="inline-flex rounded-xl bg-brand-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {downloadLoading ? "Downloading PDF..." : "Download PDF"}
+                  </button>
+                </>
+              ) : (
+                <span className="inline-flex rounded-full border border-amber-300/35 bg-amber-300/15 px-3 py-1.5 text-xs font-medium text-amber-100">
+                  PDF unavailable
+                </span>
+              )}
             </div>
           </div>
 

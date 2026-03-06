@@ -1,5 +1,6 @@
 import { normalizeReportId } from "./id";
 import { buildReportDetailPath } from "./path";
+import { hasUsableReportArtifact } from "./artifact-availability";
 
 export type ReportListItem = {
   reportId: string | null;
@@ -238,6 +239,11 @@ export function toReportListRows(items: ReportListItem[]): ReportListRow[] {
     const normalizedStatus = item.status.trim() ? item.status : "unknown";
     const viewHref = buildReportDetailPath(item.reportId);
     const canView = viewHref !== null;
+    const canDownload = hasUsableReportArtifact({
+      reportId: item.reportId,
+      status: normalizedStatus,
+      artifactUrl: item.artifactUrl,
+    });
     const rowId =
       item.reportId ??
       `report-missing-id-${index}-${item.uploadId ?? item.jobId ?? item.createdAt ?? item.finishedAt ?? item.artifactUrl ?? "row"}`;
@@ -252,7 +258,7 @@ export function toReportListRows(items: ReportListItem[]): ReportListRow[] {
       createdAtLabel: formatReportCreatedAt(item.createdAt),
       viewHref,
       canView,
-      canDownload: canView && normalizedStatus.toLowerCase() === "ready" && Boolean(item.artifactUrl),
+      canDownload: canView && canDownload,
       artifactUrl: item.artifactUrl,
     };
   });

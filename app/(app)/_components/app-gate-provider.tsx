@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { Session } from "@supabase/supabase-js";
 import { fetchEntitlements, type EntitlementsResponse } from "@/src/lib/api/entitlements";
 import { checkIsAdmin } from "@/src/lib/admin/access";
-import { createClient } from "@/src/lib/supabase/client";
+import { createBrowserSupabaseClient } from "@/src/lib/supabase/client";
 import { getSession, onAuthStateChange } from "@/src/lib/supabase/session";
 import {
   buildLoginHref,
@@ -143,7 +143,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
         }
       },
       signOut: async () => {
-        const supabase = await createClient();
+        const supabase = await createBrowserSupabaseClient();
         await supabase.auth.signOut();
       },
       refreshEntitlements: loadEntitlements,

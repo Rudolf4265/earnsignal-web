@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import AuthShell from "../_components/auth-shell";
 import { buttonClassName } from "@/src/components/ui/button";
-import { createClient } from "@/src/lib/supabase/client";
+import { createBrowserSupabaseClient } from "@/src/lib/supabase/client";
 import { appBaseUrl } from "@/src/lib/urls";
 
 export default function ForgotPasswordPage() {
@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const supabase = await createClient();
+      const supabase = await createBrowserSupabaseClient();
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${appBaseUrl}/auth/callback`,
       });

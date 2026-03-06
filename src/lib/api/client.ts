@@ -140,10 +140,10 @@ async function getBrowserAccessToken(): Promise<string | null> {
   }
 
   try {
-    const { createClient } = await import("../supabase/client");
+    const { createBrowserSupabaseClient } = await import("../supabase/client");
     const {
       data: { session },
-    } = await createClient().auth.getSession();
+    } = await createBrowserSupabaseClient().auth.getSession();
 
     return session?.access_token ?? null;
   } catch {

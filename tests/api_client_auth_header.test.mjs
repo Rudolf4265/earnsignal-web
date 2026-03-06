@@ -14,7 +14,7 @@ async function buildApiClientModule(tag) {
   const mockPath = path.join(outDir, "mocks", "supabase-client");
   await writeFile(
     mockPath,
-    `export function createClient() {
+    `export function createBrowserSupabaseClient() {
       return {
         auth: {
           async getSession() {

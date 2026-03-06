@@ -65,6 +65,17 @@ test("buildReportArtifactPdfUrl ignores mismatched artifact_url report_id values
   assert.equal(url, "https://api.example.test/v1/reports/rep_123/artifact");
 });
 
+test("buildReportArtifactPdfUrl ignores artifact.json url values for PDF fetches", async () => {
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  const { buildReportArtifactPdfUrl } = await import(`${reportsModuleUrl}?t=${Date.now() + 12}`);
+  const url = buildReportArtifactPdfUrl({
+    reportId: "rep_123",
+    artifactUrl: "/artifact.json",
+  });
+
+  assert.equal(url, "https://api.example.test/v1/reports/rep_123/artifact");
+});
+
 test("fetchReportPdfBlobUrl falls back to /v1/reports/:id/artifact when url is missing", async () => {
   const originalFetch = global.fetch;
   process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
@@ -88,6 +99,33 @@ test("fetchReportPdfBlobUrl falls back to /v1/reports/:id/artifact when url is m
     assert.equal(requests[0].url, "https://api.example.test/v1/reports/rep_123/artifact");
     assert.equal(requests[0].init.headers.Accept, "application/pdf");
     assert.equal(pdfBlobUrl.startsWith("blob:"), true);
+    URL.revokeObjectURL(pdfBlobUrl);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("fetchReportPdfBlobUrl ignores artifact.json url values and requests canonical artifact endpoint", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  const requests = [];
+
+  global.fetch = async (url, init = {}) => {
+    requests.push({ url, init });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: (key) => (key === "content-type" ? "application/pdf" : null) },
+      blob: async () => new Blob(["%PDF-1.4"], { type: "application/pdf" }),
+    };
+  };
+
+  try {
+    const { fetchReportPdfBlobUrl } = await import(`${reportsModuleUrl}?t=${Date.now() + 13}`);
+    const pdfBlobUrl = await fetchReportPdfBlobUrl(createReport({ artifactUrl: "/artifact.json" }));
+    assert.equal(typeof pdfBlobUrl, "string");
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].url, "https://api.example.test/v1/reports/rep_123/artifact");
     URL.revokeObjectURL(pdfBlobUrl);
   } finally {
     global.fetch = originalFetch;

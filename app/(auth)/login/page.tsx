@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "../_components/auth-shell";
 import { buttonClassName } from "@/src/components/ui/button";
-import { createClient } from "@/src/lib/supabase/client";
+import { createBrowserSupabaseClient } from "@/src/lib/supabase/client";
 import { signInWithGoogle } from "@/src/lib/supabase/oauth";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { resolveReturnTo } from "@/src/lib/auth/resolveReturnTo";
@@ -42,7 +42,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const supabase = await createClient();
+      const supabase = await createBrowserSupabaseClient();
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,

@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "./client";
+import { createBrowserSupabaseClient } from "./client";
 import { appBaseUrl } from "@/src/lib/urls";
 import { isAllowedAuthOrigin } from "@/src/lib/config/domains";
 
@@ -8,7 +8,7 @@ export async function signInWithGoogle(opts?: { redirectTo?: string; returnTo?: 
   let supabase;
 
   try {
-    supabase = createClient();
+    supabase = createBrowserSupabaseClient();
   } catch (err) {
     console.error("[auth] supabase init failed", err);
     throw err;

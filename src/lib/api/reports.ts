@@ -89,20 +89,33 @@ function extractReportIdFromReportsPath(pathOrUrl: string): { matched: boolean; 
   };
 }
 
+function isReportPdfArtifactPath(pathOrUrl: string): boolean {
+  let pathname = pathOrUrl;
+  try {
+    pathname = new URL(pathOrUrl, "https://report-id-check.local").pathname;
+  } catch {
+    return false;
+  }
+
+  return /^\/v1\/reports\/[^/?#]+\/artifact\/?$/i.test(pathname);
+}
+
 function resolveReportArtifactPath({ reportId, artifactUrl }: ReportArtifactTarget): string {
   const canonicalReportId = requireReportId(reportId, "report.artifact");
   const trimmed = artifactUrl?.trim();
   if (trimmed) {
     const embedded = extractReportIdFromReportsPath(trimmed);
-    if (!embedded.matched || embedded.reportId === canonicalReportId) {
+    const isPdfArtifactPath = isReportPdfArtifactPath(trimmed);
+    if (embedded.matched && embedded.reportId === canonicalReportId && isPdfArtifactPath) {
       return trimmed;
     }
 
     if (process.env.NODE_ENV !== "production") {
-      console.warn("[report.api] ignoring artifact_url with invalid or mismatched report_id.", {
+      console.warn("[report.api] ignoring artifact_url for PDF fetch because it is not a canonical report artifact path.", {
         artifactUrl: trimmed,
         expectedReportId: canonicalReportId,
         embeddedReportId: embedded.reportId,
+        isPdfArtifactPath,
       });
     }
   }

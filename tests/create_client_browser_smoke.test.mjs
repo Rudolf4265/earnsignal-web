@@ -33,7 +33,7 @@ async function importClientModule(cacheKey) {
   }
 }
 
-test("createClient throws on server runtime", async (t) => {
+test("createBrowserSupabaseClient throws on server runtime", async (t) => {
   delete global.window;
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
@@ -46,12 +46,12 @@ test("createClient throws on server runtime", async (t) => {
   }
 
   assert.throws(
-    () => mod.createClient(),
+    () => mod.createBrowserSupabaseClient(),
     /browser client cannot be created on the server/i,
   );
 });
 
-test("createClient can initialize in browser-like runtime with NEXT_PUBLIC env", async (t) => {
+test("createBrowserSupabaseClient can initialize in browser-like runtime with NEXT_PUBLIC env", async (t) => {
   process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
 
@@ -71,8 +71,8 @@ test("createClient can initialize in browser-like runtime with NEXT_PUBLIC env",
     return;
   }
 
-  assert.doesNotThrow(() => mod.createClient());
-  assert.equal(typeof mod.createClient().auth.getSession, "function");
+  assert.doesNotThrow(() => mod.createBrowserSupabaseClient());
+  assert.equal(typeof mod.createBrowserSupabaseClient().auth.getSession, "function");
 
   delete global.window;
   delete global.localStorage;

@@ -11,21 +11,24 @@ async function loadHydrator() {
 
 function createProductionArtifactShape() {
   return {
+    schema_version: "v1",
     report: {
       report_id: "rep_prod_dashboard_001",
-      schema_version: "v1",
       created_at: "2026-03-09T12:00:00Z",
       sections: {
         executive_summary: {
           summary: "Revenue quality improved while volatility eased.",
         },
         revenue_snapshot: {
-          net_revenue: 215000,
           series: [
             { period: "2025-12", net_revenue: 198000 },
             { period: "2026-01", net_revenue: 205500 },
             { period: "2026-02", net_revenue: 215000 },
           ],
+          delta: {
+            period_over_period: 9500,
+            month_over_month_pct: 0.046,
+          },
         },
         subscribers_retention: {
           items: ["Retention stayed above target for the quarter."],
@@ -43,14 +46,18 @@ function createProductionArtifactShape() {
           stability_index: 87,
           items: ["Churn velocity is moderating."],
         },
-        prioritized_insights: {
-          items: ["High-retention cohorts are driving margin expansion."],
-        },
-        ranked_recommendations: {
-          items: ["Shift spend toward retention experiments before scaling acquisition."],
-        },
+        prioritized_insights: ["High-retention cohorts are driving margin expansion."],
+        ranked_recommendations: ["Shift spend toward retention experiments before scaling acquisition."],
         outlook: {
-          summary: "Base case remains growth-positive with lower downside variance.",
+          revenue_projection: {
+            summary: "Base case remains growth-positive with lower downside variance.",
+          },
+          churn_outlook: {
+            summary: "Churn risk is flat to slightly improving.",
+          },
+          platform_risk_outlook: {
+            summary: "No near-term platform concentration shock expected.",
+          },
         },
         plan: {
           items: ["Run annual plan sensitivity tests in Q2."],

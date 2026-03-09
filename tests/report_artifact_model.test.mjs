@@ -46,21 +46,24 @@ test("normalizeArtifactToReportModel supports executive_summary paragraphs and s
 test("normalizeArtifactToReportModel supports production report.sections object shape", async () => {
   const { normalizeArtifactToReportModel } = await loadArtifactNormalizer(Date.now() + 11);
   const result = normalizeArtifactToReportModel({
+    schema_version: "v1",
     report: {
       report_id: "rep_prod_shape_001",
-      schema_version: "v1",
       created_at: "2026-03-09T12:00:00Z",
       sections: {
         executive_summary: {
           summary: "Revenue quality improved and volatility eased.",
         },
         revenue_snapshot: {
-          net_revenue: 215000,
           series: [
             { period: "2025-12", net_revenue: 198000 },
             { period: "2026-01", net_revenue: 205500 },
             { period: "2026-02", net_revenue: 215000 },
           ],
+          delta: {
+            period_over_period: 9500,
+            month_over_month_pct: 0.046,
+          },
         },
         subscribers_retention: {
           bullets: ["Retention remained above plan for three straight months."],
@@ -78,14 +81,18 @@ test("normalizeArtifactToReportModel supports production report.sections object 
           stability_index: 87,
           bullets: ["Churn velocity is moderating."],
         },
-        prioritized_insights: {
-          items: ["Revenue momentum remains positive in high-retention cohorts."],
-        },
-        ranked_recommendations: {
-          items: ["Reallocate spend toward retention loops before top-of-funnel expansion."],
-        },
+        prioritized_insights: ["Revenue momentum remains positive in high-retention cohorts."],
+        ranked_recommendations: ["Reallocate spend toward retention loops before top-of-funnel expansion."],
         outlook: {
-          summary: "Base case implies steady growth with lower downside variance.",
+          revenue_projection: {
+            summary: "Base case implies steady growth with lower downside variance.",
+          },
+          churn_outlook: {
+            summary: "Churn risk is flat to slightly improving.",
+          },
+          platform_risk_outlook: {
+            summary: "No near-term platform concentration shock expected.",
+          },
         },
         plan: {
           items: ["Run annual plan sensitivity experiments in Q2."],
@@ -113,6 +120,10 @@ test("normalizeArtifactToReportModel supports production report.sections object 
   const revenueSnapshot = result.model.sections.find((section) => section.title === "Revenue Snapshot");
   assert.equal(Boolean(revenueSnapshot), true);
   assert.equal(revenueSnapshot.bullets.some((bullet) => bullet.includes("2025-12")), true);
+
+  const outlook = result.model.sections.find((section) => section.title === "Outlook");
+  assert.equal(Boolean(outlook), true);
+  assert.equal(outlook.bullets.some((bullet) => bullet.includes("growth with lower downside variance")), true);
 
   const hasRenderableBody =
     result.model.executiveSummaryParagraphs.length > 0 ||

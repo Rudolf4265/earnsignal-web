@@ -151,6 +151,42 @@ function readNumberFromRecords(records: Record<string, unknown>[], paths: string
   return null;
 }
 
+function readLatestSeriesMetricFromRecords(
+  records: Record<string, unknown>[],
+  paths: string[],
+  valueKeys: string[],
+): number | null {
+  for (const record of records) {
+    for (const path of paths) {
+      const seriesValue = readPath(record, path);
+      if (!Array.isArray(seriesValue)) {
+        continue;
+      }
+
+      for (let index = seriesValue.length - 1; index >= 0; index -= 1) {
+        const entry = seriesValue[index];
+        const scalar = readNumber(entry);
+        if (scalar !== null) {
+          return scalar;
+        }
+
+        if (!isRecord(entry)) {
+          continue;
+        }
+
+        for (const valueKey of valueKeys) {
+          const candidate = readNumber(entry[valueKey]);
+          if (candidate !== null) {
+            return candidate;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 function readStringFromRecord(record: Record<string, unknown>, keys: string[]): string | null {
   for (const key of keys) {
     const value = readString(record[key]);
@@ -270,6 +306,75 @@ function extractTrendBullets(record: Record<string, unknown>): string[] {
   return uniqueStrings(bullets);
 }
 
+function extractNestedObjectBullets(key: string, value: Record<string, unknown>): string[] {
+  const sectionLabel = toLabel(key);
+  const bullets: string[] = [];
+  const ignoredNestedKeys = new Set([
+    "title",
+    "heading",
+    "name",
+    "paragraphs",
+    "bullets",
+    "items",
+    "summary",
+    "description",
+    "text",
+    "headline",
+    "overview",
+    "insights",
+    "recommendations",
+    "actions",
+    "signals",
+    "series",
+    "trend",
+    "trends",
+    "timeline",
+    "history",
+    "points",
+    "data",
+  ]);
+
+  const summary = readStringFromRecord(value, ["summary", "description", "text", "headline", "overview"]);
+  if (summary) {
+    bullets.push(`${sectionLabel}: ${summary}`);
+  }
+
+  const listEntries = uniqueStrings([
+    ...toStringArray(value.paragraphs),
+    ...toStringArray(value.bullets),
+    ...toStringArray(value.items),
+    ...toStringArray(value.insights),
+    ...toStringArray(value.recommendations),
+    ...toStringArray(value.actions),
+    ...toStringArray(value.signals),
+    ...extractTrendBullets(value),
+  ]);
+  if (listEntries.length > 0) {
+    bullets.push(...listEntries.map((entry) => `${sectionLabel}: ${entry}`));
+  }
+
+  for (const [nestedKey, nestedValue] of Object.entries(value)) {
+    if (ignoredNestedKeys.has(nestedKey)) {
+      continue;
+    }
+
+    const scalar = readScalarString(nestedValue);
+    if (scalar) {
+      bullets.push(`${sectionLabel} ${toLabel(nestedKey)}: ${scalar}`);
+      continue;
+    }
+
+    if (Array.isArray(nestedValue)) {
+      const entries = toStringArray(nestedValue);
+      if (entries.length > 0) {
+        bullets.push(...entries.map((entry) => `${sectionLabel} ${toLabel(nestedKey)}: ${entry}`));
+      }
+    }
+  }
+
+  return uniqueStrings(bullets);
+}
+
 function extractScalarBullets(record: Record<string, unknown>): string[] {
   const ignoredKeys = new Set([
     "title",
@@ -324,6 +429,14 @@ function extractScalarBullets(record: Record<string, unknown>): string[] {
       const values = toStringArray(value);
       if (values.length > 0) {
         bullets.push(...values.map((entry) => `${toLabel(key)}: ${entry}`));
+      }
+      continue;
+    }
+
+    if (isRecord(value)) {
+      const nestedBullets = extractNestedObjectBullets(key, value);
+      if (nestedBullets.length > 0) {
+        bullets.push(...nestedBullets);
       }
     }
   }
@@ -441,9 +554,16 @@ function readKpis(records: Record<string, unknown>[]): ReportKpis {
     ],
   } as const;
   const withReportPrefix = (paths: readonly string[]): string[] => [...paths, ...paths.map((path) => `report.${path}`)];
+  const resolvedNetRevenue =
+    readNumberFromRecords(records, withReportPrefix(basePaths.netRevenue)) ??
+    readLatestSeriesMetricFromRecords(
+      records,
+      withReportPrefix(["sections.revenue_snapshot.series", "revenue_snapshot.series"]),
+      SERIES_VALUE_KEYS,
+    );
 
   return {
-    netRevenue: readNumberFromRecords(records, withReportPrefix(basePaths.netRevenue)),
+    netRevenue: resolvedNetRevenue,
     subscribers: readNumberFromRecords(records, withReportPrefix(basePaths.subscribers)),
     stabilityIndex: readNumberFromRecords(records, withReportPrefix(basePaths.stabilityIndex)),
     churnVelocity: readNumberFromRecords(records, withReportPrefix(basePaths.churnVelocity)),

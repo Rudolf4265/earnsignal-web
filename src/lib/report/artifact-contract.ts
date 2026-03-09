@@ -10,6 +10,16 @@ const REQUIRED_SECTION_KEYS = [
 ] as const;
 
 type RequiredSectionKey = (typeof REQUIRED_SECTION_KEYS)[number];
+type SectionShape = "object" | "object_or_array";
+
+const REQUIRED_SECTION_SHAPES: Record<RequiredSectionKey, SectionShape> = {
+  executive_summary: "object",
+  revenue_snapshot: "object",
+  stability: "object",
+  prioritized_insights: "object_or_array",
+  ranked_recommendations: "object_or_array",
+  outlook: "object",
+};
 
 export type ReportArtifactContractValidationResult = {
   valid: boolean;
@@ -59,6 +69,42 @@ function hasPositiveNumber(record: Record<string, unknown>, paths: string[]): bo
   return paths.some((path) => readNumber(readPath(record, path)) !== null);
 }
 
+function hasRenderableScalar(value: unknown): boolean {
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value);
+  }
+
+  if (typeof value === "boolean") {
+    return true;
+  }
+
+  return false;
+}
+
+function hasRenderableValue(value: unknown, depth = 0): boolean {
+  if (depth > 3) {
+    return false;
+  }
+
+  if (hasRenderableScalar(value)) {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((entry) => hasRenderableValue(entry, depth + 1));
+  }
+
+  if (isRecord(value)) {
+    return Object.values(value).some((entry) => hasRenderableValue(entry, depth + 1));
+  }
+
+  return false;
+}
+
 function toTextList(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -68,6 +114,10 @@ function toTextList(value: unknown): string[] {
     .map((entry) => {
       if (typeof entry === "string" && entry.trim()) {
         return entry.trim();
+      }
+
+      if (typeof entry === "number" && Number.isFinite(entry)) {
+        return String(entry);
       }
 
       if (!isRecord(entry)) {
@@ -88,12 +138,16 @@ function toTextList(value: unknown): string[] {
 
 function sectionHasText(record: Record<string, unknown>, keys: string[]): boolean {
   return keys.some((key) => {
-    const candidate = readString(record[key]);
-    if (candidate) {
+    const value = record[key];
+    if (hasRenderableScalar(value)) {
       return true;
     }
 
-    return toTextList(record[key]).length > 0;
+    if (toTextList(value).length > 0) {
+      return true;
+    }
+
+    return hasRenderableValue(value);
   });
 }
 
@@ -105,47 +159,139 @@ function getRootArtifactRecord(artifact: Record<string, unknown>): { root: Recor
   return { root: artifact, label: "artifact" };
 }
 
-function validateRequiredSections(sections: Record<string, unknown>, errors: string[]): Partial<Record<RequiredSectionKey, Record<string, unknown>>> {
-  const sectionRecords: Partial<Record<RequiredSectionKey, Record<string, unknown>>> = {};
+function validateRequiredSections(
+  sections: Record<string, unknown>,
+  errors: string[],
+  label: string,
+): Partial<Record<RequiredSectionKey, unknown>> {
+  const sectionValues: Partial<Record<RequiredSectionKey, unknown>> = {};
   for (const key of REQUIRED_SECTION_KEYS) {
-    const section = sections[key];
-    if (!isRecord(section)) {
-      errors.push(`Missing required report.sections.${key} object.`);
+    const sectionValue = sections[key];
+    if (typeof sectionValue === "undefined" || sectionValue === null) {
+      errors.push(`Missing required ${label}.sections.${key} object.`);
       continue;
     }
 
-    sectionRecords[key] = section;
+    const expectedShape = REQUIRED_SECTION_SHAPES[key];
+    if (expectedShape === "object" && !isRecord(sectionValue)) {
+      errors.push(`${label}.sections.${key} must be an object.`);
+      continue;
+    }
+
+    if (expectedShape === "object_or_array" && !isRecord(sectionValue) && !Array.isArray(sectionValue)) {
+      errors.push(`${label}.sections.${key} must be an object or array.`);
+      continue;
+    }
+
+    sectionValues[key] = sectionValue;
   }
 
-  return sectionRecords;
+  return sectionValues;
 }
 
-function validateRequiredMetrics(sections: Partial<Record<RequiredSectionKey, Record<string, unknown>>>, errors: string[]): void {
+function hasSeriesTrendData(section: unknown): boolean {
+  if (!isRecord(section)) {
+    return false;
+  }
+
+  for (const key of ["series", "trend", "timeline", "history", "points", "data"]) {
+    const candidate = section[key];
+    if (Array.isArray(candidate) && candidate.some((entry) => hasRenderableValue(entry))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function sectionHasNarrativeList(section: unknown): boolean {
+  if (Array.isArray(section)) {
+    return section.some((entry) => hasRenderableValue(entry));
+  }
+
+  if (!isRecord(section)) {
+    return false;
+  }
+
+  return sectionHasText(section, [
+    "items",
+    "bullets",
+    "insights",
+    "signals",
+    "actions",
+    "recommendations",
+    "paragraphs",
+    "summary",
+    "overview",
+    "description",
+    "text",
+  ]);
+}
+
+function sectionHasOutlookContent(section: unknown): boolean {
+  if (Array.isArray(section)) {
+    return section.some((entry) => hasRenderableValue(entry));
+  }
+
+  if (!isRecord(section)) {
+    return false;
+  }
+
+  if (sectionHasText(section, ["summary", "overview", "paragraphs", "bullets", "items"])) {
+    return true;
+  }
+
+  for (const [key, value] of Object.entries(section)) {
+    const normalizedKey = key.toLowerCase();
+    if (
+      normalizedKey.includes("outlook") ||
+      normalizedKey.includes("projection") ||
+      normalizedKey.includes("forecast") ||
+      normalizedKey.includes("risk")
+    ) {
+      if (hasRenderableValue(value)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function validateRequiredMetrics(sections: Partial<Record<RequiredSectionKey, unknown>>, errors: string[]): void {
   const revenueSnapshot = sections.revenue_snapshot;
-  if (revenueSnapshot && !hasPositiveNumber(revenueSnapshot, ["net_revenue", "kpis.net_revenue", "metrics.net_revenue"])) {
-    errors.push("report.sections.revenue_snapshot must include net_revenue.");
+  if (
+    revenueSnapshot &&
+    (!isRecord(revenueSnapshot) ||
+      (!hasPositiveNumber(revenueSnapshot, ["net_revenue", "kpis.net_revenue", "metrics.net_revenue"]) &&
+        !hasSeriesTrendData(revenueSnapshot)))
+  ) {
+    errors.push("report.sections.revenue_snapshot must include net_revenue or a non-empty revenue series/trend array.");
   }
 
   const stability = sections.stability;
-  if (stability && !hasPositiveNumber(stability, ["stability_index", "kpis.stability_index", "metrics.stability_index"])) {
+  if (
+    stability &&
+    (!isRecord(stability) || !hasPositiveNumber(stability, ["stability_index", "kpis.stability_index", "metrics.stability_index"]))
+  ) {
     errors.push("report.sections.stability must include stability_index.");
   }
 }
 
-function validateRequiredNarrative(sections: Partial<Record<RequiredSectionKey, Record<string, unknown>>>, errors: string[]): void {
+function validateRequiredNarrative(sections: Partial<Record<RequiredSectionKey, unknown>>, errors: string[]): void {
   const prioritizedInsights = sections.prioritized_insights;
-  if (prioritizedInsights && !sectionHasText(prioritizedInsights, ["items", "bullets", "insights", "signals"])) {
+  if (prioritizedInsights && !sectionHasNarrativeList(prioritizedInsights)) {
     errors.push("report.sections.prioritized_insights must include at least one signal item.");
   }
 
   const rankedRecommendations = sections.ranked_recommendations;
-  if (rankedRecommendations && !sectionHasText(rankedRecommendations, ["items", "bullets", "actions", "recommendations"])) {
+  if (rankedRecommendations && !sectionHasNarrativeList(rankedRecommendations)) {
     errors.push("report.sections.ranked_recommendations must include at least one recommendation item.");
   }
 
   const outlook = sections.outlook;
-  if (outlook && !sectionHasText(outlook, ["summary", "overview", "paragraphs", "bullets", "items"])) {
-    errors.push("report.sections.outlook must include trend preview text.");
+  if (outlook && !sectionHasOutlookContent(outlook)) {
+    errors.push("report.sections.outlook must include narrative content or nested outlook/projection/risk data.");
   }
 }
 
@@ -161,9 +307,18 @@ export function validateReportArtifactContract(artifact: unknown): ReportArtifac
   }
 
   const { root, label } = getRootArtifactRecord(artifact);
-  const schemaVersion = readString(root.schema_version) ?? readString(root.schemaVersion);
+  const rootSchemaVersion = readString(root.schema_version) ?? readString(root.schemaVersion);
+  const topLevelSchemaVersion = readString(artifact.schema_version) ?? readString(artifact.schemaVersion);
+
+  if (root !== artifact && rootSchemaVersion && topLevelSchemaVersion && rootSchemaVersion !== topLevelSchemaVersion) {
+    errors.push(
+      `Schema version mismatch between report.schema_version ("${rootSchemaVersion}") and top-level schema_version ("${topLevelSchemaVersion}").`,
+    );
+  }
+
+  const schemaVersion = rootSchemaVersion ?? topLevelSchemaVersion;
   if (!schemaVersion) {
-    errors.push(`Missing ${label}.schema_version.`);
+    errors.push(`Missing ${label}.schema_version (or top-level schema_version).`);
   } else if (schemaVersion !== CURRENT_SCHEMA_VERSION) {
     errors.push(`Unsupported schema_version "${schemaVersion}". Expected "${CURRENT_SCHEMA_VERSION}".`);
   }
@@ -171,7 +326,7 @@ export function validateReportArtifactContract(artifact: unknown): ReportArtifac
   if (!isRecord(root.sections)) {
     errors.push(`Missing ${label}.sections object.`);
   } else {
-    const sections = validateRequiredSections(root.sections, errors);
+    const sections = validateRequiredSections(root.sections, errors, label);
     validateRequiredMetrics(sections, errors);
     validateRequiredNarrative(sections, errors);
   }
@@ -191,4 +346,3 @@ export function formatReportArtifactContractErrors(errors: string[]): string {
 
   return `Artifact JSON failed schema validation: ${unique.join(" ")}`;
 }
-

@@ -70,7 +70,36 @@ test("fetchEntitlements caches response in memory and sessionStorage", async () 
 
   assert.equal(fetchCalls, 1);
   assert.equal(first.plan, "plan_a");
+  assert.equal(first.plan_tier, "plan_a");
+  assert.equal(first.is_active, true);
   assert.equal(second.entitled, true);
+
+  resetEntitlementsCache();
+  delete global.window;
+  delete global.fetch;
+});
+
+test("fetchEntitlements prefers canonical plan_tier and is_active aliases", async () => {
+  global.window = createWindow();
+  global.fetch = async () =>
+    jsonResponse({
+      plan: "legacy_plan",
+      plan_tier: "plan_b",
+      status: "inactive",
+      entitled: false,
+      is_active: true,
+      features: { app: false, upload: false, report: false },
+    });
+
+  const moduleUrl = await buildEntitlementsTestModule(`canonical-${Date.now()}`);
+  const { fetchEntitlements, resetEntitlementsCache } = await import(moduleUrl);
+
+  const value = await fetchEntitlements({ forceRefresh: true });
+
+  assert.equal(value.plan_tier, "plan_b");
+  assert.equal(value.plan, "plan_b");
+  assert.equal(value.is_active, true);
+  assert.equal(value.entitled, true);
 
   resetEntitlementsCache();
   delete global.window;

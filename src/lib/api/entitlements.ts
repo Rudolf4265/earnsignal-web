@@ -6,10 +6,15 @@ import type {
 } from "./generated";
 
 export type EntitlementFeatures = Record<string, boolean | undefined>;
-export type EntitlementsResponse = Omit<EntitlementsResponseSchema, "plan" | "status" | "entitled" | "features" | "portal_url"> & {
+export type EntitlementsResponse = Omit<
+  EntitlementsResponseSchema,
+  "plan" | "plan_tier" | "status" | "entitled" | "is_active" | "features" | "portal_url"
+> & {
   plan: string | null;
+  plan_tier: string | null;
   status: string | null;
   entitled: boolean;
+  is_active: boolean;
   features: EntitlementFeatures;
   portal_url?: string;
 };
@@ -70,22 +75,35 @@ function isFresh(fetchedAt: number): boolean {
   return Date.now() - fetchedAt < ENTITLEMENTS_TTL_MS;
 }
 
+function asNullableString(value: unknown): string | null | undefined {
+  return typeof value === "string" ? value : value === null ? null : undefined;
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
 function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string, unknown>): EntitlementsResponse {
+  const raw = value as Record<string, unknown>;
   const features = (value.features as EntitlementFeatures | undefined) ?? {};
-  const plan = (value.plan as string | null | undefined) ?? (value.plan_tier as string | null | undefined) ?? null;
-  const status = (value.status as string | null | undefined) ?? null;
-  const explicitEntitled =
-    (value.entitled as boolean | undefined) ??
-    (value.is_active as boolean | undefined);
+  const planTier = asNullableString(value.plan_tier) ?? asNullableString(value.plan) ?? null;
+  const plan = planTier;
+  const status = asNullableString(value.status) ?? null;
+  const explicitEntitled = asBoolean(value.entitled);
+  const explicitIsActive = asBoolean(value.is_active) ?? explicitEntitled;
   const featureEntitled = features.app === true || features.upload === true || features.report === true;
-  const entitled = explicitEntitled ?? (featureEntitled || status === "active" || status === "trialing");
+  const inferredIsActive = featureEntitled || status === "active" || status === "trialing";
+  const isActive = explicitIsActive ?? inferredIsActive;
+  const entitled = isActive;
 
   return {
     plan,
+    plan_tier: planTier,
     status,
     entitled,
+    is_active: isActive,
     features,
-    portal_url: (value.portal_url as string | undefined) ?? (value.portalUrl as string | undefined) ?? undefined,
+    portal_url: (asNullableString(raw.portal_url) ?? asNullableString(raw.portalUrl)) ?? undefined,
   };
 }
 

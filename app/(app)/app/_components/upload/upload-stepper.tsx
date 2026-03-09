@@ -7,13 +7,12 @@ import {
   finalizeUploadCallback,
   getLatestUploadStatus,
   getUploadStatus,
-  type UploadStatusResponse,
   uploadFileToPresignedUrl,
   type UploadPlatform,
 } from "@/src/lib/api/upload";
 import { pollUploadStatus, UploadPollingCancelledError } from "@/src/lib/upload/polling";
 import { mapApiErrorToUploadFailure } from "@/src/lib/upload/errors";
-import { buildUploadDiagnostics, mapUploadStatus, type UploadUiStatus } from "@/src/lib/upload/status";
+import { buildUploadDiagnostics, mapUploadStatus, type UploadStatusEnvelope, type UploadUiStatus } from "@/src/lib/upload/status";
 import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/lib/upload/resume";
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
@@ -155,7 +154,7 @@ export default function UploadStepper() {
   );
 
   const updateProcessingFromEnvelope = useCallback(
-    (envelope: UploadStatusResponse, fallbackUploadId?: string | null) => {
+    (envelope: UploadStatusEnvelope, fallbackUploadId?: string | null) => {
       const mapped = mapUploadStatus(envelope);
       const resolvedUploadId = mapped.uploadId ?? fallbackUploadId ?? uploadId;
 

@@ -19,6 +19,19 @@ test("mapUploadStatus maps terminal and processing states", () => {
   assert.equal(mapUploadStatus({ status: "unknown_state" }).status, "processing");
 });
 
+test("mapUploadStatus accepts nullable reason fields from backend payloads", () => {
+  const mapped = mapUploadStatus({
+    status: "failed",
+    reason_code: null,
+    reason: null,
+    message: null,
+  });
+
+  assert.equal(mapped.status, "failed");
+  assert.equal(mapped.reasonCode, null);
+  assert.equal(mapped.message, null);
+});
+
 test("buildUploadDiagnostics returns deterministic safe json", () => {
   const diagnostics = buildUploadDiagnostics({
     uploadId: "up_123",

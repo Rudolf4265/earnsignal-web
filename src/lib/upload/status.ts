@@ -30,17 +30,20 @@ export type UploadUiStatus = "processing" | "ready" | "failed";
 
 export type UploadFailureReason = "session_expired" | "upload_not_found" | "timeout" | "upload_failed" | string;
 
+type NullableBackendString = string | null | undefined;
+
 export type UploadStatusEnvelope = {
   upload_id?: string;
   uploadId?: string;
   status?: UploadBackendStatus;
-  reason_code?: string;
-  reasonCode?: string;
-  message?: string;
-  report_id?: string;
-  reportId?: string;
-  updated_at?: string;
-  updatedAt?: string;
+  reason_code?: NullableBackendString;
+  reasonCode?: NullableBackendString;
+  reason?: NullableBackendString;
+  message?: NullableBackendString;
+  report_id?: NullableBackendString;
+  reportId?: NullableBackendString;
+  updated_at?: NullableBackendString;
+  updatedAt?: NullableBackendString;
 };
 
 export type UploadStatusView = {
@@ -56,18 +59,26 @@ export type UploadStatusView = {
 const READY = new Set(["ready", "report_ready", "completed", "complete", "succeeded", "success"]);
 const FAILED = new Set(["failed", "error", "rejected", "validation_failed", "ingest_failed", "report_failed"]);
 
+function normalizeNullableString(value: NullableBackendString): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
 export function mapUploadStatus(input: UploadStatusEnvelope): UploadStatusView {
-  const rawStatus = typeof input.status === "string" ? input.status.toLowerCase() : null;
+  const rawStatus = normalizeNullableString(input.status)?.toLowerCase() ?? null;
   const status: UploadUiStatus = rawStatus && READY.has(rawStatus) ? "ready" : rawStatus && FAILED.has(rawStatus) ? "failed" : "processing";
+  const reasonCode = normalizeNullableString(input.reason_code) ?? normalizeNullableString(input.reasonCode);
+  const message = normalizeNullableString(input.message);
+  const reportId = normalizeNullableString(input.report_id) ?? normalizeNullableString(input.reportId);
+  const updatedAt = normalizeNullableString(input.updated_at) ?? normalizeNullableString(input.updatedAt);
 
   return {
     uploadId: input.upload_id ?? input.uploadId ?? null,
     status,
-    reasonCode: input.reason_code ?? input.reasonCode ?? null,
-    message: input.message ?? null,
-    reportId: normalizeReportId(input.report_id) ?? normalizeReportId(input.reportId),
+    reasonCode: reasonCode ?? null,
+    message: message ?? null,
+    reportId: normalizeReportId(reportId),
     rawStatus,
-    updatedAt: input.updated_at ?? input.updatedAt ?? null,
+    updatedAt: updatedAt ?? null,
   };
 }
 

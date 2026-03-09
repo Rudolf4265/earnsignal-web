@@ -5,6 +5,10 @@ import { normalizeReportId } from "../report/id";
 import type { ReportDetailResponseSchema } from "./generated";
 
 export type { ReportDetail, ReportListItem, ReportListResult };
+const REPORT_LIST_TTL_MS = 5_000;
+const REPORT_LIST_DEFAULT_OFFSET_KEY = -1;
+const reportListCache = new Map<number, { value: ReportListResult; fetchedAt: number }>();
+const reportListInFlight = new Map<number, Promise<ReportListResult>>();
 
 function requireReportId(reportId: unknown, context: string): string {
   const normalized = normalizeReportId(reportId);
@@ -40,14 +44,51 @@ export async function fetchReportArtifactJson(artifactJsonUrl: string): Promise<
   });
 }
 
-export async function fetchReportsList(offset?: number | null): Promise<ReportListResult> {
-  const normalizedOffset = typeof offset === "number" && Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : null;
-  const path = normalizedOffset === null ? "/v1/reports" : `/v1/reports?offset=${encodeURIComponent(String(normalizedOffset))}`;
-  const data = await apiFetchJson<Record<string, unknown>>("reports.list", path, {
-    method: "GET",
-  });
+export function resetReportsListCache() {
+  reportListCache.clear();
+  reportListInFlight.clear();
+}
 
-  return normalizeReportsListResponse(data);
+function normalizeListOffset(offset?: number | null): number | null {
+  return typeof offset === "number" && Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : null;
+}
+
+export async function fetchReportsList(offset?: number | null, options?: { forceRefresh?: boolean }): Promise<ReportListResult> {
+  const forceRefresh = options?.forceRefresh ?? false;
+  const normalizedOffset = normalizeListOffset(offset);
+  const cacheKey = normalizedOffset ?? REPORT_LIST_DEFAULT_OFFSET_KEY;
+
+  if (!forceRefresh) {
+    const cached = reportListCache.get(cacheKey);
+    if (cached && Date.now() - cached.fetchedAt < REPORT_LIST_TTL_MS) {
+      return cached.value;
+    }
+
+    const inFlight = reportListInFlight.get(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
+  }
+
+  const requestPromise = (async () => {
+    const path = normalizedOffset === null ? "/v1/reports" : `/v1/reports?offset=${encodeURIComponent(String(normalizedOffset))}`;
+    const data = await apiFetchJson<Record<string, unknown>>("reports.list", path, {
+      method: "GET",
+    });
+    const normalized = normalizeReportsListResponse(data);
+    reportListCache.set(cacheKey, { value: normalized, fetchedAt: Date.now() });
+    return normalized;
+  })();
+
+  reportListInFlight.set(cacheKey, requestPromise);
+
+  try {
+    return await requestPromise;
+  } finally {
+    if (reportListInFlight.get(cacheKey) === requestPromise) {
+      reportListInFlight.delete(cacheKey);
+    }
+  }
 }
 
 function isAbsoluteHttpUrl(value: string): boolean {

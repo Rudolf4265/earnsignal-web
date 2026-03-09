@@ -87,14 +87,21 @@ type LoadLatestDashboardReportInput = {
   latestUploadReportId: string | null | undefined;
   fetchReportDetail: (reportId: string) => Promise<ReportDetail>;
   fetchReportsList: () => Promise<ReportListResult>;
+  reportsList?: ReportListResult | null;
 };
 
 export async function loadLatestDashboardReport(input: LoadLatestDashboardReportInput): Promise<ReportDetail | null> {
   let reports: ReportListResult | null = null;
-  try {
-    reports = await input.fetchReportsList();
-  } catch {
-    reports = null;
+  const hasProvidedReports = Object.prototype.hasOwnProperty.call(input, "reportsList");
+
+  if (hasProvidedReports) {
+    reports = input.reportsList ?? null;
+  } else {
+    try {
+      reports = await input.fetchReportsList();
+    } catch {
+      reports = null;
+    }
   }
 
   const firstCompletedReport = reports ? findFirstCompletedReport(reports.items) : null;

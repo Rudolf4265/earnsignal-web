@@ -239,7 +239,7 @@ test.describe("Upload deep flows", () => {
     await expect(page.getByText("Processing upload")).toBeVisible();
   });
 
-  test("resume 404 clears key and returns to start flow", async ({ page }) => {
+  test("stale resume marker falls back to idle and does not render processing UI when backend has no active upload", async ({ page }) => {
     const resumeRecord = createUploadResumeRecord(uploadId);
     await page.addInitScript(([storageKey, record]) => {
       window.localStorage.setItem(storageKey, JSON.stringify(record));
@@ -260,14 +260,12 @@ test.describe("Upload deep flows", () => {
     });
     await page.route("**/v1/uploads/latest/status", async (route) => {
       await route.fulfill({
-        status: 404,
+        status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          status: "error",
-          code: "UPLOAD_NOT_FOUND",
-          message: "Upload not found",
-          details: { reason_code: "upload_not_found" },
-          request_id: "req_upload_latest_404_001",
+          upload_id: "upl_ready_previous",
+          status: "ready",
+          report_id: "rep_ready_previous",
         }),
       });
     });
@@ -275,6 +273,9 @@ test.describe("Upload deep flows", () => {
     await page.goto("/app/data");
 
     await expect(page.getByText("Choose platform")).toBeVisible();
+    await expect(page.getByText("Processing upload")).toHaveCount(0);
+    await expect(page.getByText("Checking previous upload")).toHaveCount(0);
+    await expect(page.getByText("Step 1 of 5")).toBeVisible();
     await expect
       .poll(async () => page.evaluate((storageKey) => window.localStorage.getItem(storageKey), getUploadResumeStorageKey()))
       .toBeNull();

@@ -12,7 +12,7 @@ import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { Button, buttonClassName } from "@/src/components/ui/button";
 import { PageHeader } from "@/src/components/ui/page-header";
 import { isApiError } from "@/src/lib/api/client";
-import { fetchReportArtifactJson, fetchReportDetail, fetchReportsList, type ReportDetail } from "@/src/lib/api/reports";
+import { fetchReportArtifactJson, fetchReportDetail, fetchReportsList, type ReportDetail, type ReportListResult } from "@/src/lib/api/reports";
 import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
 import { hydrateDashboardFromArtifact, type DashboardArtifactHydrationResult } from "@/src/lib/dashboard/artifact-hydration";
 import { findFirstCompletedReport, loadLatestDashboardReport } from "@/src/lib/dashboard/latest-report";
@@ -66,6 +66,140 @@ const initialState: DashboardState = {
   latestReportRow: null,
   hasReports: null,
 };
+
+type DashboardLoadResult = Omit<DashboardState, "loading" | "refreshing" | "error">;
+type DashboardLastKnownGood = Pick<
+  DashboardState,
+  "latestArtifactError" | "latestUpload" | "latestReport" | "latestArtifact" | "latestReportRow" | "hasReports"
+>;
+
+let lastKnownGoodDashboardState: DashboardLastKnownGood | null = null;
+let dashboardLoadInFlight: Promise<DashboardLoadResult> | null = null;
+
+function hasRenderableDashboardState(state: Pick<DashboardState, "latestUpload" | "latestReport" | "latestArtifact" | "latestReportRow" | "hasReports">): boolean {
+  return state.latestUpload !== null || state.latestReport !== null || state.latestArtifact !== null || state.latestReportRow !== null || state.hasReports !== null;
+}
+
+function canPersistDashboardResult(result: DashboardLoadResult): boolean {
+  return hasRenderableDashboardState(result);
+}
+
+function buildLatestReportRow(report: ReportDetail): LatestReportRow {
+  return {
+    id: report.id,
+    date: formatDate(report.createdAt),
+    status: report.status || "unknown",
+  };
+}
+
+function getInitialDashboardState(): DashboardState {
+  if (!lastKnownGoodDashboardState) {
+    return initialState;
+  }
+
+  return {
+    ...initialState,
+    loading: false,
+    ...lastKnownGoodDashboardState,
+  };
+}
+
+async function loadDashboardData(options?: { forceRefresh?: boolean }): Promise<DashboardLoadResult> {
+  const forceRefresh = options?.forceRefresh ?? false;
+  if (!forceRefresh && dashboardLoadInFlight) {
+    return dashboardLoadInFlight;
+  }
+
+  const loadPromise = (async () => {
+    let latestUpload: UploadStatusView | null = null;
+    try {
+      const uploadPayload = await getLatestUploadStatus({ forceRefresh });
+      latestUpload = mapUploadStatus(uploadPayload);
+    } catch (error) {
+      if (isApiError(error) && error.status === 404) {
+        // Ignore missing latest upload and continue list-based hydration.
+      } else if (process.env.NODE_ENV !== "production") {
+        console.warn("[dashboard] latest upload status unavailable; continuing with reports list hydration.", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    let reports: ReportListResult | null = null;
+    let reportsCheckError: string | null = null;
+    try {
+      reports = await fetchReportsList(null, { forceRefresh });
+    } catch {
+      reportsCheckError = "Unable to verify report availability right now.";
+    }
+
+    const latestReport = await loadLatestDashboardReport({
+      latestUploadReportId: latestUpload?.reportId ?? null,
+      fetchReportDetail,
+      fetchReportsList: () => fetchReportsList(null, { forceRefresh }),
+      reportsList: reports,
+    });
+
+    let latestArtifact: DashboardArtifactHydrationResult | null = null;
+    let latestArtifactError: string | null = null;
+    if (latestReport?.artifactJsonUrl) {
+      try {
+        const artifactRaw = await fetchReportArtifactJson(latestReport.artifactJsonUrl);
+        latestArtifact = hydrateDashboardFromArtifact(artifactRaw);
+        if (!latestArtifact.contractValid) {
+          latestArtifactError = formatReportArtifactContractErrors(latestArtifact.contractErrors);
+        }
+      } catch (artifactError) {
+        latestArtifactError = artifactError instanceof Error ? artifactError.message : "Unable to load latest report artifact.";
+      }
+    }
+
+    const firstCompletedReport = reports ? findFirstCompletedReport(reports.items) : null;
+    const latestReportRow =
+      latestReport ? buildLatestReportRow(latestReport) : firstCompletedReport?.reportId
+        ? {
+            id: firstCompletedReport.reportId,
+            date: formatDate(firstCompletedReport.createdAt),
+            status: firstCompletedReport.status || "unknown",
+          }
+        : null;
+
+    const hasReports = reports ? computeHasReportsFromListResult(reports) : latestReport ? true : null;
+
+    return {
+      latestArtifactError,
+      reportsCheckError,
+      latestUpload,
+      latestReport,
+      latestArtifact,
+      latestReportRow,
+      hasReports,
+    };
+  })();
+
+  if (!forceRefresh) {
+    dashboardLoadInFlight = loadPromise;
+  }
+
+  try {
+    const result = await loadPromise;
+    if (canPersistDashboardResult(result)) {
+      lastKnownGoodDashboardState = {
+        latestArtifactError: result.latestArtifactError,
+        latestUpload: result.latestUpload,
+        latestReport: result.latestReport,
+        latestArtifact: result.latestArtifact,
+        latestReportRow: result.latestReportRow,
+        hasReports: result.hasReports,
+      };
+    }
+    return result;
+  } finally {
+    if (dashboardLoadInFlight === loadPromise) {
+      dashboardLoadInFlight = null;
+    }
+  }
+}
 
 function formatCurrency(value: number | null): string {
   if (value === null) {
@@ -153,7 +287,7 @@ function toPlanBadgeVariant(status: string | null, entitled: boolean): "good" | 
 
 export default function DashboardPage() {
   const { entitlements, isLoading: authLoading } = useAppGate();
-  const [state, setState] = useState<DashboardState>(initialState);
+  const [state, setState] = useState<DashboardState>(() => getInitialDashboardState());
   const [refreshNonce, setRefreshNonce] = useState(0);
   const latestReportHref = useMemo(() => buildReportDetailPathOrIndex(state.latestReportRow?.id), [state.latestReportRow?.id]);
 
@@ -169,55 +303,13 @@ export default function DashboardPage() {
     async function load() {
       setState((prev) => ({
         ...prev,
-        loading: refreshNonce === 0,
+        loading: refreshNonce === 0 && !hasRenderableDashboardState(prev),
         refreshing: refreshNonce > 0,
         error: null,
-        latestArtifactError: null,
-        latestArtifact: null,
       }));
 
       try {
-        let latestUpload: UploadStatusView | null = null;
-
-        try {
-          const uploadPayload = await getLatestUploadStatus();
-          latestUpload = mapUploadStatus(uploadPayload);
-        } catch (error) {
-          if (isApiError(error) && error.status === 404) {
-            // Ignore missing latest upload and continue list-based hydration.
-          } else if (process.env.NODE_ENV !== "production") {
-            console.warn("[dashboard] latest upload status unavailable; continuing with reports list hydration.", {
-              error: error instanceof Error ? error.message : String(error),
-            });
-          }
-        }
-
-        const latestReport = await loadLatestDashboardReport({
-          latestUploadReportId: latestUpload?.reportId ?? null,
-          fetchReportDetail,
-          fetchReportsList,
-        });
-        let latestArtifact: DashboardArtifactHydrationResult | null = null;
-        let latestArtifactError: string | null = null;
-        if (latestReport?.artifactJsonUrl) {
-          try {
-            const artifactRaw = await fetchReportArtifactJson(latestReport.artifactJsonUrl);
-            latestArtifact = hydrateDashboardFromArtifact(artifactRaw);
-            if (!latestArtifact.contractValid) {
-              latestArtifactError = formatReportArtifactContractErrors(latestArtifact.contractErrors);
-            }
-          } catch (artifactError) {
-            latestArtifactError = artifactError instanceof Error ? artifactError.message : "Unable to load latest report artifact.";
-          }
-        }
-
-        const latestReportRow: LatestReportRow | null = latestReport
-          ? {
-              id: latestReport.id,
-              date: formatDate(latestReport.createdAt),
-              status: latestReport.status || "unknown",
-            }
-          : null;
+        const result = await loadDashboardData({ forceRefresh: refreshNonce > 0 });
 
         if (cancelled) {
           return;
@@ -228,12 +320,7 @@ export default function DashboardPage() {
           loading: false,
           refreshing: false,
           error: null,
-          latestArtifactError,
-          latestUpload,
-          latestReport,
-          latestArtifact,
-          latestReportRow: latestReportRow ?? prev.latestReportRow,
-          hasReports: latestReport ? true : prev.hasReports,
+          ...result,
         }));
       } catch (error) {
         if (cancelled) {
@@ -245,75 +332,11 @@ export default function DashboardPage() {
           loading: false,
           refreshing: false,
           error: error instanceof Error ? error.message : "Unable to load dashboard data.",
-          latestArtifactError: null,
         }));
       }
     }
 
     void load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [authLoading, refreshNonce]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (authLoading) {
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    setState((prev) => {
-      if (prev.reportsCheckError === null) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        reportsCheckError: null,
-      };
-    });
-
-    async function loadHasReports() {
-      try {
-        const reports = await fetchReportsList();
-        const hasReports = computeHasReportsFromListResult(reports);
-        const firstReport = findFirstCompletedReport(reports.items);
-        if (cancelled) {
-          return;
-        }
-
-        setState((prev) => ({
-          ...prev,
-          hasReports: prev.hasReports === true ? true : hasReports,
-          reportsCheckError: null,
-          latestReportRow:
-            prev.latestReportRow ??
-            (firstReport && firstReport.reportId
-              ? {
-                  id: firstReport.reportId,
-                  date: formatDate(firstReport.createdAt),
-                  status: firstReport.status || "unknown",
-                }
-              : null),
-        }));
-      } catch {
-        if (cancelled) {
-          return;
-        }
-
-        setState((prev) => ({
-          ...prev,
-          hasReports: prev.hasReports === true ? true : null,
-          reportsCheckError: "Unable to verify report availability right now.",
-        }));
-      }
-    }
-
-    void loadHasReports();
 
     return () => {
       cancelled = true;

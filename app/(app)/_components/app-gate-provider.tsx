@@ -36,8 +36,14 @@ type AppGateContextValue = {
 
 const AppGateContext = createContext<AppGateContextValue | null>(null);
 
+function hasResolvedEntitlements(state: EntitlementsResolution): state is Extract<EntitlementsResolution, { status: "entitled" | "unentitled" }> {
+  return state.status === "entitled" || state.status === "unentitled";
+}
+
 export function AppGateProvider({ children }: { children: React.ReactNode }) {
   const adminCheckRef = useRef(0);
+  const entitlementsRequestRef = useRef(0);
+  const entitlementsInFlightRef = useRef<Promise<EntitlementsResponse | null> | null>(null);
   const [isSessionKnown, setIsSessionKnown] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [adminStatus, setAdminStatus] = useState<"unknown" | "admin" | "not_admin">("unknown");
@@ -46,29 +52,74 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
   const [errorRequestId, setErrorRequestId] = useState<string | undefined>(undefined);
 
   const loadEntitlements = useCallback(async (options?: { forceRefresh?: boolean }) => {
-    setEntitlementsState({ status: "loading" });
+    const forceRefresh = options?.forceRefresh ?? false;
+    if (!forceRefresh && entitlementsInFlightRef.current) {
+      return entitlementsInFlightRef.current;
+    }
+
+    setEntitlementsState((prev) => {
+      if (hasResolvedEntitlements(prev) || prev.status === "loading") {
+        return prev;
+      }
+
+      return { status: "loading" };
+    });
+
+    const requestId = entitlementsRequestRef.current + 1;
+    entitlementsRequestRef.current = requestId;
+
+    const request = (async () => {
+      try {
+        const nextEntitlements = await fetchEntitlements({ forceRefresh });
+        if (requestId !== entitlementsRequestRef.current) {
+          return nextEntitlements;
+        }
+
+        setEntitlementsState({ status: nextEntitlements.entitled ? "entitled" : "unentitled", entitlements: nextEntitlements });
+        setError(null);
+        setErrorRequestId(undefined);
+        return nextEntitlements;
+      } catch (err) {
+        if (requestId !== entitlementsRequestRef.current) {
+          return null;
+        }
+
+        const resolved = resolveEntitlementsError(err);
+        setEntitlementsState((prev) => {
+          if (resolved.status === "session_expired") {
+            return resolved;
+          }
+
+          if (hasResolvedEntitlements(prev)) {
+            return prev;
+          }
+
+          return resolved;
+        });
+
+        const message = err instanceof Error ? err.message : "Unable to load access status.";
+        setError(message);
+        setErrorRequestId(err instanceof Error && "requestId" in err && typeof (err as { requestId?: unknown }).requestId === "string" ? (err as { requestId: string }).requestId : undefined);
+        return null;
+      }
+    })();
+
+    entitlementsInFlightRef.current = request;
 
     try {
-      const nextEntitlements = await fetchEntitlements(options);
-      setEntitlementsState({ status: nextEntitlements.entitled ? "entitled" : "unentitled", entitlements: nextEntitlements });
-      setError(null);
-      setErrorRequestId(undefined);
-      return nextEntitlements;
-    } catch (err) {
-      const resolved = resolveEntitlementsError(err);
-      setEntitlementsState(resolved);
-
-      const message = err instanceof Error ? err.message : "Unable to load access status.";
-      setError(message);
-      setErrorRequestId(err instanceof Error && "requestId" in err && typeof (err as { requestId?: unknown }).requestId === "string" ? (err as { requestId: string }).requestId : undefined);
-
-      return null;
+      return await request;
+    } finally {
+      if (entitlementsInFlightRef.current === request) {
+        entitlementsInFlightRef.current = null;
+      }
     }
   }, []);
 
   const syncSessionState = useCallback((nextSession: Session | null) => {
     if (!nextSession) {
       adminCheckRef.current += 1;
+      entitlementsRequestRef.current += 1;
+      entitlementsInFlightRef.current = null;
       setAdminStatus("unknown");
       setEntitlementsState({ status: "idle" });
       setError(null);

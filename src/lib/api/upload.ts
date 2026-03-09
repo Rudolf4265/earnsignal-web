@@ -24,6 +24,9 @@ export type GenerateReportResponse = Omit<ReportGenerateResponseSchema, "report_
   report_id: string;
 };
 export type UploadStatusResponse = UploadStatusResponseSchema;
+const LATEST_UPLOAD_STATUS_TTL_MS = 5_000;
+let latestUploadStatusCache: { value: UploadStatusResponse; fetchedAt: number } | null = null;
+let latestUploadStatusInFlight: Promise<UploadStatusResponse> | null = null;
 
 function normalizeCallbackPath(callbackUrl?: string): string {
   const fallback = "/v1/uploads/callback";
@@ -114,10 +117,33 @@ export async function getUploadStatus(uploadId: string): Promise<UploadStatusRes
   });
 }
 
-export async function getLatestUploadStatus(): Promise<UploadStatusResponse> {
-  return apiFetchJson<UploadStatusResponse>("uploads.latestStatus", "/v1/uploads/latest/status", {
+export function resetLatestUploadStatusCache() {
+  latestUploadStatusCache = null;
+  latestUploadStatusInFlight = null;
+}
+
+export async function getLatestUploadStatus(options?: { forceRefresh?: boolean }): Promise<UploadStatusResponse> {
+  const forceRefresh = options?.forceRefresh ?? false;
+
+  if (!forceRefresh && latestUploadStatusCache && Date.now() - latestUploadStatusCache.fetchedAt < LATEST_UPLOAD_STATUS_TTL_MS) {
+    return latestUploadStatusCache.value;
+  }
+
+  if (!forceRefresh && latestUploadStatusInFlight) {
+    return latestUploadStatusInFlight;
+  }
+
+  latestUploadStatusInFlight = apiFetchJson<UploadStatusResponse>("uploads.latestStatus", "/v1/uploads/latest/status", {
     method: "GET",
   });
+
+  try {
+    const value = await latestUploadStatusInFlight;
+    latestUploadStatusCache = { value, fetchedAt: Date.now() };
+    return value;
+  } finally {
+    latestUploadStatusInFlight = null;
+  }
 }
 
 export { ApiError, normalizeCallbackPath };

@@ -41,7 +41,7 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
     }
   };
 
-  if (state === "session_loading" || state === "authed_loading_entitlements") {
+  if (state === "session_loading") {
     return (
       <div data-testid="gate-loading">
         <GateLoadingShell />

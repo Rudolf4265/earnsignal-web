@@ -40,6 +40,7 @@ const platforms: PlatformOption[] = [
 ];
 
 const stepOrder: Step[] = ["platform", "file", "uploading", "processing", "done"];
+const RESUME_STATUS_TIMEOUT_MS = 2_500;
 
 const readableFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -65,6 +66,32 @@ const friendlyFailureMessage = (reasonCode: string | null) => {
       return "We couldn’t complete processing for this upload yet.";
   }
 };
+
+async function awaitWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<{ timedOut: boolean; value: T | null }> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<{ type: "timeout" }>((resolve) => {
+    timeoutHandle = setTimeout(() => resolve({ type: "timeout" }), timeoutMs);
+  });
+
+  const guardedPromise = promise
+    .then((value) => ({ type: "resolved" as const, value }))
+    .catch((error) => ({ type: "rejected" as const, error }));
+
+  const outcome = await Promise.race([guardedPromise, timeoutPromise]);
+  if (timeoutHandle !== null) {
+    clearTimeout(timeoutHandle);
+  }
+
+  if (outcome.type === "timeout") {
+    return { timedOut: true, value: null };
+  }
+
+  if (outcome.type === "rejected") {
+    throw outcome.error;
+  }
+
+  return { timedOut: false, value: outcome.value };
+}
 
 export default function UploadStepper() {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -222,6 +249,23 @@ export default function UploadStepper() {
     }
   }, [stopPolling]);
 
+  const clearResumeCandidateState = useCallback(() => {
+    if (typeof window !== "undefined") {
+      clearUploadResume(window.localStorage);
+    }
+    setHasResumeCandidate(false);
+    setStatusMsg(null);
+    setProcessingStatus(null);
+    setUploadId(null);
+    setReportId(null);
+    setError(null);
+    setReasonCode(null);
+    setErrorDetails(null);
+    setErrorRequestId(null);
+    setErrorOperation(null);
+    setStep("platform");
+  }, []);
+
   const copyDiagnostics = async () => {
     if (!errorDetails || typeof navigator === "undefined" || !navigator.clipboard) {
       return;
@@ -294,6 +338,23 @@ export default function UploadStepper() {
       }
     },
     [setFailureState, stopPolling, updateProcessingFromEnvelope],
+  );
+
+  const resumeIfBackendActive = useCallback(
+    async (statusEnvelope: UploadStatusEnvelope, fallbackUploadId: string): Promise<boolean> => {
+      const mapped = mapUploadStatus(statusEnvelope);
+      const activeUploadId = mapped.uploadId ?? fallbackUploadId;
+
+      if (mapped.status !== "processing" || !activeUploadId) {
+        return false;
+      }
+
+      setHasResumeCandidate(false);
+      updateProcessingFromEnvelope(statusEnvelope, activeUploadId);
+      await pollUntilTerminal(activeUploadId);
+      return true;
+    },
+    [pollUntilTerminal, updateProcessingFromEnvelope],
   );
 
   const runUpload = async () => {
@@ -426,28 +487,27 @@ export default function UploadStepper() {
     const resumeRecord = typeof window !== "undefined" ? readUploadResume(window.localStorage) : null;
     const resumeUploadId = resumeRecord?.uploadId ?? null;
     setHasResumeCandidate(Boolean(resumeUploadId));
-    if (!resumeUploadId || busy || step !== "platform") {
+    if (!resumeUploadId || step !== "platform" || uploadId) {
       return;
     }
 
     let active = true;
 
     const hydrateStatus = async () => {
-      setBusy(true);
-      setStep("processing");
-      setStatusMsg("Checking previous upload…");
-
       try {
-        const byId = await getUploadStatus(resumeUploadId);
+        const byIdResult = await awaitWithTimeout(getUploadStatus(resumeUploadId), RESUME_STATUS_TIMEOUT_MS);
         if (!active) {
           return;
         }
 
-        updateProcessingFromEnvelope(byId, resumeUploadId);
+        if (!byIdResult.timedOut && byIdResult.value) {
+          const resumedFromById = await resumeIfBackendActive(byIdResult.value, resumeUploadId);
+          if (!active || resumedFromById) {
+            return;
+          }
 
-        const mapped = mapUploadStatus(byId);
-        if (mapped.status === "processing") {
-          await pollUntilTerminal(resumeUploadId);
+          clearResumeCandidateState();
+          return;
         }
       } catch (resumeError) {
         if (!active) {
@@ -455,37 +515,31 @@ export default function UploadStepper() {
         }
 
         const mapped = mapApiErrorToUploadFailure(resumeError);
+        if (mapped.reasonCode !== "upload_not_found") {
+          clearResumeCandidateState();
+          return;
+        }
+      }
 
-        if (mapped.reasonCode === "upload_not_found") {
-          if (typeof window !== "undefined") {
-            clearUploadResume(window.localStorage);
-          }
-          try {
-            const latest = await getLatestUploadStatus();
-            if (!active) return;
-            const latestMapped = mapUploadStatus(latest);
-            updateProcessingFromEnvelope(latest, latestMapped.uploadId ?? resumeUploadId);
-            if (latestMapped.status === "processing" && latestMapped.uploadId) {
-              await pollUntilTerminal(latestMapped.uploadId);
-              return;
-            }
-          } catch {
-            // fall through to not-found UI
-          }
+      try {
+        const latestResult = await awaitWithTimeout(getLatestUploadStatus(), RESUME_STATUS_TIMEOUT_MS);
+        if (!active) {
+          return;
         }
 
-        setFailureState({
-          uploadId: resumeUploadId,
-          rawStatus: null,
-          reasonCode: mapped.reasonCode,
-          message: mapped.message,
-          requestId: mapped.requestId,
-          operation: mapped.operation,
-        });
-      } finally {
-        if (active) {
-          setBusy(false);
+        if (!latestResult.timedOut && latestResult.value) {
+          const latestMapped = mapUploadStatus(latestResult.value);
+          const resumedFromLatest = await resumeIfBackendActive(latestResult.value, latestMapped.uploadId ?? resumeUploadId);
+          if (!active || resumedFromLatest) {
+            return;
+          }
         }
+      } catch {
+        // Fall back to idle state if reconciliation cannot confirm an active upload.
+      }
+
+      if (active) {
+        clearResumeCandidateState();
       }
     };
 
@@ -494,7 +548,7 @@ export default function UploadStepper() {
     return () => {
       active = false;
     };
-  }, [busy, pollUntilTerminal, setFailureState, step, updateProcessingFromEnvelope]);
+  }, [clearResumeCandidateState, resumeIfBackendActive, step, uploadId]);
 
   return (
     <UploadCard className="space-y-6">
@@ -763,3 +817,4 @@ export default function UploadStepper() {
     </UploadCard>
   );
 }
+

@@ -43,6 +43,84 @@ test("normalizeArtifactToReportModel supports executive_summary paragraphs and s
   assert.deepEqual(result.warnings, []);
 });
 
+test("normalizeArtifactToReportModel supports production report.sections object shape", async () => {
+  const { normalizeArtifactToReportModel } = await loadArtifactNormalizer(Date.now() + 11);
+  const result = normalizeArtifactToReportModel({
+    report: {
+      report_id: "rep_prod_shape_001",
+      schema_version: "2026-03-09",
+      created_at: "2026-03-09T12:00:00Z",
+      sections: {
+        executive_summary: {
+          summary: "Revenue quality improved and volatility eased.",
+        },
+        revenue_snapshot: {
+          net_revenue: 215000,
+          series: [
+            { period: "2025-12", net_revenue: 198000 },
+            { period: "2026-01", net_revenue: 205500 },
+            { period: "2026-02", net_revenue: 215000 },
+          ],
+        },
+        subscribers_retention: {
+          bullets: ["Retention remained above plan for three straight months."],
+        },
+        tier_health: {
+          bullets: ["Mid-tier conversions increased 6% month over month."],
+        },
+        platform_mix: {
+          items: ["YouTube remains primary, with Spotify growing."],
+        },
+        clustered_themes: {
+          items: ["Pricing discipline and audience quality drove margin expansion."],
+        },
+        stability: {
+          stability_index: 87,
+          bullets: ["Churn velocity is moderating."],
+        },
+        prioritized_insights: {
+          items: ["Revenue momentum remains positive in high-retention cohorts."],
+        },
+        ranked_recommendations: {
+          items: ["Reallocate spend toward retention loops before top-of-funnel expansion."],
+        },
+        outlook: {
+          summary: "Base case implies steady growth with lower downside variance.",
+        },
+        plan: {
+          items: ["Run annual plan sensitivity experiments in Q2."],
+        },
+        appendix: {
+          paragraphs: ["Method notes and data caveats."],
+        },
+      },
+    },
+  });
+
+  assert.equal(result.model.reportId, "rep_prod_shape_001");
+  assert.equal(result.model.schemaVersion, "2026-03-09");
+  assert.equal(result.model.createdAt, "2026-03-09T12:00:00Z");
+  assert.deepEqual(result.model.executiveSummaryParagraphs, ["Revenue quality improved and volatility eased."]);
+  assert.equal(result.model.kpis.netRevenue, 215000);
+  assert.equal(result.model.kpis.stabilityIndex, 87);
+
+  const sectionTitles = result.model.sections.map((section) => section.title);
+  assert.equal(sectionTitles.includes("Revenue Snapshot"), true);
+  assert.equal(sectionTitles.includes("Key Signals"), true);
+  assert.equal(sectionTitles.includes("Recommended Actions"), true);
+  assert.equal(sectionTitles.includes("Outlook"), true);
+
+  const revenueSnapshot = result.model.sections.find((section) => section.title === "Revenue Snapshot");
+  assert.equal(Boolean(revenueSnapshot), true);
+  assert.equal(revenueSnapshot.bullets.some((bullet) => bullet.includes("2025-12")), true);
+
+  const hasRenderableBody =
+    result.model.executiveSummaryParagraphs.length > 0 ||
+    Object.values(result.model.kpis).some((value) => value !== null) ||
+    result.model.sections.length > 0;
+  assert.equal(hasRenderableBody, true);
+});
+
 test("normalizeArtifactToReportModel extracts KPI values from top-level and nested sources", async () => {
   const { normalizeArtifactToReportModel } = await loadArtifactNormalizer(Date.now() + 2);
 

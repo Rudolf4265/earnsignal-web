@@ -30,6 +30,88 @@ test.describe("Report detail route", () => {
     await expect(page.getByTestId("nav-reports")).toHaveAttribute("aria-current", "page");
   });
 
+  test("renders body from production report.sections payload shape", async ({ page }) => {
+    await page.route("**/v1/reports/rep_sections_prod", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_sections_prod",
+          title: "Production Shape Report",
+          status: "ready",
+          created_at: "2026-03-09T12:00:00Z",
+          artifact_json_url: "https://artifacts.test/rep_sections_prod.json",
+          artifact_url: "/v1/reports/rep_sections_prod/artifact",
+        }),
+      });
+    });
+
+    await page.route("https://artifacts.test/rep_sections_prod.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          report: {
+            sections: {
+              executive_summary: {
+                summary: "Revenue quality improved while volatility eased.",
+              },
+              revenue_snapshot: {
+                net_revenue: 215000,
+                series: [
+                  { period: "2025-12", net_revenue: 198000 },
+                  { period: "2026-01", net_revenue: 205500 },
+                  { period: "2026-02", net_revenue: 215000 },
+                ],
+              },
+              subscribers_retention: {
+                items: ["Retention stayed above target for the quarter."],
+              },
+              tier_health: {
+                items: ["Mid-tier conversion improved month over month."],
+              },
+              platform_mix: {
+                items: ["YouTube remains largest channel with steady diversification."],
+              },
+              clustered_themes: {
+                items: ["Audience quality and pricing discipline are compounding."],
+              },
+              stability: {
+                stability_index: 87,
+                items: ["Churn velocity is moderating."],
+              },
+              prioritized_insights: {
+                items: ["High-retention cohorts are driving margin expansion."],
+              },
+              ranked_recommendations: {
+                items: ["Shift spend toward retention experiments before scaling acquisition."],
+              },
+              outlook: {
+                summary: "Base case remains growth-positive with lower downside variance.",
+              },
+              plan: {
+                items: ["Run annual plan sensitivity tests in Q2."],
+              },
+              appendix: {
+                paragraphs: ["Method notes and assumptions."],
+              },
+            },
+          },
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_sections_prod");
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    await expect(page.getByText("Executive Summary")).toBeVisible();
+    await expect(page.getByText("Net Revenue")).toBeVisible();
+    await expect(page.getByText("Key Signals")).toBeVisible();
+    await expect(page.getByText("Recommended Actions")).toBeVisible();
+    await expect(page.getByText("Outlook")).toBeVisible();
+    await expect.poll(async () => page.locator("article").count()).toBeGreaterThan(0);
+  });
+
   test("renders not found state on 404", async ({ page }) => {
     await page.route("**/v1/reports/rep_missing", async (route) => {
       await route.fulfill({

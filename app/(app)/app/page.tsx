@@ -12,9 +12,11 @@ import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { Button, buttonClassName } from "@/src/components/ui/button";
 import { PageHeader } from "@/src/components/ui/page-header";
 import { isApiError } from "@/src/lib/api/client";
-import { fetchReportDetail, fetchReportsList, type ReportDetail } from "@/src/lib/api/reports";
+import { fetchReportArtifactJson, fetchReportDetail, fetchReportsList, type ReportDetail } from "@/src/lib/api/reports";
 import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
+import { hydrateDashboardFromArtifact, type DashboardArtifactHydrationResult } from "@/src/lib/dashboard/artifact-hydration";
 import { findFirstCompletedReport, loadLatestDashboardReport } from "@/src/lib/dashboard/latest-report";
+import { formatReportArtifactContractErrors } from "@/src/lib/report/artifact-contract";
 import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
 import { computeHasReportsFromListResult } from "@/src/lib/report/list-model";
@@ -43,9 +45,11 @@ type DashboardState = {
   loading: boolean;
   refreshing: boolean;
   error: string | null;
+  latestArtifactError: string | null;
   reportsCheckError: string | null;
   latestUpload: UploadStatusView | null;
   latestReport: ReportDetail | null;
+  latestArtifact: DashboardArtifactHydrationResult | null;
   latestReportRow: LatestReportRow | null;
   hasReports: boolean | null;
 };
@@ -54,9 +58,11 @@ const initialState: DashboardState = {
   loading: true,
   refreshing: false,
   error: null,
+  latestArtifactError: null,
   reportsCheckError: null,
   latestUpload: null,
   latestReport: null,
+  latestArtifact: null,
   latestReportRow: null,
   hasReports: null,
 };
@@ -166,6 +172,8 @@ export default function DashboardPage() {
         loading: refreshNonce === 0,
         refreshing: refreshNonce > 0,
         error: null,
+        latestArtifactError: null,
+        latestArtifact: null,
       }));
 
       try {
@@ -189,6 +197,20 @@ export default function DashboardPage() {
           fetchReportDetail,
           fetchReportsList,
         });
+        let latestArtifact: DashboardArtifactHydrationResult | null = null;
+        let latestArtifactError: string | null = null;
+        if (latestReport?.artifactJsonUrl) {
+          try {
+            const artifactRaw = await fetchReportArtifactJson(latestReport.artifactJsonUrl);
+            latestArtifact = hydrateDashboardFromArtifact(artifactRaw);
+            if (!latestArtifact.contractValid) {
+              latestArtifactError = formatReportArtifactContractErrors(latestArtifact.contractErrors);
+            }
+          } catch (artifactError) {
+            latestArtifactError = artifactError instanceof Error ? artifactError.message : "Unable to load latest report artifact.";
+          }
+        }
+
         const latestReportRow: LatestReportRow | null = latestReport
           ? {
               id: latestReport.id,
@@ -206,8 +228,10 @@ export default function DashboardPage() {
           loading: false,
           refreshing: false,
           error: null,
+          latestArtifactError,
           latestUpload,
           latestReport,
+          latestArtifact,
           latestReportRow: latestReportRow ?? prev.latestReportRow,
           hasReports: latestReport ? true : prev.hasReports,
         }));
@@ -221,6 +245,7 @@ export default function DashboardPage() {
           loading: false,
           refreshing: false,
           error: error instanceof Error ? error.message : "Unable to load dashboard data.",
+          latestArtifactError: null,
         }));
       }
     }
@@ -300,14 +325,21 @@ export default function DashboardPage() {
   }, []);
 
   const keySignals = useMemo(() => {
-    const values = state.latestReport?.keySignals ?? [];
+    const values = state.latestArtifact?.keySignals.length ? state.latestArtifact.keySignals : (state.latestReport?.keySignals ?? []);
     return values.length > 0 ? values : fallbackSignals;
-  }, [state.latestReport]);
+  }, [state.latestArtifact, state.latestReport]);
 
   const recommendedActions = useMemo(() => {
-    const values = state.latestReport?.recommendedActions ?? [];
+    const values = state.latestArtifact?.recommendedActions.length
+      ? state.latestArtifact.recommendedActions
+      : (state.latestReport?.recommendedActions ?? []);
     return values.length > 0 ? values : fallbackActions;
-  }, [state.latestReport]);
+  }, [state.latestArtifact, state.latestReport]);
+
+  const trendPreview = useMemo(
+    () => state.latestArtifact?.trendPreview ?? state.latestReport?.summary ?? null,
+    [state.latestArtifact, state.latestReport],
+  );
 
   const planTier = entitlements?.plan ?? "None";
   const planStatus = entitlements?.status ?? "inactive";
@@ -323,13 +355,15 @@ export default function DashboardPage() {
     [entitled, state.hasReports, state.latestUpload],
   );
 
-  const kpis = state.latestReport?.metrics ?? {
-    netRevenue: null,
-    subscribers: null,
-    stabilityIndex: null,
-    churnVelocity: null,
-    coverageMonths: null,
-    platformsConnected: null,
+  const reportMetrics = state.latestReport?.metrics;
+  const artifactKpis = state.latestArtifact?.kpis;
+  const kpis = {
+    netRevenue: artifactKpis?.netRevenue ?? reportMetrics?.netRevenue ?? null,
+    subscribers: artifactKpis?.subscribers ?? reportMetrics?.subscribers ?? null,
+    stabilityIndex: artifactKpis?.stabilityIndex ?? reportMetrics?.stabilityIndex ?? null,
+    churnVelocity: artifactKpis?.churnVelocity ?? reportMetrics?.churnVelocity ?? null,
+    coverageMonths: reportMetrics?.coverageMonths ?? null,
+    platformsConnected: reportMetrics?.platformsConnected ?? null,
   };
 
   const platformsConnected = kpis.platformsConnected ?? (state.latestUpload ? 1 : 0);
@@ -352,6 +386,7 @@ export default function DashboardPage() {
       />
 
       {state.error ? <ErrorBanner title="Data refresh failed" message={state.error} /> : null}
+      {state.latestArtifactError ? <ErrorBanner title="Latest report artifact mismatch" message={state.latestArtifactError} /> : null}
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Net Revenue" value={formatCurrency(kpis.netRevenue)} subtext="Last 30 days" />
@@ -383,9 +418,9 @@ export default function DashboardPage() {
           </Panel>
 
           <Panel title="Trend Preview" description="Charts render automatically once enough historical data is available.">
-            {state.latestReport ? (
+            {trendPreview ? (
               <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                {state.latestReport.summary}
+                {trendPreview}
               </p>
             ) : (
               <EmptyState

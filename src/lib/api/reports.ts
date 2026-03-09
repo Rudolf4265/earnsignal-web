@@ -157,23 +157,67 @@ function hasPdfFilenameInContentDisposition(contentDisposition: string | null): 
   return /\.pdf(?:["';\s]|$)/i.test(contentDisposition);
 }
 
-function validatePdfResponse(status: number, contentType: string | null, contentDisposition: string | null): void {
+function parseContentLength(contentLength: string | null): number | null {
+  if (!contentLength) {
+    return null;
+  }
+
+  const trimmed = contentLength.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function validatePdfResponse(
+  status: number,
+  contentType: string | null,
+  contentDisposition: string | null,
+  contentLength: string | null,
+  requireContentLength: boolean,
+): void {
   const normalized = contentType?.toLowerCase().trim() ?? "";
   const isPdfContentType = normalized.startsWith("application/pdf");
   const isPdfOctetStream = normalized.startsWith("application/octet-stream") && hasPdfFilenameInContentDisposition(contentDisposition);
   if (!isPdfContentType && !isPdfOctetStream) {
     throw new Error(formatPdfContentTypeError(status, contentType));
   }
+
+  const parsedContentLength = parseContentLength(contentLength);
+  if (requireContentLength && parsedContentLength === null) {
+    throw new Error("PDF endpoint did not provide a valid content-length header.");
+  }
+
+  if (parsedContentLength !== null && parsedContentLength <= 0) {
+    throw new Error("PDF endpoint returned an empty content-length header value.");
+  }
 }
 
 async function fetchPdfBlobFromAbsoluteUrl(
   operation: string,
   url: string,
-): Promise<{ blob: Blob; status: number; contentType: string | null; contentDisposition: string | null }> {
+): Promise<{
+  blob: Blob;
+  status: number;
+  contentType: string | null;
+  contentDisposition: string | null;
+  contentLength: string | null;
+  requireContentLength: boolean;
+}> {
   const apiOrigin = getApiBaseOrigin();
   const urlOrigin = new URL(url).origin;
   if (urlOrigin === apiOrigin) {
-    return apiFetchBlobWithMeta(operation, url, { method: "GET", headers: { Accept: "application/pdf" } });
+    const result = await apiFetchBlobWithMeta(operation, url, { method: "GET", headers: { Accept: "application/pdf" } });
+    return {
+      ...result,
+      requireContentLength: true,
+    };
   }
 
   const response = await fetch(url, {
@@ -190,6 +234,8 @@ async function fetchPdfBlobFromAbsoluteUrl(
     status: response.status,
     contentType: response.headers.get("content-type"),
     contentDisposition: response.headers.get("content-disposition"),
+    contentLength: response.headers.get("content-length"),
+    requireContentLength: false,
   };
 }
 
@@ -206,7 +252,7 @@ export async function fetchReportPdfBlobUrl(report: ReportDetail): Promise<strin
   }
 
   const result = await fetchPdfBlobFromAbsoluteUrl("report.pdf", absoluteUrl);
-  validatePdfResponse(result.status, result.contentType, result.contentDisposition);
+  validatePdfResponse(result.status, result.contentType, result.contentDisposition, result.contentLength, result.requireContentLength);
   validatePdfBlob(result.blob);
   return URL.createObjectURL(result.blob);
 }
@@ -219,7 +265,7 @@ export async function downloadReportArtifactPdf(report: Pick<ReportListItem, "re
 
   const absoluteUrl = buildReportArtifactPdfUrl({ reportId: canonicalReportId, artifactUrl: report.artifactUrl });
   const result = await fetchPdfBlobFromAbsoluteUrl("report.artifact", absoluteUrl);
-  validatePdfResponse(result.status, result.contentType, result.contentDisposition);
+  validatePdfResponse(result.status, result.contentType, result.contentDisposition, result.contentLength, result.requireContentLength);
   validatePdfBlob(result.blob);
   const objectUrl = URL.createObjectURL(result.blob);
   try {

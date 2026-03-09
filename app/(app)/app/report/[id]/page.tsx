@@ -23,6 +23,7 @@ import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability"
 import { formatReportCreatedAt, toReportStatusLabel, toReportStatusVariant } from "@/src/lib/report/list-model";
 import { readReportRouteParamId } from "@/src/lib/report/route-id";
 import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/report/normalize-artifact-to-report-model";
+import { formatReportArtifactContractErrors, validateReportArtifactContract } from "@/src/lib/report/artifact-contract";
 
 type ReportPageState = {
   view: ReportViewState | "invalid_route";
@@ -159,6 +160,20 @@ export default function ReportPage() {
         try {
           const artifactRaw = await fetchReportArtifactJson(report.artifactJsonUrl);
           if (cancelled) {
+            return;
+          }
+
+          const contract = validateReportArtifactContract(artifactRaw);
+          if (!contract.valid) {
+            setState({
+              view: "success",
+              report,
+              artifactModel: null,
+              artifactWarnings: contract.errors,
+              artifactRaw,
+              artifactError: formatReportArtifactContractErrors(contract.errors),
+              artifactJsonMissing: false,
+            });
             return;
           }
 

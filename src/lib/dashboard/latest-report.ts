@@ -5,30 +5,63 @@ import { hasUsableReportArtifact } from "../report/artifact-availability";
 
 type CompletedReportCandidate = Pick<ReportListItem, "reportId" | "status" | "createdAt" | "artifactUrl">;
 
-export function findFirstCompletedReport(items: ReportListResult["items"]): CompletedReportCandidate | null {
-  for (const item of items) {
-    if (
-      hasUsableReportArtifact({
-        reportId: item.reportId,
-        status: item.status,
-        artifactUrl: item.artifactUrl,
-      })
-    ) {
-      return item;
-    }
+function toTimestamp(value: string | null | undefined): number | null {
+  if (!value) {
+    return null;
   }
 
-  return null;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function compareReportRecency(left: Pick<ReportListItem, "createdAt">, right: Pick<ReportListItem, "createdAt">): number {
+  const leftTimestamp = toTimestamp(left.createdAt);
+  const rightTimestamp = toTimestamp(right.createdAt);
+
+  if (leftTimestamp !== null && rightTimestamp !== null && leftTimestamp !== rightTimestamp) {
+    return rightTimestamp - leftTimestamp;
+  }
+
+  if (leftTimestamp === null && rightTimestamp !== null) {
+    return 1;
+  }
+
+  if (leftTimestamp !== null && rightTimestamp === null) {
+    return -1;
+  }
+
+  return 0;
+}
+
+export function findFirstCompletedReport(items: ReportListResult["items"]): CompletedReportCandidate | null {
+  const completed = items.filter((item) =>
+    hasUsableReportArtifact({
+      reportId: item.reportId,
+      status: item.status,
+      artifactUrl: item.artifactUrl,
+    }),
+  );
+
+  if (completed.length === 0) {
+    return null;
+  }
+
+  const [latest] = [...completed].sort(compareReportRecency);
+  return latest ?? null;
 }
 
 function findFirstReportWithId(items: ReportListResult["items"]): Pick<ReportListItem, "reportId"> | null {
-  for (const item of items) {
-    if (item.reportId) {
-      return item;
-    }
+  const withIds = items.filter((item) => item.reportId);
+  if (withIds.length === 0) {
+    return null;
   }
 
-  return null;
+  const [latest] = [...withIds].sort(compareReportRecency);
+  return latest ?? null;
 }
 
 async function fetchReportDetailOrNull(

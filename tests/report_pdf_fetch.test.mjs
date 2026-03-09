@@ -27,6 +27,22 @@ function createReport(overrides = {}) {
   };
 }
 
+function createPdfResponse({ contentType = "application/pdf", contentDisposition = null, contentLength = "8", body = "%PDF-1.4" } = {}) {
+  return {
+    ok: true,
+    status: 200,
+    headers: {
+      get: (key) => {
+        if (key === "content-type") return contentType;
+        if (key === "content-disposition") return contentDisposition;
+        if (key === "content-length") return contentLength;
+        return null;
+      },
+    },
+    blob: async () => new Blob([body], { type: contentType }),
+  };
+}
+
 test("buildReportArtifactPdfUrl uses artifact_url when present", async () => {
   process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
   const { buildReportArtifactPdfUrl } = await import(`${reportsModuleUrl}?t=${Date.now()}`);
@@ -83,12 +99,7 @@ test("fetchReportPdfBlobUrl falls back to /v1/reports/:id/artifact when url is m
 
   global.fetch = async (url, init = {}) => {
     requests.push({ url, init });
-    return {
-      ok: true,
-      status: 200,
-      headers: { get: (key) => (key === "content-type" ? "application/pdf" : null) },
-      blob: async () => new Blob(["%PDF-1.4"], { type: "application/pdf" }),
-    };
+    return createPdfResponse();
   };
 
   try {
@@ -112,12 +123,7 @@ test("fetchReportPdfBlobUrl ignores artifact.json url values and requests canoni
 
   global.fetch = async (url, init = {}) => {
     requests.push({ url, init });
-    return {
-      ok: true,
-      status: 200,
-      headers: { get: (key) => (key === "content-type" ? "application/pdf" : null) },
-      blob: async () => new Blob(["%PDF-1.4"], { type: "application/pdf" }),
-    };
+    return createPdfResponse();
   };
 
   try {
@@ -137,16 +143,10 @@ test("fetchReportPdfBlobUrl accepts octet-stream when content-disposition indica
   process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
 
   global.fetch = async () => ({
-    ok: true,
-    status: 200,
-    headers: {
-      get: (key) => {
-        if (key === "content-type") return "application/octet-stream";
-        if (key === "content-disposition") return 'attachment; filename="rep_123.pdf"';
-        return null;
-      },
-    },
-    blob: async () => new Blob(["%PDF-1.4"], { type: "application/octet-stream" }),
+    ...createPdfResponse({
+      contentType: "application/octet-stream",
+      contentDisposition: 'attachment; filename="rep_123.pdf"',
+    }),
   });
 
   try {
@@ -164,10 +164,10 @@ test("fetchReportPdfBlobUrl rejects non-pdf content-type with status details", a
   process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
 
   global.fetch = async () => ({
-    ok: true,
-    status: 200,
-    headers: { get: (key) => (key === "content-type" ? "text/html" : null) },
-    blob: async () => new Blob(["<html>bad</html>"], { type: "text/html" }),
+    ...createPdfResponse({
+      contentType: "text/html",
+      body: "<html>bad</html>",
+    }),
   });
 
   try {
@@ -180,6 +180,46 @@ test("fetchReportPdfBlobUrl rejects non-pdf content-type with status details", a
         assert.equal(error.message.includes("content-type: text/html"), true);
         return true;
       },
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("fetchReportPdfBlobUrl rejects canonical API responses without content-length", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+
+  global.fetch = async () =>
+    createPdfResponse({
+      contentLength: null,
+    });
+
+  try {
+    const { fetchReportPdfBlobUrl } = await import(`${reportsModuleUrl}?t=${Date.now() + 20}`);
+    await assert.rejects(
+      () => fetchReportPdfBlobUrl(createReport({ artifactUrl: "/v1/reports/rep_123/artifact" })),
+      /content-length/i,
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("fetchReportPdfBlobUrl rejects zero content-length", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+
+  global.fetch = async () =>
+    createPdfResponse({
+      contentLength: "0",
+    });
+
+  try {
+    const { fetchReportPdfBlobUrl } = await import(`${reportsModuleUrl}?t=${Date.now() + 21}`);
+    await assert.rejects(
+      () => fetchReportPdfBlobUrl(createReport({ artifactUrl: "/v1/reports/rep_123/artifact" })),
+      /content-length/i,
     );
   } finally {
     global.fetch = originalFetch;

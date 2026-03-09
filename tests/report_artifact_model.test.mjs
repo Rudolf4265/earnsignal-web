@@ -48,7 +48,7 @@ test("normalizeArtifactToReportModel supports production report.sections object 
   const result = normalizeArtifactToReportModel({
     report: {
       report_id: "rep_prod_shape_001",
-      schema_version: "2026-03-09",
+      schema_version: "v1",
       created_at: "2026-03-09T12:00:00Z",
       sections: {
         executive_summary: {
@@ -98,7 +98,7 @@ test("normalizeArtifactToReportModel supports production report.sections object 
   });
 
   assert.equal(result.model.reportId, "rep_prod_shape_001");
-  assert.equal(result.model.schemaVersion, "2026-03-09");
+  assert.equal(result.model.schemaVersion, "v1");
   assert.equal(result.model.createdAt, "2026-03-09T12:00:00Z");
   assert.deepEqual(result.model.executiveSummaryParagraphs, ["Revenue quality improved and volatility eased."]);
   assert.equal(result.model.kpis.netRevenue, 215000);

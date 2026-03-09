@@ -153,6 +153,40 @@ test("dashboard latest report loader triggers detail fetch from /v1/reports payl
   assert.deepEqual(detailCalls, ["rep_payload_first"]);
 });
 
+test("dashboard latest report loader deterministically picks newest completed report by created_at timestamp", async () => {
+  const { loadLatestDashboardReport } = await loadModules();
+  const detailCalls = [];
+
+  const result = await loadLatestDashboardReport({
+    latestUploadReportId: "rep_upload_stale",
+    fetchReportDetail: async (reportId) => {
+      detailCalls.push(reportId);
+      return makeReportDetail(reportId, "ready");
+    },
+    fetchReportsList: async () => ({
+      items: [
+        {
+          reportId: "rep_old_001",
+          status: "ready",
+          createdAt: "2026-03-01T10:00:00Z",
+          artifactUrl: "/v1/reports/rep_old_001/artifact",
+        },
+        {
+          reportId: "rep_new_002",
+          status: "ready",
+          createdAt: "2026-03-09T10:00:00Z",
+          artifactUrl: "/v1/reports/rep_new_002/artifact",
+        },
+      ],
+      nextOffset: null,
+      hasMore: false,
+    }),
+  });
+
+  assert.equal(result?.id, "rep_new_002");
+  assert.deepEqual(detailCalls, ["rep_new_002"]);
+});
+
 test("dashboard latest report loader ignores completed rows with missing artifact_url and falls back to canonical upload report_id", async () => {
   const { loadLatestDashboardReport } = await loadModules();
   const detailCalls = [];

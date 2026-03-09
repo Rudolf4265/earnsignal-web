@@ -81,6 +81,92 @@ test.describe("Upload deep flows", () => {
     await expect(page.getByTestId("upload-view-report")).toHaveAttribute("href", "/app/report/rep_123");
   });
 
+  test("happy path: upload flow opens generated report detail page", async ({ page }) => {
+    let pollCount = 0;
+
+    await page.route("**/v1/uploads/presign", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          upload_id: uploadId,
+          object_key: "uploads/upl_123.csv",
+          presigned_url: "https://storage.test/uploads/upl_123.csv",
+          callback_url: "/v1/uploads/callback",
+          callback_proof: "proof_upl_123",
+        }),
+      });
+    });
+
+    await page.route("https://storage.test/**", async (route) => {
+      await route.fulfill({ status: 200, body: "" });
+    });
+
+    await page.route("**/v1/uploads/callback", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ upload_id: uploadId, status: "processing" }),
+      });
+    });
+
+    await page.route(`**/v1/uploads/${uploadId}/status`, async (route) => {
+      pollCount += 1;
+      const payload = pollCount === 1 ? toApiBody(uploadFixtures.processing) : toApiBody(uploadFixtures.reportReady);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(payload),
+      });
+    });
+
+    await page.route("**/v1/reports/rep_123", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_123",
+          title: "Upload Generated Report",
+          status: "ready",
+          summary: "Revenue trend remains healthy.",
+          created_at: "2026-03-09T12:00:00Z",
+          artifact_json_url: "https://artifacts.test/rep_123.json",
+          artifact_url: "/v1/reports/rep_123/artifact",
+        }),
+      });
+    });
+
+    await page.route("https://artifacts.test/rep_123.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          report: {
+            report_id: "rep_123",
+            schema_version: "v1",
+            sections: {
+              executive_summary: { summary: "Revenue trend remains healthy." },
+              revenue_snapshot: { net_revenue: 215000, items: ["2026-02: 215,000"] },
+              stability: { stability_index: 87, items: ["Churn velocity is moderating."] },
+              prioritized_insights: { items: ["Retention quality improved in Q1 cohorts."] },
+              ranked_recommendations: { items: ["Increase lifecycle messaging for annual plans."] },
+              outlook: { summary: "Trend remains positive in base case." },
+            },
+          },
+        }),
+      });
+    });
+
+    await enterUploadFlow(page);
+
+    await expect(page.getByTestId("upload-terminal-success")).toBeVisible({ timeout: 20_000 });
+    await page.getByTestId("upload-view-report").click();
+    await expect(page).toHaveURL("/app/report/rep_123");
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    await expect(page.getByText("Upload Generated Report")).toBeVisible();
+    await expect(page.getByText("Recommended Actions")).toBeVisible();
+  });
+
   test("validation failure shows terminal error + retry", async ({ page }) => {
     await page.route("**/v1/uploads/presign", async (route) => {
       await route.fulfill({

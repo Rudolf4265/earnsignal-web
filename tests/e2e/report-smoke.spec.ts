@@ -8,6 +8,7 @@ test.describe("Reports smoke", () => {
 
     let wrongDetailHits = 0;
     let artifactPdfHits = 0;
+    const pdfBody = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<<>>\n%%EOF";
 
     await page.route("**/v1/reports", async (route) => {
       await route.fulfill({
@@ -75,8 +76,9 @@ test.describe("Reports smoke", () => {
         contentType: "application/pdf",
         headers: {
           "content-disposition": 'attachment; filename="smoke-report.pdf"',
+          "content-length": String(Buffer.byteLength(pdfBody)),
         },
-        body: "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<<>>\n%%EOF",
+        body: pdfBody,
       });
     });
 
@@ -85,12 +87,31 @@ test.describe("Reports smoke", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          executive_summary: ["Stable growth and retention."],
-          kpis: {
-            net_revenue: 215000,
-            subscribers: 3800,
-            stability_index: 87,
-            churn_velocity: 2,
+          report: {
+            report_id: "rep_smoke_001",
+            schema_version: "v1",
+            sections: {
+              executive_summary: {
+                summary: "Stable growth and retention.",
+              },
+              revenue_snapshot: {
+                net_revenue: 215000,
+                items: ["2026-02: 215,000"],
+              },
+              stability: {
+                stability_index: 87,
+                items: ["Churn velocity remains low."],
+              },
+              prioritized_insights: {
+                items: ["Subscriber quality remains resilient."],
+              },
+              ranked_recommendations: {
+                items: ["Continue retention-focused lifecycle experimentation."],
+              },
+              outlook: {
+                summary: "Growth remains stable in base case outlook.",
+              },
+            },
           },
         }),
       });
@@ -117,7 +138,26 @@ test.describe("Reports smoke", () => {
     const executiveSummaryVisible = await page.getByText("Executive Summary").isVisible().catch(() => false);
     expect(kpiVisible || executiveSummaryVisible).toBeTruthy();
 
+    const pdfResponsePromise = page.waitForResponse((response) => {
+      try {
+        const parsed = new URL(response.url());
+        return parsed.pathname.endsWith("/v1/reports/rep_smoke_001/artifact");
+      } catch {
+        return false;
+      }
+    });
+
     await page.getByRole("button", { name: "Download PDF" }).click();
+    const pdfResponse = await pdfResponsePromise;
+    const pdfHeaders = pdfResponse.headers();
+    const pdfContentType = pdfHeaders["content-type"] ?? "";
+    const pdfContentLength = Number(pdfHeaders["content-length"] ?? "");
+    const pdfBytes = await pdfResponse.body();
+
+    expect(pdfContentType.toLowerCase()).toContain("application/pdf");
+    expect(Number.isFinite(pdfContentLength)).toBeTruthy();
+    expect(pdfContentLength).toBeGreaterThan(0);
+    expect(pdfBytes.byteLength).toBeGreaterThan(0);
     await expect.poll(() => artifactPdfHits).toBeGreaterThan(0);
     expect(wrongDetailHits).toBe(0);
   });

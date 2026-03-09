@@ -424,6 +424,7 @@ export type ApiBlobFetchResult = {
   status: number;
   contentType: string | null;
   contentDisposition: string | null;
+  contentLength: string | null;
 };
 
 async function fetchBlobWithMeta(operation: string, path: string, init: ApiFetchJsonInit = {}, withAuth: boolean): Promise<ApiBlobFetchResult> {
@@ -511,6 +512,7 @@ async function fetchBlobWithMeta(operation: string, path: string, init: ApiFetch
       status: response.status,
       contentType: response.headers.get("content-type"),
       contentDisposition: response.headers.get("content-disposition"),
+      contentLength: response.headers.get("content-length"),
     };
   } finally {
     cleanup();

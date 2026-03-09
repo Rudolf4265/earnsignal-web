@@ -52,6 +52,8 @@ test.describe("Report detail route", () => {
         contentType: "application/json",
         body: JSON.stringify({
           report: {
+            report_id: "rep_sections_prod",
+            schema_version: "v1",
             sections: {
               executive_summary: {
                 summary: "Revenue quality improved while volatility eased.",
@@ -110,6 +112,48 @@ test.describe("Report detail route", () => {
     await expect(page.getByText("Recommended Actions")).toBeVisible();
     await expect(page.getByText("Outlook")).toBeVisible();
     await expect.poll(async () => page.locator("article").count()).toBeGreaterThan(0);
+  });
+
+  test("shows visible artifact contract error for malformed artifact payloads", async ({ page }) => {
+    await page.route("**/v1/reports/rep_contract_error", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_contract_error",
+          title: "Contract Error Report",
+          status: "ready",
+          created_at: "2026-03-09T12:00:00Z",
+          artifact_json_url: "https://artifacts.test/rep_contract_error.json",
+          artifact_url: "/v1/reports/rep_contract_error/artifact",
+          summary: "Fallback report summary.",
+        }),
+      });
+    });
+
+    await page.route("https://artifacts.test/rep_contract_error.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          report: {
+            schema_version: "v2",
+            sections: {
+              executive_summary: {
+                summary: "Invalid schema payload.",
+              },
+            },
+          },
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_contract_error");
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    await expect(page.getByText("Artifact JSON unavailable")).toBeVisible();
+    await expect(page.getByText("failed schema validation")).toBeVisible();
+    await expect(page.getByText("Fallback report summary.")).toBeVisible();
   });
 
   test("renders not found state on 404", async ({ page }) => {

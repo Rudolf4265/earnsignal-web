@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   clearCheckoutAttempt,
   checkoutAttemptInProgress,
   createCheckoutSession,
+  fetchBillingStatus,
+  type BillingStatusResponse,
   type CheckoutPlan,
 } from "@/src/lib/api/entitlements";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
@@ -15,18 +17,51 @@ import { SessionExpiredCallout } from "../../_components/gate-callouts";
 
 const plans: Array<{ id: CheckoutPlan; label: string; summary: string; highlights: string[] }> = [
   {
-    id: "plan_a",
-    label: "Plan A",
-    summary: "Core upload + reporting for one workspace.",
-    highlights: ["Single workspace", "Upload + processing", "Essential report views"],
+    id: "basic",
+    label: "Basic",
+    summary: "Core uploads and report generation with practical monthly limits.",
+    highlights: ["Upload and process creator data", "Generate core reports", "Dashboard and report access"],
   },
   {
-    id: "plan_b",
-    label: "Plan B",
-    summary: "Advanced limits and team-ready usage.",
-    highlights: ["Higher usage limits", "Priority processing", "Team-ready controls"],
+    id: "pro",
+    label: "Pro",
+    summary: "Higher limits with full premium insights and PDF download access.",
+    highlights: ["Higher monthly report allowance", "Full report and PDF access", "Priority support"],
   },
 ];
+
+const BASIC_PLAN_ALIASES = new Set(["basic", "plan_a", "founder_creator_report", "free"]);
+const PRO_PLAN_ALIASES = new Set(["pro", "plan_b", "creator_pro"]);
+
+function formatPlanLabel(planTier: string | null | undefined): string {
+  const normalized = String(planTier ?? "").trim().toLowerCase();
+  if (!normalized || normalized === "none") {
+    return "None";
+  }
+
+  if (BASIC_PLAN_ALIASES.has(normalized)) {
+    return "Basic";
+  }
+
+  if (PRO_PLAN_ALIASES.has(normalized)) {
+    return "Pro";
+  }
+
+  return normalized;
+}
+
+function isCurrentPlan(planId: CheckoutPlan, planTier: string): boolean {
+  const normalized = planTier.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  if (planId === "basic") {
+    return BASIC_PLAN_ALIASES.has(normalized);
+  }
+
+  return PRO_PLAN_ALIASES.has(normalized);
+}
 
 export default function BillingPage() {
   const { state, entitlements, error, errorRequestId, requestId, actions } = useAppGate();
@@ -34,6 +69,34 @@ export default function BillingPage() {
   const [checkoutError, setCheckoutError] = useState<{ message: string; requestId?: string } | null>(null);
   const [hasCheckoutMarker, setHasCheckoutMarker] = useState(() => checkoutAttemptInProgress());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [billingStatus, setBillingStatus] = useState<BillingStatusResponse | null>(null);
+  const [billingStatusError, setBillingStatusError] = useState<{ message: string; requestId?: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchBillingStatus()
+      .then((nextStatus) => {
+        if (cancelled) {
+          return;
+        }
+        setBillingStatus(nextStatus);
+        setBillingStatusError(null);
+      })
+      .catch((err) => {
+        if (cancelled) {
+          return;
+        }
+        setBillingStatusError({
+          message: err instanceof Error ? err.message : "Unable to load billing status.",
+          requestId: isApiError(err) ? err.requestId : undefined,
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleCheckout = async (plan: CheckoutPlan) => {
     setIsCreatingCheckout(plan);
@@ -43,9 +106,8 @@ export default function BillingPage() {
       const { checkout_url } = await createCheckoutSession(plan);
       window.location.assign(checkout_url);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to start checkout";
       setCheckoutError({
-        message,
+        message: err instanceof Error ? err.message : "Unable to start checkout.",
         requestId: isApiError(err) ? err.requestId : undefined,
       });
       setIsCreatingCheckout(null);
@@ -53,13 +115,58 @@ export default function BillingPage() {
     }
   };
 
+  const refreshBillingAndEntitlements = async () => {
+    setIsRefreshing(true);
+    setCheckoutError(null);
+
+    try {
+      const [entitlementsResult, billingStatusResult] = await Promise.allSettled([
+        actions.refreshEntitlements({ forceRefresh: true }),
+        fetchBillingStatus({ forceRefresh: true }),
+      ]);
+
+      if (billingStatusResult.status === "fulfilled") {
+        setBillingStatus(billingStatusResult.value);
+        setBillingStatusError(null);
+      } else {
+        setBillingStatusError({
+          message: billingStatusResult.reason instanceof Error ? billingStatusResult.reason.message : "Unable to refresh billing status.",
+          requestId: isApiError(billingStatusResult.reason) ? billingStatusResult.reason.requestId : undefined,
+        });
+      }
+
+      if (entitlementsResult.status === "rejected") {
+        // Entitlements errors are already handled in AppGateProvider; keep this page stable.
+      }
+    } finally {
+      setIsRefreshing(false);
+      setHasCheckoutMarker(checkoutAttemptInProgress());
+    }
+  };
+
   const allowCheckout = !hasCheckoutMarker && isCreatingCheckout === null;
+  const activePlanTier = billingStatus?.planTier ?? entitlements?.planTier ?? "none";
+  const activeStatus = billingStatus?.status ?? entitlements?.status ?? "inactive";
+  const isActive = (billingStatus?.isActive ?? entitlements?.isActive) === true;
+  const source = entitlements?.source ?? billingStatus?.source ?? null;
+  const portalUrl = billingStatus?.portalUrl ?? entitlements?.portalUrl ?? entitlements?.portal_url;
+  const usageSummary = useMemo(() => {
+    const generated = entitlements?.reportsGeneratedThisPeriod;
+    const remaining = entitlements?.reportsRemainingThisPeriod;
+    const limit = entitlements?.monthlyReportLimit;
+
+    if (generated === null || generated === undefined || remaining === null || remaining === undefined || limit === null || limit === undefined) {
+      return null;
+    }
+
+    return `${generated} generated this period, ${remaining} remaining of ${limit}.`;
+  }, [entitlements?.monthlyReportLimit, entitlements?.reportsGeneratedThisPeriod, entitlements?.reportsRemainingThisPeriod]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold text-slate-900">Billing</h1>
-        <p className="text-slate-600">Compare plans, confirm your subscription status, and manage access.</p>
+        <p className="text-slate-600">Compare plans, confirm subscription state, and manage access.</p>
       </header>
 
       {state === "session_expired" ? <SessionExpiredCallout requestId={requestId} /> : null}
@@ -69,45 +176,53 @@ export default function BillingPage() {
           <h2 className="text-lg font-medium text-slate-900">Current subscription</h2>
           <button
             type="button"
-            onClick={async () => {
-              setIsRefreshing(true);
-              try {
-                await actions.refreshEntitlements({ forceRefresh: true });
-              } finally {
-                setIsRefreshing(false);
-              }
-            }}
+            onClick={() => void refreshBillingAndEntitlements()}
             className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 disabled:opacity-60"
             disabled={isRefreshing}
           >
-            {isRefreshing ? "Refreshing…" : "Refresh status"}
+            {isRefreshing ? "Refreshing..." : "Refresh status"}
           </button>
         </div>
 
-        <p className="mt-3 text-sm text-slate-700" data-testid="billing-current-plan">{`Plan: ${entitlements?.plan ?? "None"} · Status: ${entitlements?.status ?? "inactive"}`}</p>
+        <p className="mt-3 text-sm text-slate-700" data-testid="billing-current-plan">{`Plan: ${formatPlanLabel(activePlanTier)} - Status: ${activeStatus}`}</p>
         <p className="mt-1 text-xs text-slate-600">
-          Feature access: {entitlements?.entitled ? "Active" : "Limited until subscription is active"}
+          Feature access: {isActive ? "Active" : "Limited until subscription is active"}
+          {source ? ` (${source})` : ""}
         </p>
+        {usageSummary ? <p className="mt-1 text-xs text-slate-600">{usageSummary}</p> : null}
 
         {error ? (
-          <ErrorBanner className="mt-4" title="Could not load billing status" message={error} requestId={errorRequestId} onRetry={() => void actions.refreshEntitlements({ forceRefresh: true })} />
+          <ErrorBanner
+            className="mt-4"
+            title="Could not refresh entitlements"
+            message={error}
+            requestId={errorRequestId}
+            onRetry={() => void actions.refreshEntitlements({ forceRefresh: true })}
+          />
         ) : null}
 
-        {entitlements?.portal_url ? (
-          <Link
-            href={entitlements.portal_url}
-            className="mt-4 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100"
-          >
+        {billingStatusError ? (
+          <ErrorBanner
+            className="mt-4"
+            title="Could not load billing status"
+            message={billingStatusError.message}
+            requestId={billingStatusError.requestId}
+            onRetry={() => void refreshBillingAndEntitlements()}
+          />
+        ) : null}
+
+        {portalUrl ? (
+          <Link href={portalUrl} className="mt-4 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100">
             Manage subscription
           </Link>
         ) : (
-          <p className="mt-3 text-xs text-slate-600">Need changes later? Contact support to update billing details.</p>
+          <p className="mt-3 text-xs text-slate-600">Manage subscription is unavailable for this account right now.</p>
         )}
       </section>
 
       {hasCheckoutMarker ? (
         <section className="rounded-lg border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-800">
-          <p>Checkout is already starting…</p>
+          <p>Checkout is already starting...</p>
           <button
             type="button"
             onClick={() => {
@@ -124,42 +239,57 @@ export default function BillingPage() {
 
       <section className="grid gap-4 md:grid-cols-2">
         {plans.map((plan) => {
-          const isCurrentPlan = (entitlements?.plan ?? "").toLowerCase() === plan.id;
+          const selectedPlan = isCurrentPlan(plan.id, activePlanTier);
+          const checkoutDisabled = !allowCheckout || (selectedPlan && isActive);
+          const ctaLabel = selectedPlan && isActive ? `${plan.label} active` : `Choose ${plan.label}`;
           return (
             <article
               key={plan.id}
               className={`space-y-4 rounded-xl border p-6 ${
-                isCurrentPlan ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white"
+                selectedPlan ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white"
               }`}
             >
               <div>
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-xl font-semibold text-slate-900">{plan.label}</h3>
-                  {isCurrentPlan ? <span data-testid="billing-current-badge" className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-700">Current</span> : null}
+                  {selectedPlan ? (
+                    <span data-testid="billing-current-badge" className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-700">
+                      Current
+                    </span>
+                  ) : null}
                 </div>
                 <p className="mt-1 text-sm text-slate-700">{plan.summary}</p>
               </div>
 
               <ul className="space-y-1 text-xs text-slate-700">
                 {plan.highlights.map((line) => (
-                  <li key={line}>• {line}</li>
+                  <li key={line}>- {line}</li>
                 ))}
               </ul>
 
               <button
                 type="button"
                 onClick={() => void handleCheckout(plan.id)}
-                disabled={!allowCheckout}
+                disabled={checkoutDisabled}
                 className="inline-flex rounded-lg bg-brand-blue px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
               >
-                {isCreatingCheckout === plan.id ? "Redirecting…" : `Subscribe to ${plan.label}`}
+                {isCreatingCheckout === plan.id ? "Redirecting..." : ctaLabel}
               </button>
             </article>
           );
         })}
       </section>
 
-      {checkoutError ? <ErrorBanner data-testid="billing-error-banner" title="Checkout failed" message={checkoutError.message} requestId={checkoutError.requestId} onRetry={() => setCheckoutError(null)} retryLabel="Dismiss" /> : null}
+      {checkoutError ? (
+        <ErrorBanner
+          data-testid="billing-error-banner"
+          title="Checkout failed"
+          message={checkoutError.message}
+          requestId={checkoutError.requestId}
+          onRetry={() => setCheckoutError(null)}
+          retryLabel="Dismiss"
+        />
+      ) : null}
     </div>
   );
 }

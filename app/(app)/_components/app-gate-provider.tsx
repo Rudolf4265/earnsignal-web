@@ -75,7 +75,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
           return nextEntitlements;
         }
 
-        setEntitlementsState({ status: nextEntitlements.entitled ? "entitled" : "unentitled", entitlements: nextEntitlements });
+        setEntitlementsState({ status: nextEntitlements.isActive ? "entitled" : "unentitled", entitlements: nextEntitlements });
         setError(null);
         setErrorRequestId(undefined);
         return nextEntitlements;

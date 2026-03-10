@@ -13,10 +13,21 @@ async function loadModule(seed = Date.now()) {
 
 function createEntitlements(overrides = {}) {
   return {
-    plan: "plan_a",
-    plan_tier: "plan_a",
+    plan: "basic",
+    plan_tier: "basic",
+    planTier: "basic",
     status: "active",
+    source: "stripe",
+    canUpload: true,
+    canGenerateReport: true,
+    canViewReports: true,
+    canDownloadPdf: false,
+    canAccessDashboard: true,
+    reportsRemainingThisPeriod: 4,
+    reportsGeneratedThisPeriod: 1,
+    monthlyReportLimit: 5,
     entitled: true,
+    isActive: true,
     is_active: true,
     features: { app: true, upload: true, report: true },
     ...overrides,
@@ -27,7 +38,7 @@ test("report detail gating centralizes Pro-tier resolution through canonical hel
   const source = await readFile(reportDetailGatingPath, "utf8");
 
   assert.equal(source.includes('import { isProPlan } from "../dashboard/action-cards";'), true);
-  assert.equal(source.includes('return entitlements.entitled && isProPlan(entitlements) ? "pro-unlocked" : "pro-locked";'), true);
+  assert.equal(source.includes('return entitlements.isActive && isProPlan(entitlements) ? "pro-unlocked" : "pro-locked";'), true);
 });
 
 test("report detail gating defines loading-safe handling for unresolved entitlement states", async () => {
@@ -55,7 +66,7 @@ test("report detail PDF access mode unlocks only for Pro entitlements", async ()
 
   const mode = resolveReportDetailPdfAccessMode({
     gateState: "authed_entitled",
-    entitlements: createEntitlements({ plan: "plan_b", plan_tier: "plan_b", entitled: true }),
+    entitlements: createEntitlements({ plan: "pro", plan_tier: "pro", planTier: "pro", isActive: true }),
   });
 
   assert.equal(mode, "pro-unlocked");
@@ -67,7 +78,7 @@ test("report detail PDF access mode locks Basic users", async () => {
 
   const mode = resolveReportDetailPdfAccessMode({
     gateState: "authed_entitled",
-    entitlements: createEntitlements({ plan: "plan_a", plan_tier: "plan_a", entitled: true }),
+    entitlements: createEntitlements({ plan: "basic", plan_tier: "basic", planTier: "basic", isActive: true }),
   });
 
   assert.equal(mode, "pro-locked");

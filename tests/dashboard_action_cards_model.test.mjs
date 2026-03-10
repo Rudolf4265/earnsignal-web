@@ -11,10 +11,21 @@ async function loadModule(seed = Date.now()) {
 
 function createEntitlements(overrides = {}) {
   return {
-    plan: "plan_a",
-    plan_tier: "plan_a",
+    plan: "basic",
+    plan_tier: "basic",
+    planTier: "basic",
     status: "active",
+    source: "stripe",
+    canUpload: true,
+    canGenerateReport: true,
+    canViewReports: true,
+    canDownloadPdf: false,
+    canAccessDashboard: true,
+    reportsRemainingThisPeriod: 4,
+    reportsGeneratedThisPeriod: 1,
+    monthlyReportLimit: 5,
     entitled: true,
+    isActive: true,
     is_active: true,
     features: { app: true, upload: true, report: true },
     ...overrides,
@@ -26,7 +37,7 @@ test("unlocks action cards only for canonical Pro plan tier and caps at two card
 
   const result = buildDashboardActionCardsViewModel({
     gateState: "authed_entitled",
-    entitlements: createEntitlements({ plan: "plan_b", plan_tier: "plan_b" }),
+    entitlements: createEntitlements({ plan: "pro", plan_tier: "pro", planTier: "pro" }),
     recommendedActions: [
       "Scale annual plan conversion from trial cohort insights.",
       "Tighten churn win-back automations for at-risk subscriber segments.",
@@ -50,7 +61,7 @@ test("keeps Basic users locked and omits recommendation cards", async () => {
 
   const result = buildDashboardActionCardsViewModel({
     gateState: "authed_entitled",
-    entitlements: createEntitlements({ plan: "plan_a", plan_tier: "plan_a" }),
+    entitlements: createEntitlements({ plan: "basic", plan_tier: "basic", planTier: "basic" }),
     recommendedActions: ["Do not leak this recommendation"],
   });
 
@@ -74,7 +85,8 @@ test("returns loading-safe mode while entitlement state is unresolved", async ()
 test("centralizes Pro-tier resolution in isProPlan helper", async () => {
   const { isProPlan } = await loadModule(Date.now() + 4);
 
-  assert.equal(isProPlan(createEntitlements({ plan: "plan_b", plan_tier: "plan_b" })), true);
-  assert.equal(isProPlan(createEntitlements({ plan: "plan_a", plan_tier: "plan_a" })), false);
+  assert.equal(isProPlan(createEntitlements({ plan: "pro", plan_tier: "pro", planTier: "pro" })), true);
+  assert.equal(isProPlan(createEntitlements({ plan: "basic", plan_tier: "basic", planTier: "basic" })), false);
+  assert.equal(isProPlan(createEntitlements({ plan: "plan_b", plan_tier: "plan_b", planTier: "plan_b" })), true);
   assert.equal(isProPlan(null), false);
 });

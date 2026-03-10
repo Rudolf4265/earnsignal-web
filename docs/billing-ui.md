@@ -1,45 +1,43 @@
 # Billing UI flow
 
-## Expected user flow
+## PR2 scope
 
-1. User signs in and enters `/app`.
-2. App layout checks session and entitlements:
-   - No session: redirect to `/login`.
-   - Session + no entitlement: redirect to `/app/billing`.
-   - Session + entitlement: render app shell.
-3. User can choose **Plan A** or **Plan B** on `/app/billing`.
-4. Checkout CTA calls backend checkout endpoint and redirects to Stripe-hosted checkout URL.
-5. Stripe success return lands on `/app/billing/success`:
-   - forces entitlements refresh
-   - auto-redirects to `/app` once entitlements are active
-6. Stripe cancel return lands on `/app/billing/cancel`.
+- Frontend now treats canonical entitlements as primary:
+  - `plan_tier`, `is_active`, `source`, `status`
+  - `can_upload`, `can_generate_report`, `can_view_reports`, `can_download_pdf`, `can_access_dashboard`
+  - usage limits (`reports_remaining_this_period`, `reports_generated_this_period`, `monthly_report_limit`)
+- Legacy aliases are still supported only as fallback compatibility (`plan`, `entitled`, `features.*`).
+- This change does not introduce broad new app-wide gating. Existing upload/report/dashboard flows stay intact for entitled/manual users.
 
-## Feature-level gating
+## Checkout initiation
 
-- `/app/upload` requires `features.upload === true`.
-- `/app/report` and `/app/report/[id]` require `features.report === true`.
-- If missing, user is redirected to `/app/billing`.
+- Primary endpoint: `POST /v1/billing/create-checkout-session`
+  - canonical payload first: `{ plan_tier: "basic" | "pro" }`
+  - compatibility retry (same endpoint): `{ plan: "plan_a" | "plan_b" }` on validation-style failures
+- Legacy endpoint fallback remains only for compatibility:
+  - `/v1/billing/checkout`
+  - `/v1/checkout`
+  - fallback is only used for `404` / `405` endpoint-missing responses
+- Checkout URL is validated for HTTPS before redirect.
 
-## Checkout initiation safety
+## Billing status surface
 
-- Checkout creation is deterministic:
-  - primary endpoint: `/v1/billing/checkout`
-  - fallback endpoint: `/v1/checkout` only if primary responds with `404` or `405`
-- The client never probes additional endpoints for `5xx` errors; users see a recoverable error state instead.
-- Double-click safety:
-  - an in-memory in-flight promise deduplicates concurrent clicks in the same render lifecycle
-  - a short sessionStorage marker blocks immediate refresh/retry loops
-  - UI shows **"Checkout is already starting…"** with a **Try again** action that clears the marker
+- Billing page now calls `GET /v1/billing/status` to render plan/status details.
+- Billing status failures are isolated to the billing page and never crash app shell/navigation.
+- Entitlements remain the durable source of truth for app access; billing status is informational.
 
-## Import hygiene
+## Success / cancel return behavior
 
-- App source imports must be extensionless (`./module`, not `./module.ts`).
-- Rationale: this keeps behavior aligned with Next.js module resolution defaults and avoids hiding broken import paths behind permissive TS compiler flags.
-- Enforcement:
-  - ESLint `no-restricted-imports` blocks `*.ts` and `*.tsx` import specifiers in source imports.
+- Success route: `/app/billing/success`
+  - clears checkout marker
+  - performs bounded refresh attempts for both entitlements + billing status
+  - redirects to `/app` after entitlements become active
+- Cancel route: `/app/billing/cancel`
+  - clears checkout marker
+  - shows non-destructive canceled state
 
-## Troubleshooting
+## What PR2 intentionally does not do
 
-- **Billing page loops back to billing:** Confirm `/v1/entitlements` returns active status and feature flags after webhook processing.
-- **Checkout button fails:** Ensure `/v1/billing/checkout` exists, or `/v1/checkout` is available as fallback for 404/405 cases.
-- **Success page does not unlock app immediately:** Webhook may still be processing; use retry refresh on the success page.
+- No broad new feature lockouts.
+- No redesign of upload/report generation contracts.
+- No Stripe customer portal overhaul.

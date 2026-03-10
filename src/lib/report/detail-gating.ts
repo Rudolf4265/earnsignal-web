@@ -29,7 +29,7 @@ function resolveProSectionMode(gateState: AppGateState, entitlements: Entitlemen
     return "loading-safe";
   }
 
-  return entitlements.entitled && isProPlan(entitlements) ? "pro-unlocked" : "pro-locked";
+  return entitlements.isActive && isProPlan(entitlements) ? "pro-unlocked" : "pro-locked";
 }
 
 export function buildReportDetailSectionGatingModel(input: BuildReportDetailSectionGatingInput): ReportDetailSectionGatingModel {

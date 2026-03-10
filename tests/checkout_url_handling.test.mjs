@@ -59,55 +59,95 @@ async function buildEntitlementsTestModule(tag) {
   return pathToFileURL(outFile).href;
 }
 
-test("createCheckoutSession uses only primary endpoint when primary succeeds", async () => {
+test("createCheckoutSession uses canonical endpoint when available", async () => {
   const calls = [];
+  const requestBodies = [];
   global.window = createWindow();
-  global.fetch = async (url) => {
+  global.fetch = async (url, init = {}) => {
     calls.push(String(url));
+    requestBodies.push(JSON.parse(String(init.body ?? "{}")));
     return jsonResponse({ checkout_url: "https://checkout.stripe.test/session_123" });
   };
 
   const moduleUrl = await buildEntitlementsTestModule(`primary-${Date.now()}`);
   const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
-  const response = await createCheckoutSession("plan_a");
+  const response = await createCheckoutSession("basic");
 
   assert.equal(response.checkout_url, "https://checkout.stripe.test/session_123");
   assert.equal(calls.length, 1);
-  assert.equal(calls[0], "/v1/billing/checkout");
+  assert.equal(calls[0], "/v1/billing/create-checkout-session");
+  assert.deepEqual(requestBodies[0], { plan_tier: "basic" });
 
   clearCheckoutAttempt();
   delete global.fetch;
   delete global.window;
 });
 
-test("createCheckoutSession calls fallback only on 404", async () => {
+test("createCheckoutSession retries canonical endpoint with legacy payload on validation error", async () => {
   const calls = [];
+  const requestBodies = [];
+
   global.window = createWindow();
-  global.fetch = async (url) => {
+  global.fetch = async (url, init = {}) => {
     calls.push(String(url));
-    if (String(url).endsWith("/v1/billing/checkout")) {
+    requestBodies.push(JSON.parse(String(init.body ?? "{}")));
+
+    if (calls.length === 1) {
+      return jsonResponse({ message: "invalid body" }, 422);
+    }
+
+    return jsonResponse({ checkout_url: "https://checkout.stripe.test/session_legacy_payload" });
+  };
+
+  const moduleUrl = await buildEntitlementsTestModule(`payload-fallback-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
+  const response = await createCheckoutSession("pro");
+
+  assert.equal(response.checkout_url, "https://checkout.stripe.test/session_legacy_payload");
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0], "/v1/billing/create-checkout-session");
+  assert.equal(calls[1], "/v1/billing/create-checkout-session");
+  assert.deepEqual(requestBodies[0], { plan_tier: "pro" });
+  assert.deepEqual(requestBodies[1], { plan: "plan_b" });
+
+  clearCheckoutAttempt();
+  delete global.fetch;
+  delete global.window;
+});
+
+test("createCheckoutSession falls back to legacy endpoint only when canonical endpoint is missing", async () => {
+  const calls = [];
+  const requestBodies = [];
+
+  global.window = createWindow();
+  global.fetch = async (url, init = {}) => {
+    calls.push(String(url));
+    requestBodies.push(JSON.parse(String(init.body ?? "{}")));
+    if (String(url).endsWith("/v1/billing/create-checkout-session")) {
       return jsonResponse({}, 404);
     }
 
     return jsonResponse({ url: "https://checkout.stripe.test/session_456" });
   };
 
-  const moduleUrl = await buildEntitlementsTestModule(`fallback-${Date.now()}`);
+  const moduleUrl = await buildEntitlementsTestModule(`endpoint-fallback-${Date.now()}`);
   const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
-  const response = await createCheckoutSession("plan_a");
+  const response = await createCheckoutSession("basic");
 
   assert.equal(response.checkout_url, "https://checkout.stripe.test/session_456");
   assert.equal(calls.length, 2);
-  assert.match(calls[0], /\/v1\/billing\/checkout$/);
-  assert.match(calls[1], /\/v1\/checkout$/);
+  assert.equal(calls[0], "/v1/billing/create-checkout-session");
+  assert.equal(calls[1], "/v1/billing/checkout");
+  assert.deepEqual(requestBodies[1], { plan: "plan_a" });
 
   clearCheckoutAttempt();
   delete global.fetch;
   delete global.window;
 });
 
-test("createCheckoutSession does not call fallback on 500", async () => {
+test("createCheckoutSession does not call legacy endpoints on canonical 500 errors", async () => {
   const calls = [];
+
   global.window = createWindow();
   global.fetch = async (url) => {
     calls.push(String(url));
@@ -117,8 +157,29 @@ test("createCheckoutSession does not call fallback on 500", async () => {
   const moduleUrl = await buildEntitlementsTestModule(`error-${Date.now()}`);
   const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
 
-  await assert.rejects(createCheckoutSession("plan_a"), /request failed/);
+  await assert.rejects(createCheckoutSession("basic"), /request failed/);
   assert.equal(calls.length, 1);
+  assert.equal(calls[0], "/v1/billing/create-checkout-session");
+
+  clearCheckoutAttempt();
+  delete global.fetch;
+  delete global.window;
+});
+
+test("createCheckoutSession validates selected plan before API request", async () => {
+  const calls = [];
+
+  global.window = createWindow();
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    return jsonResponse({});
+  };
+
+  const moduleUrl = await buildEntitlementsTestModule(`invalid-plan-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
+
+  await assert.rejects(createCheckoutSession("enterprise"), /Invalid checkout plan selected/);
+  assert.equal(calls.length, 0);
 
   clearCheckoutAttempt();
   delete global.fetch;
@@ -142,8 +203,8 @@ test("createCheckoutSession in-flight lock dedupes repeated calls", async () => 
   const moduleUrl = await buildEntitlementsTestModule(`lock-${Date.now()}`);
   const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
 
-  const first = createCheckoutSession("plan_a");
-  const second = createCheckoutSession("plan_a");
+  const first = createCheckoutSession("basic");
+  const second = createCheckoutSession("basic");
   resolveFetch();
 
   const [firstResult, secondResult] = await Promise.all([first, second]);

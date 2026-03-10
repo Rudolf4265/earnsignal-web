@@ -69,9 +69,11 @@ test("fetchEntitlements caches response in memory and sessionStorage", async () 
   const second = await fetchEntitlements();
 
   assert.equal(fetchCalls, 1);
-  assert.equal(first.plan, "plan_a");
-  assert.equal(first.plan_tier, "plan_a");
-  assert.equal(first.is_active, true);
+  assert.equal(first.planTier, "basic");
+  assert.equal(first.plan_tier, "basic");
+  assert.equal(first.plan, "basic");
+  assert.equal(first.isActive, true);
+  assert.equal(first.canUpload, true);
   assert.equal(second.entitled, true);
 
   resetEntitlementsCache();
@@ -79,15 +81,24 @@ test("fetchEntitlements caches response in memory and sessionStorage", async () 
   delete global.fetch;
 });
 
-test("fetchEntitlements prefers canonical plan_tier and is_active aliases", async () => {
+test("fetchEntitlements prefers canonical plan_tier and is_active while preserving legacy fallback", async () => {
   global.window = createWindow();
   global.fetch = async () =>
     jsonResponse({
-      plan: "legacy_plan",
-      plan_tier: "plan_b",
+      plan: "plan_a",
+      plan_tier: "pro",
       status: "inactive",
       entitled: false,
       is_active: true,
+      source: "stripe",
+      can_upload: false,
+      can_generate_report: true,
+      can_view_reports: true,
+      can_download_pdf: true,
+      can_access_dashboard: true,
+      reports_remaining_this_period: 7,
+      reports_generated_this_period: 3,
+      monthly_report_limit: 10,
       features: { app: false, upload: false, report: false },
     });
 
@@ -96,10 +107,46 @@ test("fetchEntitlements prefers canonical plan_tier and is_active aliases", asyn
 
   const value = await fetchEntitlements({ forceRefresh: true });
 
-  assert.equal(value.plan_tier, "plan_b");
-  assert.equal(value.plan, "plan_b");
-  assert.equal(value.is_active, true);
+  assert.equal(value.planTier, "pro");
+  assert.equal(value.plan_tier, "pro");
+  assert.equal(value.plan, "pro");
+  assert.equal(value.isActive, true);
   assert.equal(value.entitled, true);
+  assert.equal(value.source, "stripe");
+  assert.equal(value.canUpload, false);
+  assert.equal(value.canGenerateReport, true);
+  assert.equal(value.canViewReports, true);
+  assert.equal(value.canDownloadPdf, true);
+  assert.equal(value.canAccessDashboard, true);
+  assert.equal(value.reportsRemainingThisPeriod, 7);
+  assert.equal(value.reportsGeneratedThisPeriod, 3);
+  assert.equal(value.monthlyReportLimit, 10);
+
+  resetEntitlementsCache();
+  delete global.window;
+  delete global.fetch;
+});
+
+test("fetchEntitlements defaults plan tier to none when backend omits both canonical and legacy plan fields", async () => {
+  global.window = createWindow();
+  global.fetch = async () =>
+    jsonResponse({
+      status: "inactive",
+      is_active: false,
+      features: { app: true, upload: true, report: false },
+    });
+
+  const moduleUrl = await buildEntitlementsTestModule(`defaults-${Date.now()}`);
+  const { fetchEntitlements, resetEntitlementsCache } = await import(moduleUrl);
+  const value = await fetchEntitlements({ forceRefresh: true });
+
+  assert.equal(value.planTier, "none");
+  assert.equal(value.plan_tier, "none");
+  assert.equal(value.plan, "none");
+  assert.equal(value.isActive, false);
+  assert.equal(value.canUpload, true);
+  assert.equal(value.canGenerateReport, false);
+  assert.equal(value.canAccessDashboard, true);
 
   resetEntitlementsCache();
   delete global.window;
@@ -112,7 +159,7 @@ test("fetchEntitlements force refresh bypasses cache", async () => {
   global.window = createWindow();
   global.fetch = async () => {
     fetchCalls += 1;
-    return jsonResponse({ plan: "plan_b", status: "active", entitled: true, features: { app: true } });
+    return jsonResponse({ plan_tier: "pro", status: "active", is_active: true, features: { app: true } });
   };
 
   const moduleUrl = await buildEntitlementsTestModule(`force-${Date.now()}`);

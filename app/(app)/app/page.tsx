@@ -357,9 +357,9 @@ export default function DashboardPage() {
     [state.latestArtifact],
   );
 
-  const planTier = entitlements?.plan ?? "None";
+  const planTier = entitlements?.planTier ?? "none";
   const planStatus = entitlements?.status ?? "inactive";
-  const entitled = entitlements?.entitled === true;
+  const entitled = entitlements?.isActive === true;
 
   const primaryCta = useMemo(
     () =>

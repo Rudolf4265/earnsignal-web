@@ -22,14 +22,14 @@ export type BuildDashboardActionCardsViewModelInput = {
 };
 
 const DEFAULT_MAX_CARDS = 2;
-const PRO_PLAN_TIERS = new Set(["plan_b"]);
+const PRO_PLAN_TIERS = new Set(["pro", "plan_b"]);
 const DEFAULT_PRO_ACTIONS = [
   "Prioritize one retention experiment this week and track the weekly net revenue impact.",
   "Review subscriber behavior by cohort and tune lifecycle messaging for the highest-churn segment.",
 ];
 
 function normalizePlanTier(entitlements: EntitlementsResponse | null): string | null {
-  const candidate = entitlements?.plan_tier ?? entitlements?.plan ?? null;
+  const candidate = entitlements?.planTier ?? entitlements?.plan_tier ?? entitlements?.plan ?? null;
   if (typeof candidate !== "string") {
     return null;
   }
@@ -55,7 +55,7 @@ function resolveMode(gateState: AppGateState, entitlements: EntitlementsResponse
     return "loading";
   }
 
-  const hasProRecommendationsAccess = entitlements.entitled && isProPlan(entitlements);
+  const hasProRecommendationsAccess = entitlements.isActive && isProPlan(entitlements);
   return hasProRecommendationsAccess ? "unlocked" : "locked";
 }
 

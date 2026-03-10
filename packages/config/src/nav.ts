@@ -1,13 +1,15 @@
 import { publicUrls } from "./urls";
 
 export type SiteNavItem = {
-  key: "pricing";
+  key: "features" | "pricing" | "about";
   href: string;
   label: string;
 };
 
 export const siteNavItems: SiteNavItem[] = [
+  { key: "features", href: `${publicUrls.marketingHome}#features`, label: "Features" },
   { key: "pricing", href: publicUrls.pricing, label: "Pricing" },
+  { key: "about", href: `${publicUrls.marketingHome}#about`, label: "About" },
 ];
 
 export const marketingCtas = {

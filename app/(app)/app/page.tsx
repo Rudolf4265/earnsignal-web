@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Badge } from "./_components/dashboard/Badge";
-import { EmptyState } from "./_components/dashboard/EmptyState";
-import { KpiCard } from "./_components/dashboard/KpiCard";
-import { Panel } from "./_components/dashboard/Panel";
 import { useAppGate } from "../_components/app-gate-provider";
-import { SkeletonBlock } from "../_components/ui/skeleton";
+import { ActionCardsSection } from "./_components/dashboard/ActionCardsSection";
+import { CreatorHealthPanel } from "./_components/dashboard/CreatorHealthPanel";
+import { InsightCardsSection } from "./_components/dashboard/InsightCardsSection";
+import { RevenueSnapshotSection } from "./_components/dashboard/RevenueSnapshotSection";
+import { RevenueTrendSection } from "./_components/dashboard/RevenueTrendSection";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { Button, buttonClassName } from "@/src/components/ui/button";
 import { PageHeader } from "@/src/components/ui/page-header";
@@ -390,6 +390,13 @@ export default function DashboardPage() {
   };
 
   const platformsConnected = kpis.platformsConnected ?? (state.latestUpload ? 1 : 0);
+  const workspaceReadiness = `${state.latestUpload ? "Uploads detected" : "No uploads yet"} - ${
+    state.hasReports === true
+      ? "Reports available"
+      : state.hasReports === false
+        ? "No reports yet"
+        : "Checking reports..."
+  }`;
 
   return (
     <div className="space-y-10">
@@ -411,161 +418,37 @@ export default function DashboardPage() {
       {state.error ? <ErrorBanner title="Data refresh failed" message={state.error} /> : null}
       {state.latestArtifactError ? <ErrorBanner title="Latest report artifact mismatch" message={state.latestArtifactError} /> : null}
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Net Revenue" value={formatCurrency(kpis.netRevenue)} subtext="Last 30 days" />
-        <KpiCard label="Subscribers" value={formatNumber(kpis.subscribers)} subtext="Current" />
-        <KpiCard label="Stability Index" value={formatNumber(kpis.stabilityIndex)} subtext="Revenue concentration" />
-        <KpiCard label="Churn Velocity" value={formatNumber(kpis.churnVelocity)} subtext="Monthly movement" />
-      </div>
+      <CreatorHealthPanel
+        entitled={entitled}
+        planTier={planTier}
+        planStatusLabel={toBadgeLabel(planStatus)}
+        planStatusVariant={toPlanBadgeVariant(planStatus, entitled)}
+        loading={state.loading}
+        workspaceReadiness={workspaceReadiness}
+        reportsCheckError={state.reportsCheckError}
+        platformsConnectedLabel={platformsConnected > 0 ? String(platformsConnected) : "None"}
+        coverageLabel={kpis.coverageMonths !== null ? `${formatNumber(kpis.coverageMonths)} months` : "-- months"}
+        lastUploadLabel={formatDate(state.latestUpload?.updatedAt ?? state.latestReport?.createdAt)}
+        latestReportRow={state.latestReportRow}
+        latestReportHref={latestReportHref}
+        latestReportStatusLabel={toBadgeLabel(state.latestReportRow?.status ?? "unknown")}
+        latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
+        ctaLabel={primaryCta.label}
+        ctaHref={primaryCta.href}
+      />
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="space-y-8 lg:col-span-2">
-          <Panel title="Key Signals" description="AI-generated highlights from your latest completed report.">
-            <ul className="divide-y divide-slate-200">
-              {keySignals.map((signal) => (
-                <li key={signal} className="py-3 first:pt-0 last:pb-0">
-                  <p className="text-sm text-slate-700">{signal}</p>
-                </li>
-              ))}
-            </ul>
-          </Panel>
+      <RevenueSnapshotSection
+        netRevenue={formatCurrency(kpis.netRevenue)}
+        subscribers={formatNumber(kpis.subscribers)}
+        stabilityIndex={formatNumber(kpis.stabilityIndex)}
+        churnVelocity={formatNumber(kpis.churnVelocity)}
+      />
 
-          <Panel title="Recommended Actions" description="Practical next steps based on your most recent analysis.">
-            <ul className="divide-y divide-slate-200">
-              {recommendedActions.map((action) => (
-                <li key={action} className="py-3 first:pt-0 last:pb-0">
-                  <p className="text-sm text-slate-700">{action}</p>
-                </li>
-              ))}
-            </ul>
-          </Panel>
+      <InsightCardsSection insights={keySignals} />
 
-          <Panel title="Trend Preview" description="Charts render automatically once enough historical data is available.">
-            {trendPreview ? (
-              <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                {trendPreview}
-              </p>
-            ) : (
-              <EmptyState
-                title="Charts appear once data is connected"
-                body="Upload revenue data to populate trend lines, variance windows, and seasonality insights."
-                ctaLabel={primaryCta.label}
-                ctaHref={primaryCta.href}
-              />
-            )}
-          </Panel>
-        </div>
+      <ActionCardsSection actions={recommendedActions} />
 
-        <div className="space-y-8">
-          <Panel
-            title="Plan & Status"
-            rightSlot={
-              !entitled ? (
-                <Link
-                  href="/app/billing"
-                  className={buttonClassName({ variant: "secondary", size: "sm" })}
-                >
-                  Upgrade
-                </Link>
-              ) : undefined
-            }
-          >
-            <dl className="space-y-4">
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-600">Plan tier</dt>
-                <dd className="mt-1 text-sm text-slate-900">{planTier}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-600">Status</dt>
-                <dd className="mt-1">
-                  <Badge variant={toPlanBadgeVariant(planStatus, entitled)}>{toBadgeLabel(planStatus)}</Badge>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-600">Gated state</dt>
-                <dd className="mt-1 text-sm text-slate-900">{entitled ? "Active" : "Upgrade required"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-600">Workspace readiness</dt>
-                <dd className="mt-1 text-sm text-slate-900">
-                  {state.loading ? (
-                    <div className="space-y-2 pt-1">
-                      <SkeletonBlock className="h-3 w-32 bg-slate-200" />
-                      <SkeletonBlock className="h-3 w-40 bg-slate-200" />
-                    </div>
-                  ) : (
-                    `${state.latestUpload ? "Uploads detected" : "No uploads yet"} - ${
-                      state.hasReports === true
-                        ? "Reports available"
-                        : state.hasReports === false
-                          ? "No reports yet"
-                          : "Checking reports..."
-                    }`
-                  )}
-                </dd>
-                {!state.loading && state.reportsCheckError ? (
-                  <p className="mt-1 text-xs text-slate-500">{state.reportsCheckError}</p>
-                ) : null}
-              </div>
-            </dl>
-          </Panel>
-
-          <Panel
-            title="Data Status"
-            rightSlot={
-              <Link
-                href={primaryCta.href}
-                className={buttonClassName({ variant: "secondary", size: "sm" })}
-              >
-                {primaryCta.label}
-              </Link>
-            }
-          >
-            <dl className="space-y-4">
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-600">Platforms connected</dt>
-                <dd className="mt-1 text-sm text-slate-900">{platformsConnected > 0 ? String(platformsConnected) : "None"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-600">Coverage</dt>
-                <dd className="mt-1 text-sm text-slate-900">
-                  {kpis.coverageMonths !== null ? `${formatNumber(kpis.coverageMonths)} months` : "-- months"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-slate-600">Last upload</dt>
-                <dd className="mt-1 text-sm text-slate-900">{formatDate(state.latestUpload?.updatedAt ?? state.latestReport?.createdAt)}</dd>
-              </div>
-            </dl>
-          </Panel>
-
-          <Panel title="Recent Reports" description="Latest generated analyses and quality status.">
-            {state.latestReportRow ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <div>
-                    <p className="text-sm text-slate-900">{state.latestReportRow.date}</p>
-                  </div>
-                  <Badge variant={toBadgeVariant(state.latestReportRow.status)}>{toBadgeLabel(state.latestReportRow.status)}</Badge>
-                  <Link
-                    href={latestReportHref}
-                    className={buttonClassName({ variant: "primary", size: "sm" })}
-                  >
-                    View
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <EmptyState
-                title={state.loading ? "Loading report data..." : "No reports generated yet."}
-                body="Upload your data and generate analysis to see report quality and summaries here."
-                ctaLabel={primaryCta.label}
-                ctaHref={primaryCta.href}
-              />
-            )}
-          </Panel>
-        </div>
-      </div>
+      <RevenueTrendSection trendPreview={trendPreview} ctaLabel={primaryCta.label} ctaHref={primaryCta.href} />
     </div>
   );
 }

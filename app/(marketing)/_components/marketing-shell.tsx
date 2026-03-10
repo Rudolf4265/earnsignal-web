@@ -4,6 +4,8 @@ import { footerLinks, marketingCtas, siteNavItems } from "@earnsigma/config";
 import { Container, Logo } from "@earnsigma/ui";
 import { appBaseUrl } from "@/src/lib/urls";
 
+const SHOW_PRELAUNCH_AUTH_ACTIONS = false;
+
 function resolveAppHref(path: string): string {
   return `${appBaseUrl}${path}`;
 }
@@ -22,25 +24,29 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
             />
           </Link>
           <div className="flex items-center gap-3 text-sm sm:gap-5">
-            <nav className="hidden items-center gap-6 md:flex">
+            <nav className="flex items-center gap-4 sm:gap-6">
               {siteNavItems.map((item) => (
                 <Link key={item.key} href={item.href} className="text-sm text-brand-text-secondary transition hover:text-white">
                   {item.label}
                 </Link>
               ))}
             </nav>
-            <a
-              href={resolveAppHref(marketingCtas.signIn.appPath)}
-              className="hidden text-sm text-brand-text-secondary transition hover:text-white sm:inline-flex"
-            >
-              {marketingCtas.signIn.label}
-            </a>
-            <a
-              href={resolveAppHref(marketingCtas.startTrial.appPath)}
-              className="inline-flex items-center justify-center rounded-xl border border-brand-border-strong/65 bg-brand-panel px-3.5 py-2 text-xs font-medium text-white transition hover:border-brand-accent-blue/45 hover:bg-brand-panel-muted sm:px-5 sm:py-2.5 sm:text-sm"
-            >
-              {marketingCtas.startTrial.label}
-            </a>
+            {SHOW_PRELAUNCH_AUTH_ACTIONS ? (
+              <>
+                <a
+                  href={resolveAppHref(marketingCtas.signIn.appPath)}
+                  className="hidden text-sm text-brand-text-secondary transition hover:text-white sm:inline-flex"
+                >
+                  {marketingCtas.signIn.label}
+                </a>
+                <a
+                  href={resolveAppHref(marketingCtas.startTrial.appPath)}
+                  className="inline-flex items-center justify-center rounded-xl border border-brand-border-strong/65 bg-brand-panel px-3.5 py-2 text-xs font-medium text-white transition hover:border-brand-accent-blue/45 hover:bg-brand-panel-muted sm:px-5 sm:py-2.5 sm:text-sm"
+                >
+                  {marketingCtas.startTrial.label}
+                </a>
+              </>
+            ) : null}
           </div>
         </Container>
       </header>

@@ -8,7 +8,7 @@ type RevenueSnapshotSectionProps = {
 
 export function RevenueSnapshotSection({ revenueSnapshot }: RevenueSnapshotSectionProps) {
   return (
-    <section className="space-y-4" data-testid="dashboard-section-revenue-snapshot">
+    <section className="space-y-3" data-testid="dashboard-section-revenue-snapshot">
       <DashboardSectionHeader title="Revenue Snapshot" description="Just the numbers you need at a glance." />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div data-testid="revenue-snapshot-card-revenue">
@@ -16,6 +16,7 @@ export function RevenueSnapshotSection({ revenueSnapshot }: RevenueSnapshotSecti
             label="Revenue"
             value={revenueSnapshot.revenueDisplay}
             subtext={revenueSnapshot.revenueDeltaText ?? "No revenue comparison available yet."}
+            appearance="dashboard"
           />
         </div>
         <div data-testid="revenue-snapshot-card-subscribers">
@@ -23,6 +24,7 @@ export function RevenueSnapshotSection({ revenueSnapshot }: RevenueSnapshotSecti
             label="Subscribers"
             value={revenueSnapshot.subscribersDisplay}
             subtext={revenueSnapshot.subscriberDeltaText ?? "No subscriber comparison available yet."}
+            appearance="dashboard"
           />
         </div>
       </div>

@@ -19,6 +19,7 @@ import { findFirstCompletedReport, loadLatestDashboardReport } from "@/src/lib/d
 import { buildDashboardInsights } from "@/src/lib/dashboard/insights";
 import { buildDashboardViewModel } from "@/src/lib/dashboard/view-model";
 import { buildDashboardActionCardsViewModel } from "@/src/lib/dashboard/action-cards";
+import { buildDashboardRevenueTrendViewModel } from "@/src/lib/dashboard/revenue-trend";
 import { formatReportArtifactContractErrors } from "@/src/lib/report/artifact-contract";
 import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
@@ -348,6 +349,13 @@ export default function DashboardPage() {
     () => state.latestArtifact?.trendPreview ?? state.latestReport?.summary ?? null,
     [state.latestArtifact, state.latestReport],
   );
+  const revenueTrend = useMemo(
+    () =>
+      buildDashboardRevenueTrendViewModel({
+        points: state.latestArtifact?.revenueTrend,
+      }),
+    [state.latestArtifact],
+  );
 
   const planTier = entitlements?.plan ?? "None";
   const planStatus = entitlements?.status ?? "inactive";
@@ -459,7 +467,7 @@ export default function DashboardPage() {
 
       <ActionCardsSection mode={actionCardsSection.mode} cards={actionCardsSection.cards} />
 
-      <RevenueTrendSection trendPreview={trendPreview} ctaLabel={primaryCta.label} ctaHref={primaryCta.href} />
+      <RevenueTrendSection trend={revenueTrend} trendPreview={trendPreview} loading={state.loading} ctaLabel={primaryCta.label} ctaHref={primaryCta.href} />
     </div>
   );
 }

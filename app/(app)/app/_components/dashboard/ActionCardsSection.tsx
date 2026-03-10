@@ -11,9 +11,9 @@ type ActionCardsSectionProps = {
 
 export function ActionCardsSection({ mode, cards }: ActionCardsSectionProps) {
   return (
-    <section className="space-y-4" data-testid="dashboard-section-what-to-do-next">
+    <section className="space-y-3" data-testid="dashboard-section-what-to-do-next">
       <DashboardSectionHeader title="What To Do Next" description="Clear next steps based on currently available signals." />
-      <PanelCard>
+      <PanelCard className="border-brand-border/70 bg-gradient-to-br from-brand-panel to-brand-panel-muted/90">
         {mode === "unlocked" ? (
           <ul className="divide-y divide-brand-border" data-testid="dashboard-action-cards-unlocked">
             {cards.map((card) => (
@@ -24,7 +24,7 @@ export function ActionCardsSection({ mode, cards }: ActionCardsSectionProps) {
           </ul>
         ) : mode === "locked" ? (
           <div
-            className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-brand-border-strong bg-brand-panel-muted/70 p-4"
+            className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-brand-border-strong/70 bg-brand-panel-muted/70 p-4"
             data-testid="dashboard-action-cards-locked"
           >
             <div className="space-y-1">
@@ -41,13 +41,13 @@ export function ActionCardsSection({ mode, cards }: ActionCardsSectionProps) {
           </div>
         ) : (
           <div
-            className="rounded-2xl border border-brand-border bg-brand-panel-muted/60 p-4"
+            className="rounded-2xl border border-brand-border/70 bg-brand-panel-muted/65 p-4"
             data-testid="dashboard-action-cards-loading"
           >
             <p className="text-sm text-brand-text-secondary">Checking plan access for tailored recommendations...</p>
             <div className="mt-3 space-y-2">
-              <div className="h-2.5 w-full rounded-full bg-brand-border/70" />
-              <div className="h-2.5 w-4/5 rounded-full bg-brand-border/60" />
+              <div className="h-2.5 w-full animate-pulse rounded-full bg-brand-border/70" />
+              <div className="h-2.5 w-4/5 animate-pulse rounded-full bg-brand-border/55" />
             </div>
           </div>
         )}

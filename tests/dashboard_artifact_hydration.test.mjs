@@ -83,6 +83,9 @@ test("dashboard artifact hydrator maps production report.sections shape", async 
   assert.equal(result.recommendedActions.length > 0, true);
   assert.equal(result.recommendedActions.some((entry) => entry.includes("retention experiments")), true);
   assert.equal(result.trendPreview?.includes("growth-positive"), true);
+  assert.equal(result.revenueTrend.length, 3);
+  assert.deepEqual(result.revenueTrend.map((point) => point.value), [198000, 205500, 215000]);
+  assert.deepEqual(result.revenueTrend.map((point) => point.label), ["Dec 2025", "Jan 2026", "Feb 2026"]);
 });
 
 test("dashboard artifact hydrator surfaces contract drift errors for malformed payloads", async () => {
@@ -101,6 +104,7 @@ test("dashboard artifact hydrator surfaces contract drift errors for malformed p
   assert.deepEqual(result.keySignals, []);
   assert.deepEqual(result.recommendedActions, []);
   assert.equal(result.trendPreview, null);
+  assert.deepEqual(result.revenueTrend, []);
   assert.equal(result.kpis.netRevenue, null);
   assert.equal(result.kpis.stabilityIndex, null);
 });

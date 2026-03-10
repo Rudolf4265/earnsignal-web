@@ -10,12 +10,12 @@ type InsightCardsSectionProps = {
 
 export function InsightCardsSection({ insights }: InsightCardsSectionProps) {
   return (
-    <section className="space-y-4" data-testid="dashboard-section-what-we-see">
+    <section className="space-y-3" data-testid="dashboard-section-what-we-see">
       <DashboardSectionHeader title="What We See" description="Narrative insights from your latest completed analysis." />
-      <PanelCard>
+      <PanelCard className="border-brand-border/70 bg-gradient-to-br from-brand-panel to-brand-panel-muted/90">
         {insights.length === 0 ? (
           <div
-            className="rounded-2xl border border-dashed border-brand-border-strong bg-brand-panel-muted/80 p-5"
+            className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/70 p-5"
             data-testid="dashboard-insights-empty"
           >
             <p className="text-sm text-brand-text-secondary">
@@ -29,7 +29,7 @@ export function InsightCardsSection({ insights }: InsightCardsSectionProps) {
               return (
                 <li key={insight.id}>
                   <article
-                    className={`h-full rounded-2xl border p-4 ${presentation.cardClassName}`}
+                    className={`h-full rounded-2xl border border-brand-border/70 p-4 ${presentation.cardClassName}`}
                     data-testid={`dashboard-insight-card-${insight.variant}`}
                   >
                     <div className="flex items-center justify-between gap-3">

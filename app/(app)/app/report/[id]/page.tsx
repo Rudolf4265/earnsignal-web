@@ -26,7 +26,12 @@ import { hydrateDashboardFromArtifact } from "@/src/lib/dashboard/artifact-hydra
 import { getInsightCardPresentation } from "@/src/lib/dashboard/insight-presentation";
 import { buildDashboardInsights } from "@/src/lib/dashboard/insights";
 import { buildDashboardRevenueTrendViewModel } from "@/src/lib/dashboard/revenue-trend";
-import { buildReportDetailSectionGatingModel, canRenderReportDetailProContent } from "@/src/lib/report/detail-gating";
+import {
+  buildReportDetailSectionGatingModel,
+  canAccessFullReportPdf,
+  canRenderReportDetailProContent,
+  resolveReportDetailPdfAccessMode,
+} from "@/src/lib/report/detail-gating";
 import { buildReportDetailPresentationModel } from "@/src/lib/report/detail-presentation";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability";
@@ -113,6 +118,41 @@ function ProSectionLoadingCard({ message, testId }: { message: string; testId: s
         <div className="h-2.5 w-full animate-pulse rounded-full bg-brand-border/70" />
         <div className="h-2.5 w-4/5 animate-pulse rounded-full bg-brand-border/55" />
       </div>
+    </div>
+  );
+}
+
+function PdfExportLockedState() {
+  return (
+    <div
+      className="relative flex max-w-full flex-wrap items-center gap-2 overflow-hidden rounded-2xl border border-brand-border-strong/80 bg-[linear-gradient(155deg,rgba(16,32,67,0.95),rgba(23,49,117,0.78),rgba(15,118,110,0.32))] px-3 py-2 shadow-brand-card"
+      data-testid="report-pdf-locked"
+    >
+      <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-brand-accent-blue/20 blur-3xl" />
+      <div className="pointer-events-none absolute -left-10 bottom-[-3rem] h-24 w-24 rounded-full bg-brand-accent-emerald/16 blur-3xl" />
+      <span className="relative inline-flex rounded-full border border-brand-border-strong/80 bg-brand-panel/72 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
+        Pro Feature
+      </span>
+      <p className="relative text-xs text-brand-text-secondary">
+        <span className="font-semibold text-brand-text-primary">Full PDF Export.</span> Upgrade to Pro to open and download the full creator earnings report PDF.
+      </p>
+      <Link
+        href="/app/billing"
+        className={buttonClassName({ variant: "primary", size: "sm", className: "relative z-10 ml-auto px-3 shadow-brand-glow" })}
+      >
+        Upgrade to Pro
+      </Link>
+    </div>
+  );
+}
+
+function PdfExportLoadingState() {
+  return (
+    <div
+      className="rounded-2xl border border-brand-border/75 bg-[linear-gradient(155deg,rgba(19,41,80,0.74),rgba(16,32,67,0.86))] px-3 py-2"
+      data-testid="report-pdf-loading"
+    >
+      <p className="text-xs text-brand-text-secondary">Checking plan access for full PDF export...</p>
     </div>
   );
 }
@@ -257,7 +297,7 @@ export default function ReportPage() {
   }, [canonicalReportId, reloadNonce, routeParamIdForDebug]);
 
   const openPdf = async () => {
-    if (!state.report || !canAccessPdf || pdfLoading) {
+    if (!state.report || !canAccessFullPdf || !canAccessPdf || pdfLoading) {
       return;
     }
 
@@ -287,7 +327,7 @@ export default function ReportPage() {
   };
 
   const downloadPdf = async () => {
-    if (!state.report || !canAccessPdf || downloadLoading) {
+    if (!state.report || !canAccessFullPdf || !canAccessPdf || downloadLoading) {
       return;
     }
 
@@ -350,6 +390,15 @@ export default function ReportPage() {
       }),
     [entitlements, gateState],
   );
+  const pdfAccessMode = useMemo(
+    () =>
+      resolveReportDetailPdfAccessMode({
+        gateState,
+        entitlements,
+      }),
+    [entitlements, gateState],
+  );
+  const canAccessFullPdf = canAccessFullReportPdf(pdfAccessMode);
 
   const createdAtLabel = formatReportCreatedAt(state.report?.createdAt ?? state.artifactModel?.createdAt ?? null);
   const status = state.report?.status ?? "unknown";
@@ -409,29 +458,35 @@ export default function ReportPage() {
 
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={statusVariant}>{statusLabel}</Badge>
-                  {canAccessPdf ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => void openPdf()}
-                        disabled={pdfLoading}
-                        className="inline-flex rounded-xl bg-brand-accent-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {pdfLoading ? "Opening PDF..." : "Open PDF"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void downloadPdf()}
-                        disabled={downloadLoading}
-                        className="inline-flex rounded-xl bg-brand-accent-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {downloadLoading ? "Downloading PDF..." : "Download PDF"}
-                      </button>
-                    </>
+                  {pdfAccessMode === "pro-unlocked" ? (
+                    canAccessPdf ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => void openPdf()}
+                          disabled={pdfLoading}
+                          className="inline-flex rounded-xl bg-brand-accent-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {pdfLoading ? "Opening PDF..." : "Open PDF"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void downloadPdf()}
+                          disabled={downloadLoading}
+                          className="inline-flex rounded-xl bg-brand-accent-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {downloadLoading ? "Downloading PDF..." : "Download PDF"}
+                        </button>
+                      </>
+                    ) : (
+                      <span className="inline-flex rounded-full border border-amber-300/35 bg-amber-300/15 px-3 py-1.5 text-xs font-medium text-amber-100">
+                        PDF unavailable
+                      </span>
+                    )
+                  ) : pdfAccessMode === "pro-locked" ? (
+                    <PdfExportLockedState />
                   ) : (
-                    <span className="inline-flex rounded-full border border-amber-300/35 bg-amber-300/15 px-3 py-1.5 text-xs font-medium text-amber-100">
-                      PDF unavailable
-                    </span>
+                    <PdfExportLoadingState />
                   )}
                 </div>
               </div>

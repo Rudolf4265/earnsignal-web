@@ -11,12 +11,12 @@ type ChartPoint = {
 };
 
 const CHART_WIDTH = 640;
-const CHART_HEIGHT = 240;
+const CHART_HEIGHT = 248;
 const CHART_PADDING = {
-  top: 18,
-  right: 18,
+  top: 20,
+  right: 20,
   bottom: 40,
-  left: 18,
+  left: 20,
 };
 
 function buildChartPoints(points: DashboardRevenueTrendViewModel["points"]): ChartPoint[] {
@@ -85,20 +85,31 @@ export function RevenueTrendChart({ points }: RevenueTrendChartProps) {
   const lastPoint = chartPoints[chartPoints.length - 1];
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-brand-border/70 bg-brand-panel/65 p-3" data-testid="dashboard-revenue-trend-chart">
-      <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="h-48 w-full" role="img" aria-label="Revenue trend chart">
+    <div
+      className="overflow-hidden rounded-[1.2rem] border border-brand-border-strong/70 bg-[linear-gradient(165deg,rgba(19,41,80,0.82),rgba(16,32,67,0.92))] p-3.5"
+      data-testid="dashboard-revenue-trend-chart"
+    >
+      <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="h-52 w-full" role="img" aria-label="Revenue trend chart">
         <defs>
           <linearGradient id="dashboard-revenue-trend-line" x1="0%" x2="100%" y1="0%" y2="0%">
-            <stop offset="0%" stopColor="rgb(59 130 246)" />
+            <stop offset="0%" stopColor="rgb(96 165 250)" />
+            <stop offset="55%" stopColor="rgb(59 130 246)" />
             <stop offset="100%" stopColor="rgb(52 211 153)" />
           </linearGradient>
           <linearGradient id="dashboard-revenue-trend-fill" x1="0%" x2="0%" y1="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(59,130,246,0.25)" />
-            <stop offset="100%" stopColor="rgba(52,211,153,0.02)" />
+            <stop offset="0%" stopColor="rgba(59,130,246,0.3)" />
+            <stop offset="100%" stopColor="rgba(52,211,153,0.03)" />
           </linearGradient>
+          <filter id="dashboard-revenue-trend-line-glow" x="-20%" y="-40%" width="140%" height="180%">
+            <feGaussianBlur stdDeviation="2.2" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
-        <g stroke="currentColor" className="text-brand-border/40">
+        <g stroke="currentColor" className="text-brand-border/35">
           <line x1={chartLeft} y1={CHART_PADDING.top} x2={chartRight} y2={CHART_PADDING.top} />
           <line x1={chartLeft} y1={(CHART_PADDING.top + chartBottom) / 2} x2={chartRight} y2={(CHART_PADDING.top + chartBottom) / 2} />
           <line x1={chartLeft} y1={chartBottom} x2={chartRight} y2={chartBottom} />
@@ -110,14 +121,18 @@ export function RevenueTrendChart({ points }: RevenueTrendChartProps) {
             d={linePath}
             fill="none"
             stroke="url(#dashboard-revenue-trend-line)"
-            strokeWidth={3}
+            strokeWidth={3.2}
             strokeLinecap="round"
             strokeLinejoin="round"
+            filter="url(#dashboard-revenue-trend-line-glow)"
           />
         ) : null}
 
+        {chartPoints.slice(0, Math.max(0, chartPoints.length - 1)).map((point, index) => (
+          <circle key={`dashboard-trend-point-${index}`} cx={point.x} cy={point.y} r={2.6} fill="rgba(148, 163, 184, 0.35)" />
+        ))}
         {lastPoint ? (
-          <circle cx={lastPoint.x} cy={lastPoint.y} r={4.5} fill="rgb(52 211 153)" stroke="rgb(16 32 67)" strokeWidth={2} />
+          <circle cx={lastPoint.x} cy={lastPoint.y} r={5.2} fill="rgb(52 211 153)" stroke="rgb(16 32 67)" strokeWidth={2.4} />
         ) : null}
 
         {labelIndexes.map((index) => {

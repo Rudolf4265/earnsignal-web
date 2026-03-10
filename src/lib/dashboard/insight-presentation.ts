@@ -3,6 +3,8 @@ import type { DashboardInsightVariant } from "./insights";
 export type InsightCardPresentation = {
   badgeLabel: string;
   badgeVariant: "good" | "warn" | "neutral";
+  badgeClassName: string;
+  accentClassName: string;
   cardClassName: string;
   implicationPanelClassName: string;
 };
@@ -11,20 +13,26 @@ const INSIGHT_PRESENTATION: Record<DashboardInsightVariant, InsightCardPresentat
   positive: {
     badgeLabel: "Positive",
     badgeVariant: "good",
-    cardClassName: "border-emerald-400/35 bg-emerald-500/[0.07]",
-    implicationPanelClassName: "border-emerald-400/30 bg-emerald-500/[0.08]",
+    badgeClassName: "border-emerald-300/45 bg-emerald-500/16 text-emerald-100",
+    accentClassName: "bg-gradient-to-r from-emerald-300/75 via-emerald-300/35 to-transparent",
+    cardClassName: "border-emerald-300/35 bg-[linear-gradient(160deg,rgba(16,32,67,0.92),rgba(20,83,76,0.36))]",
+    implicationPanelClassName: "border-emerald-300/30 bg-emerald-500/[0.08]",
   },
   warning: {
     badgeLabel: "Warning",
     badgeVariant: "warn",
-    cardClassName: "border-amber-400/35 bg-amber-500/[0.07]",
-    implicationPanelClassName: "border-amber-400/30 bg-amber-500/[0.08]",
+    badgeClassName: "border-amber-300/45 bg-amber-500/15 text-amber-100",
+    accentClassName: "bg-gradient-to-r from-amber-300/75 via-amber-300/35 to-transparent",
+    cardClassName: "border-amber-300/35 bg-[linear-gradient(160deg,rgba(16,32,67,0.92),rgba(113,63,18,0.28))]",
+    implicationPanelClassName: "border-amber-300/30 bg-amber-500/[0.09]",
   },
   neutral: {
     badgeLabel: "Neutral",
     badgeVariant: "neutral",
-    cardClassName: "border-brand-border bg-brand-panel-muted/70",
-    implicationPanelClassName: "border-brand-border-strong bg-brand-panel/70",
+    badgeClassName: "border-brand-border-strong/75 bg-brand-panel/80 text-brand-text-secondary",
+    accentClassName: "bg-gradient-to-r from-brand-accent-blue/55 via-brand-accent-teal/30 to-transparent",
+    cardClassName: "border-brand-border/75 bg-[linear-gradient(160deg,rgba(16,32,67,0.92),rgba(23,49,117,0.26))]",
+    implicationPanelClassName: "border-brand-border-strong/70 bg-brand-panel/72",
   },
 };
 

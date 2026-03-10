@@ -10,7 +10,7 @@ test("ActionCardsSection includes unlocked rendering for recommendation cards", 
 
   assert.equal(source.includes("mode === \"unlocked\""), true);
   assert.equal(source.includes('data-testid="dashboard-action-cards-unlocked"'), true);
-  assert.equal(source.includes("cards.map((card) =>"), true);
+  assert.equal(source.includes("cards.map((card"), true);
 });
 
 test("ActionCardsSection includes locked upsell rendering for Basic users", async () => {
@@ -30,4 +30,3 @@ test("ActionCardsSection includes loading-safe rendering while entitlements reso
   assert.equal(source.includes('data-testid="dashboard-action-cards-loading"'), true);
   assert.equal(source.includes("Checking plan access for tailored recommendations..."), true);
 });
-

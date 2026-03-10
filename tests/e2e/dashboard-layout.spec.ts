@@ -135,7 +135,8 @@ test.describe("Dashboard layout redesign", () => {
     });
 
     await page.goto("/app");
-    await expect(page.getByRole("heading", { name: "Creator Health" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Creator Health" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Revenue Snapshot" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "What We See" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "What To Do Next" })).toBeVisible();

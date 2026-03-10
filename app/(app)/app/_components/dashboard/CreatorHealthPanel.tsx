@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Badge } from "./Badge";
-import { DashboardSectionHeader } from "./DashboardSectionHeader";
 import { EmptyState } from "./EmptyState";
 import { SkeletonBlock } from "../../../_components/ui/skeleton";
 import { buttonClassName } from "@/src/components/ui/button";
@@ -106,7 +105,6 @@ export function CreatorHealthPanel({
 
   return (
     <section className="space-y-3" data-testid="dashboard-section-creator-health">
-      <DashboardSectionHeader title="Creator Health" description="A simple pulse on how your creator business is doing right now." />
       <PanelCard
         rightSlot={
           <Link

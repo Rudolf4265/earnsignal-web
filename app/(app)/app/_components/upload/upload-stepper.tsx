@@ -125,6 +125,7 @@ export default function UploadStepper() {
     ],
     [],
   );
+  const uploadReady = Boolean(platform && file) && !busy;
 
   const unsupportedCsvWarning = file && !file.name.toLowerCase().endsWith(".csv");
 
@@ -711,9 +712,13 @@ export default function UploadStepper() {
               </button>
               <button
                 type="button"
-                disabled={!platform || !file || busy}
+                disabled={!uploadReady}
                 onClick={runUpload}
-                className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`rounded-xl border px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  uploadReady
+                    ? "border-emerald-300/70 bg-brand-blue shadow-[0_0_0_3px_rgba(16,185,129,0.18)] hover:bg-brand-blue/90 hover:shadow-[0_0_0_4px_rgba(16,185,129,0.22)]"
+                    : "border-transparent bg-brand-blue hover:bg-brand-blue/90"
+                }`}
               >
                 Upload &amp; Validate
               </button>

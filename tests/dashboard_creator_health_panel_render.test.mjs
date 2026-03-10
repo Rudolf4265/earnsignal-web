@@ -8,6 +8,8 @@ const creatorHealthPanelPath = path.resolve("app/(app)/app/_components/dashboard
 test("creator health panel keeps hero score, trajectory line, and utility cards", async () => {
   const source = await readFile(creatorHealthPanelPath, "utf8");
 
+  assert.equal(source.includes("DashboardSectionHeader"), false);
+  assert.equal(source.includes("A simple pulse on how your creator business is doing right now."), false);
   assert.equal(source.includes("Creator Health Score"), true);
   assert.equal(source.includes('data-testid="creator-health-trajectory"'), true);
   assert.equal(source.includes("Plan & Access"), true);

@@ -7,8 +7,10 @@ import { Badge } from "../../_components/dashboard/Badge";
 import { DashboardSectionHeader } from "../../_components/dashboard/DashboardSectionHeader";
 import { Panel } from "../../_components/dashboard/Panel";
 import { RevenueTrendChart } from "../../_components/dashboard/RevenueTrendChart";
+import { useAppGate } from "../../../_components/app-gate-provider";
 import { FeatureGuard } from "../../../_components/feature-guard";
 import { SessionExpiredCallout } from "../../../_components/gate-callouts";
+import { buttonClassName } from "@/src/components/ui/button";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { PanelCard } from "@/src/components/ui/panel-card";
 import { isApiError } from "@/src/lib/api/client";
@@ -24,6 +26,7 @@ import { hydrateDashboardFromArtifact } from "@/src/lib/dashboard/artifact-hydra
 import { getInsightCardPresentation } from "@/src/lib/dashboard/insight-presentation";
 import { buildDashboardInsights } from "@/src/lib/dashboard/insights";
 import { buildDashboardRevenueTrendViewModel } from "@/src/lib/dashboard/revenue-trend";
+import { buildReportDetailSectionGatingModel, canRenderReportDetailProContent } from "@/src/lib/report/detail-gating";
 import { buildReportDetailPresentationModel } from "@/src/lib/report/detail-presentation";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability";
@@ -67,7 +70,55 @@ function toArtifactErrorMessage(error: unknown): string {
   return getReportErrorMessage(error);
 }
 
+type ProSectionLockedCardProps = {
+  title: string;
+  headline: string;
+  body: string;
+  testId: string;
+};
+
+function ProSectionLockedCard({ title, headline, body, testId }: ProSectionLockedCardProps) {
+  return (
+    <div
+      className="relative flex flex-wrap items-end justify-between gap-4 overflow-hidden rounded-2xl border border-brand-border-strong/80 bg-[linear-gradient(155deg,rgba(16,32,67,0.95),rgba(23,49,117,0.78),rgba(15,118,110,0.32))] p-5 shadow-brand-card"
+      data-testid={testId}
+    >
+      <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-brand-accent-blue/20 blur-3xl" />
+      <div className="pointer-events-none absolute -left-14 bottom-[-4.5rem] h-36 w-36 rounded-full bg-brand-accent-emerald/16 blur-3xl" />
+      <div className="relative space-y-2">
+        <p className="inline-flex rounded-full border border-brand-border-strong/80 bg-brand-panel/72 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
+          PRO FEATURE
+        </p>
+        <h3 className="text-base font-semibold text-brand-text-primary">{title}</h3>
+        <p className="text-sm leading-relaxed text-brand-text-secondary">
+          <span className="block font-medium text-brand-text-primary">{headline}</span>
+          {body}
+        </p>
+      </div>
+      <Link href="/app/billing" className={buttonClassName({ variant: "primary", size: "sm", className: "relative z-10 px-4 shadow-brand-glow" })}>
+        Upgrade to Pro
+      </Link>
+    </div>
+  );
+}
+
+function ProSectionLoadingCard({ message, testId }: { message: string; testId: string }) {
+  return (
+    <div
+      className="rounded-2xl border border-brand-border/75 bg-[linear-gradient(155deg,rgba(19,41,80,0.74),rgba(16,32,67,0.86))] p-4"
+      data-testid={testId}
+    >
+      <p className="text-sm text-brand-text-secondary">{message}</p>
+      <div className="mt-3 space-y-2">
+        <div className="h-2.5 w-full animate-pulse rounded-full bg-brand-border/70" />
+        <div className="h-2.5 w-4/5 animate-pulse rounded-full bg-brand-border/55" />
+      </div>
+    </div>
+  );
+}
+
 export default function ReportPage() {
+  const { state: gateState, entitlements } = useAppGate();
   const params = useParams<{ id?: string | string[] }>();
   const routeParamId = params?.id;
   const routeParamIdForDebug = useMemo(() => {
@@ -291,6 +342,14 @@ export default function ReportPage() {
       }),
     [presentation?.revenueTrend.points],
   );
+  const proSectionGate = useMemo(
+    () =>
+      buildReportDetailSectionGatingModel({
+        gateState,
+        entitlements,
+      }),
+    [entitlements, gateState],
+  );
 
   const createdAtLabel = formatReportCreatedAt(state.report?.createdAt ?? state.artifactModel?.createdAt ?? null);
   const status = state.report?.status ?? "unknown";
@@ -307,6 +366,10 @@ export default function ReportPage() {
       return "Unable to serialize artifact JSON.";
     }
   }, [debugOpen, state.artifactRaw]);
+  const showSubscriberHealthContent = canRenderReportDetailProContent(proSectionGate.subscriberHealth);
+  const showGrowthRecommendationsContent = canRenderReportDetailProContent(proSectionGate.growthRecommendations);
+  const showRevenueOutlookContent = canRenderReportDetailProContent(proSectionGate.revenueOutlook);
+  const showPlatformRiskExplanationContent = canRenderReportDetailProContent(proSectionGate.platformRiskExplanation);
 
   return (
     <FeatureGuard feature="report">
@@ -510,31 +573,47 @@ export default function ReportPage() {
           <section className="space-y-3">
             <DashboardSectionHeader title="Subscriber Health" description="Retention, churn, and subscriber quality signals in one place." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              {presentation.subscriberHealth.metrics.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {presentation.subscriberHealth.metrics.map((metric) => (
-                    <article
-                      key={metric.id}
-                      className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-                    >
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
-                      <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
-                      {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
-                    </article>
-                  ))}
+              {showSubscriberHealthContent ? (
+                <div data-testid="report-subscriber-health-unlocked">
+                  {presentation.subscriberHealth.metrics.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {presentation.subscriberHealth.metrics.map((metric) => (
+                        <article
+                          key={metric.id}
+                          className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+                        >
+                          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
+                          <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
+                          {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                      <p className="text-sm text-brand-text-secondary">Subscriber health metrics are unavailable in this report.</p>
+                    </div>
+                  )}
+                  {presentation.subscriberHealth.highlights.length > 0 ? (
+                    <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
+                      {presentation.subscriberHealth.highlights.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
+              ) : proSectionGate.subscriberHealth === "pro-locked" ? (
+                <ProSectionLockedCard
+                  testId="report-subscriber-health-locked"
+                  title="Subscriber Health"
+                  headline="Unlock subscriber health insights"
+                  body="Understand churn risk, retention trends, and subscriber value."
+                />
               ) : (
-                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                  <p className="text-sm text-brand-text-secondary">Subscriber health metrics are unavailable in this report.</p>
-                </div>
+                <ProSectionLoadingCard
+                  testId="report-subscriber-health-loading"
+                  message="Checking plan access for subscriber health insights..."
+                />
               )}
-              {presentation.subscriberHealth.highlights.length > 0 ? (
-                <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
-                  {presentation.subscriberHealth.highlights.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              ) : null}
             </PanelCard>
           </section>
 
@@ -573,42 +652,84 @@ export default function ReportPage() {
                       <p className="mt-2 text-xs text-brand-text-muted">Platform count available from report metadata.</p>
                     </article>
                   </div>
-
-                  {presentation.platformMix.highlights.length > 0 ? (
-                    <ul className="list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
-                      {presentation.platformMix.highlights.map((line) => (
-                        <li key={line}>{line}</li>
-                      ))}
-                    </ul>
-                  ) : null}
+                  <p className="text-xs leading-relaxed text-brand-text-muted">
+                    Use concentration and connected platform count to monitor channel exposure at a glance.
+                  </p>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
                   <p className="text-sm text-brand-text-secondary">Platform mix details are not available in this report artifact.</p>
                 </div>
               )}
+
+              <section className="mt-4 space-y-2" data-testid="report-platform-risk-explanation">
+                <h3 className="text-sm font-semibold text-brand-text-primary">Platform Risk Explanation</h3>
+                {showPlatformRiskExplanationContent ? (
+                  <div data-testid="report-platform-risk-explanation-unlocked">
+                    {presentation.platformMix.highlights.length > 0 ? (
+                      <ul className="list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
+                        {presentation.platformMix.highlights.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                        <p className="text-sm text-brand-text-secondary">Platform risk explanation is unavailable in this report.</p>
+                      </div>
+                    )}
+                  </div>
+                ) : proSectionGate.platformRiskExplanation === "pro-locked" ? (
+                  <ProSectionLockedCard
+                    testId="report-platform-risk-explanation-locked"
+                    title="Platform Risk Explanation"
+                    headline="Unlock platform risk analysis"
+                    body="See why concentration risk is elevated and what it means for your business."
+                  />
+                ) : (
+                  <ProSectionLoadingCard
+                    testId="report-platform-risk-explanation-loading"
+                    message="Checking plan access for platform risk analysis..."
+                  />
+                )}
+              </section>
             </PanelCard>
           </section>
 
           <section className="space-y-3">
             <DashboardSectionHeader title="Growth Recommendations" description="Recommended Actions already captured in the report." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              {presentation.recommendations.length > 0 ? (
-                <ul className="space-y-3">
-                  {presentation.recommendations.map((recommendation, index) => (
-                    <li
-                      key={recommendation}
-                      className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-                    >
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">{`Action ${index + 1}`}</p>
-                      <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{recommendation}</p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                  <p className="text-sm text-brand-text-secondary">No explicit recommendation list is available for this report.</p>
+              {showGrowthRecommendationsContent ? (
+                <div data-testid="report-growth-recommendations-unlocked">
+                  {presentation.recommendations.length > 0 ? (
+                    <ul className="space-y-3">
+                      {presentation.recommendations.map((recommendation, index) => (
+                        <li
+                          key={recommendation}
+                          className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+                        >
+                          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">{`Action ${index + 1}`}</p>
+                          <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{recommendation}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                      <p className="text-sm text-brand-text-secondary">No explicit recommendation list is available for this report.</p>
+                    </div>
+                  )}
                 </div>
+              ) : proSectionGate.growthRecommendations === "pro-locked" ? (
+                <ProSectionLockedCard
+                  testId="report-growth-recommendations-locked"
+                  title="Growth Recommendations"
+                  headline="Unlock growth recommendations"
+                  body="Get personalized actions based on your revenue and audience signals."
+                />
+              ) : (
+                <ProSectionLoadingCard
+                  testId="report-growth-recommendations-loading"
+                  message="Checking plan access for growth recommendations..."
+                />
               )}
             </PanelCard>
           </section>
@@ -616,30 +737,43 @@ export default function ReportPage() {
           <section className="space-y-3">
             <DashboardSectionHeader title="Revenue Outlook" description="Outlook scenarios based on available projection signals." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              {presentation.revenueOutlook.cards.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  {presentation.revenueOutlook.cards.map((card) => (
-                    <article
-                      key={card.id}
-                      className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-                    >
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{card.title}</p>
-                      <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{card.body}</p>
-                    </article>
-                  ))}
+              {showRevenueOutlookContent ? (
+                <div data-testid="report-revenue-outlook-unlocked">
+                  {presentation.revenueOutlook.cards.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      {presentation.revenueOutlook.cards.map((card) => (
+                        <article
+                          key={card.id}
+                          className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+                        >
+                          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{card.title}</p>
+                          <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{card.body}</p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                      <p className="text-sm text-brand-text-secondary">Outlook scenarios are not available in this report artifact.</p>
+                    </div>
+                  )}
+                  {presentation.revenueOutlook.highlights.length > 0 ? (
+                    <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
+                      {presentation.revenueOutlook.highlights.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
+              ) : proSectionGate.revenueOutlook === "pro-locked" ? (
+                <ProSectionLockedCard
+                  testId="report-revenue-outlook-locked"
+                  title="Revenue Outlook"
+                  headline="Unlock revenue forecasts"
+                  body="See projected revenue scenarios for the months ahead."
+                />
               ) : (
-                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                  <p className="text-sm text-brand-text-secondary">Outlook scenarios are not available in this report artifact.</p>
-                </div>
+                <ProSectionLoadingCard testId="report-revenue-outlook-loading" message="Checking plan access for revenue forecasts..." />
               )}
-              {presentation.revenueOutlook.highlights.length > 0 ? (
-                <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
-                  {presentation.revenueOutlook.highlights.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              ) : null}
             </PanelCard>
           </section>
 

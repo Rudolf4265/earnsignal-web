@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Badge } from "../../_components/dashboard/Badge";
-import { KpiCard } from "../../_components/dashboard/KpiCard";
+import { DashboardSectionHeader } from "../../_components/dashboard/DashboardSectionHeader";
 import { Panel } from "../../_components/dashboard/Panel";
+import { RevenueTrendChart } from "../../_components/dashboard/RevenueTrendChart";
 import { FeatureGuard } from "../../../_components/feature-guard";
 import { SessionExpiredCallout } from "../../../_components/gate-callouts";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
+import { PanelCard } from "@/src/components/ui/panel-card";
 import { isApiError } from "@/src/lib/api/client";
 import {
   downloadReportArtifactPdf,
@@ -18,6 +20,11 @@ import {
   getReportErrorMessage,
   type ReportDetail,
 } from "@/src/lib/api/reports";
+import { hydrateDashboardFromArtifact } from "@/src/lib/dashboard/artifact-hydration";
+import { getInsightCardPresentation } from "@/src/lib/dashboard/insight-presentation";
+import { buildDashboardInsights } from "@/src/lib/dashboard/insights";
+import { buildDashboardRevenueTrendViewModel } from "@/src/lib/dashboard/revenue-trend";
+import { buildReportDetailPresentationModel } from "@/src/lib/report/detail-presentation";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability";
 import { formatReportCreatedAt, toReportStatusLabel, toReportStatusVariant } from "@/src/lib/report/list-model";
@@ -45,30 +52,6 @@ const initialState: ReportPageState = {
   artifactError: null,
   artifactJsonMissing: false,
 };
-
-function formatCurrency(value: number | null): string {
-  if (value === null) {
-    return "$--";
-  }
-
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function formatNumber(value: number | null): string {
-  if (value === null) {
-    return "--";
-  }
-
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
-}
-
-function isSummaryPlaceholder(summary: string): boolean {
-  return summary.trim().toLowerCase() === "no summary available.";
-}
 
 function toArtifactErrorMessage(error: unknown): string {
   if (isApiError(error) && error.code === "INVALID_JSON_RESPONSE") {
@@ -273,32 +256,41 @@ export default function ReportPage() {
     }
   };
 
-  const displayKpis = useMemo(
-    () => ({
-      netRevenue: state.artifactModel?.kpis.netRevenue ?? state.report?.metrics.netRevenue ?? null,
-      subscribers: state.artifactModel?.kpis.subscribers ?? state.report?.metrics.subscribers ?? null,
-      stabilityIndex: state.artifactModel?.kpis.stabilityIndex ?? state.report?.metrics.stabilityIndex ?? null,
-      churnVelocity: state.artifactModel?.kpis.churnVelocity ?? state.report?.metrics.churnVelocity ?? null,
-    }),
-    [state.artifactModel, state.report],
-  );
-
-  const hasKpis = useMemo(
-    () => [displayKpis.netRevenue, displayKpis.subscribers, displayKpis.stabilityIndex, displayKpis.churnVelocity].some((entry) => entry !== null),
-    [displayKpis],
-  );
-
-  const summaryParagraphs = useMemo(() => {
-    if (state.artifactModel && state.artifactModel.executiveSummaryParagraphs.length > 0) {
-      return state.artifactModel.executiveSummaryParagraphs;
+  const artifactSignals = useMemo(() => {
+    if (!state.artifactRaw) {
+      return null;
     }
 
-    if (state.report?.summary && !isSummaryPlaceholder(state.report.summary)) {
-      return [state.report.summary];
+    const hydrated = hydrateDashboardFromArtifact(state.artifactRaw);
+    return hydrated.contractValid ? hydrated : null;
+  }, [state.artifactRaw]);
+
+  const presentation = useMemo(() => {
+    if (!state.report) {
+      return null;
     }
 
-    return [];
-  }, [state.artifactModel, state.report]);
+    return buildReportDetailPresentationModel({
+      report: state.report,
+      artifactModel: state.artifactModel,
+      artifactSignals: artifactSignals ?? null,
+    });
+  }, [artifactSignals, state.artifactModel, state.report]);
+  const insightCards = useMemo(
+    () =>
+      buildDashboardInsights({
+        keySignals: presentation?.keySignals ?? [],
+        maxCards: 3,
+      }),
+    [presentation?.keySignals],
+  );
+  const revenueTrend = useMemo(
+    () =>
+      buildDashboardRevenueTrendViewModel({
+        points: presentation?.revenueTrend.points ?? [],
+      }),
+    [presentation?.revenueTrend.points],
+  );
 
   const createdAtLabel = formatReportCreatedAt(state.report?.createdAt ?? state.artifactModel?.createdAt ?? null);
   const status = state.report?.status ?? "unknown";
@@ -325,41 +317,76 @@ export default function ReportPage() {
         </div>
       ) : null}
 
-      {state.view === "success" && state.report ? (
-        <section className="space-y-6" data-testid="report-content">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold text-slate-900">{state.report.title}</h1>
-              <p className="mt-1 text-sm text-slate-600">Created {createdAtLabel}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={statusVariant}>{statusLabel}</Badge>
-              {canAccessPdf ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => void openPdf()}
-                    disabled={pdfLoading}
-                    className="inline-flex rounded-xl bg-brand-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+      {state.view === "success" && state.report && presentation ? (
+        <section className="space-y-8" data-testid="report-content">
+          <PanelCard className="relative overflow-hidden border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(23,49,117,0.82),rgba(15,118,110,0.28))] p-0">
+            <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-brand-accent-blue/22 blur-3xl" />
+            <div className="pointer-events-none absolute -left-16 bottom-[-5rem] h-40 w-40 rounded-full bg-brand-accent-emerald/16 blur-3xl" />
+            <div className="relative space-y-6 p-6 md:p-7">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-3">
+                  <p className="inline-flex rounded-full border border-brand-border-strong/80 bg-brand-panel/75 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
+                    Creator Report
+                  </p>
+                  <div>
+                    <h1 className="text-3xl font-semibold tracking-tight text-brand-text-primary md:text-[2rem]">{presentation.heroTitle}</h1>
+                    {presentation.heroSubtitle ? <p className="mt-1.5 text-sm text-brand-text-secondary">{presentation.heroSubtitle}</p> : null}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-brand-text-muted">
+                    <span>Created {createdAtLabel}</span>
+                    <span className="hidden sm:inline" aria-hidden>
+                      |
+                    </span>
+                    <span>
+                      Report ID{" "}
+                      <span className="font-mono text-[11px] tracking-[0.03em] text-brand-text-secondary">{state.report.id}</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={statusVariant}>{statusLabel}</Badge>
+                  {canAccessPdf ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => void openPdf()}
+                        disabled={pdfLoading}
+                        className="inline-flex rounded-xl bg-brand-accent-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {pdfLoading ? "Opening PDF..." : "Open PDF"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void downloadPdf()}
+                        disabled={downloadLoading}
+                        className="inline-flex rounded-xl bg-brand-accent-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {downloadLoading ? "Downloading PDF..." : "Download PDF"}
+                      </button>
+                    </>
+                  ) : (
+                    <span className="inline-flex rounded-full border border-amber-300/35 bg-amber-300/15 px-3 py-1.5 text-xs font-medium text-amber-100">
+                      PDF unavailable
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                {presentation.heroMetrics.map((metric) => (
+                  <article
+                    key={metric.id}
+                    className="rounded-[1.1rem] border border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(19,41,80,0.9),rgba(16,32,67,0.95))] p-4 shadow-brand-card"
                   >
-                    {pdfLoading ? "Opening PDF..." : "Open PDF"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void downloadPdf()}
-                    disabled={downloadLoading}
-                    className="inline-flex rounded-xl bg-brand-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {downloadLoading ? "Downloading PDF..." : "Download PDF"}
-                  </button>
-                </>
-              ) : (
-                <span className="inline-flex rounded-full border border-amber-300/35 bg-amber-300/15 px-3 py-1.5 text-xs font-medium text-amber-100">
-                  PDF unavailable
-                </span>
-              )}
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
+                    <p className="mt-2 text-3xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
+                    {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
+                  </article>
+                ))}
+              </div>
             </div>
-          </div>
+          </PanelCard>
 
           {pdfError ? <ErrorBanner title="PDF unavailable" message={pdfError} /> : null}
 
@@ -380,83 +407,303 @@ export default function ReportPage() {
 
           {state.artifactError ? <ErrorBanner title="Artifact JSON unavailable" message={state.artifactError} /> : null}
 
-          {hasKpis ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <KpiCard label="Net Revenue" value={formatCurrency(displayKpis.netRevenue)} />
-              <KpiCard label="Subscribers" value={formatNumber(displayKpis.subscribers)} />
-              <KpiCard label="Stability Index" value={formatNumber(displayKpis.stabilityIndex)} />
-              <KpiCard label="Churn Velocity" value={formatNumber(displayKpis.churnVelocity)} />
-            </div>
-          ) : null}
-
-          {summaryParagraphs.length > 0 ? (
-            <Panel title="Executive Summary">
+          <section className="space-y-3">
+            <DashboardSectionHeader title="Executive Summary" description="A concise narrative from your latest completed report." />
+            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.92),rgba(19,41,80,0.84),rgba(16,32,67,0.94))]">
               <div className="space-y-3">
-                {summaryParagraphs.map((paragraph, index) => (
-                  <p key={`${index}-${paragraph.slice(0, 24)}`} className="text-sm text-slate-700">
+                {presentation.executiveSummary.map((paragraph, index) => (
+                  <p key={`${index}-${paragraph.slice(0, 24)}`} className="text-sm leading-relaxed text-brand-text-secondary">
                     {paragraph}
                   </p>
                 ))}
               </div>
-            </Panel>
-          ) : null}
+            </PanelCard>
+          </section>
 
-          {state.artifactModel?.sections.length ? (
-            <Panel title="Sections">
-              <div className="space-y-5">
-                {state.artifactModel.sections.map((section, index) => (
-                  <article key={`${index}-${section.title ?? "untitled"}`} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    {section.title ? <h3 className="text-sm font-semibold text-slate-900">{section.title}</h3> : null}
-                    {section.paragraphs.length > 0 ? (
-                      <div className="space-y-2">
-                        {section.paragraphs.map((paragraph, paragraphIndex) => (
-                          <p key={`${index}-p-${paragraphIndex}`} className="text-sm text-slate-700">
-                            {paragraph}
-                          </p>
-                        ))}
+          <section className="space-y-3">
+            <DashboardSectionHeader title="Key Insights" description="Key Signals translated into clear implications for the next planning cycle." />
+            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              {insightCards.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-5">
+                  <p className="text-sm text-brand-text-secondary">Not enough signal data is available to generate narrative insight cards yet.</p>
+                </div>
+              ) : (
+                <ul className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {insightCards.map((insight) => {
+                    const tone = getInsightCardPresentation(insight.variant);
+                    return (
+                      <li key={insight.id}>
+                        <article className={`relative h-full overflow-hidden rounded-[1.2rem] border p-5 shadow-brand-card ${tone.cardClassName}`}>
+                          <div className={`absolute inset-x-0 top-0 h-0.5 ${tone.accentClassName}`} />
+                          <div className="relative flex items-center justify-between gap-3">
+                            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Signal</p>
+                            <Badge
+                              variant={tone.badgeVariant}
+                              className={`px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${tone.badgeClassName}`}
+                            >
+                              {tone.badgeLabel}
+                            </Badge>
+                          </div>
+                          <h3 className="mt-3 text-lg font-semibold leading-snug text-brand-text-primary break-words">{insight.title}</h3>
+                          <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary break-words">{insight.body}</p>
+                          <div className={`mt-4 rounded-xl border p-3.5 ${tone.implicationPanelClassName}`}>
+                            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Why it matters</p>
+                            <p className="mt-1.5 text-sm leading-relaxed text-brand-text-primary break-words">{insight.implication}</p>
+                          </div>
+                        </article>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </PanelCard>
+          </section>
+
+          <section className="space-y-3">
+            <DashboardSectionHeader title="Revenue Trend" description="Recent net revenue movement from your latest report timeline." />
+            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              {revenueTrend.hasRenderableChart ? (
+                <div className="space-y-5">
+                  <div className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/70 px-4 py-4 shadow-brand-card">
+                    <div className="flex flex-wrap items-end justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Latest revenue</p>
+                        <p className="mt-1.5 text-3xl font-semibold tracking-tight text-brand-text-primary md:text-4xl">
+                          {revenueTrend.latestValueDisplay ?? "$--"}
+                        </p>
                       </div>
-                    ) : null}
-                    {section.bullets.length > 0 ? (
-                      <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
-                        {section.bullets.map((bullet, bulletIndex) => (
-                          <li key={`${index}-b-${bulletIndex}`}>{bullet}</li>
+                      <div className="space-y-1 text-right">
+                        {revenueTrend.movementLabel ? (
+                          <p className="inline-flex rounded-full border border-brand-border-strong/75 bg-brand-panel/70 px-3 py-1 text-xs font-semibold tracking-[0.08em] text-brand-text-secondary">
+                            {revenueTrend.movementLabel}
+                          </p>
+                        ) : null}
+                        {revenueTrend.periodLabel ? (
+                          <p className="text-xs text-brand-text-muted">{revenueTrend.periodLabel}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                  <RevenueTrendChart points={revenueTrend.points} />
+                  {presentation.revenueTrend.narrative ? (
+                    <p className="rounded-xl border border-brand-border/70 bg-brand-panel/72 px-4 py-3 text-sm leading-relaxed text-brand-text-secondary">
+                      {presentation.revenueTrend.narrative}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {presentation.revenueTrend.narrative ? (
+                    <div className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/76 p-4">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Latest narrative signal</p>
+                      <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{presentation.revenueTrend.narrative}</p>
+                    </div>
+                  ) : null}
+                  <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/70 p-4">
+                    <p className="text-sm text-brand-text-secondary">Trend chart data is not available in this report artifact.</p>
+                  </div>
+                </div>
+              )}
+            </PanelCard>
+          </section>
+
+          <section className="space-y-3">
+            <DashboardSectionHeader title="Subscriber Health" description="Retention, churn, and subscriber quality signals in one place." />
+            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              {presentation.subscriberHealth.metrics.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {presentation.subscriberHealth.metrics.map((metric) => (
+                    <article
+                      key={metric.id}
+                      className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+                    >
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
+                      <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
+                      {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                  <p className="text-sm text-brand-text-secondary">Subscriber health metrics are unavailable in this report.</p>
+                </div>
+              )}
+              {presentation.subscriberHealth.highlights.length > 0 ? (
+                <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
+                  {presentation.subscriberHealth.highlights.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </PanelCard>
+          </section>
+
+          <section className="space-y-3">
+            <DashboardSectionHeader title="Platform Mix" description="Current concentration and channel exposure signals." />
+            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              {presentation.platformMix.concentrationScore !== null ||
+              presentation.platformMix.platformsConnected !== null ||
+              presentation.platformMix.highlights.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <article className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Concentration</p>
+                      <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">
+                        {presentation.platformMix.concentrationScore !== null
+                          ? `${presentation.platformMix.concentrationScore % 1 === 0 ? presentation.platformMix.concentrationScore.toFixed(0) : presentation.platformMix.concentrationScore.toFixed(1)}%`
+                          : "--"}
+                      </p>
+                      {presentation.platformMix.concentrationScore !== null ? (
+                        <div className="mt-3 h-2 rounded-full bg-brand-panel-muted">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-brand-accent-blue via-brand-accent-blue to-brand-accent-emerald"
+                            style={{
+                              width: `${Math.max(8, Math.min(100, Math.round(presentation.platformMix.concentrationScore)))}%`,
+                            }}
+                          />
+                        </div>
+                      ) : null}
+                    </article>
+
+                    <article className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Platforms Connected</p>
+                      <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">
+                        {presentation.platformMix.platformsConnected !== null ? presentation.platformMix.platformsConnected : "--"}
+                      </p>
+                      <p className="mt-2 text-xs text-brand-text-muted">Platform count available from report metadata.</p>
+                    </article>
+                  </div>
+
+                  {presentation.platformMix.highlights.length > 0 ? (
+                    <ul className="list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
+                      {presentation.platformMix.highlights.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                  <p className="text-sm text-brand-text-secondary">Platform mix details are not available in this report artifact.</p>
+                </div>
+              )}
+            </PanelCard>
+          </section>
+
+          <section className="space-y-3">
+            <DashboardSectionHeader title="Growth Recommendations" description="Recommended Actions already captured in the report." />
+            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              {presentation.recommendations.length > 0 ? (
+                <ul className="space-y-3">
+                  {presentation.recommendations.map((recommendation, index) => (
+                    <li
+                      key={recommendation}
+                      className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+                    >
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">{`Action ${index + 1}`}</p>
+                      <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{recommendation}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                  <p className="text-sm text-brand-text-secondary">No explicit recommendation list is available for this report.</p>
+                </div>
+              )}
+            </PanelCard>
+          </section>
+
+          <section className="space-y-3">
+            <DashboardSectionHeader title="Revenue Outlook" description="Outlook scenarios based on available projection signals." />
+            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              {presentation.revenueOutlook.cards.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  {presentation.revenueOutlook.cards.map((card) => (
+                    <article
+                      key={card.id}
+                      className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+                    >
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{card.title}</p>
+                      <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{card.body}</p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                  <p className="text-sm text-brand-text-secondary">Outlook scenarios are not available in this report artifact.</p>
+                </div>
+              )}
+              {presentation.revenueOutlook.highlights.length > 0 ? (
+                <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
+                  {presentation.revenueOutlook.highlights.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </PanelCard>
+          </section>
+
+          <section className="space-y-3">
+            <DashboardSectionHeader title="Appendix" description="Technical and verbose details from the artifact payload." />
+            <PanelCard className="border-brand-border/65 bg-brand-panel/72">
+              {presentation.appendixSections.length > 0 ? (
+                <div className="space-y-4">
+                  {presentation.appendixSections.map((section) => (
+                    <article key={section.id} className="rounded-xl border border-brand-border/60 bg-brand-panel-muted/50 p-4">
+                      <h3 className="text-sm font-semibold text-brand-text-secondary">{section.title}</h3>
+                      {section.paragraphs.length > 0 ? (
+                        <div className="mt-2 space-y-2">
+                          {section.paragraphs.map((paragraph, index) => (
+                            <p key={`${section.id}-paragraph-${index}`} className="text-xs leading-relaxed text-brand-text-muted">
+                              {paragraph}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+                      {section.bullets.length > 0 ? (
+                        <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-brand-text-muted">
+                          {section.bullets.map((bullet, index) => (
+                            <li key={`${section.id}-bullet-${index}`}>{bullet}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-brand-text-secondary">No appendix sections were provided in this report artifact.</p>
+              )}
+
+              <details
+                data-testid="report-debug-accordion"
+                className="mt-4 rounded-2xl border border-brand-border/70 bg-brand-bg-elevated/72 p-4"
+                onToggle={(event) => setDebugOpen(event.currentTarget.open)}
+              >
+                <summary className="cursor-pointer text-sm font-semibold text-brand-text-primary">Debug + Raw JSON</summary>
+                <div className="mt-3 space-y-3">
+                  {state.artifactWarnings.length > 0 ? (
+                    <div className="rounded-xl border border-amber-300/40 bg-amber-500/[0.08] p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-100">Normalization warnings</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-amber-100">
+                        {state.artifactWarnings.map((warning) => (
+                          <li key={warning}>{warning}</li>
                         ))}
                       </ul>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            </Panel>
-          ) : null}
-
-          <details
-            data-testid="report-debug-accordion"
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-            onToggle={(event) => setDebugOpen(event.currentTarget.open)}
-          >
-            <summary className="cursor-pointer text-sm font-semibold text-slate-900">Debug</summary>
-            <div className="mt-3 space-y-3">
-              {state.artifactWarnings.length > 0 ? (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Normalization warnings</p>
-                  <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-amber-800">
-                    {state.artifactWarnings.map((warning) => (
-                      <li key={warning}>{warning}</li>
-                    ))}
-                  </ul>
+                    </div>
+                  ) : null}
+                  {state.artifactRaw && debugJson ? (
+                    <pre data-testid="report-debug-json" className="overflow-x-auto rounded-xl border border-brand-border bg-slate-950 p-3 text-xs text-slate-100">
+                      {debugJson}
+                    </pre>
+                  ) : state.artifactRaw ? (
+                    <p className="text-xs text-brand-text-muted">Expand Debug to render artifact JSON.</p>
+                  ) : (
+                    <p className="text-xs text-brand-text-muted">Artifact JSON is unavailable.</p>
+                  )}
                 </div>
-              ) : null}
-              {state.artifactRaw && debugJson ? (
-                <pre data-testid="report-debug-json" className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-950 p-3 text-xs text-slate-100">
-                  {debugJson}
-                </pre>
-              ) : state.artifactRaw ? (
-                <p className="text-xs text-slate-600">Expand Debug to render artifact JSON.</p>
-              ) : (
-                <p className="text-xs text-slate-600">Artifact JSON is unavailable.</p>
-              )}
-            </div>
-          </details>
+              </details>
+            </PanelCard>
+          </section>
         </section>
       ) : null}
 

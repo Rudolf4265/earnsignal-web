@@ -198,3 +198,12 @@ test("report debug JSON serialization is gated behind accordion open state", asy
   assert.equal(page.includes("if (!debugOpen || !state.artifactRaw)"), true);
   assert.equal(page.includes("onToggle={(event) => setDebugOpen(event.currentTarget.open)}"), true);
 });
+
+test("report detail keeps PDF actions visible in the page UI", async () => {
+  const page = await readFile("app/(app)/app/report/[id]/page.tsx", "utf8");
+
+  assert.equal(page.includes('"Open PDF"'), true);
+  assert.equal(page.includes('"Download PDF"'), true);
+  assert.equal(page.includes("const openPdf = async () => {"), true);
+  assert.equal(page.includes("const downloadPdf = async () => {"), true);
+});

@@ -16,6 +16,7 @@ import { fetchReportArtifactJson, fetchReportDetail, fetchReportsList, type Repo
 import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
 import { hydrateDashboardFromArtifact, type DashboardArtifactHydrationResult } from "@/src/lib/dashboard/artifact-hydration";
 import { findFirstCompletedReport, loadLatestDashboardReport } from "@/src/lib/dashboard/latest-report";
+import { buildDashboardViewModel } from "@/src/lib/dashboard/view-model";
 import { formatReportArtifactContractErrors } from "@/src/lib/report/artifact-contract";
 import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
@@ -23,9 +24,9 @@ import { computeHasReportsFromListResult } from "@/src/lib/report/list-model";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 
 const fallbackSignals = [
-  "Revenue trend detection will appear after your first completed report.",
-  "Concentration watch will identify over-reliance on a small customer set.",
-  "Retention pressure will highlight cohorts with rising churn risk.",
+  "Your revenue story will appear after your first completed report.",
+  "We'll flag if too much revenue depends on a small group of customers.",
+  "We'll highlight subscriber retention shifts worth your attention.",
 ];
 
 const fallbackActions = [
@@ -201,18 +202,6 @@ async function loadDashboardData(options?: { forceRefresh?: boolean }): Promise<
   }
 }
 
-function formatCurrency(value: number | null): string {
-  if (value === null) {
-    return "$--";
-  }
-
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 function formatNumber(value: number | null): string {
   if (value === null) {
     return "--";
@@ -384,10 +373,21 @@ export default function DashboardPage() {
     netRevenue: artifactKpis?.netRevenue ?? reportMetrics?.netRevenue ?? null,
     subscribers: artifactKpis?.subscribers ?? reportMetrics?.subscribers ?? null,
     stabilityIndex: artifactKpis?.stabilityIndex ?? reportMetrics?.stabilityIndex ?? null,
-    churnVelocity: artifactKpis?.churnVelocity ?? reportMetrics?.churnVelocity ?? null,
     coverageMonths: reportMetrics?.coverageMonths ?? null,
     platformsConnected: reportMetrics?.platformsConnected ?? null,
   };
+
+  const dashboardViewModel = useMemo(
+    () =>
+      buildDashboardViewModel({
+        kpis: {
+          netRevenue: kpis.netRevenue,
+          subscribers: kpis.subscribers,
+          stabilityIndex: kpis.stabilityIndex,
+        },
+      }),
+    [kpis.netRevenue, kpis.stabilityIndex, kpis.subscribers],
+  );
 
   const platformsConnected = kpis.platformsConnected ?? (state.latestUpload ? 1 : 0);
   const workspaceReadiness = `${state.latestUpload ? "Uploads detected" : "No uploads yet"} - ${
@@ -402,7 +402,7 @@ export default function DashboardPage() {
     <div className="space-y-10">
       <PageHeader
         title="Dashboard"
-        subtitle="High-level revenue signals and structural stability."
+        subtitle="Your latest creator health and topline numbers in one place."
         actions={
           <>
             <Button type="button" variant="secondary" onClick={refresh} disabled={state.loading || state.refreshing}>
@@ -419,6 +419,7 @@ export default function DashboardPage() {
       {state.latestArtifactError ? <ErrorBanner title="Latest report artifact mismatch" message={state.latestArtifactError} /> : null}
 
       <CreatorHealthPanel
+        creatorHealth={dashboardViewModel.creatorHealth}
         entitled={entitled}
         planTier={planTier}
         planStatusLabel={toBadgeLabel(planStatus)}
@@ -437,12 +438,7 @@ export default function DashboardPage() {
         ctaHref={primaryCta.href}
       />
 
-      <RevenueSnapshotSection
-        netRevenue={formatCurrency(kpis.netRevenue)}
-        subscribers={formatNumber(kpis.subscribers)}
-        stabilityIndex={formatNumber(kpis.stabilityIndex)}
-        churnVelocity={formatNumber(kpis.churnVelocity)}
-      />
+      <RevenueSnapshotSection revenueSnapshot={dashboardViewModel.revenueSnapshot} />
 
       <InsightCardsSection insights={keySignals} />
 

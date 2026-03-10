@@ -12,7 +12,7 @@ test.describe("Dashboard layout redesign", () => {
     await stubEntitlements(page, "entitled");
   });
 
-  test("renders sections in the PR1 order", async ({ page }) => {
+  test("renders sections in PR2 order with simplified revenue snapshot", async ({ page }) => {
     await page.route("**/v1/uploads/latest/status", async (route) => {
       await route.fulfill({
         status: 200,
@@ -73,6 +73,11 @@ test.describe("Dashboard layout redesign", () => {
     await expect(page.getByRole("heading", { name: "What We See" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "What To Do Next" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Revenue Trend" })).toBeVisible();
+    await expect(page.getByText("Creator Health Score")).toBeVisible();
+    await expect(page.getByTestId("revenue-snapshot-card-revenue")).toContainText("Revenue");
+    await expect(page.getByTestId("revenue-snapshot-card-subscribers")).toContainText("Subscribers");
+    await expect(page.getByText("Stability Index")).toHaveCount(0);
+    await expect(page.getByText("Churn Velocity")).toHaveCount(0);
 
     const sectionOrder = await page.locator("[data-testid^='dashboard-section-']").evaluateAll((elements) =>
       elements.map((element) => element.getAttribute("data-testid")),

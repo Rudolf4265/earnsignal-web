@@ -16,18 +16,13 @@ import { fetchReportArtifactJson, fetchReportDetail, fetchReportsList, type Repo
 import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
 import { hydrateDashboardFromArtifact, type DashboardArtifactHydrationResult } from "@/src/lib/dashboard/artifact-hydration";
 import { findFirstCompletedReport, loadLatestDashboardReport } from "@/src/lib/dashboard/latest-report";
+import { buildDashboardInsights } from "@/src/lib/dashboard/insights";
 import { buildDashboardViewModel } from "@/src/lib/dashboard/view-model";
 import { formatReportArtifactContractErrors } from "@/src/lib/report/artifact-contract";
 import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
 import { computeHasReportsFromListResult } from "@/src/lib/report/list-model";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
-
-const fallbackSignals = [
-  "Your revenue story will appear after your first completed report.",
-  "We'll flag if too much revenue depends on a small group of customers.",
-  "We'll highlight subscriber retention shifts worth your attention.",
-];
 
 const fallbackActions = [
   "Upload your latest exports to initialize baseline trend analysis.",
@@ -338,7 +333,7 @@ export default function DashboardPage() {
 
   const keySignals = useMemo(() => {
     const values = state.latestArtifact?.keySignals.length ? state.latestArtifact.keySignals : (state.latestReport?.keySignals ?? []);
-    return values.length > 0 ? values : fallbackSignals;
+    return values;
   }, [state.latestArtifact, state.latestReport]);
 
   const recommendedActions = useMemo(() => {
@@ -387,6 +382,14 @@ export default function DashboardPage() {
         },
       }),
     [kpis.netRevenue, kpis.stabilityIndex, kpis.subscribers],
+  );
+
+  const insightCards = useMemo(
+    () =>
+      buildDashboardInsights({
+        keySignals,
+      }),
+    [keySignals],
   );
 
   const platformsConnected = kpis.platformsConnected ?? (state.latestUpload ? 1 : 0);
@@ -440,7 +443,7 @@ export default function DashboardPage() {
 
       <RevenueSnapshotSection revenueSnapshot={dashboardViewModel.revenueSnapshot} />
 
-      <InsightCardsSection insights={keySignals} />
+      <InsightCardsSection insights={insightCards} />
 
       <ActionCardsSection actions={recommendedActions} />
 

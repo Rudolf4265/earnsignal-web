@@ -6,7 +6,8 @@ import { pathToFileURL } from "node:url";
 const viewModelModuleUrl = pathToFileURL(path.resolve("src/lib/dashboard/view-model.ts")).href;
 
 async function loadModule(seed = Date.now()) {
-  return import(`${viewModelModuleUrl}?t=${seed}`);
+  void seed;
+  return import(viewModelModuleUrl);
 }
 
 test("dashboard view-model maps creator health and revenue snapshot displays", async () => {

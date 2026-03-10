@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { BrandMark } from "@/components/brand/brand-mark";
+import { BRAND_NAME } from "@earnsigma/brand";
+import { Logo } from "@earnsigma/ui";
 import { buildLoginHref } from "@/src/lib/gating/app-gate";
 import { AppGateProvider, useAppGate } from "./_components/app-gate-provider";
 import { EntitlementsErrorCallout, GateLoadingShell, SessionExpiredCallout } from "./_components/gate-callouts";
@@ -68,8 +69,8 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="workspace-theme min-h-screen bg-brand-bg text-brand-text-primary md:flex">
       <aside className="border-b border-brand-border bg-brand-bg-elevated/95 px-4 py-4 text-brand-text-primary md:min-h-screen md:w-64 md:border-b-0 md:border-r md:px-6 md:py-6">
-        <Link href="/app" className="mb-6 inline-flex items-center md:mb-10" aria-label="EarnSigma">
-          <BrandMark
+        <Link href="/app" className="mb-6 inline-flex items-center md:mb-10" aria-label={BRAND_NAME}>
+          <Logo
             priority
             className="inline-flex items-center gap-2.5"
             iconClassName="h-7 w-7"

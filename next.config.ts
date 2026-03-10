@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@earnsigma/brand", "@earnsigma/ui", "@earnsigma/config"],
 };
 
 export default nextConfig;

@@ -1,0 +1,30 @@
+export const brandColors = {
+  background: "#071225",
+  backgroundElevated: "#0C1933",
+  panel: "#102043",
+  panelMuted: "#132950",
+  border: "rgba(148, 163, 184, 0.28)",
+  borderStrong: "rgba(96, 165, 250, 0.38)",
+  textPrimary: "#EAF1FF",
+  textSecondary: "#B9C7E8",
+  textMuted: "#8EA2CC",
+  accentBlue: "#3B82F6",
+  accentBlueStrong: "#1D4ED8",
+  accentTeal: "#2FD9C5",
+  accentEmerald: "#34D399",
+} as const;
+
+export const brandSemanticColors = {
+  pageBackground: brandColors.background,
+  pageBackgroundElevated: brandColors.backgroundElevated,
+  surface: brandColors.panel,
+  surfaceMuted: brandColors.panelMuted,
+  textPrimary: brandColors.textPrimary,
+  textSecondary: brandColors.textSecondary,
+  textMuted: brandColors.textMuted,
+  borderSubtle: brandColors.border,
+  borderEmphasis: brandColors.borderStrong,
+  accentPrimary: brandColors.accentBlueStrong,
+  accentSecondary: brandColors.accentBlue,
+  accentTertiary: brandColors.accentTeal,
+} as const;

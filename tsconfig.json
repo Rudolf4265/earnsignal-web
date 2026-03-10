@@ -23,6 +23,24 @@
       }
     ],
     "paths": {
+      "@earnsigma/brand": [
+        "./packages/brand/src/index.ts"
+      ],
+      "@earnsigma/brand/*": [
+        "./packages/brand/src/*"
+      ],
+      "@earnsigma/ui": [
+        "./packages/ui/src/index.ts"
+      ],
+      "@earnsigma/ui/*": [
+        "./packages/ui/src/*"
+      ],
+      "@earnsigma/config": [
+        "./packages/config/src/index.ts"
+      ],
+      "@earnsigma/config/*": [
+        "./packages/config/src/*"
+      ],
       "@/*": [
         "./*"
       ]

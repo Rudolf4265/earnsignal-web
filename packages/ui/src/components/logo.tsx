@@ -1,7 +1,8 @@
 import Image from "next/image";
-import { BRAND_NAME } from "@earnsigma/brand";
+import { BRAND_NAME, brandLogo } from "@earnsigma/brand";
+import { cn } from "../lib/cn";
 
-export type BrandMarkProps = {
+export type LogoProps = {
   className?: string;
   iconClassName?: string;
   labelClassName?: string;
@@ -10,18 +11,18 @@ export type BrandMarkProps = {
   variant?: "mark" | "lockup";
 };
 
-export function BrandMark({
+export function Logo({
   className,
   iconClassName,
   labelClassName,
   showLabel = true,
   priority = false,
   variant = "mark",
-}: BrandMarkProps) {
+}: LogoProps) {
   if (variant === "lockup") {
     return (
       <Image
-        src="/brand/earnsigma-lockup.svg"
+        src={brandLogo.lockupPath}
         alt={BRAND_NAME}
         width={180}
         height={44}
@@ -32,9 +33,9 @@ export function BrandMark({
   }
 
   return (
-    <span className={className ?? "inline-flex items-center gap-2"}>
+    <span className={cn("inline-flex items-center gap-2", className)}>
       <Image
-        src="/brand/earnsigma-mark.svg"
+        src={brandLogo.markPath}
         alt={BRAND_NAME}
         width={36}
         height={36}

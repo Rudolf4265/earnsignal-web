@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { marketingCtas, publicUrls } from "@earnsigma/config";
 import { MarketingShell } from "./_components/marketing-shell";
 import { appBaseUrl } from "@/src/lib/urls";
 
@@ -29,7 +30,7 @@ export default function MarketingHomePage() {
 
   useEffect(() => {
     if (token) {
-      router.replace("/app");
+      router.replace(publicUrls.appDashboardPath);
     }
   }, [router, token]);
 
@@ -56,17 +57,17 @@ export default function MarketingHomePage() {
 
               <div className="mt-10 flex items-center gap-4">
                 <a
-                  href={`${appBaseUrl}/signup`}
+                  href={`${appBaseUrl}${marketingCtas.startTrial.appPath}`}
                   className="inline-flex items-center justify-center rounded-xl bg-brand-blue px-6 py-3 text-sm font-medium text-white shadow-brandGlow transition hover:opacity-90"
                 >
-                  Start free trial
+                  {marketingCtas.startTrial.label}
                 </a>
 
                 <Link
-                  href="/example"
+                  href={marketingCtas.viewExampleReport.href}
                   className="inline-flex items-center justify-center rounded-xl border border-white/10 px-6 py-3 text-sm font-medium text-white hover:bg-white/5 transition"
                 >
-                  View example report
+                  {marketingCtas.viewExampleReport.label}
                 </Link>
               </div>
             </div>

@@ -18,13 +18,14 @@ import { hydrateDashboardFromArtifact, type DashboardArtifactHydrationResult } f
 import { findFirstCompletedReport, loadLatestDashboardReport } from "@/src/lib/dashboard/latest-report";
 import { buildDashboardInsights } from "@/src/lib/dashboard/insights";
 import { buildDashboardViewModel } from "@/src/lib/dashboard/view-model";
+import { buildDashboardActionCardsViewModel } from "@/src/lib/dashboard/action-cards";
 import { formatReportArtifactContractErrors } from "@/src/lib/report/artifact-contract";
 import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
 import { computeHasReportsFromListResult } from "@/src/lib/report/list-model";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 
-const fallbackActions = [
+const fallbackProActions = [
   "Upload your latest exports to initialize baseline trend analysis.",
   "Reconnect source systems monthly to keep quality and confidence high.",
   "Review generated reports and share findings with finance and GTM leads.",
@@ -270,7 +271,7 @@ function toPlanBadgeVariant(status: string | null, entitled: boolean): "good" | 
 }
 
 export default function DashboardPage() {
-  const { entitlements, isLoading: authLoading } = useAppGate();
+  const { state: gateState, entitlements, isLoading: authLoading } = useAppGate();
   const [state, setState] = useState<DashboardState>(() => getInitialDashboardState());
   const [refreshNonce, setRefreshNonce] = useState(0);
   const latestReportHref = useMemo(() => buildReportDetailPathOrIndex(state.latestReportRow?.id), [state.latestReportRow?.id]);
@@ -340,7 +341,7 @@ export default function DashboardPage() {
     const values = state.latestArtifact?.recommendedActions.length
       ? state.latestArtifact.recommendedActions
       : (state.latestReport?.recommendedActions ?? []);
-    return values.length > 0 ? values : fallbackActions;
+    return values.length > 0 ? values : fallbackProActions;
   }, [state.latestArtifact, state.latestReport]);
 
   const trendPreview = useMemo(
@@ -390,6 +391,17 @@ export default function DashboardPage() {
         keySignals,
       }),
     [keySignals],
+  );
+
+  const actionCardsSection = useMemo(
+    () =>
+      buildDashboardActionCardsViewModel({
+        gateState,
+        entitlements,
+        recommendedActions,
+        fallbackActions: fallbackProActions,
+      }),
+    [entitlements, gateState, recommendedActions],
   );
 
   const platformsConnected = kpis.platformsConnected ?? (state.latestUpload ? 1 : 0);
@@ -445,7 +457,7 @@ export default function DashboardPage() {
 
       <InsightCardsSection insights={insightCards} />
 
-      <ActionCardsSection actions={recommendedActions} />
+      <ActionCardsSection mode={actionCardsSection.mode} cards={actionCardsSection.cards} />
 
       <RevenueTrendSection trendPreview={trendPreview} ctaLabel={primaryCta.label} ctaHref={primaryCta.href} />
     </div>

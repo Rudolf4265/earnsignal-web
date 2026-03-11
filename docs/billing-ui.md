@@ -24,6 +24,7 @@
 ## Billing status surface
 
 - Billing page now calls `GET /v1/billing/status` to render plan/status details.
+- Canonical entitlement fields are consumed from `BillingStatusResponse.entitlements` and normalized into frontend-safe aliases.
 - Billing status failures are isolated to the billing page and never crash app shell/navigation.
 - Entitlements remain the durable source of truth for app access; billing status is informational.
 

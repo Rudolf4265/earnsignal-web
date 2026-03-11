@@ -1,14 +1,20 @@
 import type { components as GeneratedComponents } from "./schema";
 
-type Schemas = GeneratedComponents extends { schemas: infer T } ? T : unknown;
+type Schemas = GeneratedComponents extends { schemas: infer T } ? T : Record<string, never>;
 type SchemaOrFallback<Name extends string, Fallback> = Name extends keyof Schemas ? Schemas[Name] : Fallback;
+type RequiredSchema<Name extends keyof Schemas> = Schemas[Name];
 
-export type CheckoutCreateRequestSchema = SchemaOrFallback<
-  "CheckoutCreateRequest",
-  {
-    plan: "plan_a" | "plan_b";
-  }
+type CheckoutRequestSchema = SchemaOrFallback<
+  "CheckoutRequest",
+  SchemaOrFallback<
+    "CheckoutCreateRequest",
+    {
+      plan: "starter" | "pro" | "plan_a" | "plan_b";
+    }
+  >
 >;
+
+export type CheckoutCreateRequestSchema = CheckoutRequestSchema;
 
 export type CheckoutSessionResponseSchema = SchemaOrFallback<
   "CheckoutSessionResponse",
@@ -19,29 +25,8 @@ export type CheckoutSessionResponseSchema = SchemaOrFallback<
   }
 >;
 
-export type EntitlementsResponseSchema = SchemaOrFallback<
-  "EntitlementsResponse",
-  {
-    effective_plan_tier?: string | null;
-    effectivePlanTier?: string | null;
-    entitlement_source?: string | null;
-    entitlementSource?: string | null;
-    access_granted?: boolean;
-    accessGranted?: boolean;
-    access_reason_code?: string | null;
-    accessReasonCode?: string | null;
-    billing_required?: boolean;
-    billingRequired?: boolean;
-    plan?: string | null;
-    plan_tier?: string | null;
-    status?: string | null;
-    entitled?: boolean;
-    is_active?: boolean;
-    features?: Record<string, boolean>;
-    portal_url?: string | null;
-    portalUrl?: string | null;
-  }
->;
+export type EntitlementsResponseSchema = RequiredSchema<"EntitlementsResponse">;
+export type BillingStatusResponseSchema = RequiredSchema<"BillingStatusResponse">;
 
 export type UploadPresignRequestSchema = SchemaOrFallback<
   "UploadPresignRequest",

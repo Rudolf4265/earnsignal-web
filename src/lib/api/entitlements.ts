@@ -1,5 +1,6 @@
 import { ApiError, apiFetchJson } from "./client";
 import type {
+  BillingStatusResponseSchema,
   CheckoutCreateRequestSchema,
   CheckoutSessionResponseSchema,
   EntitlementsResponseSchema,
@@ -19,9 +20,20 @@ export type EntitlementsResponse = Omit<
   EntitlementsResponseSchema,
   | "plan"
   | "plan_tier"
+  | "source"
   | "status"
   | "entitled"
   | "is_active"
+  | "can_upload"
+  | "can_generate_report"
+  | "can_view_reports"
+  | "can_download_pdf"
+  | "can_access_dashboard"
+  | "reports_remaining_this_period"
+  | "reports_generated_this_period"
+  | "monthly_report_limit"
+  | "billing_period_start"
+  | "billing_period_end"
   | "features"
   | "portal_url"
   | "effective_plan_tier"
@@ -47,6 +59,8 @@ export type EntitlementsResponse = Omit<
   reportsRemainingThisPeriod: number | null;
   reportsGeneratedThisPeriod: number | null;
   monthlyReportLimit: number | null;
+  billingPeriodStart: string | null;
+  billingPeriodEnd: string | null;
   portalUrl?: string;
   effective_plan_tier: string;
   entitlement_source: string | null;
@@ -57,6 +71,16 @@ export type EntitlementsResponse = Omit<
   plan_tier: string;
   entitled: boolean;
   is_active: boolean;
+  can_upload: boolean;
+  can_generate_report: boolean;
+  can_view_reports: boolean;
+  can_download_pdf: boolean;
+  can_access_dashboard: boolean;
+  reports_remaining_this_period: number | null;
+  reports_generated_this_period: number | null;
+  monthly_report_limit: number | null;
+  billing_period_start: string | null;
+  billing_period_end: string | null;
   features: EntitlementFeatures;
   portal_url?: string;
 };
@@ -64,7 +88,26 @@ export type EntitlementsResponse = Omit<
 export type CheckoutResponse = {
   checkout_url: CheckoutSessionResponseSchema["checkout_url"];
 };
-export type BillingStatusResponse = {
+export type BillingStatusResponse = Omit<
+  BillingStatusResponseSchema,
+  | "creator_id"
+  | "checkout_configured"
+  | "webhook_configured"
+  | "stripe_customer_id"
+  | "stripe_subscription_id"
+  | "cancel_at_period_end"
+  | "current_period_start"
+  | "current_period_end"
+  | "latest_processed_event_id"
+  | "entitlements"
+> & {
+  creatorId: string | null;
+  checkoutConfigured: boolean;
+  webhookConfigured: boolean;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  latestProcessedEventId: string | null;
+  currentPeriodStart: string | null;
   effectivePlanTier: string;
   entitlementSource: string | null;
   accessGranted: boolean;
@@ -79,7 +122,17 @@ export type BillingStatusResponse = {
   monthlyReportLimit: number | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean | null;
+  entitlements: EntitlementsResponse;
   portalUrl?: string;
+  creator_id: string | null;
+  checkout_configured: boolean;
+  webhook_configured: boolean;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  latest_processed_event_id: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean | null;
   effective_plan_tier: string;
   entitlement_source: string | null;
   access_granted: boolean;
@@ -222,6 +275,14 @@ function normalizeFeatures(value: unknown): EntitlementFeatures {
   return output;
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as Record<string, unknown>;
+}
+
 function resolvePlanTier(raw: Record<string, unknown>): string {
   return resolveEffectivePlanTier({
     effective_plan_tier: asNullableString(raw.effective_plan_tier),
@@ -266,7 +327,7 @@ function resolveStatus(raw: Record<string, unknown>, isActive: boolean): string 
 }
 
 function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string, unknown>): EntitlementsResponse {
-  const raw = value as Record<string, unknown>;
+  const raw = asRecord(value);
   const features = normalizeFeatures(raw.features);
   const effectivePlanTier = resolvePlanTier(raw);
   const explicitAccessGranted =
@@ -316,6 +377,8 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
   const reportsGeneratedThisPeriod =
     asNullableNumber(raw.reports_generated_this_period) ?? asNullableNumber(raw.reportsGeneratedThisPeriod) ?? null;
   const monthlyReportLimit = asNullableNumber(raw.monthly_report_limit) ?? asNullableNumber(raw.monthlyReportLimit) ?? null;
+  const billingPeriodStart = asNullableString(raw.billing_period_start) ?? asNullableString(raw.billingPeriodStart) ?? null;
+  const billingPeriodEnd = asNullableString(raw.billing_period_end) ?? asNullableString(raw.billingPeriodEnd) ?? null;
   const portalUrl =
     (asNullableString(raw.portal_url) ??
       asNullableString(raw.portalUrl) ??
@@ -347,6 +410,8 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
     reportsRemainingThisPeriod,
     reportsGeneratedThisPeriod,
     monthlyReportLimit,
+    billingPeriodStart,
+    billingPeriodEnd,
     portalUrl,
     effective_plan_tier: effectivePlanTier,
     entitlement_source: entitlementSource,
@@ -357,6 +422,16 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
     plan_tier: effectivePlanTier,
     entitled: accessGranted,
     is_active: accessGranted,
+    can_upload: canUpload,
+    can_generate_report: canGenerateReport,
+    can_view_reports: canViewReports,
+    can_download_pdf: canDownloadPdf,
+    can_access_dashboard: canAccessDashboard,
+    reports_remaining_this_period: reportsRemainingThisPeriod,
+    reports_generated_this_period: reportsGeneratedThisPeriod,
+    monthly_report_limit: monthlyReportLimit,
+    billing_period_start: billingPeriodStart,
+    billing_period_end: billingPeriodEnd,
     features: legacyFeatures,
     portal_url: portalUrl,
   };
@@ -382,7 +457,7 @@ export async function fetchEntitlements(options?: { forceRefresh?: boolean }): P
   }
 
   inFlightEntitlements = (async () => {
-    const body = await apiFetchJson<EntitlementsResponseSchema | Record<string, unknown>>("entitlements.fetch", CANONICAL_ENTITLEMENTS_PATH, {
+    const body = await apiFetchJson<EntitlementsResponseSchema>("entitlements.fetch", CANONICAL_ENTITLEMENTS_PATH, {
       method: "GET",
     });
     const value = normalizeEntitlements(body);
@@ -408,17 +483,46 @@ function isBillingStatusFresh(fetchedAt: number): boolean {
   return Date.now() - fetchedAt < BILLING_STATUS_TTL_MS;
 }
 
-function normalizeBillingStatus(value: Record<string, unknown>): BillingStatusResponse {
-  const entitlements = normalizeEntitlements(value);
+function resolveBillingEntitlementsPayload(
+  value: BillingStatusResponseSchema | Record<string, unknown>,
+): EntitlementsResponseSchema | Record<string, unknown> {
+  const raw = asRecord(value);
+  const nested = raw.entitlements;
+  return nested && typeof nested === "object" && !Array.isArray(nested) ? (nested as Record<string, unknown>) : raw;
+}
+
+function normalizeBillingStatus(value: BillingStatusResponseSchema | Record<string, unknown>): BillingStatusResponse {
+  const raw = asRecord(value);
+  const entitlements = normalizeEntitlements(resolveBillingEntitlementsPayload(raw));
+  const creatorId = asNullableString(raw.creator_id) ?? asNullableString(raw.creatorId) ?? null;
+  const checkoutConfigured = asBoolean(raw.checkout_configured) ?? asBoolean(raw.checkoutConfigured) ?? false;
+  const webhookConfigured = asBoolean(raw.webhook_configured) ?? asBoolean(raw.webhookConfigured) ?? false;
+  const stripeCustomerId = asNullableString(raw.stripe_customer_id) ?? asNullableString(raw.stripeCustomerId) ?? null;
+  const stripeSubscriptionId = asNullableString(raw.stripe_subscription_id) ?? asNullableString(raw.stripeSubscriptionId) ?? null;
+  const latestProcessedEventId =
+    asNullableString(raw.latest_processed_event_id) ?? asNullableString(raw.latestProcessedEventId) ?? null;
+  const currentPeriodStart =
+    asNullableString(raw.current_period_start) ??
+    asNullableString(raw.currentPeriodStart) ??
+    asNullableString(raw.current_period_starts_at) ??
+    asNullableString(raw.currentPeriodStartsAt) ??
+    entitlements.billingPeriodStart;
   const currentPeriodEnd =
-    asNullableString(value.current_period_end) ??
-    asNullableString(value.currentPeriodEnd) ??
-    asNullableString(value.current_period_ends_at) ??
-    asNullableString(value.currentPeriodEndsAt) ??
-    null;
-  const cancelAtPeriodEnd = asBoolean(value.cancel_at_period_end) ?? asBoolean(value.cancelAtPeriodEnd) ?? null;
+    asNullableString(raw.current_period_end) ??
+    asNullableString(raw.currentPeriodEnd) ??
+    asNullableString(raw.current_period_ends_at) ??
+    asNullableString(raw.currentPeriodEndsAt) ??
+    entitlements.billingPeriodEnd;
+  const cancelAtPeriodEnd = asBoolean(raw.cancel_at_period_end) ?? asBoolean(raw.cancelAtPeriodEnd) ?? null;
 
   return {
+    creatorId,
+    checkoutConfigured,
+    webhookConfigured,
+    stripeCustomerId,
+    stripeSubscriptionId,
+    latestProcessedEventId,
+    currentPeriodStart,
     effectivePlanTier: entitlements.effectivePlanTier,
     entitlementSource: entitlements.entitlementSource,
     accessGranted: entitlements.accessGranted,
@@ -433,7 +537,17 @@ function normalizeBillingStatus(value: Record<string, unknown>): BillingStatusRe
     monthlyReportLimit: entitlements.monthlyReportLimit,
     currentPeriodEnd,
     cancelAtPeriodEnd,
+    entitlements,
     portalUrl: entitlements.portalUrl,
+    creator_id: creatorId,
+    checkout_configured: checkoutConfigured,
+    webhook_configured: webhookConfigured,
+    stripe_customer_id: stripeCustomerId,
+    stripe_subscription_id: stripeSubscriptionId,
+    latest_processed_event_id: latestProcessedEventId,
+    current_period_start: currentPeriodStart,
+    current_period_end: currentPeriodEnd,
+    cancel_at_period_end: cancelAtPeriodEnd,
     effective_plan_tier: entitlements.effective_plan_tier,
     entitlement_source: entitlements.entitlement_source,
     access_granted: entitlements.access_granted,
@@ -467,7 +581,7 @@ export async function fetchBillingStatus(options?: { forceRefresh?: boolean }): 
   }
 
   inFlightBillingStatus = (async () => {
-    const body = await apiFetchJson<Record<string, unknown>>("billing.status", BILLING_STATUS_PATH, {
+    const body = await apiFetchJson<BillingStatusResponseSchema>("billing.status", BILLING_STATUS_PATH, {
       method: "GET",
     });
     const value = normalizeBillingStatus(body);

@@ -4,6 +4,7 @@
 
 - Canonical snapshot endpoint: `GET /v1/entitlements`
 - Billing supplemental snapshot: `GET /v1/billing/status`
+  - canonical entitlement snapshot lives at `BillingStatusResponse.entitlements`
 
 ## Normalized frontend model
 
@@ -16,6 +17,27 @@ The frontend normalizes entitlement snapshots in [src/lib/api/entitlements.ts](/
 - `billingRequired` / `billing_required`
 
 Legacy aliases are preserved for compatibility (`plan_tier`, `plan`, `is_active`, `entitled`, `source`) but do not drive gating decisions.
+Fallback typing in `src/lib/api/generated/index.ts` has been reduced for entitlements/billing snapshots so generated OpenAPI schema remains the source of truth.
+
+## Generated contract source of truth
+
+- Backend model source: `../creator_optimizer/src/creator_optimizer/routers/billing.py`
+  - `EntitlementsResponse` for `GET /v1/entitlements`
+  - `BillingStatusResponse` for `GET /v1/billing/status`
+- Frontend generated files:
+  - `src/lib/api/generated/schema.ts`
+  - `src/lib/api/generated/index.ts`
+
+## Regeneration flow
+
+1. Export backend OpenAPI JSON from local backend source:
+   - from `../creator_optimizer`:
+     - `.\.venv\Scripts\python.exe -c "import json, os; from creator_optimizer.api import create_app; os.makedirs('..\\earnsignal-web\\.tmp-openapi', exist_ok=True); spec=create_app().openapi(); open('..\\earnsignal-web\\.tmp-openapi\\creator_optimizer-openapi.json','w',encoding='utf-8').write(json.dumps(spec, indent=2, sort_keys=True))"`
+2. Regenerate frontend schema:
+   - from `earnsignal-web`:
+     - `$env:OPENAPI_SCHEMA_URL=(Resolve-Path '.tmp-openapi\creator_optimizer-openapi.json').Path; cmd /c npm run api:generate`
+3. Validate drift guard:
+   - `npm run contract:check:entitlements`
 
 ## Bootstrap location
 
@@ -37,6 +59,4 @@ Bootstrap behavior:
 
 ## Known follow-ups
 
-- OpenAPI generated schema currently lags canonical entitlement fields; local fallback typing includes canonical fields until schema regeneration catches up.
-- E2E coverage now exercises grant/revoke refresh behavior and entitlement-required error states on upload/report flows, but does not yet include a live backend admin grant workflow fixture.
-
+- E2E coverage exercises grant/revoke refresh behavior and entitlement-required error states on upload/report flows, but does not include a live backend admin grant workflow fixture.

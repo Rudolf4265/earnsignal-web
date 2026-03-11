@@ -194,6 +194,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/entitlements/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Search Entitlements */
+        get: operations["admin_search_entitlements_v1_admin_entitlements_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Me */
+        get: operations["admin_me_v1_admin_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/users": {
         parameters: {
             query?: never;
@@ -245,6 +279,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/users/{creator_id}/entitlement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Get User Entitlement */
+        get: operations["admin_get_user_entitlement_v1_admin_users__creator_id__entitlement_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/users/{creator_id}/grant-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Grant Access */
+        post: operations["admin_grant_access_v1_admin_users__creator_id__grant_access_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/users/{creator_id}/invalidate_access": {
         parameters: {
             query?: never;
@@ -273,6 +341,23 @@ export interface paths {
         get: operations["admin_latest_report_v1_admin_users__creator_id__reports_latest_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/users/{creator_id}/revoke-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Revoke Access */
+        post: operations["admin_revoke_access_v1_admin_users__creator_id__revoke_access_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -339,8 +424,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Checkout */
-        post: operations["create_checkout_v1_billing_checkout_post"];
+        /** Create Checkout Session Legacy */
+        post: operations["create_checkout_session_legacy_v1_billing_checkout_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -364,6 +449,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/billing/create-checkout-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Checkout Session */
+        post: operations["create_checkout_session_v1_billing_create_checkout_session_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Billing Status */
+        get: operations["get_billing_status_v1_billing_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/billing/stripe/webhook": {
         parameters: {
             query?: never;
@@ -373,8 +492,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Stripe Webhook Legacy */
+        post: operations["stripe_webhook_legacy_v1_billing_stripe_webhook_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** Stripe Webhook */
-        post: operations["stripe_webhook_v1_billing_stripe_webhook_post"];
+        post: operations["stripe_webhook_v1_billing_webhook_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -407,8 +543,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Checkout Legacy */
-        post: operations["create_checkout_legacy_v1_checkout_post"];
+        /** Create Checkout Legacy Alias */
+        post: operations["create_checkout_legacy_alias_v1_checkout_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1171,6 +1307,74 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminEntitlementOverrideView */
+        AdminEntitlementOverrideView: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By Admin Email */
+            created_by_admin_email: string;
+            /** Created By Admin User Id */
+            created_by_admin_user_id: string;
+            /** Email Snapshot */
+            email_snapshot: string | null;
+            /** Ends At */
+            ends_at: string | null;
+            /** Id */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Note */
+            note: string | null;
+            /** Plan Tier */
+            plan_tier: string;
+            /** Reason Code */
+            reason_code: string;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Revoked By Admin Email */
+            revoked_by_admin_email: string | null;
+            /** Revoked By Admin User Id */
+            revoked_by_admin_user_id: string | null;
+            /** Source */
+            source: string;
+            /** Starts At */
+            starts_at: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** User Id */
+            user_id: string;
+        };
+        /** AdminEntitlementSearchResponse */
+        AdminEntitlementSearchResponse: {
+            /** Items */
+            items: components["schemas"]["AdminUserEntitlementResponse"][];
+        };
+        /** AdminUserEntitlementResponse */
+        AdminUserEntitlementResponse: {
+            /** Access Granted */
+            access_granted: boolean;
+            /** Access Reason Code */
+            access_reason_code: string | null;
+            /** Billing Required */
+            billing_required: boolean;
+            /** Effective Plan Tier */
+            effective_plan_tier: string;
+            /** Email */
+            email: string | null;
+            /** Entitlement Source */
+            entitlement_source: string;
+            override: components["schemas"]["AdminEntitlementOverrideView"] | null;
+            /** Status */
+            status: string;
+            /** User Id */
+            user_id: string;
+        };
         /** AdminUserListResponse */
         AdminUserListResponse: {
             /** Items */
@@ -1201,6 +1405,28 @@ export interface components {
             last_upload_status: string | null;
             /** Plan Tier */
             plan_tier: string;
+        };
+        /** BillingStatusResponse */
+        BillingStatusResponse: {
+            /** Cancel At Period End */
+            cancel_at_period_end: boolean;
+            /** Checkout Configured */
+            checkout_configured: boolean;
+            /** Creator Id */
+            creator_id: string;
+            /** Current Period End */
+            current_period_end: string | null;
+            /** Current Period Start */
+            current_period_start: string | null;
+            entitlements: components["schemas"]["EntitlementsResponse"];
+            /** Latest Processed Event Id */
+            latest_processed_event_id: string | null;
+            /** Stripe Customer Id */
+            stripe_customer_id: string | null;
+            /** Stripe Subscription Id */
+            stripe_subscription_id: string | null;
+            /** Webhook Configured */
+            webhook_configured: boolean;
         };
         /** BlockRequest */
         BlockRequest: {
@@ -1270,15 +1496,21 @@ export interface components {
         CheckoutRequest: {
             /**
              * Plan
-             * @default plan_a
+             * @default starter
              * @enum {string}
              */
-            plan: "plan_a" | "plan_b";
+            plan: "starter" | "pro" | "plan_a" | "plan_b";
         };
-        /** CheckoutResponse */
-        CheckoutResponse: {
+        /** CheckoutSessionResponse */
+        CheckoutSessionResponse: {
+            /** Checkout Session Id */
+            checkout_session_id: string;
             /** Checkout Url */
             checkout_url: string;
+            /** Plan */
+            plan: string;
+            /** Plan Tier */
+            plan_tier: string;
         };
         /** ClientCreate */
         ClientCreate: {
@@ -1377,10 +1609,71 @@ export interface components {
         /** EntitlementsResponse */
         EntitlementsResponse: {
             /**
+             * Access Granted
+             * @description Alias of is_active for admin/frontend consumers.
+             */
+            access_granted: boolean;
+            /**
+             * Access Reason Code
+             * @description Safe reason code when access comes from admin override.
+             */
+            access_reason_code?: string | null;
+            /**
+             * Billing Period End
+             * @description Billing period window end used for usage accounting.
+             */
+            billing_period_end: string | null;
+            /**
+             * Billing Period Start
+             * @description Billing period window start used for usage accounting.
+             */
+            billing_period_start: string | null;
+            /**
+             * Billing Required
+             * @description Whether billing is currently required for paid access.
+             */
+            billing_required: boolean;
+            /**
+             * Can Access Dashboard
+             * @description Whether dashboard access is allowed.
+             */
+            can_access_dashboard: boolean;
+            /**
+             * Can Download Pdf
+             * @description Whether PDF artifact access is allowed.
+             */
+            can_download_pdf: boolean;
+            /**
+             * Can Generate Report
+             * @description Whether report generation is allowed.
+             */
+            can_generate_report: boolean;
+            /**
+             * Can Upload
+             * @description Whether uploads are allowed.
+             */
+            can_upload: boolean;
+            /**
+             * Can View Reports
+             * @description Whether report list/detail access is allowed.
+             */
+            can_view_reports: boolean;
+            /**
+             * Effective Plan Tier
+             * @description Safe effective plan tier view used for access checks.
+             */
+            effective_plan_tier: string;
+            /**
              * Entitled
              * @description Legacy alias for is_active.
              */
             entitled: boolean;
+            /**
+             * Entitlement Source
+             * @description Alias of source for admin/frontend consumers.
+             */
+            entitlement_source: string;
+            /** @description Legacy feature alias block. */
             features: components["schemas"]["EntitlementFeatures"];
             /**
              * Is Active
@@ -1388,19 +1681,53 @@ export interface components {
              */
             is_active: boolean;
             /**
+             * Monthly Report Limit
+             * @description Monthly report generation limit for current plan.
+             */
+            monthly_report_limit: number | null;
+            /**
              * Plan
              * @description Legacy alias for plan_tier.
              */
             plan: string;
             /**
              * Plan Tier
-             * @description Canonical plan tier.
+             * @description Canonical semantic plan tier: basic|pro|none.
              */
             plan_tier: string;
-            /** Source */
-            source?: string | null;
-            /** Status */
+            /**
+             * Reports Generated This Period
+             * @description Report generations used in current period.
+             */
+            reports_generated_this_period: number;
+            /**
+             * Reports Remaining This Period
+             * @description Remaining report generations for current period.
+             */
+            reports_remaining_this_period: number | null;
+            /**
+             * Source
+             * @description Entitlement source: admin_override/stripe/trial/none.
+             */
+            source: string;
+            /**
+             * Status
+             * @description Current canonical entitlement status.
+             */
             status: string;
+        };
+        /** GrantAccessRequest */
+        GrantAccessRequest: {
+            /** Ends At */
+            ends_at?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Plan Tier */
+            plan_tier: string;
+            /** Reason Code */
+            reason_code: string;
+            /** Starts At */
+            starts_at?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1741,6 +2068,13 @@ export interface components {
             } | null;
             /** Message */
             message: string;
+        };
+        /** RevokeAccessRequest */
+        RevokeAccessRequest: {
+            /** Note */
+            note?: string | null;
+            /** Reason Code */
+            reason_code: string;
         };
         /** SeriesPoint */
         SeriesPoint: {
@@ -2265,6 +2599,73 @@ export interface operations {
             };
         };
     };
+    admin_search_entitlements_v1_admin_entitlements_search_get: {
+        parameters: {
+            query: {
+                email: string;
+                limit?: number;
+            };
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEntitlementSearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_me_v1_admin_me_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_list_users_v1_admin_users_get: {
         parameters: {
             query?: {
@@ -2377,6 +2778,78 @@ export interface operations {
             };
         };
     };
+    admin_get_user_entitlement_v1_admin_users__creator_id__entitlement_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                creator_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserEntitlementResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_grant_access_v1_admin_users__creator_id__grant_access_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                creator_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantAccessRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserEntitlementResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_invalidate_access_v1_admin_users__creator_id__invalidate_access_post: {
         parameters: {
             query?: never;
@@ -2432,6 +2905,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_revoke_access_v1_admin_users__creator_id__revoke_access_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                creator_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeAccessRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserEntitlementResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2544,7 +3055,7 @@ export interface operations {
             };
         };
     };
-    create_checkout_v1_billing_checkout_post: {
+    create_checkout_session_legacy_v1_billing_checkout_post: {
         parameters: {
             query?: never;
             header?: {
@@ -2566,7 +3077,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CheckoutResponse"];
+                    "application/json": components["schemas"]["CheckoutSessionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2616,7 +3127,106 @@ export interface operations {
             };
         };
     };
-    stripe_webhook_v1_billing_stripe_webhook_post: {
+    create_checkout_session_v1_billing_create_checkout_session_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_billing_status_v1_billing_status_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stripe_webhook_legacy_v1_billing_stripe_webhook_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Stripe-Signature"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stripe_webhook_v1_billing_webhook_post: {
         parameters: {
             query?: never;
             header?: {
@@ -2667,7 +3277,7 @@ export interface operations {
             };
         };
     };
-    create_checkout_legacy_v1_checkout_post: {
+    create_checkout_legacy_alias_v1_checkout_post: {
         parameters: {
             query?: never;
             header?: {
@@ -2689,7 +3299,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CheckoutResponse"];
+                    "application/json": components["schemas"]["CheckoutSessionResponse"];
                 };
             };
             /** @description Validation Error */

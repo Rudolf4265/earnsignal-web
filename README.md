@@ -125,6 +125,7 @@ Use these constants in Stripe checkout session creation.
 
 Frontend API wrappers now consume generated backend schema types from `src/lib/api/generated/schema.ts`.
 Policy: generated API types are committed to git in this repo.
+Canonical entitlement contract comes from backend `EntitlementsResponse` and `BillingStatusResponse.entitlements`.
 
 Generate/update the snapshot:
 
@@ -142,6 +143,23 @@ Generation inputs:
 
 - `OPENAPI_SCHEMA_URL` (required for `api:generate`, for example `https://api.earnsigma.com/openapi.json`)
 - optional output override: `OPENAPI_TYPES_OUT` (defaults to `src/lib/api/generated/schema.ts`)
+
+Local backend source-of-truth flow (`../creator_optimizer`):
+
+```powershell
+# from creator_optimizer
+.\.venv\Scripts\python.exe -c "import json, os; from creator_optimizer.api import create_app; os.makedirs('..\\earnsignal-web\\.tmp-openapi', exist_ok=True); spec=create_app().openapi(); open('..\\earnsignal-web\\.tmp-openapi\\creator_optimizer-openapi.json','w',encoding='utf-8').write(json.dumps(spec, indent=2, sort_keys=True))"
+
+# from earnsignal-web
+$env:OPENAPI_SCHEMA_URL=(Resolve-Path '.tmp-openapi\creator_optimizer-openapi.json').Path
+cmd /c npm run api:generate
+```
+
+Schema drift guard:
+
+```bash
+npm run contract:check:entitlements
+```
 
 Expected behavior:
 
@@ -162,7 +180,7 @@ Backend deploy env requirement for live checkout:
 
 ## Billing entitlements troubleshooting
 
-- Billing status is loaded from `GET /v1/entitlements` and requires a valid bearer token.
+- Entitlements are loaded from `GET /v1/entitlements` and billing snapshot details from `GET /v1/billing/status`; both require a valid bearer token.
 - If Billing shows **"Session expired. Please sign in again."**, click **Sign in** and re-authenticate, then refresh Billing status.
 
 ## Manual QA checklist

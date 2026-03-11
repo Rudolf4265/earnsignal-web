@@ -61,21 +61,40 @@ test("fetchBillingStatus maps canonical response fields and caches result", asyn
   global.fetch = async (url) => {
     calls.push(String(url));
     return jsonResponse({
-      effective_plan_tier: "pro",
-      entitlement_source: "stripe",
-      access_granted: true,
-      access_reason_code: "ACTIVE_SUBSCRIPTION",
-      billing_required: false,
-      plan_tier: "pro",
-      status: "active",
-      source: "stripe",
-      is_active: true,
-      reports_remaining_this_period: 5,
-      reports_generated_this_period: 3,
-      monthly_report_limit: 8,
+      creator_id: "creator-cache",
+      checkout_configured: true,
+      webhook_configured: true,
+      stripe_customer_id: "cus_cache",
+      stripe_subscription_id: "sub_cache",
+      latest_processed_event_id: "evt_cache",
+      current_period_start: "2026-03-01T00:00:00Z",
       current_period_end: "2026-04-01T00:00:00Z",
       cancel_at_period_end: false,
-      portal_url: "https://stripe.test/portal",
+      entitlements: {
+        effective_plan_tier: "pro",
+        entitlement_source: "stripe",
+        access_granted: true,
+        access_reason_code: "ACTIVE_SUBSCRIPTION",
+        billing_required: false,
+        plan_tier: "pro",
+        status: "active",
+        source: "stripe",
+        is_active: true,
+        can_upload: true,
+        can_generate_report: true,
+        can_view_reports: true,
+        can_download_pdf: true,
+        can_access_dashboard: true,
+        reports_remaining_this_period: 5,
+        reports_generated_this_period: 3,
+        monthly_report_limit: 8,
+        billing_period_start: "2026-03-01T00:00:00Z",
+        billing_period_end: "2026-04-01T00:00:00Z",
+        plan: "pro",
+        entitled: true,
+        features: { app: true, upload: true, report: true, downloads: true },
+        portal_url: "https://stripe.test/portal",
+      },
     });
   };
 
@@ -94,8 +113,17 @@ test("fetchBillingStatus maps canonical response fields and caches result", asyn
   assert.equal(first.reportsRemainingThisPeriod, 5);
   assert.equal(first.reportsGeneratedThisPeriod, 3);
   assert.equal(first.monthlyReportLimit, 8);
+  assert.equal(first.creatorId, "creator-cache");
+  assert.equal(first.checkoutConfigured, true);
+  assert.equal(first.webhookConfigured, true);
+  assert.equal(first.stripeCustomerId, "cus_cache");
+  assert.equal(first.stripeSubscriptionId, "sub_cache");
+  assert.equal(first.latestProcessedEventId, "evt_cache");
+  assert.equal(first.currentPeriodStart, "2026-03-01T00:00:00Z");
   assert.equal(first.currentPeriodEnd, "2026-04-01T00:00:00Z");
   assert.equal(first.cancelAtPeriodEnd, false);
+  assert.equal(first.entitlements.entitlement_source, "stripe");
+  assert.equal(first.entitlements.billing_required, false);
   assert.equal(first.portalUrl, "https://stripe.test/portal");
   assert.equal(second.plan, "pro");
 
@@ -130,6 +158,8 @@ test("fetchBillingStatus falls back to legacy aliases when canonical fields are 
   assert.equal(value.portalUrl, "https://stripe.test/portal-legacy");
   assert.equal(value.currentPeriodEnd, "2026-04-02T00:00:00Z");
   assert.equal(value.cancelAtPeriodEnd, true);
+  assert.equal(value.entitlements.entitled, true);
+  assert.equal(value.entitlements.accessGranted, true);
 
   resetEntitlementsCache();
   delete global.window;

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { buttonClassName } from "@/src/components/ui/button";
 import {
   clearCheckoutAttempt,
   checkoutAttemptInProgress,
@@ -12,6 +13,7 @@ import {
 } from "@/src/lib/api/entitlements";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { ApiError, isApiError } from "@/src/lib/api/client";
+import { buildBillingPlanCardViewModel, formatPlanLabel } from "@/src/lib/billing/plan-card";
 import { useAppGate } from "../../_components/app-gate-provider";
 import { useEntitlementState } from "../../_components/use-entitlement-state";
 import { SessionExpiredCallout } from "../../_components/gate-callouts";
@@ -30,39 +32,6 @@ const plans: Array<{ id: CheckoutPlan; label: string; summary: string; highlight
     highlights: ["Higher monthly report allowance", "Full report and PDF access", "Priority support"],
   },
 ];
-
-const BASIC_PLAN_ALIASES = new Set(["basic", "plan_a", "free", "starter"]);
-const PRO_PLAN_ALIASES = new Set(["pro", "plan_b", "creator_pro", "founder_creator_report", "founder", "protected_paid", "paid_equivalent"]);
-
-function formatPlanLabel(planTier: string | null | undefined): string {
-  const normalized = String(planTier ?? "").trim().toLowerCase();
-  if (!normalized || normalized === "none") {
-    return "None";
-  }
-
-  if (BASIC_PLAN_ALIASES.has(normalized)) {
-    return "Basic";
-  }
-
-  if (PRO_PLAN_ALIASES.has(normalized)) {
-    return "Pro";
-  }
-
-  return normalized;
-}
-
-function isCurrentPlan(planId: CheckoutPlan, planTier: string): boolean {
-  const normalized = planTier.trim().toLowerCase();
-  if (!normalized) {
-    return false;
-  }
-
-  if (planId === "basic") {
-    return BASIC_PLAN_ALIASES.has(normalized);
-  }
-
-  return PRO_PLAN_ALIASES.has(normalized);
-}
 
 const CHECKOUT_CONFIG_ERROR_CODES = new Set(["BILLING_NOT_CONFIGURED", "BILLING_INVALID_STRIPE_PRICE_ID"]);
 
@@ -218,33 +187,33 @@ export default function BillingPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <header className="space-y-2">
-        <h1 className="text-3xl font-semibold text-slate-900">Billing</h1>
-        <p className="text-slate-600">Compare plans, confirm subscription state, and manage access.</p>
+        <h1 className="text-3xl font-semibold text-brand-text-primary">Billing</h1>
+        <p className="text-brand-text-secondary">Compare plans, confirm subscription state, and manage access.</p>
       </header>
 
       {state === "session_expired" ? <SessionExpiredCallout requestId={requestId} /> : null}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section className="rounded-2xl border border-brand-border bg-brand-panel p-6 shadow-brand-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-medium text-slate-900">Current subscription</h2>
+          <h2 className="text-lg font-medium text-brand-text-primary">Current subscription</h2>
           <button
             type="button"
             onClick={() => void refreshBillingAndEntitlements()}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+            className={buttonClassName({ variant: "secondary", size: "sm" })}
             disabled={isRefreshing}
           >
             {isRefreshing ? "Refreshing..." : "Refresh status"}
           </button>
         </div>
 
-        <p className="mt-3 text-sm text-slate-700" data-testid="billing-current-plan">{`Plan: ${formatPlanLabel(activePlanTier)} - Status: ${activeStatus}`}</p>
-        <p className="mt-1 text-xs text-slate-600">
+        <p className="mt-3 text-sm text-brand-text-secondary" data-testid="billing-current-plan">{`Plan: ${formatPlanLabel(activePlanTier)} - Status: ${activeStatus}`}</p>
+        <p className="mt-1 text-xs text-brand-text-muted">
           Feature access: {isActive ? "Active" : "Limited until subscription is active"}
           {source ? ` (${source})` : ""}
         </p>
-        {!isActive && billingRequired ? <p className="mt-1 text-xs text-amber-700">Billing action is required to restore premium access.</p> : null}
-        {!isActive && accessReasonCode ? <p className="mt-1 text-xs text-slate-600">{`Access reason: ${accessReasonCode}`}</p> : null}
-        {usageSummary ? <p className="mt-1 text-xs text-slate-600">{usageSummary}</p> : null}
+        {!isActive && billingRequired ? <p className="mt-1 text-xs text-amber-100">Billing action is required to restore premium access.</p> : null}
+        {!isActive && accessReasonCode ? <p className="mt-1 text-xs text-brand-text-muted">{`Access reason: ${accessReasonCode}`}</p> : null}
+        {usageSummary ? <p className="mt-1 text-xs text-brand-text-muted">{usageSummary}</p> : null}
 
         {error ? (
           <ErrorBanner
@@ -279,16 +248,16 @@ export default function BillingPage() {
         ) : null}
 
         {portalUrl ? (
-          <Link href={portalUrl} className="mt-4 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-100">
+          <Link href={portalUrl} className={buttonClassName({ variant: "secondary", className: "mt-4" })}>
             Manage subscription
           </Link>
         ) : (
-          <p className="mt-3 text-xs text-slate-600">Manage subscription is unavailable for this account right now.</p>
+          <p className="mt-3 text-xs text-brand-text-muted">Manage subscription is unavailable for this account right now.</p>
         )}
       </section>
 
       {hasCheckoutMarker ? (
-        <section className="rounded-lg border border-amber-300/30 bg-amber-500/10 p-4 text-sm text-amber-800">
+        <section className="rounded-xl border border-amber-300/35 bg-amber-500/10 p-4 text-sm text-amber-100">
           <p>Checkout is already starting...</p>
           <button
             type="button"
@@ -297,7 +266,7 @@ export default function BillingPage() {
               setHasCheckoutMarker(false);
               setCheckoutError(null);
             }}
-            className="mt-3 inline-flex rounded-lg border border-amber-200/50 px-3 py-1.5 text-xs hover:bg-amber-300/10"
+            className="mt-3 inline-flex rounded-xl border border-amber-200/50 px-3 py-1.5 text-xs font-medium text-amber-100 transition hover:bg-amber-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70"
           >
             Try again
           </button>
@@ -306,29 +275,28 @@ export default function BillingPage() {
 
       <section className="grid gap-4 md:grid-cols-2">
         {plans.map((plan) => {
-          const selectedPlan = isCurrentPlan(plan.id, activePlanTier);
-          const checkoutDisabled = !allowCheckout || (selectedPlan && isActive);
-          const ctaLabel = selectedPlan && isActive ? `${plan.label} active` : `Choose ${plan.label}`;
+          const planCard = buildBillingPlanCardViewModel({
+            planId: plan.id,
+            planLabel: plan.label,
+            activePlanTier,
+            isActive,
+            allowCheckout,
+          });
           return (
-            <article
-              key={plan.id}
-              className={`space-y-4 rounded-xl border p-6 ${
-                selectedPlan ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white"
-              }`}
-            >
+            <article key={plan.id} className={planCard.cardClassName} data-testid={`billing-plan-card-${plan.id}`}>
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-xl font-semibold text-slate-900">{plan.label}</h3>
-                  {selectedPlan ? (
-                    <span data-testid="billing-current-badge" className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-700">
+                  <h3 className={`text-xl font-semibold ${planCard.titleClassName}`}>{plan.label}</h3>
+                  {planCard.isCurrent ? (
+                    <span data-testid="billing-current-badge" className={planCard.badgeClassName}>
                       Current
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-1 text-sm text-slate-700">{plan.summary}</p>
+                <p className={`mt-1 text-sm ${planCard.bodyClassName}`}>{plan.summary}</p>
               </div>
 
-              <ul className="space-y-1 text-xs text-slate-700">
+              <ul className={`space-y-1 text-xs ${planCard.highlightsClassName}`}>
                 {plan.highlights.map((line) => (
                   <li key={line}>- {line}</li>
                 ))}
@@ -337,10 +305,11 @@ export default function BillingPage() {
               <button
                 type="button"
                 onClick={() => void handleCheckout(plan.id)}
-                disabled={checkoutDisabled}
-                className="inline-flex rounded-lg bg-brand-blue px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+                disabled={planCard.checkoutDisabled}
+                className={buttonClassName({ variant: planCard.ctaVariant, className: planCard.ctaClassName })}
+                data-testid={`billing-plan-cta-${plan.id}`}
               >
-                {isCreatingCheckout === plan.id ? "Redirecting..." : ctaLabel}
+                {isCreatingCheckout === plan.id ? "Redirecting..." : planCard.ctaLabel}
               </button>
             </article>
           );

@@ -8,6 +8,7 @@ const webServerUrl = process.env.PLAYWRIGHT_WEB_SERVER_URL ?? `http://127.0.0.1:
 
 export default defineConfig({
   testDir: ".",
+  testIgnore: ["truth-gate.spec.ts", "entitlement-lifecycle.spec.ts"],
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   use: {

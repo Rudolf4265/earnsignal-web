@@ -241,11 +241,14 @@ npm run test:e2e
 npm run test:e2e:ui
 ```
 
-The suite is configured in `tests/e2e/playwright.config.ts` and runs tests under `tests/e2e`.
+Primary local suite config: `tests/e2e/playwright.config.ts`.
 
-### Backend stubbing model
+### Suite types
 
-E2E tests are deterministic and do not depend on live backend services.
+#### 1) Deterministic stubbed suite (`npm run test:e2e`)
+
+This suite is deterministic and does not depend on live backend services.
+It excludes backend-truth specs (`truth-gate.spec.ts`, `entitlement-lifecycle.spec.ts`).
 
 - API routes are stubbed with `page.route(...)`.
 - Auth session shape is mocked in browser storage and Supabase auth endpoints are routed.
@@ -255,14 +258,32 @@ E2E tests are deterministic and do not depend on live backend services.
   - `/v1/uploads/presign`, `/v1/uploads/callback`, `/v1/uploads/:id/status`, `/v1/uploads/latest/status`
   - presigned storage `PUT` upload URL
 
-### Mock test accounts
-
-The E2E suite uses mocked account profiles rather than real users:
+Mock test identities used in this suite:
 
 - `staff@earnsignal.test` (authenticated + entitled)
 - `staff@earnsignal.test` with unentitled fixture
 - Anonymous (no session) for redirect assertions
 - Session-expired responses (`SESSION_EXPIRED`) for gate assertions
+
+#### 2) Backend truth gate (`npm run test:e2e:truth`)
+
+This suite uses real login + real backend API flows for sign-in, upload, report detail, and PDF checks.
+
+Required env:
+
+- `E2E_BASE_URL`
+- `E2E_EMAIL`
+- `E2E_PASSWORD`
+- optional `E2E_UPLOAD_FIXTURE`
+
+#### 3) Backend entitlement lifecycle (`npm run test:e2e:lifecycle`)
+
+This suite validates founder/revoked/expired/future lifecycle states against backend-backed fixture accounts.
+In CI, it fails fast if required fixture credentials are missing (to avoid green runs with only skipped tests).
+
+Required env and fixture contract are documented in:
+
+- `docs/ENTITLEMENT_E2E_FIXTURES.md`
 
 ### CI recipe (generic / GitHub Actions style)
 

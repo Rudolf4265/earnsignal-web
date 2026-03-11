@@ -6,7 +6,8 @@
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",
     "e2e:ci": "playwright test --reporter=line",
-    "e2e:truth": "playwright test --config playwright.truth.config.ts truth-gate.spec.ts --reporter=line"
+    "e2e:truth": "playwright test --config playwright.truth.config.ts truth-gate.spec.ts --reporter=line",
+    "e2e:lifecycle": "playwright test --config playwright.lifecycle.config.ts entitlement-lifecycle.spec.ts --reporter=line"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0"

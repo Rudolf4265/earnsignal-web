@@ -2,6 +2,9 @@
 
 Use this checklist to verify entitlement correctness across UI and backend-enforced paths after PR2 (admin overrides).
 
+Automated backend-truth lifecycle coverage now lives in `tests/e2e/entitlement-lifecycle.spec.ts`.
+Fixture credential and seeding contract lives in `docs/ENTITLEMENT_E2E_FIXTURES.md`.
+
 ## Test fixtures
 
 Prepare accounts with known backend state:
@@ -17,6 +20,26 @@ Prepare accounts with known backend state:
 - `founder_protected_b`: `admin@earnsigma.com`.
 - `non_admin_user`: authenticated user without admin role.
 - `admin_user`: backend-recognized admin (`GET /v1/admin/whoami` -> `is_admin=true`).
+
+## Automated lifecycle e2e run
+
+Run the backend-backed lifecycle suite:
+
+```bash
+npm run test:e2e:lifecycle
+```
+
+This suite validates:
+
+- founder/protected paid-equivalent behavior across dashboard/upload/report/detail/PDF/billing
+- revoked override deny behavior across refresh and route transitions
+- expired override deny behavior across refresh and route transitions
+- future-dated override deny behavior before start window
+- denied fixture direct artifact endpoint enforcement (backend deny/redirect/error contract)
+
+CI note:
+
+- lifecycle suite fails fast when required fixture credentials are missing, so skipped tests are not treated as a successful lifecycle sign-off.
 
 ## Canonical entitlement payload checks
 

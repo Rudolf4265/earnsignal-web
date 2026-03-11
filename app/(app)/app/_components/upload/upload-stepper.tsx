@@ -16,6 +16,7 @@ import { buildUploadDiagnostics, mapUploadStatus, type UploadStatusEnvelope, typ
 import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/lib/upload/resume";
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
+import { useEntitlementState } from "../../../_components/use-entitlement-state";
 import InlineAlert from "./InlineAlert";
 import StepHeader from "./StepHeader";
 import Stepper from "./Stepper";
@@ -62,6 +63,8 @@ const friendlyFailureMessage = (reasonCode: string | null) => {
       return "We couldn’t find that previous upload anymore. Please reset and upload again.";
     case "timeout":
       return "This upload is still processing and timed out in the dashboard. You can retry status checks or reset.";
+    case "entitlement_required":
+      return "Your current plan does not include report generation. Upgrade in Billing to continue.";
     default:
       return "We couldn’t complete processing for this upload yet.";
   }
@@ -94,6 +97,7 @@ async function awaitWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Prom
 }
 
 export default function UploadStepper() {
+  const entitlementState = useEntitlementState();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const pollAbortRef = useRef<AbortController | null>(null);
 
@@ -125,7 +129,8 @@ export default function UploadStepper() {
     ],
     [],
   );
-  const uploadReady = Boolean(platform && file) && !busy;
+  const uploadReady = Boolean(platform && file) && !busy && !entitlementState.loading && entitlementState.canGenerateReport;
+  const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
 
   const unsupportedCsvWarning = file && !file.name.toLowerCase().endsWith(".csv");
 
@@ -359,7 +364,18 @@ export default function UploadStepper() {
   );
 
   const runUpload = async () => {
-    if (!platform || !file || busy) {
+    if (!platform || !file || busy || entitlementState.loading) {
+      return;
+    }
+
+    if (!entitlementState.canGenerateReport) {
+      setFailureState({
+        uploadId,
+        rawStatus: null,
+        reasonCode: "entitlement_required",
+        message: "Report generation requires an active paid entitlement.",
+        operation: "reports.generate",
+      });
       return;
     }
 
@@ -592,6 +608,11 @@ export default function UploadStepper() {
                 Log in again
               </Link>
             ) : null}
+            {reasonCode === "entitlement_required" ? (
+              <Link href="/app/billing" className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100">
+                Go to Billing
+              </Link>
+            ) : null}
           </div>
         </ErrorBanner>
       ) : null}
@@ -613,6 +634,24 @@ export default function UploadStepper() {
               <li key={warning}>{warning}</li>
             ))}
           </ul>
+        </InlineAlert>
+      ) : null}
+
+      {entitlementState.loading ? (
+        <InlineAlert variant="info" title="Checking plan access" data-testid="upload-entitlement-loading">
+          Validating your entitlement before report generation is enabled.
+        </InlineAlert>
+      ) : null}
+
+      {reportAccessBlocked ? (
+        <InlineAlert variant="warn" title="Upgrade required for report generation" data-testid="upload-entitlement-required">
+          <p className="mb-2 text-sm text-amber-100/90">
+            Your current entitlement does not include report generation.
+            {entitlementState.accessReasonCode ? ` (${entitlementState.accessReasonCode})` : ""}
+          </p>
+          <Link href="/app/billing" className="inline-flex rounded-lg border border-amber-200/60 px-3 py-1.5 text-xs text-amber-100 hover:bg-amber-300/10">
+            Go to Billing
+          </Link>
         </InlineAlert>
       ) : null}
 
@@ -720,7 +759,7 @@ export default function UploadStepper() {
                     : "border-transparent bg-brand-blue hover:bg-brand-blue/90"
                 }`}
               >
-                Upload &amp; Validate
+                {entitlementState.loading ? "Checking access..." : "Upload & Validate"}
               </button>
             </div>
           </div>

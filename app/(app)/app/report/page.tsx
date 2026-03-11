@@ -10,7 +10,7 @@ import { FeatureGuard } from "../../_components/feature-guard";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { Button, buttonClassName } from "@/src/components/ui/button";
 import { PageHeader } from "@/src/components/ui/page-header";
-import { isApiError } from "@/src/lib/api/client";
+import { isApiError, isEntitlementRequiredError } from "@/src/lib/api/client";
 import { downloadReportArtifactPdf, fetchReportsList, getReportErrorMessage, type ReportListItem } from "@/src/lib/api/reports";
 import { toReportListRows, type ReportListRow } from "@/src/lib/report/list-model";
 
@@ -18,6 +18,7 @@ type ReportsState = {
   loading: boolean;
   loadingMore: boolean;
   error: string | null;
+  entitlementRequired: boolean;
   requestId?: string;
   items: ReportListItem[];
   nextOffset: number | null;
@@ -28,15 +29,12 @@ const initialState: ReportsState = {
   loading: true,
   loadingMore: false,
   error: null,
+  entitlementRequired: false,
   requestId: undefined,
   items: [],
   nextOffset: null,
   hasMore: false,
 };
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unable to load reports.";
-}
 
 function reportCountLabel(count: number): string {
   if (count === 0) {
@@ -54,6 +52,7 @@ export default function ReportsPage() {
   const [state, setState] = useState<ReportsState>(initialState);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadEntitlementRequired, setDownloadEntitlementRequired] = useState(false);
   const [downloadRequestId, setDownloadRequestId] = useState<string | undefined>(undefined);
   const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
 
@@ -68,6 +67,7 @@ export default function ReportsPage() {
         loading: true,
         loadingMore: false,
         error: null,
+        entitlementRequired: false,
         requestId: undefined,
         items: [],
         nextOffset: null,
@@ -85,6 +85,7 @@ export default function ReportsPage() {
           loading: false,
           loadingMore: false,
           error: null,
+          entitlementRequired: false,
           requestId: undefined,
           items: page.items,
           nextOffset: page.nextOffset,
@@ -98,7 +99,8 @@ export default function ReportsPage() {
         setState({
           loading: false,
           loadingMore: false,
-          error: toErrorMessage(error),
+          error: getReportErrorMessage(error),
+          entitlementRequired: isEntitlementRequiredError(error),
           requestId: isApiError(error) ? error.requestId : undefined,
           items: [],
           nextOffset: null,
@@ -127,6 +129,7 @@ export default function ReportsPage() {
       ...prev,
       loadingMore: true,
       error: null,
+      entitlementRequired: false,
       requestId: undefined,
     }));
 
@@ -143,7 +146,8 @@ export default function ReportsPage() {
       setState((prev) => ({
         ...prev,
         loadingMore: false,
-        error: toErrorMessage(error),
+        error: getReportErrorMessage(error),
+        entitlementRequired: isEntitlementRequiredError(error),
         requestId: isApiError(error) ? error.requestId : undefined,
       }));
     }
@@ -156,6 +160,7 @@ export default function ReportsPage() {
       }
 
       setDownloadError(null);
+      setDownloadEntitlementRequired(false);
       setDownloadRequestId(undefined);
       setDownloadingReportId(row.reportId);
 
@@ -167,6 +172,7 @@ export default function ReportsPage() {
         });
       } catch (error) {
         setDownloadError(getReportErrorMessage(error));
+        setDownloadEntitlementRequired(isEntitlementRequiredError(error));
         setDownloadRequestId(isApiError(error) ? error.requestId : undefined);
       } finally {
         setDownloadingReportId(null);
@@ -188,7 +194,21 @@ export default function ReportsPage() {
           }
         />
 
-        {state.error ? <ErrorBanner title="Report list unavailable" message={state.error} requestId={state.requestId} onRetry={retryLoad} /> : null}
+        {state.error ? (
+          <ErrorBanner
+            title="Report list unavailable"
+            message={state.error}
+            requestId={state.requestId}
+            onRetry={retryLoad}
+            action={
+              state.entitlementRequired ? (
+                <Link href="/app/billing" className={buttonClassName({ variant: "secondary", size: "sm" })}>
+                  Go to Billing
+                </Link>
+              ) : undefined
+            }
+          />
+        ) : null}
         {downloadError ? (
           <ErrorBanner
             title="Report download unavailable"
@@ -197,8 +217,16 @@ export default function ReportsPage() {
             retryLabel="Dismiss"
             onRetry={() => {
               setDownloadError(null);
+              setDownloadEntitlementRequired(false);
               setDownloadRequestId(undefined);
             }}
+            action={
+              downloadEntitlementRequired ? (
+                <Link href="/app/billing" className={buttonClassName({ variant: "secondary", size: "sm" })}>
+                  Go to Billing
+                </Link>
+              ) : undefined
+            }
           />
         ) : null}
 

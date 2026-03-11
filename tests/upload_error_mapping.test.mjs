@@ -44,6 +44,25 @@ test("mapApiErrorToUploadFailure maps not-found to recoverable state", () => {
   assert.equal(notFound.shouldStopPolling, true);
 });
 
+test("mapApiErrorToUploadFailure maps ENTITLEMENT_REQUIRED to upgrade-required state", () => {
+  const entitlementRequired = mapApiErrorToUploadFailure(
+    new ApiError({
+      status: 403,
+      code: "ENTITLEMENT_REQUIRED",
+      message: "Upgrade required",
+      operation: "reports.generate",
+      path: "/v1/reports",
+      method: "POST",
+      requestId: "req_entitlement_required_001",
+    }),
+  );
+
+  assert.equal(entitlementRequired.reasonCode, "entitlement_required");
+  assert.equal(entitlementRequired.shouldStopPolling, true);
+  assert.equal(entitlementRequired.requestId, "req_entitlement_required_001");
+  assert.equal(entitlementRequired.operation, "reports.generate");
+});
+
 test("mapApiErrorToUploadFailure keeps unknown errors retryable", () => {
   const result = mapApiErrorToUploadFailure(new Error("network unstable"));
 

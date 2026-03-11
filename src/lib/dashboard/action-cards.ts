@@ -1,5 +1,6 @@
 import type { EntitlementsResponse } from "../api/entitlements";
 import type { AppGateState } from "../gating/app-gate";
+import { hasProEquivalentEntitlement, isProEquivalentPlanTier, resolveEffectivePlanTier } from "../entitlements/model";
 
 export type DashboardActionCardsMode = "unlocked" | "locked" | "loading";
 
@@ -22,25 +23,17 @@ export type BuildDashboardActionCardsViewModelInput = {
 };
 
 const DEFAULT_MAX_CARDS = 2;
-const PRO_PLAN_TIERS = new Set(["pro", "plan_b"]);
 const DEFAULT_PRO_ACTIONS = [
   "Prioritize one retention experiment this week and track the weekly net revenue impact.",
   "Review subscriber behavior by cohort and tune lifecycle messaging for the highest-churn segment.",
 ];
 
-function normalizePlanTier(entitlements: EntitlementsResponse | null): string | null {
-  const candidate = entitlements?.planTier ?? entitlements?.plan_tier ?? entitlements?.plan ?? null;
-  if (typeof candidate !== "string") {
-    return null;
+export function isProPlan(entitlements: EntitlementsResponse | null): boolean {
+  if (!entitlements) {
+    return false;
   }
 
-  const normalized = candidate.trim().toLowerCase();
-  return normalized.length > 0 ? normalized : null;
-}
-
-export function isProPlan(entitlements: EntitlementsResponse | null): boolean {
-  const planTier = normalizePlanTier(entitlements);
-  return planTier !== null && PRO_PLAN_TIERS.has(planTier);
+  return isProEquivalentPlanTier(resolveEffectivePlanTier(entitlements));
 }
 
 function resolveMode(gateState: AppGateState, entitlements: EntitlementsResponse | null): DashboardActionCardsMode {
@@ -55,7 +48,7 @@ function resolveMode(gateState: AppGateState, entitlements: EntitlementsResponse
     return "loading";
   }
 
-  const hasProRecommendationsAccess = entitlements.isActive && isProPlan(entitlements);
+  const hasProRecommendationsAccess = hasProEquivalentEntitlement(entitlements);
   return hasProRecommendationsAccess ? "unlocked" : "locked";
 }
 

@@ -22,6 +22,64 @@ test.describe("Upload deep flows", () => {
     await stubEntitlements(page, "entitled");
   });
 
+  test("free or revoked entitlement blocks report-generation CTA and shows billing upgrade guidance", async ({ page }) => {
+    await page.unroute("**/v1/entitlements");
+    await stubEntitlements(page, "unentitled");
+
+    await page.goto("/app/data");
+    await page.getByRole("button", { name: "Patreon" }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "sample.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from("email,revenue\na@example.com,123\n"),
+    });
+
+    await expect(page.getByTestId("upload-entitlement-required")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Upload & Validate" })).toBeDisabled();
+    await expect(page.getByRole("link", { name: "Go to Billing" })).toBeVisible();
+  });
+
+  test("upload CTA stays disabled while entitlement snapshot is unresolved to prevent premium-action flicker", async ({ page }) => {
+    await page.unroute("**/v1/entitlements");
+    await page.route("**/v1/entitlements", async (route) => {
+      await page.waitForTimeout(1_200);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          effective_plan_tier: "none",
+          entitlement_source: "none",
+          access_granted: false,
+          access_reason_code: "ENTITLEMENT_REQUIRED",
+          billing_required: true,
+          plan_tier: "none",
+          status: "inactive",
+          is_active: false,
+          can_upload: true,
+          can_generate_report: false,
+          can_view_reports: true,
+          can_download_pdf: false,
+          can_access_dashboard: true,
+        }),
+      });
+    });
+
+    await page.goto("/app/data");
+    await page.getByRole("button", { name: "Patreon" }).click();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "sample.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from("email,revenue\na@example.com,123\n"),
+    });
+
+    await expect(page.getByTestId("upload-entitlement-loading")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Checking access..." })).toBeDisabled();
+    await expect(page.getByTestId("upload-entitlement-required")).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole("button", { name: "Upload & Validate" })).toBeDisabled();
+  });
+
   test("happy path: processing to report_ready", async ({ page }) => {
     let pollCount = 0;
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppGate } from "@/app/(app)/_components/app-gate-provider";
+import { useEntitlementState } from "@/app/(app)/_components/use-entitlement-state";
 import { SessionExpiredCallout } from "@/app/(app)/_components/gate-callouts";
 import { clearCheckoutAttempt, fetchBillingStatus } from "@/src/lib/api/entitlements";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
@@ -18,7 +19,8 @@ function wait(ms: number) {
 
 export default function BillingSuccessPage() {
   const router = useRouter();
-  const { state, entitlements, requestId, actions } = useAppGate();
+  const { state, requestId, actions } = useAppGate();
+  const entitlementState = useEntitlementState();
   const [isRefreshing, setIsRefreshing] = useState(true);
   const [attemptCount, setAttemptCount] = useState(0);
   const [billingStatusText, setBillingStatusText] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export default function BillingSuccessPage() {
 
         if (billingStatusResult.status === "fulfilled") {
           const snapshot = billingStatusResult.value;
-          setBillingStatusText(`Plan: ${snapshot.planTier} - Status: ${snapshot.status}`);
+          setBillingStatusText(`Plan: ${snapshot.effectivePlanTier} - Status: ${snapshot.status}`);
         } else if (attempt === maxAttempts) {
           setRefreshError({
             message: billingStatusResult.reason instanceof Error ? billingStatusResult.reason.message : "Unable to refresh billing status.",
@@ -48,7 +50,7 @@ export default function BillingSuccessPage() {
           });
         }
 
-        if (entitlementsResult.status === "fulfilled" && entitlementsResult.value?.isActive) {
+        if (entitlementsResult.status === "fulfilled" && entitlementsResult.value?.accessGranted) {
           setIsRefreshing(false);
           return true;
         }
@@ -83,10 +85,10 @@ export default function BillingSuccessPage() {
   }, [refreshCheckoutState, router]);
 
   useEffect(() => {
-    if (entitlements?.isActive) {
+    if (entitlementState.accessGranted) {
       router.replace("/app");
     }
-  }, [entitlements?.isActive, router]);
+  }, [entitlementState.accessGranted, router]);
 
   if (state === "session_expired") {
     return <SessionExpiredCallout requestId={requestId} />;
@@ -97,7 +99,7 @@ export default function BillingSuccessPage() {
       <h1 className="text-2xl font-semibold text-slate-900">Checkout complete</h1>
       <p className="text-sm text-slate-700">Payment redirect succeeded. We are verifying billing and refreshing entitlements.</p>
       <p className="text-sm text-slate-600">
-        {entitlements?.isActive
+        {entitlementState.accessGranted
           ? "Entitlements are active. Redirecting you to the dashboard..."
           : "Activation can take a moment while webhook events finalize."}
       </p>

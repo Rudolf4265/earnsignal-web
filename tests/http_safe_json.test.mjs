@@ -161,3 +161,38 @@ test("apiFetchJson blocks invalid report detail paths before network request", a
     global.fetch = originalFetch;
   }
 });
+
+test("isEntitlementRequiredError recognizes canonical entitlement denial semantics", async () => {
+  const { ApiError, isEntitlementRequiredError } = await import(`${moduleUrl}?t=${Date.now() + 5}`);
+
+  const explicitCode = new ApiError({
+    status: 403,
+    code: "ENTITLEMENT_REQUIRED",
+    message: "upgrade required",
+    operation: "reports.list",
+    path: "/v1/reports",
+    method: "GET",
+  });
+  assert.equal(isEntitlementRequiredError(explicitCode), true);
+
+  const nestedReason = new ApiError({
+    status: 403,
+    code: "FORBIDDEN",
+    message: "forbidden",
+    operation: "report.artifact",
+    path: "/v1/reports/rep_1/artifact",
+    method: "GET",
+    details: { access_reason_code: "ENTITLEMENT_REQUIRED", billing_required: true },
+  });
+  assert.equal(isEntitlementRequiredError(nestedReason), true);
+
+  const nonEntitlement = new ApiError({
+    status: 403,
+    code: "FORBIDDEN",
+    message: "forbidden",
+    operation: "report.fetch",
+    path: "/v1/reports/rep_1",
+    method: "GET",
+  });
+  assert.equal(isEntitlementRequiredError(nonEntitlement), false);
+});

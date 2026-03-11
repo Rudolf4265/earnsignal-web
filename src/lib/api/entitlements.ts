@@ -4,6 +4,11 @@ import type {
   CheckoutSessionResponseSchema,
   EntitlementsResponseSchema,
 } from "./generated";
+import {
+  resolveBillingRequired,
+  resolveEffectivePlanTier,
+  resolveEntitlementSource,
+} from "../entitlements/model";
 
 export type EntitlementFeatures = Record<string, boolean | undefined>;
 export type CanonicalPlanTier = "basic" | "pro" | "none";
@@ -11,8 +16,24 @@ export type CheckoutPlan = Exclude<CanonicalPlanTier, "none">;
 
 export type EntitlementsResponse = Omit<
   EntitlementsResponseSchema,
-  "plan" | "plan_tier" | "status" | "entitled" | "is_active" | "features" | "portal_url"
+  | "plan"
+  | "plan_tier"
+  | "status"
+  | "entitled"
+  | "is_active"
+  | "features"
+  | "portal_url"
+  | "effective_plan_tier"
+  | "entitlement_source"
+  | "access_granted"
+  | "access_reason_code"
+  | "billing_required"
 > & {
+  effectivePlanTier: string;
+  entitlementSource: string | null;
+  accessGranted: boolean;
+  accessReasonCode: string | null;
+  billingRequired: boolean;
   planTier: string;
   isActive: boolean;
   source: string | null;
@@ -26,6 +47,11 @@ export type EntitlementsResponse = Omit<
   reportsGeneratedThisPeriod: number | null;
   monthlyReportLimit: number | null;
   portalUrl?: string;
+  effective_plan_tier: string;
+  entitlement_source: string | null;
+  access_granted: boolean;
+  access_reason_code: string | null;
+  billing_required: boolean;
   plan: string;
   plan_tier: string;
   entitled: boolean;
@@ -38,6 +64,11 @@ export type CheckoutResponse = {
   checkout_url: CheckoutSessionResponseSchema["checkout_url"];
 };
 export type BillingStatusResponse = {
+  effectivePlanTier: string;
+  entitlementSource: string | null;
+  accessGranted: boolean;
+  accessReasonCode: string | null;
+  billingRequired: boolean;
   planTier: string;
   isActive: boolean;
   source: string | null;
@@ -48,6 +79,11 @@ export type BillingStatusResponse = {
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean | null;
   portalUrl?: string;
+  effective_plan_tier: string;
+  entitlement_source: string | null;
+  access_granted: boolean;
+  access_reason_code: string | null;
+  billing_required: boolean;
   plan: string;
   plan_tier: string;
   entitled: boolean;
@@ -61,26 +97,12 @@ const BILLING_STATUS_CACHE_KEY = "earnsignal.billing-status.v1";
 const BILLING_STATUS_TTL_MS = 30_000;
 const CHECKOUT_ATTEMPT_KEY = "earnsignal.checkout.attempt.v1";
 const CHECKOUT_ATTEMPT_TTL_MS = 20_000;
+export const CANONICAL_ENTITLEMENTS_PATH = "/v1/entitlements";
 const CANONICAL_CHECKOUT_PATH = "/v1/billing/create-checkout-session";
 const LEGACY_BILLING_CHECKOUT_PATH = "/v1/billing/checkout";
 const LEGACY_CHECKOUT_PATH = "/v1/checkout";
 const BILLING_STATUS_PATH = "/v1/billing/status";
-const DEFAULT_PLAN_TIER: CanonicalPlanTier = "none";
 const DEFAULT_STATUS = "inactive";
-
-const PLAN_TIER_ALIASES: Record<string, CanonicalPlanTier> = {
-  basic: "basic",
-  plan_a: "basic",
-  free: "basic",
-  starter: "basic",
-  founder_creator_report: "basic",
-  pro: "pro",
-  plan_b: "pro",
-  creator_pro: "pro",
-  none: "none",
-  no_plan: "none",
-  inactive: "none",
-};
 
 const CHECKOUT_PLAN_ALIASES: Record<string, CheckoutPlan> = {
   basic: "basic",
@@ -184,24 +206,6 @@ function normalizeString(value: string): string | null {
   return trimmed.toLowerCase();
 }
 
-function normalizePlanTierCandidate(value: unknown): string | null | undefined {
-  const rawCandidate = asNullableString(value);
-  if (rawCandidate === undefined) {
-    return undefined;
-  }
-
-  if (rawCandidate === null) {
-    return null;
-  }
-
-  const normalized = normalizeString(rawCandidate);
-  if (!normalized) {
-    return null;
-  }
-
-  return PLAN_TIER_ALIASES[normalized] ?? normalized;
-}
-
 function normalizeFeatures(value: unknown): EntitlementFeatures {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
@@ -218,13 +222,29 @@ function normalizeFeatures(value: unknown): EntitlementFeatures {
 }
 
 function resolvePlanTier(raw: Record<string, unknown>): string {
-  const candidate =
-    normalizePlanTierCandidate(raw.plan_tier) ??
-    normalizePlanTierCandidate(raw.planTier) ??
-    normalizePlanTierCandidate(raw.plan) ??
-    DEFAULT_PLAN_TIER;
+  return resolveEffectivePlanTier({
+    effective_plan_tier: asNullableString(raw.effective_plan_tier),
+    effectivePlanTier: asNullableString(raw.effectivePlanTier),
+    plan_tier: asNullableString(raw.plan_tier),
+    planTier: asNullableString(raw.planTier),
+    plan: asNullableString(raw.plan),
+  });
+}
 
-  return candidate ?? DEFAULT_PLAN_TIER;
+function resolveAccessReasonCode(raw: Record<string, unknown>): string | null {
+  const candidate =
+    asNullableString(raw.access_reason_code) ??
+    asNullableString(raw.accessReasonCode) ??
+    asNullableString(raw.reason_code) ??
+    asNullableString(raw.reasonCode) ??
+    null;
+
+  if (!candidate) {
+    return null;
+  }
+
+  const normalized = candidate.trim().toUpperCase();
+  return normalized.length > 0 ? normalized : null;
 }
 
 function resolveStatus(raw: Record<string, unknown>, isActive: boolean): string {
@@ -247,22 +267,38 @@ function resolveStatus(raw: Record<string, unknown>, isActive: boolean): string 
 function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string, unknown>): EntitlementsResponse {
   const raw = value as Record<string, unknown>;
   const features = normalizeFeatures(raw.features);
-  const planTier = resolvePlanTier(raw);
-  const explicitIsActive = asBoolean(raw.is_active) ?? asBoolean(raw.isActive);
-  const explicitEntitled = asBoolean(raw.entitled);
+  const effectivePlanTier = resolvePlanTier(raw);
+  const explicitAccessGranted =
+    asBoolean(raw.access_granted) ??
+    asBoolean(raw.accessGranted) ??
+    asBoolean(raw.is_active) ??
+    asBoolean(raw.isActive) ??
+    asBoolean(raw.entitled);
   const featureEntitled = features.app === true || features.upload === true || features.report === true;
   const inferredStatus = asNullableString(raw.status);
   const inferredStatusNormalized = typeof inferredStatus === "string" ? normalizeString(inferredStatus) : null;
   const isStatusActive = inferredStatusNormalized ? ACTIVE_STATUSES.has(inferredStatusNormalized) : false;
-  const isActiveFallback = featureEntitled || isStatusActive;
-  const isActive = explicitIsActive ?? explicitEntitled ?? isActiveFallback;
-  const status = resolveStatus(raw, isActive);
-  const source = asNullableString(raw.source) ?? asNullableString(raw.entitlement_source) ?? asNullableString(raw.entitlementSource) ?? null;
-  const canUpload = asBoolean(raw.can_upload) ?? asBoolean(raw.canUpload) ?? features.upload ?? features.app ?? isActive;
-  const canGenerateReport = asBoolean(raw.can_generate_report) ?? asBoolean(raw.canGenerateReport) ?? features.report ?? isActive;
+  const accessGranted = explicitAccessGranted ?? (featureEntitled || isStatusActive);
+  const status = resolveStatus(raw, accessGranted);
+  const entitlementSource = resolveEntitlementSource({
+    entitlement_source: asNullableString(raw.entitlement_source),
+    entitlementSource: asNullableString(raw.entitlementSource),
+    source: asNullableString(raw.source),
+  });
+  const accessReasonCode = resolveAccessReasonCode(raw);
+  const billingRequired =
+    asBoolean(raw.billing_required) ??
+    asBoolean(raw.billingRequired) ??
+    resolveBillingRequired({
+      billing_required: asBoolean(raw.billing_required),
+      billingRequired: asBoolean(raw.billingRequired),
+      access_reason_code: accessReasonCode,
+    });
+  const canUpload = asBoolean(raw.can_upload) ?? asBoolean(raw.canUpload) ?? features.upload ?? features.app ?? accessGranted;
+  const canGenerateReport = asBoolean(raw.can_generate_report) ?? asBoolean(raw.canGenerateReport) ?? features.report ?? accessGranted;
   const canViewReports = asBoolean(raw.can_view_reports) ?? asBoolean(raw.canViewReports) ?? canGenerateReport;
   const canDownloadPdf = asBoolean(raw.can_download_pdf) ?? asBoolean(raw.canDownloadPdf) ?? canGenerateReport;
-  const canAccessDashboard = asBoolean(raw.can_access_dashboard) ?? asBoolean(raw.canAccessDashboard) ?? features.app ?? isActive;
+  const canAccessDashboard = asBoolean(raw.can_access_dashboard) ?? asBoolean(raw.canAccessDashboard) ?? features.app ?? accessGranted;
   const reportsRemainingThisPeriod =
     asNullableNumber(raw.reports_remaining_this_period) ?? asNullableNumber(raw.reportsRemainingThisPeriod) ?? null;
   const reportsGeneratedThisPeriod =
@@ -282,9 +318,14 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
   };
 
   return {
-    planTier,
-    isActive,
-    source,
+    effectivePlanTier,
+    entitlementSource,
+    accessGranted,
+    accessReasonCode,
+    billingRequired,
+    planTier: effectivePlanTier,
+    isActive: accessGranted,
+    source: entitlementSource,
     status,
     canUpload,
     canGenerateReport,
@@ -295,10 +336,15 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
     reportsGeneratedThisPeriod,
     monthlyReportLimit,
     portalUrl,
-    plan: planTier,
-    plan_tier: planTier,
-    entitled: isActive,
-    is_active: isActive,
+    effective_plan_tier: effectivePlanTier,
+    entitlement_source: entitlementSource,
+    access_granted: accessGranted,
+    access_reason_code: accessReasonCode,
+    billing_required: billingRequired,
+    plan: effectivePlanTier,
+    plan_tier: effectivePlanTier,
+    entitled: accessGranted,
+    is_active: accessGranted,
     features: legacyFeatures,
     portal_url: portalUrl,
   };
@@ -324,7 +370,7 @@ export async function fetchEntitlements(options?: { forceRefresh?: boolean }): P
   }
 
   inFlightEntitlements = (async () => {
-    const body = await apiFetchJson<EntitlementsResponseSchema | Record<string, unknown>>("entitlements.fetch", "/v1/entitlements", {
+    const body = await apiFetchJson<EntitlementsResponseSchema | Record<string, unknown>>("entitlements.fetch", CANONICAL_ENTITLEMENTS_PATH, {
       method: "GET",
     });
     const value = normalizeEntitlements(body);
@@ -342,6 +388,10 @@ export async function fetchEntitlements(options?: { forceRefresh?: boolean }): P
   }
 }
 
+export async function fetchCanonicalEntitlementSnapshot(options?: { forceRefresh?: boolean }): Promise<EntitlementsResponse> {
+  return fetchEntitlements(options);
+}
+
 function isBillingStatusFresh(fetchedAt: number): boolean {
   return Date.now() - fetchedAt < BILLING_STATUS_TTL_MS;
 }
@@ -357,6 +407,11 @@ function normalizeBillingStatus(value: Record<string, unknown>): BillingStatusRe
   const cancelAtPeriodEnd = asBoolean(value.cancel_at_period_end) ?? asBoolean(value.cancelAtPeriodEnd) ?? null;
 
   return {
+    effectivePlanTier: entitlements.effectivePlanTier,
+    entitlementSource: entitlements.entitlementSource,
+    accessGranted: entitlements.accessGranted,
+    accessReasonCode: entitlements.accessReasonCode,
+    billingRequired: entitlements.billingRequired,
     planTier: entitlements.planTier,
     isActive: entitlements.isActive,
     source: entitlements.source,
@@ -367,6 +422,11 @@ function normalizeBillingStatus(value: Record<string, unknown>): BillingStatusRe
     currentPeriodEnd,
     cancelAtPeriodEnd,
     portalUrl: entitlements.portalUrl,
+    effective_plan_tier: entitlements.effective_plan_tier,
+    entitlement_source: entitlements.entitlement_source,
+    access_granted: entitlements.access_granted,
+    access_reason_code: entitlements.access_reason_code,
+    billing_required: entitlements.billing_required,
     plan: entitlements.plan,
     plan_tier: entitlements.plan_tier,
     entitled: entitlements.entitled,

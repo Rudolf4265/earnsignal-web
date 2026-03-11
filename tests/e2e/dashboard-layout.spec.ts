@@ -255,6 +255,11 @@ test.describe("Dashboard layout redesign", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
+          effective_plan_tier: "plan_b",
+          entitlement_source: "stripe",
+          access_granted: true,
+          access_reason_code: "ACTIVE_SUBSCRIPTION",
+          billing_required: false,
           plan: "plan_b",
           plan_tier: "plan_b",
           status: "active",
@@ -308,6 +313,11 @@ test.describe("Dashboard layout redesign", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
+          effective_plan_tier: "plan_b",
+          entitlement_source: "stripe",
+          access_granted: true,
+          access_reason_code: "ACTIVE_SUBSCRIPTION",
+          billing_required: false,
           plan: "plan_b",
           plan_tier: "plan_b",
           status: "active",
@@ -350,5 +360,64 @@ test.describe("Dashboard layout redesign", () => {
 
     const html = await page.content();
     expect(html.includes(basicRecommendationToken)).toBe(false);
+  });
+
+  test("grant and revoke transitions update dashboard premium cards after page refresh", async ({ page }) => {
+    const premiumRecommendation = "GRANT_REVOKE_RECOMMENDATION_TOKEN_001";
+    let granted = false;
+
+    await page.unroute("**/v1/entitlements");
+    await page.route("**/v1/entitlements", async (route) => {
+      const payload = granted
+        ? {
+            effective_plan_tier: "pro",
+            entitlement_source: "admin_override",
+            access_granted: true,
+            access_reason_code: "ADMIN_OVERRIDE",
+            billing_required: false,
+            can_upload: true,
+            can_generate_report: true,
+            can_view_reports: true,
+            can_download_pdf: true,
+            can_access_dashboard: true,
+          }
+        : {
+            effective_plan_tier: "none",
+            entitlement_source: "none",
+            access_granted: false,
+            access_reason_code: "ENTITLEMENT_REQUIRED",
+            billing_required: true,
+            can_upload: true,
+            can_generate_report: false,
+            can_view_reports: true,
+            can_download_pdf: false,
+            can_access_dashboard: true,
+          };
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(payload),
+      });
+    });
+
+    await stubDashboardDataWithRecommendations(page, {
+      reportId: "rep_dashboard_grant_revoke",
+      recommendedActions: [premiumRecommendation],
+    });
+
+    await page.goto("/app");
+    await expect(page.getByTestId("dashboard-action-cards-locked")).toBeVisible();
+    await expect(page.getByText(premiumRecommendation)).toHaveCount(0);
+
+    granted = true;
+    await page.reload();
+    await expect(page.getByTestId("dashboard-action-cards-unlocked")).toBeVisible();
+    await expect(page.getByText(premiumRecommendation)).toBeVisible();
+
+    granted = false;
+    await page.reload();
+    await expect(page.getByTestId("dashboard-action-cards-locked")).toBeVisible();
+    await expect(page.getByText(premiumRecommendation)).toHaveCount(0);
   });
 });

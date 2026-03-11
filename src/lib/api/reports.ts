@@ -1,4 +1,4 @@
-import { ApiError, apiFetchBlobWithMeta, apiFetchJson, getApiBaseOrigin, getApiBaseUrl } from "./client";
+import { ApiError, apiFetchBlobWithMeta, apiFetchJson, getApiBaseOrigin, getApiBaseUrl, isEntitlementRequiredError } from "./client";
 import { normalizeReportDetail, type ReportDetail } from "../report/normalize-report-detail";
 import { normalizeReportsListResponse, type ReportListItem, type ReportListResult } from "../report/list-model";
 import { normalizeReportId } from "../report/id";
@@ -325,6 +325,10 @@ export async function downloadReportArtifactPdf(report: Pick<ReportListItem, "re
 }
 
 export function getReportErrorMessage(error: unknown): string {
+  if (isEntitlementRequiredError(error)) {
+    return "This action requires an active paid entitlement. Continue in Billing to upgrade or restore access.";
+  }
+
   if (error instanceof ApiError) {
     return error.message;
   }

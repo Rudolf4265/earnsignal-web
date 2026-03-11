@@ -1,6 +1,7 @@
 import type { EntitlementsResponse } from "../api/entitlements";
 import { isProPlan } from "../dashboard/action-cards";
 import type { AppGateState } from "../gating/app-gate";
+import { hasProEquivalentEntitlement } from "../entitlements/model";
 
 export type ReportDetailProSectionMode = "pro-unlocked" | "pro-locked" | "loading-safe";
 export type ReportDetailPdfAccessMode = ReportDetailProSectionMode;
@@ -29,7 +30,7 @@ function resolveProSectionMode(gateState: AppGateState, entitlements: Entitlemen
     return "loading-safe";
   }
 
-  return entitlements.isActive && isProPlan(entitlements) ? "pro-unlocked" : "pro-locked";
+  return hasProEquivalentEntitlement(entitlements) || isProPlan(entitlements) ? "pro-unlocked" : "pro-locked";
 }
 
 export function buildReportDetailSectionGatingModel(input: BuildReportDetailSectionGatingInput): ReportDetailSectionGatingModel {

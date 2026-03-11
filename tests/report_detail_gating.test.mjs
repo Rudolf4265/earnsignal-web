@@ -13,6 +13,11 @@ async function loadModule(seed = Date.now()) {
 
 function createEntitlements(overrides = {}) {
   return {
+    effectivePlanTier: "basic",
+    entitlementSource: "stripe",
+    accessGranted: true,
+    accessReasonCode: "ACTIVE_SUBSCRIPTION",
+    billingRequired: false,
     plan: "basic",
     plan_tier: "basic",
     planTier: "basic",
@@ -38,7 +43,8 @@ test("report detail gating centralizes Pro-tier resolution through canonical hel
   const source = await readFile(reportDetailGatingPath, "utf8");
 
   assert.equal(source.includes('import { isProPlan } from "../dashboard/action-cards";'), true);
-  assert.equal(source.includes('return entitlements.isActive && isProPlan(entitlements) ? "pro-unlocked" : "pro-locked";'), true);
+  assert.equal(source.includes('import { hasProEquivalentEntitlement } from "../entitlements/model";'), true);
+  assert.equal(source.includes('return hasProEquivalentEntitlement(entitlements) || isProPlan(entitlements) ? "pro-unlocked" : "pro-locked";'), true);
 });
 
 test("report detail gating defines loading-safe handling for unresolved entitlement states", async () => {
@@ -66,7 +72,7 @@ test("report detail PDF access mode unlocks only for Pro entitlements", async ()
 
   const mode = resolveReportDetailPdfAccessMode({
     gateState: "authed_entitled",
-    entitlements: createEntitlements({ plan: "pro", plan_tier: "pro", planTier: "pro", isActive: true }),
+    entitlements: createEntitlements({ effectivePlanTier: "pro", plan: "pro", plan_tier: "pro", planTier: "pro", isActive: true }),
   });
 
   assert.equal(mode, "pro-unlocked");
@@ -78,7 +84,7 @@ test("report detail PDF access mode locks Basic users", async () => {
 
   const mode = resolveReportDetailPdfAccessMode({
     gateState: "authed_entitled",
-    entitlements: createEntitlements({ plan: "basic", plan_tier: "basic", planTier: "basic", isActive: true }),
+    entitlements: createEntitlements({ effectivePlanTier: "basic", plan: "basic", plan_tier: "basic", planTier: "basic", isActive: true }),
   });
 
   assert.equal(mode, "pro-locked");
@@ -95,4 +101,23 @@ test("report detail PDF access mode is loading-safe while entitlements resolve",
 
   assert.equal(mode, "loading-safe");
   assert.equal(canAccessFullReportPdf(mode), false);
+});
+
+test("report detail PDF access mode unlocks founder paid-equivalent state", async () => {
+  const { resolveReportDetailPdfAccessMode, canAccessFullReportPdf } = await loadModule(Date.now() + 13);
+
+  const mode = resolveReportDetailPdfAccessMode({
+    gateState: "authed_entitled",
+    entitlements: createEntitlements({
+      effectivePlanTier: "founder_creator_report",
+      plan: "founder_creator_report",
+      plan_tier: "founder_creator_report",
+      planTier: "founder_creator_report",
+      canDownloadPdf: true,
+      can_download_pdf: true,
+    }),
+  });
+
+  assert.equal(mode, "pro-unlocked");
+  assert.equal(canAccessFullReportPdf(mode), true);
 });

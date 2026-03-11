@@ -3,6 +3,11 @@
   "code": "OK",
   "message": "Entitlements loaded.",
   "details": {
+    "effective_plan_tier": "none",
+    "entitlement_source": "none",
+    "access_granted": false,
+    "access_reason_code": "ENTITLEMENT_REQUIRED",
+    "billing_required": true,
     "plan": null,
     "plan_tier": "none",
     "status": "inactive",

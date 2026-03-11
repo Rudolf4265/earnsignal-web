@@ -102,6 +102,11 @@ test.describe("Route-transition stability", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
+          effective_plan_tier: "starter",
+          entitlement_source: "none",
+          access_granted: false,
+          access_reason_code: "ENTITLEMENT_REQUIRED",
+          billing_required: true,
           plan: "starter",
           plan_tier: "starter",
           status: "inactive",

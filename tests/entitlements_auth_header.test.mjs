@@ -28,7 +28,9 @@ function jsonResponse(payload) {
 async function buildEntitlementsTestModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
   const mockSpecifier = `./mocks/api-client-${tag}`;
-  const patched = source.replace('from "./client";', `from "${mockSpecifier}";`);
+  const patched = source
+    .replace('from "./client";', `from "${mockSpecifier}";`)
+    .replace('from "../entitlements/model";', 'from "../src/lib/entitlements/model";');
 
   const outDir = path.resolve(".tmp-tests");
   await mkdir(path.join(outDir, "mocks"), { recursive: true });

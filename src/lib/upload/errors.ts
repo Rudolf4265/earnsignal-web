@@ -1,3 +1,4 @@
+import { isEntitlementRequiredError } from "../api/client";
 import { isSessionExpiredError } from "../auth/isSessionExpiredError";
 
 export type UploadFailure = {
@@ -12,6 +13,16 @@ export function mapApiErrorToUploadFailure(error: unknown): UploadFailure {
   const status = typeof (error as { status?: unknown })?.status === "number" ? (error as { status: number }).status : null;
   const requestId = typeof (error as { requestId?: unknown })?.requestId === "string" ? (error as { requestId: string }).requestId : null;
   const operation = typeof (error as { operation?: unknown })?.operation === "string" ? (error as { operation: string }).operation : null;
+
+  if (isEntitlementRequiredError(error)) {
+    return {
+      reasonCode: "entitlement_required",
+      message: "Report generation requires an active paid entitlement. Continue in Billing to upgrade access.",
+      shouldStopPolling: true,
+      requestId,
+      operation,
+    };
+  }
 
   if (isSessionExpiredError(error, { hasAuthContext: true })) {
     return {

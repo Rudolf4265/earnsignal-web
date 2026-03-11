@@ -3,10 +3,11 @@
 ## PR2 scope
 
 - Frontend now treats canonical entitlements as primary:
-  - `plan_tier`, `is_active`, `source`, `status`
+  - `effective_plan_tier`, `entitlement_source`, `access_granted`, `access_reason_code`, `billing_required`
+  - compatibility aliases remain available (`plan_tier`, `plan`, `is_active`, `entitled`, `source`)
   - `can_upload`, `can_generate_report`, `can_view_reports`, `can_download_pdf`, `can_access_dashboard`
   - usage limits (`reports_remaining_this_period`, `reports_generated_this_period`, `monthly_report_limit`)
-- Legacy aliases are still supported only as fallback compatibility (`plan`, `entitled`, `features.*`).
+- Shared entitlement bootstrap details live in `docs/entitlements-bootstrap.md`.
 - This change does not introduce broad new app-wide gating. Existing upload/report/dashboard flows stay intact for entitled/manual users.
 
 ## Checkout initiation

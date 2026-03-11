@@ -3,6 +3,11 @@
   "code": "OK",
   "message": "Entitlements loaded.",
   "details": {
+    "effective_plan_tier": "basic",
+    "entitlement_source": "stripe",
+    "access_granted": true,
+    "access_reason_code": "ACTIVE_SUBSCRIPTION",
+    "billing_required": false,
     "plan": "plan_a",
     "plan_tier": "basic",
     "status": "active",

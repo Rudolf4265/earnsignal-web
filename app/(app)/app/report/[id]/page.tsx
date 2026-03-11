@@ -928,6 +928,16 @@ export default function ReportPage() {
         </section>
       ) : null}
 
+      {state.view === "entitlement_required" ? (
+        <section className="space-y-3" data-testid="report-entitlement-required">
+          <h1 className="text-2xl font-semibold">Upgrade required</h1>
+          <p className="text-slate-400">This report requires an active paid entitlement. Continue in Billing to unlock access.</p>
+          <Link href="/app/billing" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
+            Go to Billing
+          </Link>
+        </section>
+      ) : null}
+
       {state.view === "session_expired" ? <SessionExpiredCallout requestId={state.requestId} /> : null}
 
       {state.view === "server_error" ? (

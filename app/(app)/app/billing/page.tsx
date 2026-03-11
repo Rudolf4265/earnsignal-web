@@ -13,6 +13,7 @@ import {
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
 import { useAppGate } from "../../_components/app-gate-provider";
+import { useEntitlementState } from "../../_components/use-entitlement-state";
 import { SessionExpiredCallout } from "../../_components/gate-callouts";
 
 const plans: Array<{ id: CheckoutPlan; label: string; summary: string; highlights: string[] }> = [
@@ -30,8 +31,8 @@ const plans: Array<{ id: CheckoutPlan; label: string; summary: string; highlight
   },
 ];
 
-const BASIC_PLAN_ALIASES = new Set(["basic", "plan_a", "founder_creator_report", "free"]);
-const PRO_PLAN_ALIASES = new Set(["pro", "plan_b", "creator_pro"]);
+const BASIC_PLAN_ALIASES = new Set(["basic", "plan_a", "free", "starter"]);
+const PRO_PLAN_ALIASES = new Set(["pro", "plan_b", "creator_pro", "founder_creator_report", "founder", "protected_paid", "paid_equivalent"]);
 
 function formatPlanLabel(planTier: string | null | undefined): string {
   const normalized = String(planTier ?? "").trim().toLowerCase();
@@ -65,6 +66,7 @@ function isCurrentPlan(planId: CheckoutPlan, planTier: string): boolean {
 
 export default function BillingPage() {
   const { state, entitlements, error, errorRequestId, requestId, actions } = useAppGate();
+  const entitlementState = useEntitlementState();
   const [isCreatingCheckout, setIsCreatingCheckout] = useState<CheckoutPlan | null>(null);
   const [checkoutError, setCheckoutError] = useState<{ message: string; requestId?: string } | null>(null);
   const [hasCheckoutMarker, setHasCheckoutMarker] = useState(() => checkoutAttemptInProgress());
@@ -145,10 +147,12 @@ export default function BillingPage() {
   };
 
   const allowCheckout = !hasCheckoutMarker && isCreatingCheckout === null;
-  const activePlanTier = billingStatus?.planTier ?? entitlements?.planTier ?? "none";
-  const activeStatus = billingStatus?.status ?? entitlements?.status ?? "inactive";
-  const isActive = (billingStatus?.isActive ?? entitlements?.isActive) === true;
-  const source = entitlements?.source ?? billingStatus?.source ?? null;
+  const activePlanTier = billingStatus?.effectivePlanTier ?? entitlementState.effectivePlanTier;
+  const activeStatus = billingStatus?.status ?? (entitlementState.accessGranted ? "active" : "inactive");
+  const isActive = (billingStatus?.accessGranted ?? entitlementState.accessGranted) === true;
+  const source = billingStatus?.entitlementSource ?? entitlementState.entitlementSource ?? entitlements?.source ?? null;
+  const accessReasonCode = billingStatus?.accessReasonCode ?? entitlementState.accessReasonCode;
+  const billingRequired = (billingStatus?.billingRequired ?? entitlementState.billingRequired) === true;
   const portalUrl = billingStatus?.portalUrl ?? entitlements?.portalUrl ?? entitlements?.portal_url;
   const usageSummary = useMemo(() => {
     const generated = entitlements?.reportsGeneratedThisPeriod;
@@ -189,6 +193,8 @@ export default function BillingPage() {
           Feature access: {isActive ? "Active" : "Limited until subscription is active"}
           {source ? ` (${source})` : ""}
         </p>
+        {!isActive && billingRequired ? <p className="mt-1 text-xs text-amber-700">Billing action is required to restore premium access.</p> : null}
+        {!isActive && accessReasonCode ? <p className="mt-1 text-xs text-slate-600">{`Access reason: ${accessReasonCode}`}</p> : null}
         {usageSummary ? <p className="mt-1 text-xs text-slate-600">{usageSummary}</p> : null}
 
         {error ? (
@@ -197,7 +203,7 @@ export default function BillingPage() {
             title="Could not refresh entitlements"
             message={error}
             requestId={errorRequestId}
-            onRetry={() => void actions.refreshEntitlements({ forceRefresh: true })}
+            onRetry={() => void entitlementState.refresh()}
           />
         ) : null}
 

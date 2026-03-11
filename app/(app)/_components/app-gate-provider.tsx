@@ -53,7 +53,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
 
   const loadEntitlements = useCallback(async (options?: { forceRefresh?: boolean }) => {
     const forceRefresh = options?.forceRefresh ?? false;
-    if (!forceRefresh && entitlementsInFlightRef.current) {
+    if (entitlementsInFlightRef.current) {
       return entitlementsInFlightRef.current;
     }
 
@@ -75,7 +75,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
           return nextEntitlements;
         }
 
-        setEntitlementsState({ status: nextEntitlements.isActive ? "entitled" : "unentitled", entitlements: nextEntitlements });
+        setEntitlementsState({ status: nextEntitlements.accessGranted ? "entitled" : "unentitled", entitlements: nextEntitlements });
         setError(null);
         setErrorRequestId(undefined);
         return nextEntitlements;
@@ -145,7 +145,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
         setAdminStatus("not_admin");
       });
 
-    void loadEntitlements();
+    void loadEntitlements({ forceRefresh: true });
   }, [loadEntitlements]);
 
   useEffect(() => {

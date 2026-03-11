@@ -168,11 +168,26 @@ test("report detail maps 404 to not_found", async () => {
   assert.equal(getReportViewState(error), "not_found");
 });
 
-test("report detail maps 403 to session_expired", async () => {
+test("report detail maps 403 FORBIDDEN to forbidden", async () => {
   const { ApiError, getReportViewState } = await loadModules(Date.now() + 3);
   const error = new ApiError({ status: 403, code: "FORBIDDEN", message: "denied", operation: "report.fetch", path: "/v1/reports/1", method: "GET" });
 
-  assert.equal(getReportViewState(error), "session_expired");
+  assert.equal(getReportViewState(error), "forbidden");
+});
+
+test("report detail maps ENTITLEMENT_REQUIRED to entitlement_required", async () => {
+  const { ApiError, getReportViewState } = await loadModules(Date.now() + 31);
+  const error = new ApiError({
+    status: 403,
+    code: "ENTITLEMENT_REQUIRED",
+    message: "Upgrade required",
+    operation: "report.fetch",
+    path: "/v1/reports/1",
+    method: "GET",
+    details: { access_reason_code: "ENTITLEMENT_REQUIRED", billing_required: true },
+  });
+
+  assert.equal(getReportViewState(error), "entitlement_required");
 });
 
 test("report detail maps 500 to server_error", async () => {

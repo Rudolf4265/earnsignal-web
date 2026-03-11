@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppGate } from "../_components/app-gate-provider";
+import { useEntitlementState } from "../_components/use-entitlement-state";
 import { ActionCardsSection } from "./_components/dashboard/ActionCardsSection";
 import { CreatorHealthPanel } from "./_components/dashboard/CreatorHealthPanel";
 import { InsightCardsSection } from "./_components/dashboard/InsightCardsSection";
@@ -273,6 +274,7 @@ function toPlanBadgeVariant(status: string | null, entitled: boolean): "good" | 
 
 export default function DashboardPage() {
   const { state: gateState, entitlements, isLoading: authLoading } = useAppGate();
+  const entitlementState = useEntitlementState();
   const [state, setState] = useState<DashboardState>(() => getInitialDashboardState());
   const [refreshNonce, setRefreshNonce] = useState(0);
   const latestReportHref = useMemo(() => buildReportDetailPathOrIndex(state.latestReportRow?.id), [state.latestReportRow?.id]);
@@ -357,9 +359,9 @@ export default function DashboardPage() {
     [state.latestArtifact],
   );
 
-  const planTier = entitlements?.planTier ?? "none";
+  const planTier = entitlementState.effectivePlanTier;
   const planStatus = entitlements?.status ?? "inactive";
-  const entitled = entitlements?.isActive === true;
+  const entitled = entitlementState.accessGranted;
 
   const primaryCta = useMemo(
     () =>

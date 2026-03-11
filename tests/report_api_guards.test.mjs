@@ -65,3 +65,26 @@ test("buildReportArtifactPdfUrl rejects invalid report id when artifact url is m
     },
   );
 });
+
+test("getReportErrorMessage maps canonical ENTITLEMENT_REQUIRED to upgrade guidance", async () => {
+  const clientModuleUrl = pathToFileURL(path.resolve("src/lib/api/client.ts")).href;
+  const [{ ApiError }, { getReportErrorMessage }] = await Promise.all([
+    import(`${clientModuleUrl}?t=${Date.now()}-api`),
+    loadReportsModule(Date.now() + 3),
+  ]);
+
+  const error = new ApiError({
+    status: 403,
+    code: "ENTITLEMENT_REQUIRED",
+    message: "Forbidden",
+    operation: "report.artifact",
+    path: "/v1/reports/rep_1/artifact",
+    method: "GET",
+    details: { access_reason_code: "ENTITLEMENT_REQUIRED", billing_required: true },
+  });
+
+  assert.equal(
+    getReportErrorMessage(error),
+    "This action requires an active paid entitlement. Continue in Billing to upgrade or restore access.",
+  );
+});

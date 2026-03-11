@@ -22,6 +22,16 @@ export type CheckoutSessionResponseSchema = SchemaOrFallback<
 export type EntitlementsResponseSchema = SchemaOrFallback<
   "EntitlementsResponse",
   {
+    effective_plan_tier?: string | null;
+    effectivePlanTier?: string | null;
+    entitlement_source?: string | null;
+    entitlementSource?: string | null;
+    access_granted?: boolean;
+    accessGranted?: boolean;
+    access_reason_code?: string | null;
+    accessReasonCode?: string | null;
+    billing_required?: boolean;
+    billingRequired?: boolean;
     plan?: string | null;
     plan_tier?: string | null;
     status?: string | null;

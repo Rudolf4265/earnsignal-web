@@ -7,6 +7,11 @@ async function stubBillingStatus(page, overrides: Record<string, unknown> = {}) 
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
+        effective_plan_tier: "basic",
+        entitlement_source: "stripe",
+        access_granted: true,
+        access_reason_code: "ACTIVE_SUBSCRIPTION",
+        billing_required: false,
         plan_tier: "basic",
         status: "active",
         source: "stripe",
@@ -129,6 +134,11 @@ test.describe("Billing flows", () => {
       const payload =
         entitlementsCalls < 2
           ? {
+              effective_plan_tier: "none",
+              entitlement_source: "none",
+              access_granted: false,
+              access_reason_code: "ENTITLEMENT_REQUIRED",
+              billing_required: true,
               plan_tier: "none",
               status: "inactive",
               is_active: false,
@@ -139,6 +149,11 @@ test.describe("Billing flows", () => {
               can_access_dashboard: true,
             }
           : {
+              effective_plan_tier: "pro",
+              entitlement_source: "stripe",
+              access_granted: true,
+              access_reason_code: "ACTIVE_SUBSCRIPTION",
+              billing_required: false,
               plan_tier: "pro",
               status: "active",
               is_active: true,
@@ -160,12 +175,36 @@ test.describe("Billing flows", () => {
   });
 
   test("cancel return shows non-destructive state", async ({ page }) => {
-    await stubEntitlements(page, "unentitled");
+    let entitlementsCalls = 0;
+    await page.unroute("**/v1/entitlements");
+    await page.route("**/v1/entitlements", async (route) => {
+      entitlementsCalls += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          effective_plan_tier: "none",
+          entitlement_source: "none",
+          access_granted: false,
+          access_reason_code: "ENTITLEMENT_REQUIRED",
+          billing_required: true,
+          plan_tier: "none",
+          status: "inactive",
+          is_active: false,
+          can_upload: true,
+          can_generate_report: false,
+          can_view_reports: true,
+          can_download_pdf: false,
+          can_access_dashboard: true,
+        }),
+      });
+    });
     await stubBillingStatus(page, { plan_tier: "none", status: "inactive", is_active: false });
 
     await page.goto("/app/billing/cancel");
 
     await expect(page.getByText("Checkout canceled")).toBeVisible();
     await expect(page.getByRole("link", { name: "Back to billing" })).toBeVisible();
+    await expect.poll(() => entitlementsCalls).toBeGreaterThan(0);
   });
 });

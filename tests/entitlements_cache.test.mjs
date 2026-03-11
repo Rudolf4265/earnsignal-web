@@ -28,7 +28,9 @@ function jsonResponse(payload, status = 200) {
 async function buildEntitlementsTestModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
   const mockSpecifier = `./mocks/api-client-${tag}`;
-  const patched = source.replace('from "./client";', `from "${mockSpecifier}";`);
+  const patched = source
+    .replace('from "./client";', `from "${mockSpecifier}";`)
+    .replace('from "../entitlements/model";', 'from "../src/lib/entitlements/model";');
   const outDir = path.resolve(".tmp-tests");
   await mkdir(path.join(outDir, "mocks"), { recursive: true });
 
@@ -70,9 +72,11 @@ test("fetchEntitlements caches response in memory and sessionStorage", async () 
 
   assert.equal(fetchCalls, 1);
   assert.equal(first.planTier, "basic");
+  assert.equal(first.effectivePlanTier, "basic");
   assert.equal(first.plan_tier, "basic");
   assert.equal(first.plan, "basic");
   assert.equal(first.isActive, true);
+  assert.equal(first.accessGranted, true);
   assert.equal(first.canUpload, true);
   assert.equal(second.entitled, true);
 
@@ -81,16 +85,20 @@ test("fetchEntitlements caches response in memory and sessionStorage", async () 
   delete global.fetch;
 });
 
-test("fetchEntitlements prefers canonical plan_tier and is_active while preserving legacy fallback", async () => {
+test("fetchEntitlements prefers canonical effective_plan_tier and access_granted while preserving legacy fallback", async () => {
   global.window = createWindow();
   global.fetch = async () =>
     jsonResponse({
+      effective_plan_tier: "pro",
+      entitlement_source: "stripe",
+      access_granted: true,
+      access_reason_code: "ACTIVE_SUBSCRIPTION",
+      billing_required: false,
       plan: "plan_a",
-      plan_tier: "pro",
+      plan_tier: "basic",
       status: "inactive",
       entitled: false,
-      is_active: true,
-      source: "stripe",
+      is_active: false,
       can_upload: false,
       can_generate_report: true,
       can_view_reports: true,
@@ -108,10 +116,14 @@ test("fetchEntitlements prefers canonical plan_tier and is_active while preservi
   const value = await fetchEntitlements({ forceRefresh: true });
 
   assert.equal(value.planTier, "pro");
+  assert.equal(value.effectivePlanTier, "pro");
   assert.equal(value.plan_tier, "pro");
   assert.equal(value.plan, "pro");
   assert.equal(value.isActive, true);
+  assert.equal(value.accessGranted, true);
   assert.equal(value.entitled, true);
+  assert.equal(value.accessReasonCode, "ACTIVE_SUBSCRIPTION");
+  assert.equal(value.billingRequired, false);
   assert.equal(value.source, "stripe");
   assert.equal(value.canUpload, false);
   assert.equal(value.canGenerateReport, true);
@@ -141,9 +153,11 @@ test("fetchEntitlements defaults plan tier to none when backend omits both canon
   const value = await fetchEntitlements({ forceRefresh: true });
 
   assert.equal(value.planTier, "none");
+  assert.equal(value.effectivePlanTier, "none");
   assert.equal(value.plan_tier, "none");
   assert.equal(value.plan, "none");
   assert.equal(value.isActive, false);
+  assert.equal(value.accessGranted, false);
   assert.equal(value.canUpload, true);
   assert.equal(value.canGenerateReport, false);
   assert.equal(value.canAccessDashboard, true);

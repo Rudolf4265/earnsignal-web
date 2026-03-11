@@ -186,6 +186,29 @@ test.describe("Report detail route", () => {
     await expect(page.getByRole("link", { name: "Back to Dashboard" })).toBeVisible();
   });
 
+  test("renders upgrade state on canonical ENTITLEMENT_REQUIRED denial", async ({ page }) => {
+    await page.route("**/v1/reports/rep_entitlement_required", async (route) => {
+      await route.fulfill({
+        status: 403,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "error",
+          code: "ENTITLEMENT_REQUIRED",
+          message: "Upgrade required",
+          details: {
+            access_reason_code: "ENTITLEMENT_REQUIRED",
+            billing_required: true,
+          },
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_entitlement_required");
+
+    await expect(page.getByTestId("report-entitlement-required")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Go to Billing" })).toBeVisible();
+  });
+
   test("never requests /v1/reports/undefined for a valid /app/report/[id] route", async ({ page }) => {
     const reportRequests = new Set<string>();
 

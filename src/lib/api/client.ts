@@ -38,6 +38,75 @@ export type ApiFetchJsonInit = Omit<RequestInit, "signal"> & {
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const INVALID_REPORT_ID_TOKENS = new Set(["undefined", "null", "nan"]);
+const ENTITLEMENT_REQUIRED_CODES = new Set([
+  "ENTITLEMENT_REQUIRED",
+  "BILLING_REQUIRED",
+  "PLAN_REQUIRED",
+  "UPGRADE_REQUIRED",
+  "PAYMENT_REQUIRED",
+]);
+
+function normalizeErrorCodeToken(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed.toUpperCase();
+}
+
+function extractNestedCodeCandidates(value: unknown): string[] {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+
+  const record = value as Record<string, unknown>;
+  const candidates = [
+    normalizeErrorCodeToken(record.code),
+    normalizeErrorCodeToken(record.reason_code),
+    normalizeErrorCodeToken(record.reasonCode),
+    normalizeErrorCodeToken(record.access_reason_code),
+    normalizeErrorCodeToken(record.accessReasonCode),
+  ].filter((candidate): candidate is string => Boolean(candidate));
+
+  return candidates;
+}
+
+function extractApiErrorCodeCandidates(error: { code?: unknown; details?: unknown }): string[] {
+  const direct = normalizeErrorCodeToken(error.code);
+  const detailCandidates = extractNestedCodeCandidates(error.details);
+  const nestedError =
+    error.details && typeof error.details === "object" && "error" in (error.details as Record<string, unknown>)
+      ? (error.details as Record<string, unknown>).error
+      : null;
+  const nestedErrorCandidates = extractNestedCodeCandidates(nestedError);
+
+  return [direct, ...detailCandidates, ...nestedErrorCandidates].filter((candidate): candidate is string => Boolean(candidate));
+}
+
+function extractBillingRequiredHint(error: { details?: unknown }): boolean {
+  if (!error.details || typeof error.details !== "object") {
+    return false;
+  }
+
+  const details = error.details as Record<string, unknown>;
+  const direct = details.billing_required;
+  const camel = details.billingRequired;
+
+  if (typeof direct === "boolean") {
+    return direct;
+  }
+
+  if (typeof camel === "boolean") {
+    return camel;
+  }
+
+  return false;
+}
 
 function normalizeBaseUrl(raw: string): string {
   return raw.replace(/\/+$/, "");
@@ -400,6 +469,24 @@ async function fetchJson<T>(
 
 export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError;
+}
+
+export function isEntitlementRequiredError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as { status?: unknown; code?: unknown; details?: unknown };
+  const codes = extractApiErrorCodeCandidates(candidate);
+  if (codes.some((code) => ENTITLEMENT_REQUIRED_CODES.has(code))) {
+    return true;
+  }
+
+  if (extractBillingRequiredHint(candidate)) {
+    return true;
+  }
+
+  return typeof candidate.status === "number" && candidate.status === 402;
 }
 
 export function getApiBaseOrigin(): string {

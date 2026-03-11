@@ -28,7 +28,9 @@ function jsonResponse(payload, status = 200) {
 async function buildEntitlementsTestModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
   const mockSpecifier = `./mocks/api-client-${tag}`;
-  const patched = source.replace('from "./client";', `from "${mockSpecifier}";`);
+  const patched = source
+    .replace('from "./client";', `from "${mockSpecifier}";`)
+    .replace('from "../entitlements/model";', 'from "../src/lib/entitlements/model";');
   const outDir = path.resolve(".tmp-tests");
   await mkdir(path.join(outDir, "mocks"), { recursive: true });
 
@@ -59,6 +61,11 @@ test("fetchBillingStatus maps canonical response fields and caches result", asyn
   global.fetch = async (url) => {
     calls.push(String(url));
     return jsonResponse({
+      effective_plan_tier: "pro",
+      entitlement_source: "stripe",
+      access_granted: true,
+      access_reason_code: "ACTIVE_SUBSCRIPTION",
+      billing_required: false,
       plan_tier: "pro",
       status: "active",
       source: "stripe",
@@ -78,6 +85,8 @@ test("fetchBillingStatus maps canonical response fields and caches result", asyn
   const second = await fetchBillingStatus();
 
   assert.equal(calls.length, 1);
+  assert.equal(first.effectivePlanTier, "pro");
+  assert.equal(first.accessGranted, true);
   assert.equal(first.planTier, "pro");
   assert.equal(first.status, "active");
   assert.equal(first.isActive, true);
@@ -113,9 +122,11 @@ test("fetchBillingStatus falls back to legacy aliases when canonical fields are 
   const value = await fetchBillingStatus({ forceRefresh: true });
 
   assert.equal(value.planTier, "basic");
+  assert.equal(value.effectivePlanTier, "basic");
   assert.equal(value.plan_tier, "basic");
   assert.equal(value.entitled, true);
   assert.equal(value.isActive, true);
+  assert.equal(value.accessGranted, true);
   assert.equal(value.portalUrl, "https://stripe.test/portal-legacy");
   assert.equal(value.currentPeriodEnd, "2026-04-02T00:00:00Z");
   assert.equal(value.cancelAtPeriodEnd, true);

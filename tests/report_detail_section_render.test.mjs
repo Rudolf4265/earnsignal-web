@@ -98,3 +98,11 @@ test("report detail preserves Pro artifact-missing PDF unavailable state", async
   assert.equal(source.includes('pdfAccessMode === "pro-unlocked" ? ('), true);
   assert.equal(source.includes("PDF unavailable"), true);
 });
+
+test("report detail gates raw artifact debug payload behind Pro access", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8");
+
+  assert.equal(source.includes("canAccessFullPdf ? ("), true);
+  assert.equal(source.includes('data-testid="report-debug-accordion"'), true);
+  assert.equal(source.includes("Debug payload view is available with Pro access."), true);
+});

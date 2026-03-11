@@ -863,34 +863,38 @@ export default function ReportPage() {
                 <p className="text-sm text-brand-text-secondary">No appendix sections were provided in this report artifact.</p>
               )}
 
-              <details
-                data-testid="report-debug-accordion"
-                className="mt-4 rounded-2xl border border-brand-border/70 bg-brand-bg-elevated/72 p-4"
-                onToggle={(event) => setDebugOpen(event.currentTarget.open)}
-              >
-                <summary className="cursor-pointer text-sm font-semibold text-brand-text-primary">Debug + Raw JSON</summary>
-                <div className="mt-3 space-y-3">
-                  {state.artifactWarnings.length > 0 ? (
-                    <div className="rounded-xl border border-amber-300/40 bg-amber-500/[0.08] p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-100">Normalization warnings</p>
-                      <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-amber-100">
-                        {state.artifactWarnings.map((warning) => (
-                          <li key={warning}>{warning}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {state.artifactRaw && debugJson ? (
-                    <pre data-testid="report-debug-json" className="overflow-x-auto rounded-xl border border-brand-border bg-slate-950 p-3 text-xs text-slate-100">
-                      {debugJson}
-                    </pre>
-                  ) : state.artifactRaw ? (
-                    <p className="text-xs text-brand-text-muted">Expand Debug to render artifact JSON.</p>
-                  ) : (
-                    <p className="text-xs text-brand-text-muted">Artifact JSON is unavailable.</p>
-                  )}
-                </div>
-              </details>
+              {canAccessFullPdf ? (
+                <details
+                  data-testid="report-debug-accordion"
+                  className="mt-4 rounded-2xl border border-brand-border/70 bg-brand-bg-elevated/72 p-4"
+                  onToggle={(event) => setDebugOpen(event.currentTarget.open)}
+                >
+                  <summary className="cursor-pointer text-sm font-semibold text-brand-text-primary">Debug + Raw JSON</summary>
+                  <div className="mt-3 space-y-3">
+                    {state.artifactWarnings.length > 0 ? (
+                      <div className="rounded-xl border border-amber-300/40 bg-amber-500/[0.08] p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-100">Normalization warnings</p>
+                        <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-amber-100">
+                          {state.artifactWarnings.map((warning) => (
+                            <li key={warning}>{warning}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    {state.artifactRaw && debugJson ? (
+                      <pre data-testid="report-debug-json" className="overflow-x-auto rounded-xl border border-brand-border bg-slate-950 p-3 text-xs text-slate-100">
+                        {debugJson}
+                      </pre>
+                    ) : state.artifactRaw ? (
+                      <p className="text-xs text-brand-text-muted">Expand Debug to render artifact JSON.</p>
+                    ) : (
+                      <p className="text-xs text-brand-text-muted">Artifact JSON is unavailable.</p>
+                    )}
+                  </div>
+                </details>
+              ) : (
+                <p className="mt-4 text-xs text-brand-text-muted">Debug payload view is available with Pro access.</p>
+              )}
             </PanelCard>
           </section>
         </section>

@@ -188,3 +188,37 @@ test("fetchEntitlements force refresh bypasses cache", async () => {
   delete global.window;
   delete global.fetch;
 });
+
+test("fetchEntitlements fail-closes contradictory payloads where canonical access is revoked", async () => {
+  global.window = createWindow();
+  global.fetch = async () =>
+    jsonResponse({
+      effective_plan_tier: "none",
+      access_granted: false,
+      access_reason_code: "OVERRIDE_REVOKED",
+      billing_required: true,
+      plan_tier: "pro",
+      plan: "pro",
+      entitled: true,
+      is_active: true,
+      can_generate_report: true,
+      can_download_pdf: true,
+    });
+
+  const moduleUrl = await buildEntitlementsTestModule(`canonical-deny-${Date.now()}`);
+  const { fetchEntitlements, resetEntitlementsCache } = await import(moduleUrl);
+  const value = await fetchEntitlements({ forceRefresh: true });
+
+  assert.equal(value.planTier, "none");
+  assert.equal(value.effectivePlanTier, "none");
+  assert.equal(value.accessGranted, false);
+  assert.equal(value.entitled, false);
+  assert.equal(value.isActive, false);
+  assert.equal(value.canGenerateReport, false);
+  assert.equal(value.canDownloadPdf, false);
+  assert.equal(value.billingRequired, true);
+
+  resetEntitlementsCache();
+  delete global.window;
+  delete global.fetch;
+});

@@ -42,9 +42,8 @@ function createEntitlements(overrides = {}) {
 test("report detail gating centralizes Pro-tier resolution through canonical helper", async () => {
   const source = await readFile(reportDetailGatingPath, "utf8");
 
-  assert.equal(source.includes('import { isProPlan } from "../dashboard/action-cards";'), true);
   assert.equal(source.includes('import { hasProEquivalentEntitlement } from "../entitlements/model";'), true);
-  assert.equal(source.includes('return hasProEquivalentEntitlement(entitlements) || isProPlan(entitlements) ? "pro-unlocked" : "pro-locked";'), true);
+  assert.equal(source.includes('return hasProEquivalentEntitlement(entitlements) ? "pro-unlocked" : "pro-locked";'), true);
 });
 
 test("report detail gating defines loading-safe handling for unresolved entitlement states", async () => {

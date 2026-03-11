@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { fetchEntitlements, type EntitlementsResponse } from "@/src/lib/api/entitlements";
-import { checkIsAdmin } from "@/src/lib/admin/access";
+import { fetchAdminWhoAmI } from "@/src/lib/api/admin";
 import { createBrowserSupabaseClient } from "@/src/lib/supabase/client";
 import { getSession, onAuthStateChange } from "@/src/lib/supabase/session";
 import {
@@ -131,12 +131,12 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
     adminCheckRef.current = checkId;
     setAdminStatus("unknown");
 
-    void checkIsAdmin()
-      .then((allowed) => {
+    void fetchAdminWhoAmI({ forceRefresh: true })
+      .then((result) => {
         if (adminCheckRef.current !== checkId) {
           return;
         }
-        setAdminStatus(allowed ? "admin" : "not_admin");
+        setAdminStatus(result.isAdmin ? "admin" : "not_admin");
       })
       .catch(() => {
         if (adminCheckRef.current !== checkId) {

@@ -5,6 +5,7 @@ import type {
   EntitlementsResponseSchema,
 } from "./generated";
 import {
+  canDownloadPdfFromEntitlement,
   resolveBillingRequired,
   resolveEffectivePlanTier,
   resolveEntitlementSource,
@@ -295,9 +296,20 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
       access_reason_code: accessReasonCode,
     });
   const canUpload = asBoolean(raw.can_upload) ?? asBoolean(raw.canUpload) ?? features.upload ?? features.app ?? accessGranted;
-  const canGenerateReport = asBoolean(raw.can_generate_report) ?? asBoolean(raw.canGenerateReport) ?? features.report ?? accessGranted;
-  const canViewReports = asBoolean(raw.can_view_reports) ?? asBoolean(raw.canViewReports) ?? canGenerateReport;
-  const canDownloadPdf = asBoolean(raw.can_download_pdf) ?? asBoolean(raw.canDownloadPdf) ?? canGenerateReport;
+  const resolvedCanGenerateReport = asBoolean(raw.can_generate_report) ?? asBoolean(raw.canGenerateReport) ?? features.report ?? accessGranted;
+  const canGenerateReport = accessGranted ? resolvedCanGenerateReport : false;
+  const resolvedCanViewReports = asBoolean(raw.can_view_reports) ?? asBoolean(raw.canViewReports) ?? canGenerateReport;
+  const canViewReports = accessGranted ? resolvedCanViewReports : false;
+  const resolvedCanDownloadPdf =
+    asBoolean(raw.can_download_pdf) ??
+    asBoolean(raw.canDownloadPdf) ??
+    canDownloadPdfFromEntitlement({
+      effective_plan_tier: effectivePlanTier,
+      entitlement_source: entitlementSource,
+      access_granted: accessGranted,
+      access_reason_code: accessReasonCode,
+    });
+  const canDownloadPdf = accessGranted ? resolvedCanDownloadPdf : false;
   const canAccessDashboard = asBoolean(raw.can_access_dashboard) ?? asBoolean(raw.canAccessDashboard) ?? features.app ?? accessGranted;
   const reportsRemainingThisPeriod =
     asNullableNumber(raw.reports_remaining_this_period) ?? asNullableNumber(raw.reportsRemainingThisPeriod) ?? null;

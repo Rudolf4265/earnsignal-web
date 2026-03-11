@@ -7,6 +7,7 @@ import { EmptyState } from "../_components/dashboard/EmptyState";
 import { Panel } from "../_components/dashboard/Panel";
 import { SkeletonBlock } from "../../_components/ui/skeleton";
 import { FeatureGuard } from "../../_components/feature-guard";
+import { useEntitlementState } from "../../_components/use-entitlement-state";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { Button, buttonClassName } from "@/src/components/ui/button";
 import { PageHeader } from "@/src/components/ui/page-header";
@@ -49,6 +50,7 @@ function reportCountLabel(count: number): string {
 }
 
 export default function ReportsPage() {
+  const entitlementState = useEntitlementState();
   const [state, setState] = useState<ReportsState>(initialState);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -155,7 +157,7 @@ export default function ReportsPage() {
 
   const handleDownload = useCallback(
     async (row: ReportListRow) => {
-      if (!row.canDownload || !row.reportId || !row.artifactUrl || downloadingReportId) {
+      if (!row.canDownload || !entitlementState.canDownloadPdf || !row.reportId || !row.artifactUrl || downloadingReportId) {
         return;
       }
 
@@ -178,7 +180,7 @@ export default function ReportsPage() {
         setDownloadingReportId(null);
       }
     },
-    [downloadingReportId],
+    [downloadingReportId, entitlementState.canDownloadPdf],
   );
 
   return (
@@ -265,67 +267,72 @@ export default function ReportsPage() {
                   <span className="text-right">Actions</span>
                 </div>
 
-                {reportRows.map((row) => (
-                  <div
-                    key={row.id}
-                    className="grid grid-cols-[minmax(14rem,1.8fr)_9rem_minmax(15rem,1fr)] items-center border-t border-brand-border bg-brand-panel px-4 py-3 transition hover:bg-brand-panel-muted/70"
-                  >
-                    <div className="min-w-[12rem] pr-4">
-                      <p className="text-sm font-semibold text-brand-text-primary">{row.title}</p>
-                      <p className="mt-1 text-xs text-brand-text-muted">{row.createdAtLabel}</p>
-                    </div>
+                {reportRows.map((row) => {
+                  const canOfferPdfDownload = row.canDownload && entitlementState.canDownloadPdf;
+                  const downloadTooltip = row.canDownload ? "Upgrade to Pro to download PDF" : "PDF not available yet";
 
-                    <div>
-                      <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
-                    </div>
+                  return (
+                    <div
+                      key={row.id}
+                      className="grid grid-cols-[minmax(14rem,1.8fr)_9rem_minmax(15rem,1fr)] items-center border-t border-brand-border bg-brand-panel px-4 py-3 transition hover:bg-brand-panel-muted/70"
+                    >
+                      <div className="min-w-[12rem] pr-4">
+                        <p className="text-sm font-semibold text-brand-text-primary">{row.title}</p>
+                        <p className="mt-1 text-xs text-brand-text-muted">{row.createdAtLabel}</p>
+                      </div>
 
-                    <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-                      {row.canView && row.viewHref ? (
-                        <Link href={row.viewHref} className={buttonClassName({ variant: "primary", size: "sm" })}>
-                          View
-                        </Link>
-                      ) : (
-                        <span className="inline-flex rounded-full border border-amber-300/35 bg-amber-300/15 px-3 py-1.5 text-xs font-medium text-amber-100">
-                          Unavailable
-                        </span>
-                      )}
+                      <div>
+                        <Badge variant={row.statusVariant}>{row.statusLabel}</Badge>
+                      </div>
 
-                      {row.canDownload ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => void handleDownload(row)}
-                          disabled={Boolean(downloadingReportId)}
-                        >
-                          {downloadingReportId === row.reportId ? "Downloading..." : "Download PDF"}
-                        </Button>
-                      ) : (
-                        <div className="group relative">
-                          <button
+                      <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+                        {row.canView && row.viewHref ? (
+                          <Link href={row.viewHref} className={buttonClassName({ variant: "primary", size: "sm" })}>
+                            View
+                          </Link>
+                        ) : (
+                          <span className="inline-flex rounded-full border border-amber-300/35 bg-amber-300/15 px-3 py-1.5 text-xs font-medium text-amber-100">
+                            Unavailable
+                          </span>
+                        )}
+
+                        {canOfferPdfDownload ? (
+                          <Button
                             type="button"
-                            disabled
-                            className={buttonClassName({
-                              variant: "secondary",
-                              size: "sm",
-                              className: "border-brand-border text-brand-text-muted",
-                            })}
-                            aria-describedby={`report-tooltip-${row.id}`}
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => void handleDownload(row)}
+                            disabled={Boolean(downloadingReportId)}
                           >
-                            Download PDF
-                          </button>
-                          <div
-                            id={`report-tooltip-${row.id}`}
-                            role="tooltip"
-                            className="pointer-events-none absolute left-1/2 top-[calc(100%+8px)] z-10 w-max -translate-x-1/2 rounded-md border border-brand-border bg-brand-bg-elevated px-2 py-1 text-[11px] text-brand-text-secondary opacity-0 shadow-brand-card transition group-hover:opacity-100 group-focus-within:opacity-100"
-                          >
-                            PDF not available yet
+                            {downloadingReportId === row.reportId ? "Downloading..." : "Download PDF"}
+                          </Button>
+                        ) : (
+                          <div className="group relative">
+                            <button
+                              type="button"
+                              disabled
+                              className={buttonClassName({
+                                variant: "secondary",
+                                size: "sm",
+                                className: "border-brand-border text-brand-text-muted",
+                              })}
+                              aria-describedby={`report-tooltip-${row.id}`}
+                            >
+                              Download PDF
+                            </button>
+                            <div
+                              id={`report-tooltip-${row.id}`}
+                              role="tooltip"
+                              className="pointer-events-none absolute left-1/2 top-[calc(100%+8px)] z-10 w-max -translate-x-1/2 rounded-md border border-brand-border bg-brand-bg-elevated px-2 py-1 text-[11px] text-brand-text-secondary opacity-0 shadow-brand-card transition group-hover:opacity-100 group-focus-within:opacity-100"
+                            >
+                              {downloadTooltip}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {state.hasMore ? (

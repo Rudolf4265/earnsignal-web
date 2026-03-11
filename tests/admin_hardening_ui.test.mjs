@@ -32,3 +32,11 @@ test("admin pages include hardened loading and not-authorized test markers", asy
   assert.equal(listSource.includes("Admin console"), true);
   assert.equal(detailSource.includes("Admin user detail"), true);
 });
+
+test("app gate resolves admin status from canonical admin.whoami API", async () => {
+  const source = await readFile("app/(app)/_components/app-gate-provider.tsx", "utf8");
+
+  assert.equal(source.includes('import { fetchAdminWhoAmI } from "@/src/lib/api/admin";'), true);
+  assert.equal(source.includes("fetchAdminWhoAmI({ forceRefresh: true })"), true);
+  assert.equal(source.includes("checkIsAdmin"), false);
+});

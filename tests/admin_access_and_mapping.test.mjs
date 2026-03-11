@@ -86,3 +86,49 @@ test("fetchAdminUsers maps backend fields to frontend shape", async () => {
     global.window = originalWindow;
   }
 });
+
+test("fetchAdminUsers surfaces backend 403 denial for non-admin callers", async () => {
+  const originalFetch = global.fetch;
+  const originalWindow = global.window;
+
+  const sessionWindow = {
+    sessionStorage: {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    },
+  };
+
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  global.window = sessionWindow;
+  global.fetch = async () => ({
+    ok: false,
+    status: 403,
+    headers: {
+      get: (header) => (String(header).toLowerCase() === "content-type" ? "application/json" : null),
+    },
+    text: async () =>
+      JSON.stringify({
+        code: "FORBIDDEN",
+        message: "Admin role required",
+        details: { access_reason_code: "ADMIN_REQUIRED" },
+      }),
+  });
+
+  try {
+    const adminApiUrl = await buildAdminModule(`${Date.now()}-forbidden`);
+    const { fetchAdminUsers } = await import(`${adminApiUrl}?t=${Date.now()}-forbidden`);
+
+    await assert.rejects(
+      () => fetchAdminUsers(),
+      (error) => {
+        assert.equal(error instanceof Error, true);
+        assert.equal(error.message.includes("Admin role required"), true);
+        return true;
+      },
+    );
+  } finally {
+    global.fetch = originalFetch;
+    global.window = originalWindow;
+  }
+});

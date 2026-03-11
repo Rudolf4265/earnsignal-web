@@ -148,16 +148,24 @@ export function canGenerateReportFromEntitlement(entitlements: EntitlementSnapsh
     return false;
   }
 
+  if (!resolveAccessGranted(entitlements)) {
+    return false;
+  }
+
   const explicit = asBoolean(entitlements.canGenerateReport) ?? asBoolean(entitlements.can_generate_report);
   if (typeof explicit === "boolean") {
     return explicit;
   }
 
-  return resolveAccessGranted(entitlements);
+  return true;
 }
 
 export function canDownloadPdfFromEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
   if (!entitlements) {
+    return false;
+  }
+
+  if (!resolveAccessGranted(entitlements)) {
     return false;
   }
 
@@ -166,7 +174,18 @@ export function canDownloadPdfFromEntitlement(entitlements: EntitlementSnapshotL
     return explicit;
   }
 
-  return canGenerateReportFromEntitlement(entitlements);
+  const planTier = resolveEffectivePlanTier(entitlements);
+  if (isProEquivalentPlanTier(planTier)) {
+    return true;
+  }
+
+  const source = resolveEntitlementSource(entitlements);
+  if (source && OVERRIDE_SOURCES.has(source)) {
+    return true;
+  }
+
+  const reasonCode = resolveAccessReasonCode(entitlements);
+  return reasonCode ? OVERRIDE_ACCESS_REASON_CODES.has(reasonCode) : false;
 }
 
 export function isProEquivalentPlanTier(planTier: string | null | undefined): boolean {
@@ -196,4 +215,3 @@ export function hasProEquivalentEntitlement(entitlements: EntitlementSnapshotLik
   const reasonCode = resolveAccessReasonCode(entitlements);
   return reasonCode ? OVERRIDE_ACCESS_REASON_CODES.has(reasonCode) : false;
 }
-

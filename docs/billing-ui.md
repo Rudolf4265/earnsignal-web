@@ -20,6 +20,8 @@
   - `/v1/checkout`
   - fallback is only used for `404` / `405` endpoint-missing responses
 - Checkout URL is validated for HTTPS before redirect.
+- Stripe config errors are only surfaced as config banners when backend truth reports checkout is not configured (`checkout_configured=false`).
+- When backend reports checkout configured, checkout failures are shown as operational errors instead of false config warnings.
 
 ## Billing status surface
 

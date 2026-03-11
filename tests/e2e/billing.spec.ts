@@ -7,6 +7,15 @@ async function stubBillingStatus(page, overrides: Record<string, unknown> = {}) 
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
+        creator_id: "creator-billing-e2e",
+        checkout_configured: true,
+        webhook_configured: true,
+        stripe_customer_id: "cus_billing_e2e",
+        stripe_subscription_id: "sub_billing_e2e",
+        cancel_at_period_end: false,
+        current_period_start: "2026-03-01T00:00:00Z",
+        current_period_end: "2026-04-01T00:00:00Z",
+        latest_processed_event_id: "evt_billing_e2e",
         effective_plan_tier: "basic",
         entitlement_source: "stripe",
         access_granted: true,
@@ -125,6 +134,45 @@ test.describe("Billing flows", () => {
 
     await expect(page.getByTestId("billing-error-banner")).toBeVisible();
     await expect(page.getByText("Request ID: req_checkout_500")).toBeVisible();
+  });
+
+  test("config error banner appears only when backend reports checkout not configured", async ({ page }) => {
+    await stubEntitlements(page, "unentitled");
+    await stubBillingStatus(page, { checkout_configured: false, plan_tier: "none", status: "inactive", is_active: false });
+
+    await page.goto("/app/billing");
+    await expect(page.getByTestId("billing-current-plan")).toBeVisible();
+
+    await expect(page.getByTestId("billing-config-error-banner")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Choose Pro" })).toBeDisabled();
+    await expect(page.getByTestId("billing-error-banner")).toHaveCount(0);
+  });
+
+  test("checkout config banner does not appear when backend says checkout is configured", async ({ page }) => {
+    await stubEntitlements(page, "unentitled");
+    await stubBillingStatus(page, { checkout_configured: true, plan_tier: "none", status: "inactive", is_active: false });
+    await page.route("**/v1/billing/create-checkout-session", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: {
+            code: "BILLING_NOT_CONFIGURED",
+            message: "Stripe checkout is not configured.",
+            details: { missing: ["STRIPE_PRICE_ID"] },
+            request_id: "req_cfg_false_positive",
+          },
+        }),
+      });
+    });
+
+    await page.goto("/app/billing");
+    await expect(page.getByTestId("billing-current-plan")).toBeVisible();
+    await page.getByRole("button", { name: "Choose Pro" }).click();
+
+    await expect(page.getByTestId("billing-error-banner")).toBeVisible();
+    await expect(page.getByText("Request ID: req_cfg_false_positive")).toBeVisible();
+    await expect(page.getByTestId("billing-config-error-banner")).toHaveCount(0);
   });
 
   test("success return refreshes entitlements and redirects only after active state is confirmed", async ({ page }) => {

@@ -1496,10 +1496,14 @@ export interface components {
         CheckoutRequest: {
             /**
              * Plan
-             * @default starter
-             * @enum {string}
+             * @description Legacy checkout plan alias: starter|pro|plan_a|plan_b.
              */
-            plan: "starter" | "pro" | "plan_a" | "plan_b";
+            plan?: string | null;
+            /**
+             * Plan Tier
+             * @description Canonical checkout plan tier: basic|pro.
+             */
+            plan_tier?: string | null;
         };
         /** CheckoutSessionResponse */
         CheckoutSessionResponse: {

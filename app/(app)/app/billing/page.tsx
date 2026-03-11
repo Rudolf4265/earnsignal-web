@@ -11,7 +11,7 @@ import {
   type CheckoutPlan,
 } from "@/src/lib/api/entitlements";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
-import { isApiError } from "@/src/lib/api/client";
+import { ApiError, isApiError } from "@/src/lib/api/client";
 import { useAppGate } from "../../_components/app-gate-provider";
 import { useEntitlementState } from "../../_components/use-entitlement-state";
 import { SessionExpiredCallout } from "../../_components/gate-callouts";
@@ -64,11 +64,30 @@ function isCurrentPlan(planId: CheckoutPlan, planTier: string): boolean {
   return PRO_PLAN_ALIASES.has(normalized);
 }
 
+const CHECKOUT_CONFIG_ERROR_CODES = new Set(["BILLING_NOT_CONFIGURED", "BILLING_INVALID_STRIPE_PRICE_ID"]);
+
+function isCheckoutConfigError(error: unknown): error is ApiError {
+  return error instanceof ApiError && CHECKOUT_CONFIG_ERROR_CODES.has(error.code);
+}
+
+function extractMissingConfigKeys(details: unknown): string[] {
+  if (!details || typeof details !== "object" || Array.isArray(details)) {
+    return [];
+  }
+  const record = details as Record<string, unknown>;
+  const rawMissing = record.missing;
+  if (!Array.isArray(rawMissing)) {
+    return [];
+  }
+  return rawMissing.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
+
 export default function BillingPage() {
   const { state, entitlements, error, errorRequestId, requestId, actions } = useAppGate();
   const entitlementState = useEntitlementState();
   const [isCreatingCheckout, setIsCreatingCheckout] = useState<CheckoutPlan | null>(null);
   const [checkoutError, setCheckoutError] = useState<{ message: string; requestId?: string } | null>(null);
+  const [checkoutConfigError, setCheckoutConfigError] = useState<{ message: string; requestId?: string } | null>(null);
   const [hasCheckoutMarker, setHasCheckoutMarker] = useState(() => checkoutAttemptInProgress());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [billingStatus, setBillingStatus] = useState<BillingStatusResponse | null>(null);
@@ -83,6 +102,13 @@ export default function BillingPage() {
           return;
         }
         setBillingStatus(nextStatus);
+        if (!nextStatus.checkoutConfigured) {
+          setCheckoutConfigError({
+            message: "Stripe checkout is not configured for this environment.",
+          });
+        } else {
+          setCheckoutConfigError(null);
+        }
         setBillingStatusError(null);
       })
       .catch((err) => {
@@ -103,15 +129,28 @@ export default function BillingPage() {
   const handleCheckout = async (plan: CheckoutPlan) => {
     setIsCreatingCheckout(plan);
     setCheckoutError(null);
+    setCheckoutConfigError(null);
 
     try {
       const { checkout_url } = await createCheckoutSession(plan);
       window.location.assign(checkout_url);
     } catch (err) {
-      setCheckoutError({
-        message: err instanceof Error ? err.message : "Unable to start checkout.",
-        requestId: isApiError(err) ? err.requestId : undefined,
-      });
+      if (isCheckoutConfigError(err) && billingStatus?.checkoutConfigured !== true) {
+        const missingKeys = extractMissingConfigKeys(err.details);
+        const missingText = missingKeys.length > 0 ? ` Missing: ${missingKeys.join(", ")}.` : "";
+        setCheckoutConfigError({
+          message: `Stripe checkout is not configured for this environment.${missingText}`,
+          requestId: err.requestId,
+        });
+      } else {
+        setCheckoutError({
+          message: err instanceof Error ? err.message : "Unable to start checkout.",
+          requestId: isApiError(err) ? err.requestId : undefined,
+        });
+      }
+      if (billingStatus?.checkoutConfigured === true && isCheckoutConfigError(err)) {
+        setCheckoutConfigError(null);
+      }
       setIsCreatingCheckout(null);
       setHasCheckoutMarker(checkoutAttemptInProgress());
     }
@@ -128,7 +167,15 @@ export default function BillingPage() {
       ]);
 
       if (billingStatusResult.status === "fulfilled") {
-        setBillingStatus(billingStatusResult.value);
+        const nextStatus = billingStatusResult.value;
+        setBillingStatus(nextStatus);
+        if (!nextStatus.checkoutConfigured) {
+          setCheckoutConfigError({
+            message: "Stripe checkout is not configured for this environment.",
+          });
+        } else {
+          setCheckoutConfigError(null);
+        }
         setBillingStatusError(null);
       } else {
         setBillingStatusError({
@@ -146,7 +193,9 @@ export default function BillingPage() {
     }
   };
 
-  const allowCheckout = !hasCheckoutMarker && isCreatingCheckout === null;
+  const checkoutConfigured = billingStatus?.checkoutConfigured ?? true;
+  const configBlocksCheckout = checkoutConfigured === false || checkoutConfigError !== null;
+  const allowCheckout = !hasCheckoutMarker && isCreatingCheckout === null && !configBlocksCheckout;
   const activePlanTier = billingStatus?.effectivePlanTier ?? entitlementState.effectivePlanTier;
   const activeStatus = billingStatus?.status ?? (entitlementState.accessGranted ? "active" : "inactive");
   const isActive = (billingStatus?.accessGranted ?? entitlementState.accessGranted) === true;
@@ -214,6 +263,18 @@ export default function BillingPage() {
             message={billingStatusError.message}
             requestId={billingStatusError.requestId}
             onRetry={() => void refreshBillingAndEntitlements()}
+          />
+        ) : null}
+
+        {checkoutConfigError ? (
+          <ErrorBanner
+            className="mt-4"
+            data-testid="billing-config-error-banner"
+            title="Stripe checkout configuration required"
+            message={checkoutConfigError.message}
+            requestId={checkoutConfigError.requestId}
+            onRetry={() => void refreshBillingAndEntitlements()}
+            retryLabel="Refresh status"
           />
         ) : null}
 

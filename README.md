@@ -116,10 +116,10 @@ Configure Supabase Auth with:
 
 Centralized URL config lives in `src/lib/urls.ts`:
 
-- `stripeSuccessUrl` = `${appBaseUrl}/app?checkout=success`
-- `stripeCancelUrl` = `${marketingBaseUrl}/pricing?checkout=cancel`
+- `stripeSuccessUrl` = `${appBaseUrl}/app/billing/success`
+- `stripeCancelUrl` = `${appBaseUrl}/app/billing/cancel`
 
-Use these constants in Stripe checkout session creation.
+Backend checkout session creation should use these URLs for success/cancel redirects.
 
 ## OpenAPI type generation
 
@@ -172,10 +172,17 @@ CI recommendation:
 - Always run lint/type/build/test.
 - Run `api:generate:check` only when `OPENAPI_SCHEMA_URL` is provided in CI environment.
 
-Backend deploy env requirement for live checkout:
+Backend deploy env requirement for sandbox checkout:
 
-- `STRIPE_CHECKOUT_URL_PLAN_A`
-- `STRIPE_CHECKOUT_URL_PLAN_B`
+- `STRIPE_SECRET_KEY` (`sk_test_...`)
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRICE_ID` (`price_...`, never `prod_...`)
+- optional plan overrides: `STRIPE_PRICE_ID_STARTER`, `STRIPE_PRICE_ID_PRO`
+- `FRONTEND_APP_URL` (recommended)
+
+Frontend deploy env requirement:
+
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_...` for sandbox rollout)
 
 
 ## Billing entitlements troubleshooting
@@ -215,7 +222,6 @@ Backend deploy env requirement for live checkout:
 ## TODOs
 
 - Wire Supabase auth actions/forms on `/login` and `/signup`.
-- Wire Stripe checkout and use URL constants from `src/lib/urls.ts` when creating sessions.
 - Replace placeholder legal text on Privacy + Terms pages.
 
 
@@ -254,7 +260,7 @@ It excludes backend-truth specs (`truth-gate.spec.ts`, `entitlement-lifecycle.sp
 - Auth session shape is mocked in browser storage and Supabase auth endpoints are routed.
 - Critical API paths covered by stubs include:
   - `/v1/entitlements`
-  - `/v1/billing/checkout` and fallback `/v1/checkout`
+  - `/v1/billing/create-checkout-session` (canonical), then `/v1/billing/checkout` and `/v1/checkout` fallback
   - `/v1/uploads/presign`, `/v1/uploads/callback`, `/v1/uploads/:id/status`, `/v1/uploads/latest/status`
   - presigned storage `PUT` upload URL
 

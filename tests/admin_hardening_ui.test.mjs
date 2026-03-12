@@ -35,6 +35,7 @@ test("admin pages include hardened loading and not-authorized test markers", asy
   assert.equal(listSource.includes("No email on record"), true);
   assert.equal(listSource.includes("Grant access by email"), true);
   assert.equal(listSource.includes("Recent users"), true);
+  assert.equal(listSource.includes("Show archived users"), true);
   assert.equal(listSource.includes("No account found for that email."), true);
   assert.equal(listSource.includes("Grant access failed"), true);
   assert.equal(listSource.includes("AdminEntitlementSourceBadge"), true);
@@ -45,6 +46,9 @@ test("admin pages include hardened loading and not-authorized test markers", asy
   assert.equal(listSource.includes("href={`/app/admin/users/${grantResult.creatorId}`}"), true);
   assert.equal(detailSource.includes("Email: {user.email ?? \"No email on record\"}"), true);
   assert.equal(detailSource.includes("Creator ID: {user.creatorId}"), true);
+  assert.equal(detailSource.includes("Archive user"), true);
+  assert.equal(detailSource.includes("Delete user"), true);
+  assert.equal(detailSource.includes("Danger zone"), true);
 });
 
 test("app gate resolves admin status from canonical admin.whoami API", async () => {

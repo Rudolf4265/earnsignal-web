@@ -13,6 +13,7 @@ Internal admin tooling is available under `/app/admin` for support workflows.
 - `/app/admin`
   - Email-first user search (creator ID still supported as fallback).
   - If no query is entered, defaults to recent users from backend.
+  - Default list excludes archived/deleted users. Use `Show archived users` to include lifecycle-hidden rows.
   - Rows show explicit fallback text (`No email on record`) when email is missing.
   - Entitlement source is rendered as a color-coded badge:
     - Stripe (blue)
@@ -25,8 +26,23 @@ Internal admin tooling is available under `/app/admin` for support workflows.
 - `/app/admin/users/[creatorId]`
   - Inspect one user with email-forward identity context.
   - Toggle blocked/unblocked (with confirmation before blocking).
+  - Archive/unarchive users for normal lifecycle cleanup.
   - Edit `comp_until`.
+  - Delete users from a dedicated danger zone with stronger confirmation.
   - View effective plan/source, latest upload/report summaries, and last update metadata.
+
+## User Lifecycle Semantics
+
+- Archive is the primary inactive-user action:
+  - keeps data/history intact,
+  - hides users from default admin lists,
+  - can be reversed from user detail (`Unarchive`) when not deleted.
+- Delete is intentionally guarded and stronger:
+  - UI requires typed confirmation (`DELETE {creatorId}`) and explicit confirmation prompt,
+  - backend performs tombstone soft-delete (`confirmation=DELETE`) rather than hard row deletion,
+  - billing, entitlement history, uploads, and reports remain intact for integrity/auditability.
+- Deleted users are lifecycle-locked in UI and remain hidden from default list views unless `Show archived users` is enabled.
+- True hard delete and undelete are intentionally deferred.
 
 ## Grant Access By Email Workflow
 

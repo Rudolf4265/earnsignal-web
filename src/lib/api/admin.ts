@@ -25,6 +25,11 @@ export type AdminUserRow = {
   status: string | null;
   entitlementSource: string | null;
   blocked: boolean;
+  archived: boolean;
+  archivedAt: string | null;
+  archivedReason: string | null;
+  deletedAt: string | null;
+  deletedReason: string | null;
   compUntil: string | null;
   uploadState: string | null;
   uploadAt: string | null;
@@ -69,6 +74,16 @@ export type GrantAccessByEmailInput = {
   endsAtIso?: string | null;
   reasonCode?: string | null;
   note?: string | null;
+};
+
+export type UpdateAdminUserArchiveInput = {
+  archived: boolean;
+  reason?: string | null;
+};
+
+export type DeleteAdminUserInput = {
+  confirmation: string;
+  reason?: string | null;
 };
 
 type RawAdminUpload = {
@@ -124,6 +139,16 @@ type RawAdminUserRow = AdminUserRowSchema & {
   blocked?: boolean;
   is_blocked?: boolean;
   isBlocked?: boolean;
+  is_archived?: boolean;
+  isArchived?: boolean;
+  archived_at?: string | null;
+  archivedAt?: string | null;
+  archived_reason?: string | null;
+  archivedReason?: string | null;
+  deleted_at?: string | null;
+  deletedAt?: string | null;
+  deleted_reason?: string | null;
+  deletedReason?: string | null;
   comp_until?: string | null;
   compUntil?: string | null;
   upload_state?: string | null;
@@ -205,6 +230,9 @@ function mapUserRow(raw: RawAdminUserRow): AdminUserRow {
     asNullableString(raw.effectivePlanTier) ??
     asNullableString(raw.plan);
   const planTier = asNullableString(raw.plan_tier) ?? asNullableString(raw.planTier);
+  const archivedAt = asNullableString(raw.archived_at) ?? asNullableString(raw.archivedAt);
+  const deletedAt = asNullableString(raw.deleted_at) ?? asNullableString(raw.deletedAt);
+  const archived = asBoolean(raw.is_archived) || asBoolean(raw.isArchived) || Boolean(archivedAt) || Boolean(deletedAt);
 
   return {
     creatorId,
@@ -220,6 +248,11 @@ function mapUserRow(raw: RawAdminUserRow): AdminUserRow {
       asNullableString(raw.billingStatus),
     entitlementSource: asNullableString(raw.entitlement_source) ?? asNullableString(raw.entitlementSource),
     blocked: asBoolean(raw.blocked) || asBoolean(raw.is_blocked) || asBoolean(raw.isBlocked),
+    archived,
+    archivedAt,
+    archivedReason: asNullableString(raw.archived_reason) ?? asNullableString(raw.archivedReason),
+    deletedAt,
+    deletedReason: asNullableString(raw.deleted_reason) ?? asNullableString(raw.deletedReason),
     compUntil: asNullableString(raw.comp_until) ?? asNullableString(raw.compUntil),
     uploadState:
       asNullableString(raw.last_upload_status) ??
@@ -338,10 +371,18 @@ export async function fetchAdminWhoAmI(options?: { forceRefresh?: boolean }): Pr
   }
 }
 
-export async function fetchAdminUsers(search?: string): Promise<AdminUserListResponse> {
+export async function fetchAdminUsers(search?: string, options?: { includeArchived?: boolean }): Promise<AdminUserListResponse> {
   const normalizedSearch = (search ?? "").trim();
-  const query = normalizedSearch ? `?query=${encodeURIComponent(normalizedSearch)}` : "";
-  const payload = await apiFetchJson<RawAdminUsersListResponse | Record<string, unknown>>("admin.users.list", `/v1/admin/users${query}`, {
+  const includeArchived = options?.includeArchived ?? false;
+  const params = new URLSearchParams();
+  if (normalizedSearch) {
+    params.set("query", normalizedSearch);
+  }
+  if (includeArchived) {
+    params.set("include_archived", "true");
+  }
+  const query = params.toString();
+  const payload = await apiFetchJson<RawAdminUsersListResponse | Record<string, unknown>>("admin.users.list", `/v1/admin/users${query ? `?${query}` : ""}`, {
     method: "GET",
   });
   const rowsRaw = ((payload.items as RawAdminUserRow[] | undefined) ?? (payload.users as RawAdminUserRow[] | undefined) ?? []);
@@ -437,4 +478,51 @@ export async function updateAdminUserCompUntil(creatorId: string, compUntil: str
   );
 
   return mapUserRow(payload as RawAdminUserRow);
+}
+
+export async function updateAdminUserArchived(creatorId: string, input: UpdateAdminUserArchiveInput): Promise<AdminUserDetail> {
+  const body: Record<string, unknown> = {
+    archived: input.archived,
+  };
+  if (input.reason && input.reason.trim().length > 0) {
+    body.reason = input.reason.trim();
+  }
+
+  const payload = await apiFetchJson<RawAdminUserDetail | Record<string, unknown>>(
+    "admin.users.updateArchived",
+    `/v1/admin/users/${encodeURIComponent(creatorId)}/archive`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  );
+
+  const mapped = mapUserDetail(payload as RawAdminUserDetail);
+  return mapped.creatorId ? mapped : { ...mapped, creatorId };
+}
+
+export async function deleteAdminUser(creatorId: string, input: DeleteAdminUserInput): Promise<AdminUserDetail> {
+  const confirmation = input.confirmation.trim();
+  if (!confirmation) {
+    throw new Error("Delete confirmation is required.");
+  }
+
+  const body: Record<string, unknown> = {
+    confirmation,
+  };
+  if (input.reason && input.reason.trim().length > 0) {
+    body.reason = input.reason.trim();
+  }
+
+  const payload = await apiFetchJson<RawAdminUserDetail | Record<string, unknown>>(
+    "admin.users.delete",
+    `/v1/admin/users/${encodeURIComponent(creatorId)}/delete`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  );
+
+  const mapped = mapUserDetail(payload as RawAdminUserDetail);
+  return mapped.creatorId ? mapped : { ...mapped, creatorId };
 }

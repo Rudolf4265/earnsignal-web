@@ -91,6 +91,11 @@ test("fetchAdminUsers maps backend fields to frontend shape", async () => {
       status: "active",
       entitlementSource: "admin_override",
       blocked: true,
+      archived: false,
+      archivedAt: null,
+      archivedReason: null,
+      deletedAt: null,
+      deletedReason: null,
       compUntil: "2026-03-01T00:00:00Z",
       uploadState: "ready",
       uploadAt: "2026-02-01T00:00:00Z",
@@ -148,6 +153,8 @@ test("fetchAdminUsers marks missing email rows explicitly", async () => {
     assert.equal(result.mode, "recent");
     assert.equal(result.users[0].email, null);
     assert.equal(result.users[0].emailState, "missing");
+    assert.equal(result.users[0].archived, false);
+    assert.equal(result.users[0].deletedAt, null);
   } finally {
     global.fetch = originalFetch;
     global.window = originalWindow;
@@ -209,6 +216,46 @@ test("fetchAdminUsers derives health columns from nested latest upload/report pa
     assert.equal(result.users[0].uploadAt, "2026-02-05T00:00:00Z");
     assert.equal(result.users[0].reportState, "queued");
     assert.equal(result.users[0].reportAt, "2026-02-06T00:00:00Z");
+    assert.equal(result.users[0].archived, false);
+  } finally {
+    global.fetch = originalFetch;
+    global.window = originalWindow;
+  }
+});
+
+test("fetchAdminUsers forwards include_archived toggle to backend", async () => {
+  const originalFetch = global.fetch;
+  const originalWindow = global.window;
+  const calls = [];
+
+  const sessionWindow = {
+    sessionStorage: {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    },
+  };
+
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  global.window = sessionWindow;
+  global.fetch = async (input, init) => {
+    calls.push({ input: String(input), init });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => "application/json" },
+      text: async () => JSON.stringify({ mode: "search", items: [] }),
+    };
+  };
+
+  try {
+    const adminApiUrl = await buildAdminModule(`${Date.now()}-include-archived`);
+    const { fetchAdminUsers } = await import(`${adminApiUrl}?t=${Date.now()}-include-archived`);
+    await fetchAdminUsers("archived@example.com", { includeArchived: true });
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].input.includes("query=archived%40example.com"), true);
+    assert.equal(calls[0].input.includes("include_archived=true"), true);
   } finally {
     global.fetch = originalFetch;
     global.window = originalWindow;
@@ -278,6 +325,8 @@ test("fetchAdminUserDetail normalizes nested latest upload/report detail fields"
     assert.equal(result.creatorId, "creator_detail_1");
     assert.equal(result.accessGranted, true);
     assert.equal(result.accessReasonCode, "support_grant");
+    assert.equal(result.archived, false);
+    assert.equal(result.deletedAt, null);
 
     assert.equal(result.latestUpload?.id, "up_detail_1");
     assert.equal(result.latestUpload?.status, "failed");
@@ -365,6 +414,133 @@ test("grantAdminAccessByEmail maps success response into detail shape", async ()
     const requestBody = JSON.parse(String(calls[0].init?.body ?? "{}"));
     assert.equal(requestBody.email, "admin@example.com");
     assert.equal(requestBody.plan_tier, "B");
+  } finally {
+    global.fetch = originalFetch;
+    global.window = originalWindow;
+  }
+});
+
+test("updateAdminUserArchived maps lifecycle response into detail shape", async () => {
+  const originalFetch = global.fetch;
+  const originalWindow = global.window;
+  const calls = [];
+
+  const sessionWindow = {
+    sessionStorage: {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    },
+  };
+
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  global.window = sessionWindow;
+  global.fetch = async (input, init) => {
+    calls.push({ input: String(input), init });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => "application/json" },
+      text: async () =>
+        JSON.stringify({
+          creator_id: "creator-archive-api",
+          email: "archive.api@example.com",
+          email_state: "present",
+          effective_plan_tier: "pro",
+          entitlement_source: "admin_override",
+          entitlement_status: "active",
+          access_granted: true,
+          billing_required: false,
+          is_archived: true,
+          archived_at: "2026-03-10T01:00:00Z",
+          archived_reason: "inactive_lifecycle",
+          deleted_at: null,
+        }),
+    };
+  };
+
+  try {
+    const adminApiUrl = await buildAdminModule(`${Date.now()}-archive-success`);
+    const { updateAdminUserArchived } = await import(`${adminApiUrl}?t=${Date.now()}-archive-success`);
+    const result = await updateAdminUserArchived("creator-archive-api", { archived: true, reason: "inactive_lifecycle" });
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].input.endsWith("/v1/admin/users/creator-archive-api/archive"), true);
+    assert.equal(result.creatorId, "creator-archive-api");
+    assert.equal(result.archived, true);
+    assert.equal(result.archivedReason, "inactive_lifecycle");
+    const requestBody = JSON.parse(String(calls[0].init?.body ?? "{}"));
+    assert.equal(requestBody.archived, true);
+    assert.equal(requestBody.reason, "inactive_lifecycle");
+  } finally {
+    global.fetch = originalFetch;
+    global.window = originalWindow;
+  }
+});
+
+test("deleteAdminUser requires confirmation and maps deleted lifecycle state", async () => {
+  const originalFetch = global.fetch;
+  const originalWindow = global.window;
+  const calls = [];
+
+  const sessionWindow = {
+    sessionStorage: {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    },
+  };
+
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  global.window = sessionWindow;
+  global.fetch = async (input, init) => {
+    calls.push({ input: String(input), init });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => "application/json" },
+      text: async () =>
+        JSON.stringify({
+          creator_id: "creator-delete-api",
+          email: "delete.api@example.com",
+          email_state: "present",
+          effective_plan_tier: "none",
+          entitlement_source: "none",
+          entitlement_status: "blocked",
+          access_granted: false,
+          billing_required: true,
+          is_archived: true,
+          archived_at: "2026-03-10T01:00:00Z",
+          deleted_at: "2026-03-10T01:00:00Z",
+          deleted_reason: "cleanup",
+          is_blocked: true,
+        }),
+    };
+  };
+
+  try {
+    const adminApiUrl = await buildAdminModule(`${Date.now()}-delete-success`);
+    const { deleteAdminUser } = await import(`${adminApiUrl}?t=${Date.now()}-delete-success`);
+    const result = await deleteAdminUser("creator-delete-api", { confirmation: "DELETE", reason: "cleanup" });
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].input.endsWith("/v1/admin/users/creator-delete-api/delete"), true);
+    assert.equal(result.creatorId, "creator-delete-api");
+    assert.equal(result.deletedAt, "2026-03-10T01:00:00Z");
+    assert.equal(result.deletedReason, "cleanup");
+
+    const requestBody = JSON.parse(String(calls[0].init?.body ?? "{}"));
+    assert.equal(requestBody.confirmation, "DELETE");
+    assert.equal(requestBody.reason, "cleanup");
+
+    await assert.rejects(
+      () => deleteAdminUser("creator-delete-api", { confirmation: "   " }),
+      (error) => {
+        assert.equal(error instanceof Error, true);
+        assert.equal(error.message.includes("Delete confirmation is required"), true);
+        return true;
+      },
+    );
   } finally {
     global.fetch = originalFetch;
     global.window = originalWindow;

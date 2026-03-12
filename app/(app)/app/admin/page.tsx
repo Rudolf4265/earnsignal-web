@@ -43,6 +43,7 @@ export default function AdminUsersPage() {
   const isAdmin = adminRenderState === "authorized";
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [listMode, setListMode] = useState<AdminListMode>("search");
   const [isLoading, setIsLoading] = useState(true);
@@ -67,10 +68,10 @@ export default function AdminUsersPage() {
   >(null);
 
   const loadUsers = useCallback(
-    async (nextQuery: string) => {
+    async (nextQuery: string, nextShowArchived: boolean) => {
       setIsLoading(true);
       try {
-        const result = await fetchAdminUsers(nextQuery);
+        const result = await fetchAdminUsers(nextQuery, { includeArchived: nextShowArchived });
         setUsers(result.users);
         setListMode(result.mode);
         setError(null);
@@ -92,16 +93,19 @@ export default function AdminUsersPage() {
       return;
     }
 
-    void loadUsers(query);
-  }, [isAdmin, loadUsers, query]);
+    void loadUsers(query, showArchived);
+  }, [isAdmin, loadUsers, query, showArchived]);
 
   const totalText = useMemo(() => `${users.length} user${users.length === 1 ? "" : "s"}`, [users.length]);
   const listLabel = useMemo(() => {
+    if (showArchived) {
+      return listMode === "recent" && !query ? "Recent users (including archived)" : "Search results (including archived)";
+    }
     if (listMode === "recent" && !query) {
-      return "Recent users";
+      return "Recent active users";
     }
     return "Search results";
-  }, [listMode, query]);
+  }, [listMode, query, showArchived]);
 
   if (adminRenderState === "loading") {
     return <div data-testid="admin-loading"><GateLoadingShell /></div>;
@@ -141,6 +145,15 @@ export default function AdminUsersPage() {
               Search
             </button>
           </form>
+          <label className="inline-flex items-center gap-2 text-xs text-gray-300">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(event) => setShowArchived(event.target.checked)}
+              className="h-4 w-4 rounded border border-white/20 bg-black/30"
+            />
+            Show archived users
+          </label>
 
           {error ? <ErrorBanner title="Could not load admin users" message={error.message} requestId={error.requestId} /> : null}
 
@@ -157,6 +170,7 @@ export default function AdminUsersPage() {
                     <th className="px-2 py-2 font-medium">Creator ID</th>
                     <th className="px-2 py-2 font-medium">Entitlement</th>
                     <th className="px-2 py-2 font-medium">Blocked</th>
+                    <th className="px-2 py-2 font-medium">Lifecycle</th>
                     <th className="px-2 py-2 font-medium">Latest upload</th>
                     <th className="px-2 py-2 font-medium">Latest report</th>
                     <th className="px-2 py-2 font-medium">Updated</th>
@@ -175,6 +189,9 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
                       <td className="px-2 py-2">{user.blocked ? "Yes" : "No"}</td>
+                      <td className="px-2 py-2">
+                        {user.deletedAt ? "Deleted" : user.archived ? "Archived" : "Active"}
+                      </td>
                       <td className="px-2 py-2">{user.uploadState ? `${user.uploadState} (${formatTimestamp(user.uploadAt)})` : "-"}</td>
                       <td className="px-2 py-2">{user.reportState ? `${user.reportState} (${formatTimestamp(user.reportAt)})` : "-"}</td>
                       <td className="px-2 py-2">{formatTimestamp(user.lastUpdatedAt ?? user.createdAt)}</td>
@@ -237,7 +254,7 @@ export default function AdminUsersPage() {
                 setGrantEmail("");
                 setGrantEndsAt("");
                 setGrantNote("");
-                await loadUsers(query);
+                await loadUsers(query, showArchived);
               } catch (err) {
                 if (isApiError(err)) {
                   if (err.status === 404) {

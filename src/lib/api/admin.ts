@@ -71,6 +71,97 @@ export type GrantAccessByEmailInput = {
   note?: string | null;
 };
 
+type RawAdminUpload = {
+  id?: string | null;
+  upload_id?: string | null;
+  uploadId?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+  createdAt?: string | null;
+  ready_at?: string | null;
+  readyAt?: string | null;
+  failed_reason?: string | null;
+  failedReason?: string | null;
+  link?: string | null;
+  url?: string | null;
+};
+
+type RawAdminReport = {
+  id?: string | null;
+  report_id?: string | null;
+  reportId?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+  createdAt?: string | null;
+  finished_at?: string | null;
+  finishedAt?: string | null;
+  failure_code?: string | null;
+  failureCode?: string | null;
+  link?: string | null;
+  url?: string | null;
+};
+
+type RawAdminUserRow = AdminUserRowSchema & {
+  creator_id?: string;
+  creatorId?: string;
+  user_id?: string;
+  userId?: string;
+  email?: string | null;
+  email_state?: string | null;
+  emailState?: string | null;
+  effective_plan_tier?: string | null;
+  effectivePlanTier?: string | null;
+  plan?: string | null;
+  plan_tier?: string | null;
+  planTier?: string | null;
+  entitlement_status?: string | null;
+  entitlementStatus?: string | null;
+  status?: string | null;
+  billing_status?: string | null;
+  billingStatus?: string | null;
+  entitlement_source?: string | null;
+  entitlementSource?: string | null;
+  blocked?: boolean;
+  is_blocked?: boolean;
+  isBlocked?: boolean;
+  comp_until?: string | null;
+  compUntil?: string | null;
+  upload_state?: string | null;
+  uploadState?: string | null;
+  last_upload_status?: string | null;
+  last_upload_at?: string | null;
+  lastUploadAt?: string | null;
+  report_state?: string | null;
+  reportState?: string | null;
+  last_report_status?: string | null;
+  last_report_at?: string | null;
+  lastReportAt?: string | null;
+  created_at?: string | null;
+  createdAt?: string | null;
+  last_updated_at?: string | null;
+  lastUpdatedAt?: string | null;
+  latest_upload?: RawAdminUpload | null;
+  latestUpload?: RawAdminUpload | null;
+  latest_report?: RawAdminReport | null;
+  latestReport?: RawAdminReport | null;
+};
+
+type RawAdminUserDetail = RawAdminUserRow & {
+  access_granted?: boolean;
+  accessGranted?: boolean;
+  access_reason_code?: string | null;
+  accessReasonCode?: string | null;
+  billing_required?: boolean;
+  billingRequired?: boolean;
+};
+
+type RawAdminUsersListResponse = AdminUsersListResponseSchema & {
+  items?: RawAdminUserRow[];
+  users?: RawAdminUserRow[];
+  total?: number;
+  mode?: string | null;
+};
+
 let whoAmICache: AdminWhoAmIResponse | null = null;
 let inFlightWhoAmI: Promise<AdminWhoAmIResponse> | null = null;
 
@@ -97,7 +188,7 @@ function normalizeEmailState(value: unknown, email: string | null): AdminEmailSt
   return email ? "present" : "missing";
 }
 
-function mapUserRow(raw: AdminUserRowSchema | Record<string, unknown>): AdminUserRow {
+function mapUserRow(raw: RawAdminUserRow): AdminUserRow {
   const latestUpload = asObject(raw.latest_upload) ?? asObject(raw.latestUpload);
   const latestReport = asObject(raw.latest_report) ?? asObject(raw.latestReport);
   const email = asNullableString(raw.email);
@@ -162,7 +253,7 @@ function normalizeUploadDetail(raw: unknown): AdminUserDetail["latestUpload"] {
   }
 
   return {
-    id: asNullableString(value.upload_id) ?? asNullableString(value.uploadId),
+    id: asNullableString(value.upload_id) ?? asNullableString(value.uploadId) ?? asNullableString(value.id),
     status: asNullableString(value.status),
     createdAt: asNullableString(value.created_at) ?? asNullableString(value.createdAt),
     readyAt: asNullableString(value.ready_at) ?? asNullableString(value.readyAt),
@@ -178,7 +269,7 @@ function normalizeReportDetail(raw: unknown): AdminUserDetail["latestReport"] {
   }
 
   return {
-    id: asNullableString(value.report_id) ?? asNullableString(value.reportId),
+    id: asNullableString(value.report_id) ?? asNullableString(value.reportId) ?? asNullableString(value.id),
     status: asNullableString(value.status),
     createdAt: asNullableString(value.created_at) ?? asNullableString(value.createdAt),
     finishedAt: asNullableString(value.finished_at) ?? asNullableString(value.finishedAt),
@@ -187,7 +278,7 @@ function normalizeReportDetail(raw: unknown): AdminUserDetail["latestReport"] {
   };
 }
 
-function mapUserDetail(raw: Record<string, unknown>): AdminUserDetail {
+function mapUserDetail(raw: RawAdminUserDetail): AdminUserDetail {
   const base = mapUserRow(raw);
   return {
     ...base,
@@ -250,10 +341,10 @@ export async function fetchAdminWhoAmI(options?: { forceRefresh?: boolean }): Pr
 export async function fetchAdminUsers(search?: string): Promise<AdminUserListResponse> {
   const normalizedSearch = (search ?? "").trim();
   const query = normalizedSearch ? `?query=${encodeURIComponent(normalizedSearch)}` : "";
-  const payload = await apiFetchJson<AdminUsersListResponseSchema | Record<string, unknown>>("admin.users.list", `/v1/admin/users${query}`, {
+  const payload = await apiFetchJson<RawAdminUsersListResponse | Record<string, unknown>>("admin.users.list", `/v1/admin/users${query}`, {
     method: "GET",
   });
-  const rowsRaw = ((payload.items as AdminUserRowSchema[] | undefined) ?? (payload.users as AdminUserRowSchema[] | undefined) ?? []);
+  const rowsRaw = ((payload.items as RawAdminUserRow[] | undefined) ?? (payload.users as RawAdminUserRow[] | undefined) ?? []);
   const users = rowsRaw.map(mapUserRow).filter((user) => Boolean(user.creatorId));
   const mode = normalizeSearchMode(payload.mode, Boolean(normalizedSearch));
 
@@ -265,12 +356,12 @@ export async function fetchAdminUsers(search?: string): Promise<AdminUserListRes
 }
 
 export async function fetchAdminUserDetail(creatorId: string): Promise<AdminUserDetail> {
-  const payload = await apiFetchJson<Record<string, unknown>>(
+  const payload = await apiFetchJson<RawAdminUserDetail | Record<string, unknown>>(
     "admin.users.detail",
     `/v1/admin/users/${encodeURIComponent(creatorId)}/entitlement`,
     { method: "GET" },
   );
-  const mapped = mapUserDetail(payload);
+  const mapped = mapUserDetail(payload as RawAdminUserDetail);
   return mapped.creatorId ? mapped : { ...mapped, creatorId };
 }
 
@@ -297,25 +388,11 @@ export async function grantAdminAccessByEmail(input: GrantAccessByEmailInput): P
     body.reason_code = input.reasonCode.trim();
   }
 
-  const payload = await apiFetchJson<Record<string, unknown>>("admin.users.grantByEmail", "/v1/admin/users/grant-access-by-email", {
+  const payload = await apiFetchJson<RawAdminUserDetail | Record<string, unknown>>("admin.users.grantByEmail", "/v1/admin/users/grant-access-by-email", {
     method: "POST",
     body: JSON.stringify(body),
   });
-  return mapUserDetail(payload);
-}
-
-function normalizeHealth(raw: unknown): { id: string | null; status: string | null; createdAt: string | null; link: string | null } | null {
-  const value = asObject(raw);
-  if (!value) {
-    return null;
-  }
-
-  return {
-    id: asNullableString(value.id),
-    status: asNullableString(value.status),
-    createdAt: asNullableString(value.created_at) ?? asNullableString(value.createdAt),
-    link: asNullableString(value.link) ?? asNullableString(value.url),
-  };
+  return mapUserDetail(payload as RawAdminUserDetail);
 }
 
 export async function fetchAdminLatestUpload(creatorId: string): Promise<AdminUserDetail["latestUpload"]> {
@@ -324,18 +401,7 @@ export async function fetchAdminLatestUpload(creatorId: string): Promise<AdminUs
     `/v1/admin/users/${encodeURIComponent(creatorId)}/uploads/latest`,
     { method: "GET" },
   );
-  const normalized = normalizeHealth(payload.latest_upload ?? payload.upload ?? payload.last_upload);
-  if (!normalized) {
-    return null;
-  }
-  return {
-    id: normalized.id,
-    status: normalized.status,
-    createdAt: normalized.createdAt,
-    readyAt: null,
-    failedReason: null,
-    link: normalized.link,
-  };
+  return normalizeUploadDetail(payload.latest_upload ?? payload.upload ?? payload.last_upload);
 }
 
 export async function fetchAdminLatestReport(creatorId: string): Promise<AdminUserDetail["latestReport"]> {
@@ -344,22 +410,11 @@ export async function fetchAdminLatestReport(creatorId: string): Promise<AdminUs
     `/v1/admin/users/${encodeURIComponent(creatorId)}/reports/latest`,
     { method: "GET" },
   );
-  const normalized = normalizeHealth(payload.latest_report ?? payload.report ?? payload.last_report);
-  if (!normalized) {
-    return null;
-  }
-  return {
-    id: normalized.id,
-    status: normalized.status,
-    createdAt: normalized.createdAt,
-    finishedAt: null,
-    failureCode: null,
-    link: normalized.link,
-  };
+  return normalizeReportDetail(payload.latest_report ?? payload.report ?? payload.last_report);
 }
 
 export async function updateAdminUserBlocked(creatorId: string, blocked: boolean): Promise<AdminUserRow> {
-  const payload = await apiFetchJson<AdminUserRowSchema | Record<string, unknown>>(
+  const payload = await apiFetchJson<RawAdminUserRow | Record<string, unknown>>(
     "admin.users.updateBlocked",
     `/v1/admin/users/${encodeURIComponent(creatorId)}/block`,
     {
@@ -368,11 +423,11 @@ export async function updateAdminUserBlocked(creatorId: string, blocked: boolean
     },
   );
 
-  return mapUserRow(payload);
+  return mapUserRow(payload as RawAdminUserRow);
 }
 
 export async function updateAdminUserCompUntil(creatorId: string, compUntil: string | null): Promise<AdminUserRow> {
-  const payload = await apiFetchJson<AdminUserRowSchema | Record<string, unknown>>(
+  const payload = await apiFetchJson<RawAdminUserRow | Record<string, unknown>>(
     "admin.users.updateCompUntil",
     `/v1/admin/users/${encodeURIComponent(creatorId)}/comp`,
     {
@@ -381,5 +436,5 @@ export async function updateAdminUserCompUntil(creatorId: string, compUntil: str
     },
   );
 
-  return mapUserRow(payload);
+  return mapUserRow(payload as RawAdminUserRow);
 }

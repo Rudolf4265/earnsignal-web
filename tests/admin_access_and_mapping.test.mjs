@@ -154,6 +154,150 @@ test("fetchAdminUsers marks missing email rows explicitly", async () => {
   }
 });
 
+test("fetchAdminUsers derives health columns from nested latest upload/report payloads", async () => {
+  const originalFetch = global.fetch;
+  const originalWindow = global.window;
+
+  const sessionWindow = {
+    sessionStorage: {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    },
+  };
+
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  global.window = sessionWindow;
+  global.fetch = async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => "application/json" },
+    text: async () =>
+      JSON.stringify({
+        mode: "search",
+        items: [
+          {
+            creator_id: "creator_nested_1",
+            email: "nested@example.com",
+            email_state: "present",
+            effective_plan_tier: "pro",
+            entitlement_source: "admin_override",
+            entitlement_status: "active",
+            latest_upload: {
+              id: "up_nested_1",
+              status: "processing",
+              created_at: "2026-02-05T00:00:00Z",
+            },
+            latestReport: {
+              id: "rep_nested_1",
+              status: "queued",
+              createdAt: "2026-02-06T00:00:00Z",
+            },
+          },
+        ],
+      }),
+  });
+
+  try {
+    const adminApiUrl = await buildAdminModule(`${Date.now()}-nested-health`);
+    const { fetchAdminUsers } = await import(`${adminApiUrl}?t=${Date.now()}-nested-health`);
+    const result = await fetchAdminUsers("nested@example.com");
+
+    assert.equal(result.mode, "search");
+    assert.equal(result.users.length, 1);
+    assert.equal(result.users[0].uploadState, "processing");
+    assert.equal(result.users[0].uploadAt, "2026-02-05T00:00:00Z");
+    assert.equal(result.users[0].reportState, "queued");
+    assert.equal(result.users[0].reportAt, "2026-02-06T00:00:00Z");
+  } finally {
+    global.fetch = originalFetch;
+    global.window = originalWindow;
+  }
+});
+
+test("fetchAdminUserDetail normalizes nested latest upload/report detail fields", async () => {
+  const originalFetch = global.fetch;
+  const originalWindow = global.window;
+  const calls = [];
+
+  const sessionWindow = {
+    sessionStorage: {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    },
+  };
+
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  global.window = sessionWindow;
+  global.fetch = async (input, init) => {
+    calls.push({ input: String(input), init });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => "application/json" },
+      text: async () =>
+        JSON.stringify({
+          creator_id: "creator_detail_1",
+          email: "detail@example.com",
+          email_state: "present",
+          effective_plan_tier: "pro",
+          entitlement_source: "admin_override",
+          entitlement_status: "active",
+          access_granted: true,
+          access_reason_code: "support_grant",
+          billing_required: false,
+          latest_upload: {
+            upload_id: "up_detail_1",
+            status: "failed",
+            created_at: "2026-03-01T00:00:00Z",
+            ready_at: "2026-03-01T01:00:00Z",
+            failed_reason: "parse_error",
+            link: "https://uploads.example.test/up_detail_1",
+          },
+          latest_report: {
+            report_id: "rep_detail_1",
+            status: "failed",
+            createdAt: "2026-03-02T00:00:00Z",
+            finishedAt: "2026-03-02T01:00:00Z",
+            failure_code: "report_timeout",
+            url: "https://reports.example.test/rep_detail_1",
+          },
+        }),
+    };
+  };
+
+  try {
+    const adminApiUrl = await buildAdminModule(`${Date.now()}-detail-health`);
+    const { fetchAdminUserDetail } = await import(`${adminApiUrl}?t=${Date.now()}-detail-health`);
+    const result = await fetchAdminUserDetail("creator_detail_1");
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].input.endsWith("/v1/admin/users/creator_detail_1/entitlement"), true);
+
+    assert.equal(result.creatorId, "creator_detail_1");
+    assert.equal(result.accessGranted, true);
+    assert.equal(result.accessReasonCode, "support_grant");
+
+    assert.equal(result.latestUpload?.id, "up_detail_1");
+    assert.equal(result.latestUpload?.status, "failed");
+    assert.equal(result.latestUpload?.createdAt, "2026-03-01T00:00:00Z");
+    assert.equal(result.latestUpload?.readyAt, "2026-03-01T01:00:00Z");
+    assert.equal(result.latestUpload?.failedReason, "parse_error");
+    assert.equal(result.latestUpload?.link, "https://uploads.example.test/up_detail_1");
+
+    assert.equal(result.latestReport?.id, "rep_detail_1");
+    assert.equal(result.latestReport?.status, "failed");
+    assert.equal(result.latestReport?.createdAt, "2026-03-02T00:00:00Z");
+    assert.equal(result.latestReport?.finishedAt, "2026-03-02T01:00:00Z");
+    assert.equal(result.latestReport?.failureCode, "report_timeout");
+    assert.equal(result.latestReport?.link, "https://reports.example.test/rep_detail_1");
+  } finally {
+    global.fetch = originalFetch;
+    global.window = originalWindow;
+  }
+});
+
 test("grantAdminAccessByEmail maps success response into detail shape", async () => {
   const originalFetch = global.fetch;
   const originalWindow = global.window;

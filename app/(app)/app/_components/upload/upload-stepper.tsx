@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createUploadPresign,
@@ -15,6 +16,13 @@ import { mapApiErrorToUploadFailure } from "@/src/lib/upload/errors";
 import { buildUploadDiagnostics, mapUploadStatus, type UploadStatusEnvelope, type UploadUiStatus } from "@/src/lib/upload/status";
 import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/lib/upload/resume";
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
+import {
+  DIRECT_FAN_PLATFORM_CARD_ID,
+  DIRECT_FAN_PLATFORMS,
+  groupPlatformCards,
+  resolveDirectFanBackendId,
+  UPLOAD_PLATFORM_CARDS,
+} from "@/src/lib/upload/platform-metadata";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
 import InlineAlert from "./InlineAlert";
@@ -25,23 +33,12 @@ import { ErrorBanner } from "@/src/components/ui/error-banner";
 
 type Step = "platform" | "file" | "uploading" | "processing" | "done";
 
-type PlatformOption = {
-  id: UploadPlatform;
-  label: string;
-  supported: boolean;
-};
-
-const platforms: PlatformOption[] = [
-  { id: "patreon", label: "Patreon", supported: true },
-  { id: "substack", label: "Substack", supported: true },
-  { id: "youtube", label: "YouTube", supported: false },
-  { id: "instagram", label: "Instagram", supported: false },
-  { id: "tiktok", label: "TikTok", supported: false },
-  { id: "onlyfans", label: "OnlyFans", supported: false },
-];
-
 const stepOrder: Step[] = ["platform", "file", "uploading", "processing", "done"];
 const RESUME_STATUS_TIMEOUT_MS = 2_500;
+const platformSections = groupPlatformCards(UPLOAD_PLATFORM_CARDS);
+const directFanBackendIds = new Set(
+  DIRECT_FAN_PLATFORMS.map((item) => item.backendId).filter((id): id is UploadPlatform => id !== null),
+);
 
 const readableFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -69,6 +66,51 @@ const friendlyFailureMessage = (reasonCode: string | null) => {
       return "We couldn’t complete processing for this upload yet.";
   }
 };
+
+type PlatformCardProps = {
+  label: string;
+  subtitle: string;
+  icon: string;
+  available: boolean;
+  selected: boolean;
+  onClick: () => void;
+  testId?: string;
+};
+
+function PlatformCard({ label, subtitle, icon, available, selected, onClick, testId }: PlatformCardProps) {
+  const statusLabel = available ? "Available" : "Coming soon";
+
+  return (
+    <button
+      type="button"
+      data-testid={testId}
+      disabled={!available}
+      onClick={onClick}
+      className={`group flex h-full w-full flex-col rounded-2xl border bg-white p-4 text-left transition-all duration-200 ${
+        available
+          ? "cursor-pointer border-slate-200 shadow-[0_8px_24px_-22px_rgba(15,23,42,0.45)] hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-[0_14px_28px_-18px_rgba(14,116,144,0.4)]"
+          : "cursor-not-allowed border-slate-200 opacity-65"
+      } ${selected ? "border-brand-blue shadow-[0_0_0_1px_rgba(37,99,235,0.45),0_14px_30px_-18px_rgba(37,99,235,0.35)]" : ""}`}
+    >
+      <Image
+        src={icon}
+        alt={`${label} logo`}
+        width={28}
+        height={28}
+        className="platform-icon block h-[28px] w-[28px] object-contain"
+      />
+      <p className="mt-3 text-sm font-semibold text-slate-900">{label}</p>
+      <p className="mt-1 text-xs text-slate-600">{subtitle}</p>
+      <span
+        className={`mt-4 inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+          available ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-100 text-slate-500"
+        }`}
+      >
+        {statusLabel}
+      </span>
+    </button>
+  );
+}
 
 async function awaitWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<{ timedOut: boolean; value: T | null }> {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
@@ -102,7 +144,8 @@ export default function UploadStepper() {
   const pollAbortRef = useRef<AbortController | null>(null);
 
   const [step, setStep] = useState<Step>("platform");
-  const [platform, setPlatform] = useState<string | null>(null);
+  const [platform, setPlatform] = useState<UploadPlatform | null>(null);
+  const [directFanExpanded, setDirectFanExpanded] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadId, setUploadId] = useState<string | null>(null);
   const [reportId, setReportId] = useState<string | null>(null);
@@ -131,6 +174,7 @@ export default function UploadStepper() {
   );
   const uploadReady = Boolean(platform && file) && !busy && !entitlementState.loading && entitlementState.canGenerateReport;
   const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
+  const directFanSelected = platform ? directFanBackendIds.has(platform) : false;
 
   const unsupportedCsvWarning = file && !file.name.toLowerCase().endsWith(".csv");
 
@@ -234,6 +278,7 @@ export default function UploadStepper() {
     stopPolling();
     setStep("platform");
     setPlatform(null);
+    setDirectFanExpanded(false);
     setFile(null);
     setUploadId(null);
     setReportId(null);
@@ -663,24 +708,90 @@ export default function UploadStepper() {
             </InlineAlert>
           ) : null}
           <StepHeader title="Choose platform" subtitle="Select the data source for this upload." />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {platforms.map((item) => {
-              const selected = platform === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  disabled={!item.supported}
-                  onClick={() => setPlatform(item.id)}
-                  className={`rounded-2xl border border-slate-200 bg-white p-4 text-left transition ${
-                    item.supported ? "hover:bg-slate-100" : "cursor-not-allowed opacity-60"
-                  } ${selected ? "border-brand-blue " : ""}`}
-                >
-                  <p className="font-medium text-slate-900">{item.label}</p>
-                  <p className="mt-1 text-xs text-slate-600">{item.supported ? "Available" : "Coming soon"}</p>
-                </button>
-              );
-            })}
+          <div className="space-y-4">
+            {platformSections.map((section) => (
+              <section key={section.category} className="space-y-2" data-testid={`platform-section-${section.category}`}>
+                <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{section.label}</h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {section.items.map((item) => {
+                    if (item.id === DIRECT_FAN_PLATFORM_CARD_ID) {
+                      return (
+                        <PlatformCard
+                          key={item.id}
+                          label={item.label}
+                          subtitle={item.subtitle}
+                          icon={item.icon}
+                          available={item.available}
+                          selected={directFanExpanded || directFanSelected}
+                          onClick={() => setDirectFanExpanded((value) => !value)}
+                          testId={`platform-card-${item.id}`}
+                        />
+                      );
+                    }
+
+                    const selected = platform === item.id;
+                    return (
+                      <PlatformCard
+                        key={item.id}
+                        label={item.label}
+                        subtitle={item.subtitle}
+                        icon={item.icon}
+                        available={item.available}
+                        selected={selected}
+                        onClick={() => {
+                          if (!item.available) {
+                            return;
+                          }
+                          setPlatform(item.id);
+                          setDirectFanExpanded(false);
+                        }}
+                        testId={`platform-card-${item.id}`}
+                      />
+                    );
+                  })}
+                </div>
+
+                {section.category === "additional" ? (
+                  <div
+                    data-testid="direct-fan-reveal"
+                    className="overflow-hidden transition-[max-height] duration-200 ease-out"
+                    style={{ maxHeight: directFanExpanded ? "560px" : "0px" }}
+                    aria-hidden={!directFanExpanded}
+                  >
+                    <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+                      <p className="text-sm font-semibold text-slate-900">Choose your platform</p>
+                      <p className="mt-1 text-xs text-slate-600">Select the platform that matches your creator revenue export.</p>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                        {DIRECT_FAN_PLATFORMS.map((item) => {
+                          const backendId = resolveDirectFanBackendId(item.id);
+                          const selectable = item.available && Boolean(backendId);
+                          const selected = Boolean(backendId && platform === backendId);
+
+                          return (
+                            <PlatformCard
+                              key={item.id}
+                              label={item.label}
+                              subtitle={item.subtitle}
+                              icon={item.icon}
+                              available={selectable}
+                              selected={selected}
+                              onClick={() => {
+                                if (!selectable || !backendId) {
+                                  return;
+                                }
+                                setPlatform(backendId);
+                                setDirectFanExpanded(false);
+                              }}
+                              testId={`direct-fan-option-${item.id}`}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+            ))}
           </div>
 
           <div className="flex justify-end">
@@ -689,10 +800,11 @@ export default function UploadStepper() {
               disabled={!platform}
               onClick={() => {
                 setStep("file");
+                setDirectFanExpanded(false);
                 setError(null);
                 setErrorDetails(null);
-        setErrorRequestId(null);
-        setErrorOperation(null);
+                setErrorRequestId(null);
+                setErrorOperation(null);
               }}
               className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
             >

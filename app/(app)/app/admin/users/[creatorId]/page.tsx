@@ -6,13 +6,14 @@ import { useEffect, useMemo, useState } from "react";
 import { GateLoadingShell, NotAuthorizedCallout } from "@/app/(app)/_components/gate-callouts";
 import { useAppGate } from "@/app/(app)/_components/app-gate-provider";
 import { AdminUserDetail, fetchAdminUserDetail, updateAdminUserBlocked, updateAdminUserCompUntil } from "@/src/lib/api/admin";
+import { AdminEntitlementSourceBadge } from "@/src/components/ui/admin-entitlement-source-badge";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
 import { deriveAdminRenderState } from "@/src/lib/gating/admin-guard";
 
 function formatTimestamp(value: string | null): string {
   if (!value) {
-    return "—";
+    return "-";
   }
 
   const date = new Date(value);
@@ -52,7 +53,7 @@ export default function AdminUserDetailPage() {
 
         setUser(data);
         setCompUntilDraft(data.compUntil ?? "");
-        setLastUpdated(data.fetchedAtIso);
+        setLastUpdated(data.lastUpdatedAt ?? data.fetchedAtIso);
       } catch (err) {
         if (!isMounted) {
           return;
@@ -72,12 +73,11 @@ export default function AdminUserDetailPage() {
     };
   }, [creatorId, isAdmin]);
 
-  const headerText = useMemo(() => {
+  const emailHeadline = useMemo(() => {
     if (!user) {
       return creatorId;
     }
-
-    return user.email ? `${user.email} (${user.creatorId})` : user.creatorId;
+    return user.email ?? "No email on record";
   }, [creatorId, user]);
 
   if (adminRenderState === "loading") {
@@ -89,7 +89,7 @@ export default function AdminUserDetailPage() {
   }
 
   if (isLoading) {
-    return <p className="text-sm text-gray-300">Loading user details…</p>;
+    return <p className="text-sm text-gray-300">Loading user details...</p>;
   }
 
   if (!user) {
@@ -98,10 +98,11 @@ export default function AdminUserDetailPage() {
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
           <p className="text-xs text-gray-400">Admin user detail</p>
-          <h1 className="text-xl font-semibold">{headerText}</h1>
+          <h1 className="text-2xl font-semibold">{emailHeadline}</h1>
+          <p className="font-mono text-xs text-gray-400">{user.creatorId}</p>
         </div>
         <Link href="/app/admin" className="text-sm text-blue-300 hover:text-blue-200">
           Back to list
@@ -111,11 +112,26 @@ export default function AdminUserDetailPage() {
       {error ? <ErrorBanner title="Admin action failed" message={error.message} requestId={error.requestId} /> : null}
       <p className="text-xs text-gray-400">Last updated: {formatTimestamp(lastUpdated)}</p>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
-        <p className="text-sm">Plan: {user.plan ?? "none"}</p>
-        <p className="text-sm">Status: {user.status ?? "unknown"}</p>
-        <p className="text-sm">Blocked: {user.blocked ? "Yes" : "No"}</p>
-        <p className="text-sm">Comp until: {user.compUntil ?? "—"}</p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <article className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4">
+          <h2 className="text-lg font-medium">Identity</h2>
+          <p className="text-sm">Email: {user.email ?? "No email on record"}</p>
+          <p className="font-mono text-xs text-gray-300">Creator ID: {user.creatorId}</p>
+          <p className="text-sm">Created: {formatTimestamp(user.createdAt)}</p>
+        </article>
+
+        <article className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4">
+          <h2 className="text-lg font-medium">Entitlement</h2>
+          <p className="text-sm">Effective plan: {user.plan ?? "none"}</p>
+          <div className="flex items-center gap-2 text-sm">
+            <span>Source:</span>
+            <AdminEntitlementSourceBadge source={user.entitlementSource} accessReasonCode={user.accessReasonCode} />
+          </div>
+          <p className="text-sm">Status: {user.status ?? "unknown"}</p>
+          <p className="text-sm">Blocked: {user.blocked ? "Yes" : "No"}</p>
+          <p className="text-sm">Comp until / override end: {user.compUntil ? formatTimestamp(user.compUntil) : "-"}</p>
+          <p className="text-sm">Access reason: {user.accessReasonCode ?? "-"}</p>
+        </article>
       </div>
 
       <div className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
@@ -200,8 +216,11 @@ export default function AdminUserDetailPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <article className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
           <h2 className="text-lg font-medium">Latest upload</h2>
-          <p className="text-sm">Status: {user.latestUpload?.status ?? "—"}</p>
+          <p className="text-sm">ID: {user.latestUpload?.id ?? "-"}</p>
+          <p className="text-sm">Status: {user.latestUpload?.status ?? "-"}</p>
           <p className="text-sm">Created: {formatTimestamp(user.latestUpload?.createdAt ?? null)}</p>
+          <p className="text-sm">Ready: {formatTimestamp(user.latestUpload?.readyAt ?? null)}</p>
+          <p className="text-sm">Failure: {user.latestUpload?.failedReason ?? "-"}</p>
           {user.latestUpload?.link ? (
             <a href={user.latestUpload.link} className="text-sm text-blue-300 hover:text-blue-200">
               Open upload
@@ -211,8 +230,11 @@ export default function AdminUserDetailPage() {
 
         <article className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2">
           <h2 className="text-lg font-medium">Latest report</h2>
-          <p className="text-sm">Status: {user.latestReport?.status ?? "—"}</p>
+          <p className="text-sm">ID: {user.latestReport?.id ?? "-"}</p>
+          <p className="text-sm">Status: {user.latestReport?.status ?? "-"}</p>
           <p className="text-sm">Created: {formatTimestamp(user.latestReport?.createdAt ?? null)}</p>
+          <p className="text-sm">Finished: {formatTimestamp(user.latestReport?.finishedAt ?? null)}</p>
+          <p className="text-sm">Failure code: {user.latestReport?.failureCode ?? "-"}</p>
           {user.latestReport?.link ? (
             <a href={user.latestReport.link} className="text-sm text-blue-300 hover:text-blue-200">
               Open report

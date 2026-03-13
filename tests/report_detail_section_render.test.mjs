@@ -29,6 +29,9 @@ test("report detail includes unlocked rendering branches for Pro-gated sections"
   assert.equal(source.includes('testId="report-what-changed-improved"'), true);
   assert.equal(source.includes('testId="report-what-changed-worsened"'), true);
   assert.equal(source.includes('testId="report-what-changed-watch-next"'), true);
+  assert.equal(source.includes("Primary typed read"), true);
+  assert.equal(source.includes("Typed signals behind the diagnosis"), true);
+  assert.equal(source.includes("No typed watch-next items were emitted for this comparison."), true);
 });
 
 test("report detail includes locked upsell rendering for Basic users", async () => {

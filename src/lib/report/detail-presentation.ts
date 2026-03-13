@@ -2,6 +2,16 @@ import type { DashboardRevenueTrendPoint } from "../dashboard/artifact-hydration
 import type { ReportDetail } from "../api/reports";
 import { prioritizeRecommendations } from "./recommendation-prioritization";
 import {
+  buildDiagnosisPresentation,
+  buildPresentationTruthNotice as buildNotice,
+  buildWhatChangedPresentation,
+  formatDirectionLabel,
+  formatPresentationLabel,
+  type SharedPresentationComparisonItem as ReportDetailPresentationComparisonItem,
+  type SharedPresentationMetric as ReportDetailPresentationMetric,
+  type SharedPresentationNotice as ReportDetailPresentationNotice,
+} from "./diagnosis-what-changed-presentation";
+import {
   createEmptyTruthMetadata,
   getTruthStateDescription,
   getTruthStateLabel,
@@ -10,31 +20,12 @@ import {
   type ReportTruthTone,
 } from "./truth";
 import type {
-  ReportComparisonItemViewModel,
-  ReportDiagnosisViewModel,
-  ReportDiagnosisSupportingMetricViewModel,
   ReportMetricProvenanceEntry,
   ReportRecommendationViewModel,
   ReportSectionViewModel,
   ReportSignalViewModel,
   ReportViewModel,
-  ReportWhatChangedViewModel,
 } from "./normalize-artifact-to-report-model";
-
-export type ReportDetailPresentationNotice = {
-  label: string;
-  body: string;
-  tone: ReportTruthTone;
-};
-
-export type ReportDetailPresentationMetric = {
-  id: string;
-  label: string;
-  value: string;
-  detail: string | null;
-  stateLabel: string | null;
-  stateTone: ReportTruthTone | null;
-};
 
 export type ReportDetailOutlookCard = {
   id: "base_case" | "upside" | "downside" | "outlook" | "churn_outlook" | "platform_risk_outlook" | "revenue_projection";
@@ -58,14 +49,6 @@ export type ReportDetailPresentationAppendixSection = {
   title: string;
   paragraphs: string[];
   bullets: string[];
-};
-
-export type ReportDetailPresentationComparisonItem = {
-  id: string;
-  body: string;
-  detail: string | null;
-  stateLabel: string | null;
-  stateTone: ReportTruthTone | null;
 };
 
 export type ReportDetailPresentationModel = {
@@ -291,23 +274,6 @@ function readFriendlyReportTitle(report: ReportDetail): { title: string; subtitl
   };
 }
 
-function buildNotice(truth: ReportTruthMetadata | null | undefined, options?: { source?: string | null; fallbackLabel?: string; fallbackBody?: string }): ReportDetailPresentationNotice | null {
-  if (!truth) {
-    return null;
-  }
-
-  const label = getTruthStateLabel(truth, { source: options?.source ?? null }) ?? options?.fallbackLabel ?? null;
-  if (!label) {
-    return null;
-  }
-
-  return {
-    label,
-    body: getTruthStateDescription(truth, { source: options?.source ?? null }) ?? options?.fallbackBody ?? "Limited evidence in this report.",
-    tone: getTruthStateTone(truth, { source: options?.source ?? null }),
-  };
-}
-
 function createMetric(input: {
   id: string;
   label: string;
@@ -349,104 +315,6 @@ function formatSignedPercent(value: number): string {
   return `${rounded > 0 ? "+" : ""}${normalized}%`;
 }
 
-function formatDateLabel(value: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-
-  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  const date = dateOnly
-    ? new Date(Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])))
-    : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
-}
-
-function formatDiagnosisTypeLabel(value: ReportDiagnosisViewModel["diagnosisType"]): string | null {
-  if (!value) {
-    return null;
-  }
-
-  switch (value) {
-    case "acquisition_pressure":
-      return "Acquisition pressure";
-    case "churn_pressure":
-      return "Churn pressure";
-    case "monetization_pressure":
-      return "Monetization pressure";
-    case "concentration_pressure":
-      return "Concentration pressure";
-    case "mixed_pressure":
-      return "Mixed pressure";
-    case "insufficient_evidence":
-      return "Insufficient evidence";
-    default:
-      return null;
-  }
-}
-
-function formatDirectionLabel(value: string): string {
-  if (value === "up") {
-    return "Up";
-  }
-  if (value === "down") {
-    return "Down";
-  }
-  if (value === "flat") {
-    return "Flat";
-  }
-  if (value === "mixed") {
-    return "Mixed";
-  }
-
-  return "Unknown";
-}
-
-function formatSupportingMetricValue(metric: string, value: number | null): string {
-  if (value === null) {
-    return "--";
-  }
-
-  if (/revenue|arpu/i.test(metric)) {
-    return formatCurrency(value);
-  }
-
-  if (/rate|share|pct|percent/i.test(metric)) {
-    return formatPercent(value);
-  }
-
-  if (/risk|stability|score/i.test(metric)) {
-    return formatScore(value);
-  }
-
-  return formatNumber(value);
-}
-
-function buildDiagnosisSupportingMetric(metric: ReportDiagnosisSupportingMetricViewModel): ReportDetailPresentationMetric {
-  const detailParts = [
-    metric.priorValue !== null ? `Prior ${formatSupportingMetricValue(metric.metric, metric.priorValue)}` : null,
-    metric.direction !== "unknown" ? `${formatDirectionLabel(metric.direction)} trend` : null,
-    getTruthStateDescription(metric, { source: metric.source ?? null }),
-  ].filter((value): value is string => Boolean(value));
-
-  return createMetric({
-    id: `diagnosis-${metric.metric}`,
-    label: metric.metric.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()),
-    value: formatSupportingMetricValue(metric.metric, metric.currentValue),
-    truth: metric,
-    source: metric.source ?? null,
-    detail: detailParts.join(". "),
-  });
-}
-
 function buildDiagnosisPrimitives(
   diagnosis: ReportViewModel["diagnosis"],
 ): Array<{ label: string; value: string }> {
@@ -455,51 +323,13 @@ function buildDiagnosisPrimitives(
   }
 
   return [
-    { label: "Revenue trend", value: formatDirectionLabel(diagnosis.primitives.revenueTrendDirection) },
-    { label: "Subscriber trend", value: formatDirectionLabel(diagnosis.primitives.activeSubscribersDirection) },
-    { label: "Churn pressure", value: toTitleCase(diagnosis.primitives.churnPressureLevel) },
-    { label: "Concentration pressure", value: toTitleCase(diagnosis.primitives.concentrationPressureLevel) },
-    { label: "Monetization efficiency", value: toTitleCase(diagnosis.primitives.monetizationEfficiencyLevel) },
-    { label: "Stability trend", value: formatDirectionLabel(diagnosis.primitives.stabilityDirection) },
+    { label: "Revenue trend", value: formatDirectionLabel(diagnosis.primitives.revenueTrendDirection, { unknownLabel: "Unknown" }) ?? "Unknown" },
+    { label: "Subscriber trend", value: formatDirectionLabel(diagnosis.primitives.activeSubscribersDirection, { unknownLabel: "Unknown" }) ?? "Unknown" },
+    { label: "Churn pressure", value: formatPresentationLabel(diagnosis.primitives.churnPressureLevel) },
+    { label: "Concentration pressure", value: formatPresentationLabel(diagnosis.primitives.concentrationPressureLevel) },
+    { label: "Monetization efficiency", value: formatPresentationLabel(diagnosis.primitives.monetizationEfficiencyLevel) },
+    { label: "Stability trend", value: formatDirectionLabel(diagnosis.primitives.stabilityDirection, { unknownLabel: "Unknown" }) ?? "Unknown" },
   ].filter((entry) => entry.value !== "Unknown");
-}
-
-function toTitleCase(value: string): string {
-  return value.replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function buildComparisonItem(item: ReportComparisonItemViewModel, index: number): ReportDetailPresentationComparisonItem {
-  const stateLabel = getTruthStateLabel(item);
-  const detailParts = [
-    item.materiality ? `${toTitleCase(item.materiality)} materiality` : null,
-    item.direction !== "unknown" ? `${formatDirectionLabel(item.direction)} direction` : null,
-    getTruthStateDescription(item),
-  ].filter((value): value is string => Boolean(value));
-
-  return {
-    id: `${item.metric ?? item.category ?? "comparison"}-${index + 1}`,
-    body: item.summaryText,
-    detail: detailParts.join(". ") || null,
-    stateLabel,
-    stateTone: stateLabel ? getTruthStateTone(item) : null,
-  };
-}
-
-function buildWhatChangedPeriodLabel(whatChanged: ReportWhatChangedViewModel | null | undefined): string | null {
-  if (!whatChanged) {
-    return null;
-  }
-
-  const start = formatDateLabel(whatChanged.priorPeriodStart);
-  const end = formatDateLabel(whatChanged.priorPeriodEnd);
-  if (start && end) {
-    return `Compared with ${start} to ${end}`;
-  }
-  if (whatChanged.priorReportId) {
-    return `Compared with prior report ${whatChanged.priorReportId}`;
-  }
-
-  return null;
 }
 
 function buildExecutiveSummary(input: {
@@ -820,58 +650,35 @@ function readPlatformRiskSignalTone(lines: string[]): { tone: "Warning" | "Posit
 function buildDiagnosisSection(
   diagnosis: ReportViewModel["diagnosis"],
 ): ReportDetailPresentationModel["diagnosis"] {
-  if (!diagnosis) {
-    return {
-      diagnosisTypeLabel: null,
-      summary: null,
-      notice: null,
-      supportingMetrics: [],
-      primitives: [],
-      unavailableBody: "Typed diagnosis is unavailable for this report artifact.",
-    };
-  }
+  const presentation = buildDiagnosisPresentation(diagnosis, {
+    metricIdPrefix: "diagnosis",
+    supportingMetricLimit: 4,
+    noticeFallbackBody: "Diagnosis is bounded by the available evidence in this report.",
+    missingDiagnosisBody: "Typed diagnosis is unavailable for this report artifact.",
+    missingSummaryBody: "Diagnosis details are limited for this report.",
+  });
 
   return {
-    diagnosisTypeLabel: formatDiagnosisTypeLabel(diagnosis.diagnosisType),
-    summary: diagnosis.summaryText,
-    notice: buildNotice(diagnosis, {
-      fallbackBody: "Diagnosis is bounded by the available evidence in this report.",
-    }),
-    supportingMetrics: diagnosis.supportingMetrics.slice(0, 4).map((metric) => buildDiagnosisSupportingMetric(metric)),
+    diagnosisTypeLabel: presentation.diagnosisTypeLabel,
+    summary: presentation.summary,
+    notice: presentation.notice,
+    supportingMetrics: presentation.supportingMetrics,
     primitives: buildDiagnosisPrimitives(diagnosis),
-    unavailableBody: diagnosis.summaryText ? null : getTruthStateDescription(diagnosis) ?? "Diagnosis details are limited for this report.",
+    unavailableBody: presentation.unavailableBody,
   };
 }
 
 function buildWhatChangedSection(
   whatChanged: ReportViewModel["whatChanged"],
 ): ReportDetailPresentationModel["whatChanged"] {
-  if (!whatChanged) {
-    return {
-      comparisonAvailable: false,
-      priorPeriodLabel: null,
-      notice: null,
-      improved: [],
-      worsened: [],
-      watchNext: [],
-      unavailableBody: "Typed report-over-report comparison is unavailable for this report artifact.",
-    };
-  }
-
-  return {
-    comparisonAvailable: whatChanged.comparisonAvailable,
-    priorPeriodLabel: buildWhatChangedPeriodLabel(whatChanged),
-    notice: buildNotice(whatChanged, {
-      fallbackBody: "Comparison results are bounded by the comparable report evidence that was available.",
-    }),
-    improved: whatChanged.whatImproved.slice(0, 3).map((item, index) => buildComparisonItem(item, index)),
-    worsened: whatChanged.whatWorsened.slice(0, 3).map((item, index) => buildComparisonItem(item, index)),
-    watchNext: whatChanged.watchNext.slice(0, 3).map((item, index) => buildComparisonItem(item, index)),
-    unavailableBody:
-      !whatChanged.comparisonAvailable
-        ? getTruthStateDescription(whatChanged) ?? "A prior comparable report is not available yet."
-        : null,
-  };
+  return buildWhatChangedPresentation(whatChanged, {
+    itemIdPrefix: null,
+    itemLimit: 3,
+    includeDirectionInDetail: true,
+    noticeFallbackBody: "Comparison results are bounded by the comparable report evidence that was available.",
+    missingWhatChangedBody: "Typed report-over-report comparison is unavailable for this report artifact.",
+    unavailableComparisonBody: "A prior comparable report is not available yet.",
+  });
 }
 
 function buildReportDetailPresentationModel(input: BuildReportDetailPresentationInput): ReportDetailPresentationModel {

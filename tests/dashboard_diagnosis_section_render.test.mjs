@@ -29,6 +29,8 @@ test("diagnosis section includes loading-safe, honest summary, unavailable, noti
   assert.equal(source.includes('data-testid="dashboard-diagnosis-supporting-metrics"'), true);
   assert.equal(source.includes("Based on available report data"), true);
   assert.equal(source.includes("Diagnosis unavailable"), true);
+  assert.equal(source.includes("Latest report diagnosis"), true);
+  assert.equal(source.includes("Current primary constraint from typed report evidence, bounded by the available report data."), true);
   assert.equal(source.includes("diagnosis.summary ? ("), true);
   assert.equal(source.includes("diagnosis.comparisonContext ? ("), true);
 });

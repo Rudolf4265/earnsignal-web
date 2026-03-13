@@ -84,3 +84,33 @@ test("dashboard insights preserve source order for uncategorized items after pri
     ],
   );
 });
+
+test("dashboard insights preserve typed uncertainty for limited evidence signals", async () => {
+  const { buildDashboardInsights } = await loadModule(Date.now() + 6);
+  const insights = buildDashboardInsights({
+    signals: [
+      {
+        id: "sig_1",
+        title: "Retention signal needs validation",
+        description: "Subscriber evidence is incomplete this cycle.",
+        category: "risk",
+        severity: 60,
+        signalType: "churn_acceleration",
+        confidenceScore: 0.45,
+        availability: "limited",
+        confidence: "low",
+        confidenceAdjusted: true,
+        evidenceStrength: "weak",
+        insufficientReason: "missing_subscriber_snapshot",
+        reasonCodes: ["missing_subscriber_snapshot"],
+        dataQualityLevel: "limited",
+        analysisMode: "reduced",
+        recommendationMode: "watch",
+      },
+    ],
+  });
+
+  assert.equal(insights.length, 1);
+  assert.equal(insights[0]?.stateLabel, "Watch next cycle");
+  assert.equal(insights[0]?.stateDetail?.includes("Watch this signal next cycle"), true);
+});

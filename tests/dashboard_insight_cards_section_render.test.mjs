@@ -19,4 +19,6 @@ test("insight cards section renders narrative fields for signal and implication"
   assert.equal(source.includes(">Signal<"), true);
   assert.equal(source.includes(">Why it matters<"), true);
   assert.equal(source.includes("break-words"), true);
+  assert.equal(source.includes("insight.stateLabel"), true);
+  assert.equal(source.includes("insight.stateDetail"), true);
 });

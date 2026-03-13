@@ -1,3 +1,4 @@
+import { Badge } from "./Badge";
 import Link from "next/link";
 import { DashboardSectionHeader } from "./DashboardSectionHeader";
 import { buttonClassName } from "@/src/components/ui/button";
@@ -21,8 +22,12 @@ export function ActionCardsSection({ mode, cards }: ActionCardsSectionProps) {
                 key={card.id}
                 className="rounded-xl border border-brand-border/75 bg-[linear-gradient(155deg,rgba(19,41,80,0.78),rgba(16,32,67,0.88))] p-4 shadow-brand-card"
               >
-                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">{`Action ${index + 1}`}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">{card.label || `Recommendation ${index + 1}`}</p>
+                  {card.stateLabel ? <Badge variant={card.stateTone ?? "neutral"}>{card.stateLabel}</Badge> : null}
+                </div>
                 <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{card.body}</p>
+                {card.detail ? <p className="mt-3 text-xs leading-relaxed text-brand-text-muted">{card.detail}</p> : null}
               </li>
             ))}
           </ul>

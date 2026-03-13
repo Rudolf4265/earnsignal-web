@@ -1,12 +1,18 @@
 import type { EntitlementsResponse } from "../api/entitlements";
 import type { AppGateState } from "../gating/app-gate";
 import { hasProEquivalentEntitlement, isProEquivalentPlanTier, resolveEffectivePlanTier } from "../entitlements/model";
+import type { ReportRecommendationViewModel } from "../report/normalize-artifact-to-report-model";
+import { getTruthStateDescription, getTruthStateLabel, getTruthStateTone, type ReportTruthTone } from "../report/truth";
 
 export type DashboardActionCardsMode = "unlocked" | "locked" | "loading";
 
 export type DashboardActionCard = {
   id: string;
+  label: string;
   body: string;
+  detail: string | null;
+  stateLabel: string | null;
+  stateTone: ReportTruthTone | null;
 };
 
 export type DashboardActionCardsViewModel = {
@@ -18,6 +24,7 @@ export type BuildDashboardActionCardsViewModelInput = {
   gateState: AppGateState;
   entitlements: EntitlementsResponse | null;
   recommendedActions: string[] | null | undefined;
+  recommendationItems?: ReportRecommendationViewModel[] | null;
   fallbackActions?: string[] | null;
   maxCards?: number;
 };
@@ -90,6 +97,32 @@ function resolveMaxCards(maxCards: number | null | undefined): number {
   return Math.max(1, Math.min(DEFAULT_MAX_CARDS, Math.trunc(maxCards)));
 }
 
+function toTypedCards(recommendationItems: ReportRecommendationViewModel[], maxCards: number): DashboardActionCard[] {
+  return recommendationItems.slice(0, maxCards).map((recommendation, index) => {
+    const label =
+      recommendation.recommendationMode === "validate"
+        ? "Validate first"
+        : recommendation.recommendationMode === "watch"
+          ? "Watch next cycle"
+          : "Recommended action";
+    const stateLabel =
+      recommendation.recommendationMode === "action"
+        ? getTruthStateLabel(recommendation)
+        : getTruthStateLabel(recommendation) && getTruthStateLabel(recommendation) !== label
+          ? getTruthStateLabel(recommendation)
+          : null;
+
+    return {
+      id: recommendation.id || `action-card-${index + 1}`,
+      label,
+      body: recommendation.title,
+      detail: getTruthStateDescription(recommendation) ?? recommendation.description ?? recommendation.steps[0] ?? null,
+      stateLabel,
+      stateTone: stateLabel ? getTruthStateTone(recommendation) : null,
+    };
+  });
+}
+
 export function buildDashboardActionCardsViewModel(input: BuildDashboardActionCardsViewModelInput): DashboardActionCardsViewModel {
   const mode = resolveMode(input.gateState, input.entitlements);
   if (mode !== "unlocked") {
@@ -100,6 +133,16 @@ export function buildDashboardActionCardsViewModel(input: BuildDashboardActionCa
   }
 
   const maxCards = resolveMaxCards(input.maxCards);
+  const typedItems = Array.isArray(input.recommendationItems)
+    ? input.recommendationItems.filter((item) => typeof item?.title === "string" && item.title.trim().length > 0)
+    : [];
+  if (typedItems.length > 0) {
+    return {
+      mode,
+      cards: toTypedCards(typedItems, maxCards),
+    };
+  }
+
   const recommended = normalizeCards(input.recommendedActions);
   const fallback = normalizeCards(input.fallbackActions ?? DEFAULT_PRO_ACTIONS);
   const selected = (recommended.length > 0 ? recommended : fallback).slice(0, maxCards);
@@ -108,7 +151,11 @@ export function buildDashboardActionCardsViewModel(input: BuildDashboardActionCa
     mode,
     cards: selected.map((body, index) => ({
       id: `action-card-${index + 1}`,
+      label: `Recommendation ${index + 1}`,
       body,
+      detail: null,
+      stateLabel: null,
+      stateTone: null,
     })),
   };
 }

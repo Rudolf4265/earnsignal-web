@@ -1,18 +1,52 @@
 import type { DashboardRevenueTrendPoint } from "../dashboard/artifact-hydration";
 import type { ReportDetail } from "../api/reports";
-import type { ReportSectionViewModel, ReportViewModel } from "./normalize-artifact-to-report-model";
+import {
+  createEmptyTruthMetadata,
+  getTruthStateDescription,
+  getTruthStateLabel,
+  getTruthStateTone,
+  type ReportTruthMetadata,
+  type ReportTruthTone,
+} from "./truth";
+import type {
+  ReportMetricProvenanceEntry,
+  ReportOutlookItemViewModel,
+  ReportRecommendationViewModel,
+  ReportSectionViewModel,
+  ReportSignalViewModel,
+  ReportViewModel,
+} from "./normalize-artifact-to-report-model";
+
+export type ReportDetailPresentationNotice = {
+  label: string;
+  body: string;
+  tone: ReportTruthTone;
+};
 
 export type ReportDetailPresentationMetric = {
   id: string;
   label: string;
   value: string;
   detail: string | null;
+  stateLabel: string | null;
+  stateTone: ReportTruthTone | null;
 };
 
 export type ReportDetailOutlookCard = {
-  id: "base_case" | "upside" | "downside" | "outlook";
+  id: "base_case" | "upside" | "downside" | "outlook" | "churn_outlook" | "platform_risk_outlook" | "revenue_projection";
   title: string;
   body: string;
+  stateLabel: string | null;
+  stateTone: ReportTruthTone | null;
+};
+
+export type ReportDetailPresentationRecommendation = {
+  id: string;
+  label: string;
+  body: string;
+  detail: string | null;
+  stateLabel: string | null;
+  stateTone: ReportTruthTone | null;
 };
 
 export type ReportDetailPresentationAppendixSection = {
@@ -25,24 +59,29 @@ export type ReportDetailPresentationAppendixSection = {
 export type ReportDetailPresentationModel = {
   heroTitle: string;
   heroSubtitle: string | null;
+  heroNotice: ReportDetailPresentationNotice | null;
   executiveSummary: string[];
   heroMetrics: ReportDetailPresentationMetric[];
+  signals: ReportSignalViewModel[];
   keySignals: string[];
   revenueTrend: {
     points: DashboardRevenueTrendPoint[];
     narrative: string | null;
   };
   subscriberHealth: {
+    notice: ReportDetailPresentationNotice | null;
     metrics: ReportDetailPresentationMetric[];
     highlights: string[];
   };
   platformMix: {
+    notice: ReportDetailPresentationNotice | null;
     concentrationScore: number | null;
     platformsConnected: number | null;
     highlights: string[];
   };
-  recommendations: string[];
+  recommendations: ReportDetailPresentationRecommendation[];
   revenueOutlook: {
+    notice: ReportDetailPresentationNotice | null;
     cards: ReportDetailOutlookCard[];
     highlights: string[];
   };
@@ -145,16 +184,10 @@ function formatScore(value: number | null): string {
   return `${rounded}/100`;
 }
 
-function findFirstLineByKeywords(lines: string[], keywords: string[]): string | null {
-  const loweredKeywords = keywords.map((keyword) => keyword.toLowerCase());
-  for (const line of lines) {
-    const normalized = line.toLowerCase();
-    if (loweredKeywords.some((keyword) => normalized.includes(keyword))) {
-      return line;
-    }
-  }
-
-  return null;
+function formatPercent(value: number): string {
+  const percent = value <= 1 ? value * 100 : value;
+  const rounded = Math.round(percent * 10) / 10;
+  return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)}%`;
 }
 
 function readPercentFromText(value: string): number | null {
@@ -229,6 +262,57 @@ function readFriendlyReportTitle(report: ReportDetail): { title: string; subtitl
   };
 }
 
+function buildNotice(truth: ReportTruthMetadata | null | undefined, options?: { source?: string | null; fallbackLabel?: string; fallbackBody?: string }): ReportDetailPresentationNotice | null {
+  if (!truth) {
+    return null;
+  }
+
+  const label = getTruthStateLabel(truth, { source: options?.source ?? null }) ?? options?.fallbackLabel ?? null;
+  if (!label) {
+    return null;
+  }
+
+  return {
+    label,
+    body: getTruthStateDescription(truth, { source: options?.source ?? null }) ?? options?.fallbackBody ?? "Limited evidence in this report.",
+    tone: getTruthStateTone(truth, { source: options?.source ?? null }),
+  };
+}
+
+function createMetric(input: {
+  id: string;
+  label: string;
+  value: string;
+  truth?: ReportTruthMetadata | null;
+  source?: string | null;
+  detail?: string | null;
+}): ReportDetailPresentationMetric {
+  const stateLabel = input.truth ? getTruthStateLabel(input.truth, { source: input.source ?? null }) : null;
+  const stateTone = input.truth && stateLabel ? getTruthStateTone(input.truth, { source: input.source ?? null }) : null;
+  const truthDetail = input.truth ? getTruthStateDescription(input.truth, { source: input.source ?? null }) : null;
+
+  return {
+    id: input.id,
+    label: input.label,
+    value: input.value,
+    detail: truthDetail ?? input.detail ?? null,
+    stateLabel,
+    stateTone,
+  };
+}
+
+function findFirstLineByKeywords(lines: string[], keywords: string[]): string | null {
+  const loweredKeywords = keywords.map((keyword) => keyword.toLowerCase());
+  for (const line of lines) {
+    const normalized = line.toLowerCase();
+    if (loweredKeywords.some((keyword) => normalized.includes(keyword))) {
+      return line;
+    }
+  }
+
+  return null;
+}
+
 function buildExecutiveSummary(input: {
   reportSummary: string;
   reportPlatformsConnected: number | null;
@@ -263,67 +347,185 @@ function buildExecutiveSummary(input: {
   return fallback.length > 0 ? fallback.slice(0, 3) : ["Summary details are limited for this report artifact."];
 }
 
+function buildReportTruthSummary(model: ReportViewModel | null): ReportDetailPresentationNotice | null {
+  if (!model) {
+    return null;
+  }
+
+  if (model.metricSnapshot?.churnRiskAvailability === "unavailable") {
+    const churnTruth = createEmptyTruthMetadata({
+      availability: "unavailable",
+      confidence: model.metricSnapshot.churnRiskConfidence ?? null,
+      confidenceAdjusted: true,
+      reasonCodes: model.metricSnapshot.churnRiskReasonCodes,
+      insufficientReason: model.metricSnapshot.churnRiskReasonCodes[0] ?? "missing_subscriber_evidence",
+      analysisMode: model.metricSnapshot.analysisMode ?? model.analysisMode,
+      dataQualityLevel: model.metricSnapshot.dataQualityLevel ?? model.dataQualityLevel,
+    });
+    return buildNotice(churnTruth, {
+      fallbackLabel: "Unavailable",
+      fallbackBody: "Subscriber-driven churn signals are unavailable for this report.",
+    });
+  }
+
+  const stabilityNotice = buildNotice(model.stability, {
+    fallbackBody: "Reduced confidence due to limited evidence in the latest report.",
+  });
+  if (stabilityNotice) {
+    return stabilityNotice;
+  }
+
+  if (model.analysisMode === "reduced" || model.dataQualityLevel === "limited" || model.dataQualityLevel === "sparse") {
+    return {
+      label: "Limited evidence",
+      body: "Heuristic signal based on available monthly data.",
+      tone: "warn",
+    };
+  }
+
+  return null;
+}
+
 function buildSubscriberMetrics(input: {
   subscribers: number | null;
-  churnVelocity: number | null;
+  metricProvenance: Record<string, ReportMetricProvenanceEntry>;
+  metricSnapshot: ReportViewModel["metricSnapshot"];
   lines: string[];
 }): ReportDetailPresentationMetric[] {
   const metrics: ReportDetailPresentationMetric[] = [];
-
+  const activeSubscribers = input.metricProvenance.active_subscribers;
   if (input.subscribers !== null) {
-    metrics.push({
-      id: "subscribers",
-      label: "Subscribers",
-      value: formatNumber(input.subscribers),
-      detail: null,
-    });
+    metrics.push(
+      createMetric({
+        id: "subscribers",
+        label: "Subscribers",
+        value: formatNumber(input.subscribers),
+        truth: activeSubscribers ?? null,
+        source: activeSubscribers?.source ?? input.metricSnapshot?.activeSubscribersSource ?? null,
+      }),
+    );
   }
 
-  if (input.churnVelocity !== null) {
-    metrics.push({
-      id: "churn_velocity",
-      label: "Churn Velocity",
-      value: formatNumber(input.churnVelocity),
-      detail: "From report KPI signals.",
+  if (input.metricSnapshot?.churnRisk != null) {
+    const churnTruth = createEmptyTruthMetadata({
+      availability: input.metricSnapshot.churnRiskAvailability,
+      confidence: input.metricSnapshot.churnRiskConfidence,
+      confidenceAdjusted: input.metricSnapshot.churnRiskAvailability === "limited" || input.metricSnapshot.churnRiskAvailability === "unavailable",
+      insufficientReason: input.metricSnapshot.churnRiskReasonCodes[0] ?? null,
+      reasonCodes: input.metricSnapshot.churnRiskReasonCodes,
+      analysisMode: input.metricSnapshot.analysisMode,
+      dataQualityLevel: input.metricSnapshot.dataQualityLevel,
     });
+    metrics.push(
+      createMetric({
+        id: "churn_risk",
+        label: "Churn Risk",
+        value: formatScore(input.metricSnapshot.churnRisk),
+        truth: churnTruth,
+      }),
+    );
   }
 
-  const retentionLine = findFirstLineByKeywords(input.lines, ["retention", "renewal"]);
-  if (retentionLine) {
-    const retentionPercent = readPercentFromText(retentionLine);
-    metrics.push({
-      id: "retention",
-      label: "Retention",
-      value: retentionPercent !== null ? `${retentionPercent}%` : "Narrative signal",
-      detail: retentionLine,
-    });
+  const churnRate = input.metricProvenance.churn_rate;
+  if (churnRate?.value != null) {
+    metrics.push(
+      createMetric({
+        id: "churn_rate",
+        label: "Churn Rate",
+        value: formatPercent(churnRate.value),
+        truth: churnRate,
+        source: churnRate.source,
+      }),
+    );
   }
 
-  const arpuLine = findFirstLineByKeywords(input.lines, ["arpu", "average revenue per user"]);
-  if (arpuLine) {
-    metrics.push({
-      id: "arpu",
-      label: "ARPU",
-      value: readCurrencyFromText(arpuLine) ?? "Narrative signal",
-      detail: arpuLine,
-    });
+  const arpu = input.metricProvenance.arpu;
+  if (arpu?.value != null) {
+    metrics.push(
+      createMetric({
+        id: "arpu",
+        label: "ARPU",
+        value: formatCurrency(arpu.value),
+        truth: arpu,
+        source: arpu.source,
+      }),
+    );
   }
 
-  const deduped: ReportDetailPresentationMetric[] = [];
-  const seen = new Set<string>();
-  for (const metric of metrics) {
-    if (seen.has(metric.id)) {
-      continue;
+  if (!activeSubscribers && !churnRate && !arpu) {
+    const retentionLine = findFirstLineByKeywords(input.lines, ["retention", "renewal"]);
+    if (retentionLine) {
+      const retentionPercent = readPercentFromText(retentionLine);
+      metrics.push({
+        id: "retention",
+        label: "Retention",
+        value: retentionPercent !== null ? `${retentionPercent}%` : "Narrative signal",
+        detail: retentionLine,
+        stateLabel: null,
+        stateTone: null,
+      });
     }
 
-    seen.add(metric.id);
-    deduped.push(metric);
+    const arpuLine = findFirstLineByKeywords(input.lines, ["arpu", "average revenue per user"]);
+    if (arpuLine) {
+      metrics.push({
+        id: "arpu",
+        label: "ARPU",
+        value: readCurrencyFromText(arpuLine) ?? "Narrative signal",
+        detail: arpuLine,
+        stateLabel: "Narrative only",
+        stateTone: "neutral",
+      });
+    }
   }
 
-  return deduped;
+  return metrics;
 }
 
-function buildOutlook(lines: string[]): { cards: ReportDetailOutlookCard[]; highlights: string[] } {
+function buildTypedRecommendations(recommendations: ReportRecommendationViewModel[], fallback: string[]): ReportDetailPresentationRecommendation[] {
+  if (recommendations.length > 0) {
+    return recommendations.slice(0, 6).map((recommendation, index) => {
+      const label =
+        recommendation.recommendationMode === "validate"
+          ? "Validate first"
+          : recommendation.recommendationMode === "watch"
+            ? "Watch next cycle"
+            : "Recommended action";
+      const stateLabel =
+        recommendation.recommendationMode === "action"
+          ? getTruthStateLabel(recommendation)
+          : getTruthStateLabel(recommendation) && getTruthStateLabel(recommendation) !== label
+            ? getTruthStateLabel(recommendation)
+            : null;
+
+      return {
+        id: recommendation.id || `recommendation-${index + 1}`,
+        label,
+        body: recommendation.title,
+        detail:
+          getTruthStateDescription(recommendation) ??
+          recommendation.description ??
+          recommendation.steps[0] ??
+          null,
+        stateLabel,
+        stateTone: stateLabel ? getTruthStateTone(recommendation) : null,
+      };
+    });
+  }
+
+  return dedupeText(fallback)
+    .slice(0, 6)
+    .map((recommendation, index) => ({
+      id: `recommendation-fallback-${index + 1}`,
+      label: `Recommendation ${index + 1}`,
+      body: recommendation,
+      detail: null,
+      stateLabel: null,
+      stateTone: null,
+    }));
+}
+
+function buildFallbackOutlook(lines: string[]): { cards: ReportDetailOutlookCard[]; highlights: string[] } {
   const cards: ReportDetailOutlookCard[] = [];
   const usedLineIndexes = new Set<number>();
 
@@ -346,17 +548,17 @@ function buildOutlook(lines: string[]): { cards: ReportDetailOutlookCard[]; high
 
   const baseCase = withMatch(["base case", "base", "expected"]);
   if (baseCase) {
-    cards.push({ id: "base_case", title: "Base Case", body: baseCase.line });
+    cards.push({ id: "base_case", title: "Base Case", body: baseCase.line, stateLabel: null, stateTone: null });
   }
 
   const upside = withMatch(["upside", "optimistic", "best case", "opportunity"]);
   if (upside) {
-    cards.push({ id: "upside", title: "Upside", body: upside.line });
+    cards.push({ id: "upside", title: "Upside", body: upside.line, stateLabel: null, stateTone: null });
   }
 
   const downside = withMatch(["downside", "risk", "conservative", "headwind", "bear"]);
   if (downside) {
-    cards.push({ id: "downside", title: "Downside", body: downside.line });
+    cards.push({ id: "downside", title: "Downside", body: downside.line, stateLabel: null, stateTone: null });
   }
 
   if (cards.length === 0 && lines[0]) {
@@ -364,12 +566,42 @@ function buildOutlook(lines: string[]): { cards: ReportDetailOutlookCard[]; high
       id: "outlook",
       title: "Outlook",
       body: lines[0],
+      stateLabel: null,
+      stateTone: null,
     });
     usedLineIndexes.add(0);
   }
 
-  const highlights = lines.filter((_, index) => !usedLineIndexes.has(index)).slice(0, 3);
-  return { cards, highlights };
+  return {
+    cards,
+    highlights: lines.filter((_, index) => !usedLineIndexes.has(index)).slice(0, 3),
+  };
+}
+
+function buildTypedOutlook(outlook: ReportViewModel["outlook"], fallbackLines: string[]) {
+  if (outlook?.items.length) {
+    const cards = outlook.items.map((item) => ({
+      id: item.id as ReportDetailOutlookCard["id"],
+      title: item.title,
+      body: item.body,
+      stateLabel: getTruthStateLabel(item),
+      stateTone: getTruthStateLabel(item) ? getTruthStateTone(item) : null,
+    }));
+    const highlights = dedupeText(outlook.summary.filter((line) => !cards.some((card) => card.body === line))).slice(0, 3);
+    const notice = buildNotice(outlook.items.find((item) => getTruthStateLabel(item)) ?? null, {
+      fallbackBody: "Outlook scenarios are confidence-adjusted in this report.",
+    });
+    return {
+      notice,
+      cards,
+      highlights,
+    };
+  }
+
+  return {
+    notice: null,
+    ...buildFallbackOutlook(fallbackLines),
+  };
 }
 
 function readPlatformRiskSignalTone(lines: string[]): { tone: "Warning" | "Positive" | "Neutral"; body: string } | null {
@@ -392,50 +624,7 @@ function readPlatformRiskSignalTone(lines: string[]): { tone: "Warning" | "Posit
   return { tone: "Neutral", body: platformLine };
 }
 
-function buildPlatformRiskMetric(input: {
-  concentrationScore: number | null;
-  platformsConnected: number | null;
-  highlights: string[];
-  platformRiskSignal: { tone: "Warning" | "Positive" | "Neutral"; body: string } | null;
-}): ReportDetailPresentationMetric {
-  if (input.concentrationScore !== null) {
-    const rounded = input.concentrationScore % 1 === 0 ? input.concentrationScore.toFixed(0) : input.concentrationScore.toFixed(1);
-    return {
-      id: "platform_risk",
-      label: "Platform Risk",
-      value: `${rounded}%`,
-      detail: input.highlights[0] ?? "Concentration signal sourced from platform mix data.",
-    };
-  }
-
-  if (input.platformRiskSignal) {
-    return {
-      id: "platform_risk",
-      label: "Platform Risk",
-      value: input.platformRiskSignal.tone,
-      detail: input.platformRiskSignal.body,
-    };
-  }
-
-  if (input.platformsConnected !== null) {
-    const suffix = input.platformsConnected === 1 ? "" : "s";
-    return {
-      id: "platform_risk",
-      label: "Platform Risk",
-      value: `${formatNumber(input.platformsConnected)} channel${suffix}`,
-      detail: "Connected channel count from report metadata.",
-    };
-  }
-
-  return {
-    id: "platform_risk",
-    label: "Platform Risk",
-    value: "--",
-    detail: input.highlights[0] ?? null,
-  };
-}
-
-export function buildReportDetailPresentationModel(input: BuildReportDetailPresentationInput): ReportDetailPresentationModel {
+function buildReportDetailPresentationModel(input: BuildReportDetailPresentationInput): ReportDetailPresentationModel {
   const sectionEntries = toIndexedSections(input.artifactModel?.sections);
 
   const revenueSections = selectSections(sectionEntries, ["revenue snapshot", "revenue trend"]);
@@ -459,7 +648,9 @@ export function buildReportDetailPresentationModel(input: BuildReportDetailPrese
     usedSectionIndexes.add(section.index);
   }
 
+  const typedSignals = input.artifactModel?.signals ?? [];
   const rawKeySignals = dedupeText([
+    ...typedSignals.map((signal) => signal.description ?? signal.title),
     ...(input.artifactSignals?.keySignals ?? []),
     ...input.report.keySignals,
     ...collectSectionText(keySignalSections),
@@ -469,7 +660,6 @@ export function buildReportDetailPresentationModel(input: BuildReportDetailPrese
     netRevenue: input.artifactModel?.kpis.netRevenue ?? input.report.metrics.netRevenue ?? null,
     stabilityIndex: input.artifactModel?.kpis.stabilityIndex ?? input.report.metrics.stabilityIndex ?? null,
     subscribers: input.artifactModel?.kpis.subscribers ?? input.report.metrics.subscribers ?? null,
-    churnVelocity: input.artifactModel?.kpis.churnVelocity ?? input.report.metrics.churnVelocity ?? null,
   };
 
   const summary = buildExecutiveSummary({
@@ -487,25 +677,35 @@ export function buildReportDetailPresentationModel(input: BuildReportDetailPrese
   const subscriberLines = collectSectionText(subscriberSections);
   const subscriberMetrics = buildSubscriberMetrics({
     subscribers: kpis.subscribers,
-    churnVelocity: kpis.churnVelocity,
+    metricProvenance: input.artifactModel?.metricProvenance ?? {},
+    metricSnapshot: input.artifactModel?.metricSnapshot ?? null,
     lines: subscriberLines,
   });
 
+  const concentrationRisk = input.artifactModel?.metricProvenance?.concentration_risk ?? null;
   const platformLines = dedupeText([...collectSectionText(platformSections), ...rawKeySignals.filter((line) => /platform|channel|concentration/i.test(line))]);
+  const typedConcentrationScore = concentrationRisk?.value != null ? normalizeScorePercent(concentrationRisk.value) : null;
   const platformMix = {
-    concentrationScore: readConcentrationScore(platformLines),
+    notice:
+      buildNotice(concentrationRisk, {
+        source: concentrationRisk?.source ?? null,
+        fallbackBody: "Platform risk is based on the available channel mix evidence.",
+      }) ?? buildNotice(input.artifactModel?.outlook?.items.find((item) => item.id === "platform_risk_outlook") ?? null),
+    concentrationScore: typedConcentrationScore ?? readConcentrationScore(platformLines),
     platformsConnected: input.report.metrics.platformsConnected ?? null,
     highlights: platformLines.slice(0, 3),
   };
   const platformRiskSignal = readPlatformRiskSignalTone(platformLines.length > 0 ? platformLines : rawKeySignals);
 
-  const recommendations = dedupeText([
+  const typedRecommendations = input.artifactModel?.recommendations ?? [];
+  const recommendationFallback = dedupeText([
     ...(input.artifactSignals?.recommendedActions ?? []),
     ...input.report.recommendedActions,
     ...collectSectionText(recommendationSections),
-  ]).slice(0, 6);
+  ]);
+  const recommendations = buildTypedRecommendations(typedRecommendations, recommendationFallback);
 
-  const revenueOutlook = buildOutlook(collectSectionText(outlookSections));
+  const revenueOutlook = buildTypedOutlook(input.artifactModel?.outlook ?? null, collectSectionText(outlookSections));
 
   const appendixSections: ReportDetailPresentationAppendixSection[] = [
     ...explicitAppendixSections,
@@ -519,38 +719,78 @@ export function buildReportDetailPresentationModel(input: BuildReportDetailPrese
 
   const heroTitle = readFriendlyReportTitle(input.report);
 
+  const netRevenueTruth = input.artifactModel?.metricProvenance?.net_revenue ?? null;
+  const stabilityTruth = input.artifactModel?.stability ?? null;
+  const platformTruth = concentrationRisk ?? input.artifactModel?.outlook?.items.find((item) => item.id === "platform_risk_outlook") ?? null;
+
   const heroMetrics: ReportDetailPresentationMetric[] = [
-    {
+    createMetric({
       id: "net_revenue",
       label: "Net Revenue",
       value: formatCurrency(kpis.netRevenue),
+      truth: netRevenueTruth,
+      source: netRevenueTruth?.source ?? null,
       detail: revenueLines[0] ?? null,
-    },
-    {
+    }),
+    createMetric({
       id: "creator_health",
       label: "Creator Health",
       value: formatScore(kpis.stabilityIndex),
-      detail: kpis.churnVelocity !== null ? `Churn velocity: ${formatNumber(kpis.churnVelocity)}.` : null,
-    },
-    buildPlatformRiskMetric({
-      concentrationScore: platformMix.concentrationScore,
-      platformsConnected: platformMix.platformsConnected,
-      highlights: platformMix.highlights,
-      platformRiskSignal,
+      truth: stabilityTruth,
+      detail: stabilityTruth?.explanation ?? null,
+    }),
+    createMetric({
+      id: "platform_risk",
+      label: "Platform Risk",
+      value:
+        platformMix.concentrationScore !== null
+          ? `${platformMix.concentrationScore % 1 === 0 ? platformMix.concentrationScore.toFixed(0) : platformMix.concentrationScore.toFixed(1)}%`
+          : platformRiskSignal?.tone ?? "--",
+      truth: platformTruth,
+      source: concentrationRisk?.source ?? null,
+      detail: platformRiskSignal?.body ?? platformMix.highlights[0] ?? null,
     }),
   ];
 
   return {
     heroTitle: heroTitle.title,
     heroSubtitle: heroTitle.subtitle,
+    heroNotice: buildReportTruthSummary(input.artifactModel),
     executiveSummary: summary,
     heroMetrics,
+    signals: typedSignals,
     keySignals: rawKeySignals,
     revenueTrend: {
       points: input.artifactSignals?.revenueTrend ?? [],
       narrative: trendNarrative,
     },
     subscriberHealth: {
+      notice:
+        buildNotice(
+          input.artifactModel?.metricSnapshot
+            ? createEmptyTruthMetadata({
+                availability: input.artifactModel.metricSnapshot.churnRiskAvailability,
+                confidence: input.artifactModel.metricSnapshot.churnRiskConfidence,
+                confidenceAdjusted:
+                  input.artifactModel.metricSnapshot.churnRiskAvailability === "limited" ||
+                  input.artifactModel.metricSnapshot.churnRiskAvailability === "unavailable",
+                insufficientReason: input.artifactModel.metricSnapshot.churnRiskReasonCodes[0] ?? null,
+                reasonCodes: input.artifactModel.metricSnapshot.churnRiskReasonCodes,
+                analysisMode: input.artifactModel.metricSnapshot.analysisMode,
+                dataQualityLevel: input.artifactModel.metricSnapshot.dataQualityLevel,
+              })
+            : null,
+          {
+            fallbackBody: "Subscriber-driven risk signals are limited in this report.",
+          },
+        ) ??
+        buildNotice(input.artifactModel?.metricProvenance?.active_subscribers ?? null, {
+          source: input.artifactModel?.metricProvenance?.active_subscribers?.source ?? input.artifactModel?.metricSnapshot?.activeSubscribersSource ?? null,
+          fallbackBody: "Subscriber metrics are based on the available evidence in this report.",
+        }) ??
+        buildNotice(input.artifactModel?.metricProvenance?.churn_rate ?? null, {
+          source: input.artifactModel?.metricProvenance?.churn_rate?.source ?? input.artifactModel?.metricSnapshot?.churnRateSource ?? null,
+        }),
       metrics: subscriberMetrics,
       highlights: subscriberLines.slice(0, 3),
     },
@@ -560,3 +800,5 @@ export function buildReportDetailPresentationModel(input: BuildReportDetailPrese
     appendixSections,
   };
 }
+
+export { buildReportDetailPresentationModel };

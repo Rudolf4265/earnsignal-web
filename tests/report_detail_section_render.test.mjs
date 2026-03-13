@@ -16,6 +16,8 @@ test("report detail includes unlocked rendering branches for Pro-gated sections"
 
   assert.equal(source.includes("showRevenueOutlookContent ? ("), true);
   assert.equal(source.includes('data-testid="report-revenue-outlook-unlocked"'), true);
+  assert.equal(source.includes('testId="report-subscriber-health-notice"'), true);
+  assert.equal(source.includes('testId="report-revenue-outlook-notice"'), true);
 
   assert.equal(source.includes("showPlatformRiskExplanationContent ? ("), true);
   assert.equal(source.includes('data-testid="report-platform-risk-explanation-unlocked"'), true);
@@ -56,6 +58,16 @@ test("report detail keeps Pro content conditional to avoid locked-state leaks", 
   assert.equal(source.includes("const showGrowthRecommendationsContent = canRenderReportDetailProContent(proSectionGate.growthRecommendations);"), true);
   assert.equal(source.includes("const showRevenueOutlookContent = canRenderReportDetailProContent(proSectionGate.revenueOutlook);"), true);
   assert.equal(source.includes("const showPlatformRiskExplanationContent = canRenderReportDetailProContent(proSectionGate.platformRiskExplanation);"), true);
+});
+
+test("report detail renders truth notices and metric badges for limited states", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8");
+
+  assert.equal(source.includes("function TruthNotice"), true);
+  assert.equal(source.includes('testId="report-hero-truth-notice"'), true);
+  assert.equal(source.includes("metric.stateLabel"), true);
+  assert.equal(source.includes("recommendation.stateLabel"), true);
+  assert.equal(source.includes("card.stateLabel"), true);
 });
 
 test("report detail keeps active PDF actions in the Pro-only branch", async () => {

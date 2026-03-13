@@ -17,4 +17,5 @@ test("creator health panel keeps hero score, trajectory line, and utility cards"
   assert.equal(source.includes("Data Footprint"), true);
   assert.equal(source.includes("Latest Report"), true);
   assert.equal(source.includes("Gated state"), true);
+  assert.equal(source.includes("creatorHealth.stateLabel"), true);
 });

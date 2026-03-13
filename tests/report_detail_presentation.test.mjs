@@ -131,7 +131,7 @@ test("buildReportDetailPresentationModel maps production sections into structure
   assert.equal(model.revenueTrend.points[2]?.value, 215000);
   assert.equal(model.subscriberHealth.metrics.some((metric) => metric.id === "retention"), true);
   assert.equal(model.subscriberHealth.metrics.some((metric) => metric.id === "arpu"), true);
-  assert.equal(model.recommendations[0], "Prioritize retention loop tests before acquisition scale-up.");
+  assert.equal(model.recommendations[0]?.body, "Prioritize retention loop tests before acquisition scale-up.");
   assert.equal(model.revenueOutlook.cards.some((card) => card.title === "Base Case"), true);
   assert.equal(model.revenueOutlook.cards.some((card) => card.title === "Upside"), true);
   assert.equal(model.revenueOutlook.cards.some((card) => card.title === "Downside"), true);
@@ -153,6 +153,7 @@ test("buildReportDetailPresentationModel degrades gracefully for sparse report d
   assert.equal(model.heroTitle, "Q1 Revenue Quality");
   assert.equal(model.executiveSummary.length, 1);
   assert.equal(model.executiveSummary[0].includes("Summary details are limited"), true);
+  assert.equal(model.heroNotice, null);
   assert.equal(model.keySignals.length, 0);
   assert.equal(model.revenueTrend.points.length, 0);
   assert.equal(model.subscriberHealth.metrics.length, 0);
@@ -186,4 +187,159 @@ test("buildReportDetailPresentationModel maps platform-risk insight tone into he
 
   const platformRiskMetric = model.heroMetrics.find((metric) => metric.id === "platform_risk");
   assert.equal(platformRiskMetric?.value, "Warning");
+});
+
+test("buildReportDetailPresentationModel surfaces typed limited and unavailable truth states", async () => {
+  const { buildReportDetailPresentationModel } = await loadModule(Date.now() + 4);
+
+  const model = buildReportDetailPresentationModel({
+    report: makeReport({
+      metrics: {
+        netRevenue: 10000,
+        subscribers: 1200,
+        stabilityIndex: 61,
+        churnVelocity: null,
+        coverageMonths: 2,
+        platformsConnected: 1,
+      },
+    }),
+    artifactModel: {
+      reportId: "rep_truth_detail_001",
+      schemaVersion: "v1",
+      createdAt: "2026-03-01T10:00:00Z",
+      analysisMode: "reduced",
+      dataQualityLevel: "limited",
+      executiveSummaryParagraphs: ["Reduced confidence due to limited subscriber evidence."],
+      kpis: {
+        netRevenue: 10000,
+        subscribers: 1200,
+        stabilityIndex: 61,
+        churnVelocity: null,
+      },
+      sections: [],
+      metricSnapshot: {
+        churnRisk: 50,
+        churnRiskRawScore: 72,
+        churnRiskConfidence: "low",
+        churnRiskAvailability: "unavailable",
+        churnRiskReasonCodes: ["missing_subscriber_evidence"],
+        activeSubscribersSource: "derived",
+        churnRateSource: "derived",
+        arpuSource: "derived",
+        stabilityConfidence: 0.52,
+        analysisMode: "reduced",
+        dataQualityLevel: "limited",
+      },
+      metricProvenance: {
+        active_subscribers: {
+          value: 1200,
+          source: "derived",
+          confidence: "low",
+          confidenceAdjusted: false,
+          availability: "limited",
+          evidenceStrength: "weak",
+          insufficientReason: "missing_subscriber_snapshot",
+          reasonCodes: ["missing_subscriber_snapshot"],
+          dataQualityLevel: "limited",
+          analysisMode: "reduced",
+          recommendationMode: null,
+          confidenceScore: null,
+        },
+      },
+      signals: [
+        {
+          id: "sig_1",
+          title: "Retention signal needs validation",
+          description: "Subscriber evidence is incomplete this cycle.",
+          category: "risk",
+          severity: 60,
+          signalType: "churn_acceleration",
+          confidenceScore: 0.45,
+          availability: "limited",
+          confidence: "low",
+          confidenceAdjusted: true,
+          evidenceStrength: "weak",
+          insufficientReason: "missing_subscriber_snapshot",
+          reasonCodes: ["missing_subscriber_snapshot"],
+          dataQualityLevel: "limited",
+          analysisMode: "reduced",
+          recommendationMode: "watch",
+        },
+      ],
+      recommendations: [
+        {
+          id: "rec_1",
+          title: "Validate churn visibility before a retention sprint",
+          description: "Confirm subscriber snapshot coverage before acting.",
+          expectedImpact: "low",
+          effort: "low",
+          confidenceScore: 0.45,
+          steps: ["Verify subscriber snapshot coverage."],
+          linkedSignals: ["churn_acceleration"],
+          availability: "limited",
+          confidence: "low",
+          confidenceAdjusted: true,
+          evidenceStrength: "weak",
+          insufficientReason: "missing_subscriber_snapshot",
+          reasonCodes: ["missing_subscriber_snapshot"],
+          dataQualityLevel: "limited",
+          analysisMode: "reduced",
+          recommendationMode: "validate",
+        },
+      ],
+      outlook: {
+        summary: [],
+        items: [
+          {
+            id: "churn_outlook",
+            title: "Churn Outlook",
+            body: "Unavailable for this report because subscriber evidence is missing.",
+            level: "medium",
+            score: 50,
+            scoreBeforeAdjustment: 72,
+            confidenceScore: 0.35,
+            availability: "unavailable",
+            confidence: "low",
+            confidenceAdjusted: true,
+            evidenceStrength: "none",
+            insufficientReason: "missing_subscriber_evidence",
+            reasonCodes: ["missing_subscriber_evidence"],
+            dataQualityLevel: "limited",
+            analysisMode: "reduced",
+            recommendationMode: null,
+          },
+        ],
+      },
+      stability: {
+        score: 61,
+        band: "medium",
+        explanation: "Stability is medium with reduced confidence due to limited evidence.",
+        confidenceScore: 0.52,
+        components: null,
+        availability: "limited",
+        confidence: "low",
+        confidenceAdjusted: true,
+        evidenceStrength: "weak",
+        insufficientReason: "missing_subscriber_snapshot",
+        reasonCodes: ["missing_subscriber_snapshot"],
+        dataQualityLevel: "limited",
+        analysisMode: "reduced",
+        recommendationMode: null,
+      },
+    },
+    artifactSignals: {
+      keySignals: [],
+      recommendedActions: [],
+      trendPreview: null,
+      revenueTrend: [],
+    },
+  });
+
+  assert.equal(model.heroNotice?.label, "Unavailable");
+  assert.equal(model.heroMetrics.find((metric) => metric.id === "creator_health")?.stateLabel, "Reduced confidence");
+  assert.equal(model.subscriberHealth.notice?.label, "Unavailable");
+  assert.equal(model.subscriberHealth.metrics.find((metric) => metric.id === "subscribers")?.stateLabel, "Heuristic signal");
+  assert.equal(model.recommendations[0]?.label, "Validate first");
+  assert.equal(model.revenueOutlook.notice?.label, "Unavailable");
+  assert.equal(model.revenueOutlook.cards[0]?.stateLabel, "Unavailable");
 });

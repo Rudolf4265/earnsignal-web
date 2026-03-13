@@ -184,6 +184,128 @@ test("normalizeArtifactToReportModel is tolerant when fields are missing or malf
   assert.equal(result.warnings.length > 0, true);
 });
 
+test("normalizeArtifactToReportModel preserves typed uncertainty and recommendation metadata", async () => {
+  const { normalizeArtifactToReportModel } = await loadArtifactNormalizer(Date.now() + 4);
+  const result = normalizeArtifactToReportModel({
+    schema_version: "v1",
+    report: {
+      report_id: "rep_truth_001",
+      analysis_mode: "reduced",
+      data_quality_level: "limited",
+      metric_snapshot: {
+        churn_risk: 50,
+        churn_risk_confidence: "low",
+        churn_risk_availability: "unavailable",
+        churn_risk_reason_codes: ["missing_subscriber_evidence"],
+        active_subscribers_source: "derived",
+      },
+      metric_provenance: {
+        active_subscribers: {
+          value: 1200,
+          source: "derived",
+          confidence: "low",
+          insufficient_reason: "missing_subscriber_snapshot",
+        },
+        arpu: {
+          value: 42,
+          source: "derived",
+          confidence: "medium",
+        },
+      },
+      sections: {
+        executive_summary: {
+          narrative_text: "Reduced confidence due to limited subscriber evidence.",
+        },
+        revenue_snapshot: {
+          series: [{ period: "2026-02", net_revenue: 10000 }],
+        },
+        stability: {
+          stability_index: 61,
+          confidence: 0.52,
+          confidence_adjusted: true,
+          evidence_strength: "weak",
+          insufficient_reason: "missing_subscriber_snapshot",
+        },
+        prioritized_insights: [
+          {
+            id: "sig_1",
+            title: "Churn pressure needs validation",
+            description: "Subscriber evidence is incomplete this cycle.",
+            confidence_adjusted: true,
+            evidence_strength: "weak",
+            recommendation_mode: "watch",
+          },
+        ],
+        ranked_recommendations: [
+          {
+            id: "rec_1",
+            title: "Validate churn visibility before a retention sprint",
+            recommendation_mode: "validate",
+            confidence_adjusted: true,
+            evidence_strength: "weak",
+            insufficient_reason: "missing_subscriber_snapshot",
+            steps_30d: ["Verify subscriber snapshot coverage."],
+          },
+        ],
+        outlook: {
+          churn_outlook: {
+            explanation: "Unavailable for this report because subscriber evidence is missing.",
+            availability: "unavailable",
+            confidence_adjusted: true,
+            insufficient_reason: "missing_subscriber_evidence",
+          },
+        },
+      },
+    },
+  });
+
+  assert.equal(result.model.analysisMode, "reduced");
+  assert.equal(result.model.dataQualityLevel, "limited");
+  assert.equal(result.model.metricSnapshot?.churnRiskAvailability, "unavailable");
+  assert.equal(result.model.metricSnapshot?.activeSubscribersSource, "derived");
+  assert.equal(result.model.metricProvenance.active_subscribers?.source, "derived");
+  assert.equal(result.model.metricProvenance.active_subscribers?.confidence, "low");
+  assert.equal(result.model.stability?.confidenceAdjusted, true);
+  assert.equal(result.model.stability?.insufficientReason, "missing_subscriber_snapshot");
+  assert.equal(result.model.signals[0]?.recommendationMode, "watch");
+  assert.equal(result.model.signals[0]?.confidenceAdjusted, true);
+  assert.equal(result.model.recommendations[0]?.recommendationMode, "validate");
+  assert.equal(result.model.recommendations[0]?.steps[0], "Verify subscriber snapshot coverage.");
+  assert.equal(result.model.outlook?.items[0]?.id, "churn_outlook");
+  assert.equal(result.model.outlook?.items[0]?.availability, "unavailable");
+});
+
+test("normalizeArtifactToReportModel keeps older artifacts conservative when typed fields are absent", async () => {
+  const { normalizeArtifactToReportModel } = await loadArtifactNormalizer(Date.now() + 5);
+  const result = normalizeArtifactToReportModel({
+    report_id: "rep_legacy_001",
+    sections: {
+      executive_summary: {
+        summary: "Limited monthly history is available.",
+      },
+      revenue_snapshot: {
+        series: [{ period: "2026-02", net_revenue: 12000 }],
+      },
+      stability: {
+        stability_index: 58,
+      },
+      prioritized_insights: ["Revenue momentum appears stable."],
+      ranked_recommendations: ["Watch this metric next cycle."],
+      outlook: {
+        summary: "Outlook remains limited without additional history.",
+      },
+    },
+  });
+
+  assert.equal(result.model.analysisMode, null);
+  assert.equal(result.model.metricSnapshot, null);
+  assert.equal(result.model.metricProvenance.active_subscribers, undefined);
+  assert.equal(result.model.signals[0]?.title, "Revenue momentum appears stable.");
+  assert.equal(result.model.recommendations[0]?.recommendationMode, null);
+  assert.equal(result.model.outlook?.items.length, 0);
+  assert.equal(result.model.outlook?.summary[0], "Outlook remains limited without additional history.");
+});
+
 test("report debug accordion stays collapsed by default", async () => {
   const page = await readFile("app/(app)/app/report/[id]/page.tsx", "utf8");
 

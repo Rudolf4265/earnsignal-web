@@ -1,8 +1,13 @@
+import type { ReportStabilityViewModel } from "../report/normalize-artifact-to-report-model";
+import { getTruthStateDescription, getTruthStateLabel, getTruthStateTone, type ReportTruthTone } from "../report/truth";
+
 export type DashboardViewModel = {
   creatorHealth: {
     score: number | null;
     title: string;
     subtitle: string;
+    stateLabel: string | null;
+    stateTone: ReportTruthTone | null;
   };
   revenueSnapshot: {
     revenueDisplay: string;
@@ -20,6 +25,7 @@ export type BuildDashboardViewModelInput = {
     subscribers: number | null;
     stabilityIndex: number | null;
   };
+  stability?: ReportStabilityViewModel | null;
   revenueDeltaText?: string | null;
   subscriberDeltaText?: string | null;
   revenueSparkline?: number[] | null;
@@ -81,30 +87,46 @@ function normalizeSparkline(values: number[] | null | undefined): number[] | nul
   return normalized.length >= 2 ? normalized : null;
 }
 
-function toCreatorHealthCopy(score: number | null): Pick<DashboardViewModel["creatorHealth"], "title" | "subtitle"> {
+function toCreatorHealthCopy(score: number | null, stability: ReportStabilityViewModel | null | undefined) {
   if (score === null) {
     return {
       title: "Your health score will appear after your next report.",
       subtitle: "Run a report to unlock a personalized health snapshot.",
+      stateLabel: null,
+      stateTone: null,
+    };
+  }
+
+  const stateLabel = stability ? getTruthStateLabel(stability) : null;
+  const stateTone = stability && stateLabel ? getTruthStateTone(stability) : null;
+  if (stateLabel) {
+    return {
+      title: `Creator health is provisional at ${score}/100.`,
+      subtitle: (stability ? getTruthStateDescription(stability) : null) ?? "Treat this as a limited-evidence health score until the next report confirms it.",
+      stateLabel,
+      stateTone,
     };
   }
 
   return {
     title: `Your creator health score is ${score}/100.`,
     subtitle: "This score updates from your latest completed report.",
+    stateLabel: null,
+    stateTone: null,
   };
 }
 
 export function buildDashboardViewModel(input: BuildDashboardViewModelInput): DashboardViewModel {
-  // Stability index is the only currently available score-like metric; map it directly when present.
   const creatorHealthScore = normalizeScore(input.kpis.stabilityIndex);
-  const creatorHealthCopy = toCreatorHealthCopy(creatorHealthScore);
+  const creatorHealthCopy = toCreatorHealthCopy(creatorHealthScore, input.stability);
 
   return {
     creatorHealth: {
       score: creatorHealthScore,
       title: creatorHealthCopy.title,
       subtitle: creatorHealthCopy.subtitle,
+      stateLabel: creatorHealthCopy.stateLabel,
+      stateTone: creatorHealthCopy.stateTone,
     },
     revenueSnapshot: {
       revenueDisplay: formatCurrency(input.kpis.netRevenue),

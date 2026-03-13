@@ -76,6 +76,7 @@ test("dashboard artifact hydrator maps production report.sections shape", async 
 
   assert.equal(result.contractValid, true);
   assert.deepEqual(result.contractErrors, []);
+  assert.equal(result.model?.reportId, "rep_prod_dashboard_001");
   assert.equal(result.kpis.netRevenue, 215000);
   assert.equal(result.kpis.stabilityIndex, 87);
   assert.equal(result.keySignals.length > 0, true);
@@ -101,10 +102,40 @@ test("dashboard artifact hydrator surfaces contract drift errors for malformed p
 
   assert.equal(result.contractValid, false);
   assert.equal(result.contractErrors.length > 0, true);
+  assert.equal(result.model?.sections.length ?? 0, 0);
   assert.deepEqual(result.keySignals, []);
   assert.deepEqual(result.recommendedActions, []);
   assert.equal(result.trendPreview, null);
   assert.deepEqual(result.revenueTrend, []);
   assert.equal(result.kpis.netRevenue, null);
   assert.equal(result.kpis.stabilityIndex, null);
+});
+
+test("dashboard artifact hydrator still normalizes older but renderable artifacts conservatively", async () => {
+  const { hydrateDashboardFromArtifact } = await loadHydrator();
+  const result = hydrateDashboardFromArtifact({
+    schema_version: "2026-03-01",
+    sections: {
+      executive_summary: {
+        summary: "Limited monthly history is available.",
+      },
+      revenue_snapshot: {
+        series: [{ period: "2026-02", net_revenue: 12000 }],
+      },
+      stability: {
+        stability_index: 58,
+      },
+      prioritized_insights: ["Watch subscriber quality next cycle."],
+      ranked_recommendations: ["Validate the churn signal after the next report."],
+      outlook: {
+        summary: "Outlook remains limited without additional history.",
+      },
+    },
+  });
+
+  assert.equal(result.contractValid, false);
+  assert.equal(result.model?.sections.length > 0, true);
+  assert.equal(result.kpis.netRevenue, 12000);
+  assert.equal(result.keySignals[0], "Watch subscriber quality next cycle.");
+  assert.equal(result.recommendedActions[0], "Validate the churn signal after the next report.");
 });

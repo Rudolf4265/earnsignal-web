@@ -1,4 +1,9 @@
-import { normalizeArtifactToReportModel } from "../report/normalize-artifact-to-report-model";
+import {
+  normalizeArtifactToReportModel,
+  type ReportRecommendationViewModel,
+  type ReportSignalViewModel,
+  type ReportViewModel,
+} from "../report/normalize-artifact-to-report-model";
 import { validateReportArtifactContract } from "../report/artifact-contract";
 
 export type DashboardRevenueTrendPoint = {
@@ -9,6 +14,7 @@ export type DashboardRevenueTrendPoint = {
 export type DashboardArtifactHydrationResult = {
   contractValid: boolean;
   contractErrors: string[];
+  model: ReportViewModel | null;
   warnings: string[];
   kpis: {
     netRevenue: number | null;
@@ -236,41 +242,28 @@ function pickRevenueTrend(artifact: unknown): DashboardRevenueTrendPoint[] {
 
 export function hydrateDashboardFromArtifact(artifact: unknown): DashboardArtifactHydrationResult {
   const contract = validateReportArtifactContract(artifact);
-  if (!contract.valid) {
-    return {
-      contractValid: false,
-      contractErrors: contract.errors,
-      warnings: [],
-      kpis: {
-        netRevenue: null,
-        subscribers: null,
-        stabilityIndex: null,
-        churnVelocity: null,
-      },
-      keySignals: [],
-      recommendedActions: [],
-      trendPreview: null,
-      revenueTrend: [],
-    };
-  }
-
   const normalized = normalizeArtifactToReportModel(artifact);
   const keySignalsSection = findSectionByTitles(normalized.model.sections, ["Key Signals"]);
   const recommendationsSection = findSectionByTitles(normalized.model.sections, ["Recommended Actions"]);
+  const typedKeySignals = normalized.model.signals.map((signal: ReportSignalViewModel) => signal.description ?? signal.title).filter(Boolean);
+  const typedRecommendations = normalized.model.recommendations
+    .map((recommendation: ReportRecommendationViewModel) => recommendation.description ?? recommendation.title)
+    .filter(Boolean);
 
   return {
-    contractValid: true,
-    contractErrors: [],
-    warnings: normalized.warnings,
+    contractValid: contract.valid,
+    contractErrors: contract.valid ? [] : contract.errors,
+    model: normalized.model,
+    warnings: contract.valid ? normalized.warnings : [...contract.errors, ...normalized.warnings],
     kpis: {
       netRevenue: normalized.model.kpis.netRevenue,
       subscribers: normalized.model.kpis.subscribers,
       stabilityIndex: normalized.model.kpis.stabilityIndex,
       churnVelocity: normalized.model.kpis.churnVelocity,
     },
-    keySignals: readSectionText(keySignalsSection),
-    recommendedActions: readSectionText(recommendationsSection),
-    trendPreview: pickTrendPreview(normalized.model.sections, normalized.model.executiveSummaryParagraphs[0] ?? null),
+    keySignals: typedKeySignals.length > 0 ? typedKeySignals : readSectionText(keySignalsSection),
+    recommendedActions: typedRecommendations.length > 0 ? typedRecommendations : readSectionText(recommendationsSection),
+    trendPreview: normalized.model.outlook?.summary[0] ?? pickTrendPreview(normalized.model.sections, normalized.model.executiveSummaryParagraphs[0] ?? null),
     revenueTrend: pickRevenueTrend(artifact),
   };
 }

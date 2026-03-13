@@ -1,3 +1,12 @@
+import {
+  createEmptyTruthMetadata,
+  inferAvailabilityFromTruth,
+  normalizeTruthConfidence,
+  type ReportAvailability,
+  type ReportConfidenceLevel,
+  type ReportTruthMetadata,
+} from "./truth";
+
 export type ReportKpis = {
   netRevenue: number | null;
   subscribers: number | null;
@@ -6,18 +15,92 @@ export type ReportKpis = {
 };
 
 export type ReportSectionViewModel = {
+  key: string | null;
   title: string | null;
   bullets: string[];
   paragraphs: string[];
+  truth: ReportTruthMetadata;
+};
+
+export type ReportMetricSnapshot = {
+  churnRisk: number | null;
+  churnRiskRawScore: number | null;
+  churnRiskConfidence: ReportConfidenceLevel | null;
+  churnRiskAvailability: ReportAvailability | null;
+  churnRiskReasonCodes: string[];
+  activeSubscribersSource: string | null;
+  churnRateSource: string | null;
+  arpuSource: string | null;
+  stabilityConfidence: number | null;
+  analysisMode: string | null;
+  dataQualityLevel: string | null;
+};
+
+export type ReportMetricProvenanceEntry = ReportTruthMetadata & {
+  value: number | null;
+  source: string | null;
+  confidenceScore: number | null;
+};
+
+export type ReportSignalViewModel = ReportTruthMetadata & {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  severity: number | null;
+  signalType: string | null;
+  confidenceScore: number | null;
+};
+
+export type ReportRecommendationViewModel = ReportTruthMetadata & {
+  id: string;
+  title: string;
+  description: string | null;
+  expectedImpact: string | null;
+  effort: string | null;
+  confidenceScore: number | null;
+  steps: string[];
+  linkedSignals: string[];
+};
+
+export type ReportOutlookItemViewModel = ReportTruthMetadata & {
+  id: string;
+  title: string;
+  body: string;
+  level: string | null;
+  score: number | null;
+  scoreBeforeAdjustment: number | null;
+  confidenceScore: number | null;
+};
+
+export type ReportOutlookViewModel = {
+  summary: string[];
+  items: ReportOutlookItemViewModel[];
+};
+
+export type ReportStabilityViewModel = ReportTruthMetadata & {
+  score: number | null;
+  band: string | null;
+  explanation: string | null;
+  confidenceScore: number | null;
+  components: Record<string, number> | null;
 };
 
 export type ReportViewModel = {
   reportId: string | null;
   schemaVersion: string | null;
   createdAt: string | null;
+  analysisMode: string | null;
+  dataQualityLevel: string | null;
   executiveSummaryParagraphs: string[];
   kpis: ReportKpis;
   sections: ReportSectionViewModel[];
+  metricSnapshot: ReportMetricSnapshot | null;
+  metricProvenance: Record<string, ReportMetricProvenanceEntry>;
+  signals: ReportSignalViewModel[];
+  recommendations: ReportRecommendationViewModel[];
+  outlook: ReportOutlookViewModel | null;
+  stability: ReportStabilityViewModel | null;
 };
 
 export type NormalizeArtifactResult = {
@@ -58,6 +141,30 @@ const SECTION_TITLE_BY_KEY: Partial<Record<(typeof SECTION_KEY_ORDER)[number], s
 const TREND_KEY_HINTS = ["series", "trend", "timeline", "history", "points", "data"];
 const SERIES_LABEL_KEYS = ["period", "date", "month", "week", "day", "label", "name", "x"];
 const SERIES_VALUE_KEYS = ["value", "net_revenue", "revenue", "amount", "metric", "y", "index"];
+const TEXT_LIST_KEYS = ["text", "title", "label", "summary", "description", "headline", "explanation", "body", "name", "value"];
+
+const METADATA_KEYS = new Set([
+  "analysis_mode",
+  "availability",
+  "confidence",
+  "confidence_adjusted",
+  "data_quality_level",
+  "evidence_strength",
+  "insufficient_reason",
+  "reason_codes",
+  "recommendation_mode",
+  "score_0_100",
+  "score_before_adjustment",
+  "level",
+  "source",
+  "signal_type",
+  "category",
+  "severity",
+  "expected_impact",
+  "effort",
+  "linked_signals",
+  "steps_30d",
+]);
 
 type SectionInput = {
   key: string | null;
@@ -94,6 +201,24 @@ function readString(value: unknown): string | null {
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function readBoolean(value: unknown): boolean | null {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") {
+      return true;
+    }
+    if (normalized === "false") {
+      return false;
+    }
+  }
+
+  return null;
 }
 
 function readScalarString(value: unknown): string | null {
@@ -138,6 +263,54 @@ function readPath(record: Record<string, unknown>, path: string): unknown {
   }, record);
 }
 
+function readStringFromRecord(record: Record<string, unknown>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = readString(record[key]);
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function readStringFromRecords(records: Record<string, unknown>[], keys: string[]): string | null {
+  for (const record of records) {
+    const value = readStringFromRecord(record, keys);
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function readStringFromPaths(records: Record<string, unknown>[], paths: string[]): string | null {
+  for (const record of records) {
+    for (const path of paths) {
+      const value = readString(readPath(record, path));
+      if (value) {
+        return value;
+      }
+    }
+  }
+
+  return null;
+}
+
+function readRecordFromPaths(records: Record<string, unknown>[], paths: string[]): Record<string, unknown> | null {
+  for (const record of records) {
+    for (const path of paths) {
+      const value = readPath(record, path);
+      if (isRecord(value)) {
+        return value;
+      }
+    }
+  }
+
+  return null;
+}
+
 function readNumberFromRecords(records: Record<string, unknown>[], paths: string[]): number | null {
   for (const record of records) {
     for (const path of paths) {
@@ -151,11 +324,7 @@ function readNumberFromRecords(records: Record<string, unknown>[], paths: string
   return null;
 }
 
-function readLatestSeriesMetricFromRecords(
-  records: Record<string, unknown>[],
-  paths: string[],
-  valueKeys: string[],
-): number | null {
+function readLatestSeriesMetricFromRecords(records: Record<string, unknown>[], paths: string[], valueKeys: string[]): number | null {
   for (const record of records) {
     for (const path of paths) {
       const seriesValue = readPath(record, path);
@@ -187,26 +356,65 @@ function readLatestSeriesMetricFromRecords(
   return null;
 }
 
-function readStringFromRecord(record: Record<string, unknown>, keys: string[]): string | null {
-  for (const key of keys) {
-    const value = readString(record[key]);
-    if (value) {
-      return value;
+function uniqueStrings(values: string[]): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const value of values) {
+    const trimmed = value.trim();
+    if (!trimmed || seen.has(trimmed)) {
+      continue;
     }
+
+    seen.add(trimmed);
+    result.push(trimmed);
   }
 
-  return null;
+  return result;
 }
 
-function readStringFromRecords(records: Record<string, unknown>[], keys: string[]): string | null {
-  for (const record of records) {
-    const value = readStringFromRecord(record, keys);
-    if (value) {
-      return value;
-    }
+function collectReasonCodes(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
   }
 
-  return null;
+  return uniqueStrings(value.map((entry) => readString(entry)).filter((entry): entry is string => entry !== null));
+}
+
+function readEnumString<T extends string>(value: unknown, allowed: readonly T[]): T | null {
+  const normalized = readString(value)?.toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  return allowed.includes(normalized as T) ? (normalized as T) : null;
+}
+
+function buildTruthMetadata(value: unknown, defaults?: Partial<ReportTruthMetadata>): ReportTruthMetadata {
+  const base = createEmptyTruthMetadata(defaults);
+  if (!isRecord(value)) {
+    return {
+      ...base,
+      availability: base.availability ?? inferAvailabilityFromTruth(base),
+    };
+  }
+
+  const truth = createEmptyTruthMetadata({
+    ...base,
+    availability: readEnumString(value.availability, ["available", "limited", "unavailable"] as const) ?? base.availability,
+    confidence: normalizeTruthConfidence(value.confidence) ?? base.confidence,
+    confidenceAdjusted: readBoolean(value.confidence_adjusted) ?? base.confidenceAdjusted,
+    evidenceStrength: readEnumString(value.evidence_strength, ["none", "weak", "moderate", "strong"] as const) ?? base.evidenceStrength,
+    insufficientReason: readString(value.insufficient_reason) ?? base.insufficientReason,
+    reasonCodes: [...base.reasonCodes, ...collectReasonCodes(value.reason_codes)],
+    dataQualityLevel: readString(value.data_quality_level) ?? base.dataQualityLevel,
+    analysisMode: readString(value.analysis_mode) ?? base.analysisMode,
+    recommendationMode: readEnumString(value.recommendation_mode, ["action", "watch", "validate"] as const) ?? base.recommendationMode,
+  });
+
+  return {
+    ...truth,
+    availability: truth.availability ?? inferAvailabilityFromTruth(truth),
+  };
 }
 
 function formatSeriesEntry(entry: Record<string, unknown>): string | null {
@@ -248,7 +456,7 @@ function toStringArray(value: unknown): string[] {
           return asSeriesEntry;
         }
 
-        for (const key of ["text", "title", "label", "summary", "description", "headline"]) {
+        for (const key of TEXT_LIST_KEYS) {
           const candidate = readString(entry[key]);
           if (candidate) {
             return candidate;
@@ -261,6 +469,10 @@ function toStringArray(value: unknown): string[] {
         }
 
         for (const [key, rawValue] of Object.entries(entry)) {
+          if (METADATA_KEYS.has(key)) {
+            continue;
+          }
+
           const candidate = readScalarString(rawValue);
           if (candidate) {
             return `${toLabel(key)}: ${candidate}`;
@@ -271,22 +483,6 @@ function toStringArray(value: unknown): string[] {
       return null;
     })
     .filter((entry): entry is string => entry !== null);
-}
-
-function uniqueStrings(values: string[]): string[] {
-  const result: string[] = [];
-  const seen = new Set<string>();
-  for (const value of values) {
-    const trimmed = value.trim();
-    if (!trimmed || seen.has(trimmed)) {
-      continue;
-    }
-
-    seen.add(trimmed);
-    result.push(trimmed);
-  }
-
-  return result;
 }
 
 function extractTrendBullets(record: Record<string, unknown>): string[] {
@@ -332,9 +528,12 @@ function extractNestedObjectBullets(key: string, value: Record<string, unknown>)
     "history",
     "points",
     "data",
+    "explanation",
+    "narrative_text",
+    ...METADATA_KEYS,
   ]);
 
-  const summary = readStringFromRecord(value, ["summary", "description", "text", "headline", "overview"]);
+  const summary = readStringFromRecord(value, ["summary", "description", "text", "headline", "overview", "explanation", "narrative_text"]);
   if (summary) {
     bullets.push(`${sectionLabel}: ${summary}`);
   }
@@ -399,6 +598,9 @@ function extractScalarBullets(record: Record<string, unknown>): string[] {
     "history",
     "points",
     "data",
+    "explanation",
+    "narrative_text",
+    ...METADATA_KEYS,
   ]);
 
   const bullets: string[] = [];
@@ -407,7 +609,7 @@ function extractScalarBullets(record: Record<string, unknown>): string[] {
       continue;
     }
 
-    if (key === "kpis" || key === "metrics") {
+    if (key === "kpis" || key === "metrics" || key === "components") {
       if (isRecord(value)) {
         for (const [nestedKey, nestedValue] of Object.entries(value)) {
           const candidate = readScalarString(nestedValue);
@@ -444,7 +646,7 @@ function extractScalarBullets(record: Record<string, unknown>): string[] {
   return uniqueStrings(bullets);
 }
 
-function toSection(input: SectionInput, warnings: string[]): ReportSectionViewModel | null {
+function toSection(input: SectionInput, warnings: string[], defaults: Partial<ReportTruthMetadata>): ReportSectionViewModel | null {
   const raw = input.value;
   if (!isRecord(raw)) {
     if (!input.allowScalarValue) {
@@ -455,18 +657,22 @@ function toSection(input: SectionInput, warnings: string[]): ReportSectionViewMo
     const scalar = readScalarString(raw);
     if (scalar) {
       return {
+        key: input.key,
         title: input.fallbackTitle,
         bullets: [],
         paragraphs: [scalar],
+        truth: createEmptyTruthMetadata(defaults),
       };
     }
 
     const bullets = toStringArray(raw);
     if (bullets.length > 0) {
       return {
+        key: input.key,
         title: input.fallbackTitle,
         bullets,
         paragraphs: [],
+        truth: createEmptyTruthMetadata(defaults),
       };
     }
 
@@ -475,8 +681,23 @@ function toSection(input: SectionInput, warnings: string[]): ReportSectionViewMo
   }
 
   const title = readStringFromRecord(raw, ["title", "heading", "name"]);
-  const paragraphs = uniqueStrings([...toStringArray(raw.paragraphs), ...toStringArray(raw.narrative), ...toStringArray(raw.overview)]);
-  const fallbackParagraph = readStringFromRecord(raw, ["summary", "description", "text", "headline", "overview"]);
+  const structuredNarrative = isRecord(raw.narrative_structured) ? raw.narrative_structured : null;
+  const paragraphs = uniqueStrings([
+    ...toStringArray(raw.paragraphs),
+    ...toStringArray(raw.narrative),
+    ...toStringArray(raw.overview),
+    ...toStringArray(structuredNarrative?.paragraphs),
+    ...toStringArray(structuredNarrative?.key_takeaways),
+  ]);
+  const fallbackParagraph = readStringFromRecord(raw, [
+    "summary",
+    "description",
+    "text",
+    "headline",
+    "overview",
+    "explanation",
+    "narrative_text",
+  ]);
   if (fallbackParagraph) {
     paragraphs.push(fallbackParagraph);
   }
@@ -500,9 +721,11 @@ function toSection(input: SectionInput, warnings: string[]): ReportSectionViewMo
   }
 
   return {
+    key: input.key,
     title: finalTitle,
     bullets: finalBullets,
     paragraphs: finalParagraphs,
+    truth: buildTruthMetadata(raw, defaults),
   };
 }
 
@@ -517,6 +740,7 @@ function readKpis(records: Record<string, unknown>[]): ReportKpis {
       "sections.revenue_snapshot.net_revenue",
       "sections.revenue_snapshot.kpis.net_revenue",
       "sections.revenue_snapshot.metrics.net_revenue",
+      "metric_snapshot.latest_net_revenue",
     ],
     subscribers: [
       "kpis.subscribers",
@@ -528,6 +752,7 @@ function readKpis(records: Record<string, unknown>[]): ReportKpis {
       "sections.revenue_snapshot.subscribers",
       "sections.revenue_snapshot.kpis.subscribers",
       "sections.revenue_snapshot.metrics.subscribers",
+      "metric_snapshot.active_subscribers",
     ],
     stabilityIndex: [
       "kpis.stability_index",
@@ -541,6 +766,7 @@ function readKpis(records: Record<string, unknown>[]): ReportKpis {
       "sections.revenue_snapshot.stability_index",
       "sections.revenue_snapshot.kpis.stability_index",
       "sections.revenue_snapshot.metrics.stability_index",
+      "metric_snapshot.stability_index",
     ],
     churnVelocity: [
       "kpis.churn_velocity",
@@ -570,15 +796,21 @@ function readKpis(records: Record<string, unknown>[]): ReportKpis {
   };
 }
 
-function appendOptionalSections(record: Record<string, unknown>, sections: ReportSectionViewModel[]): void {
+function appendOptionalSections(record: Record<string, unknown>, sections: ReportSectionViewModel[], defaults: Partial<ReportTruthMetadata>): void {
   const insights = toStringArray(record.insights);
   if (insights.length > 0 && !sections.some((section) => section.title?.toLowerCase() === "key signals")) {
-    sections.push({ title: "Key Signals", bullets: insights, paragraphs: [] });
+    sections.push({ key: null, title: "Key Signals", bullets: insights, paragraphs: [], truth: createEmptyTruthMetadata(defaults) });
   }
 
   const recommendations = toStringArray(record.recommendations);
   if (recommendations.length > 0 && !sections.some((section) => section.title?.toLowerCase() === "recommended actions")) {
-    sections.push({ title: "Recommended Actions", bullets: recommendations, paragraphs: [] });
+    sections.push({
+      key: null,
+      title: "Recommended Actions",
+      bullets: recommendations,
+      paragraphs: [],
+      truth: createEmptyTruthMetadata(defaults),
+    });
   }
 
   if (isRecord(record.narrative)) {
@@ -590,9 +822,11 @@ function appendOptionalSections(record: Record<string, unknown>, sections: Repor
 
     if (finalParagraphs.length > 0 || bullets.length > 0) {
       sections.push({
+        key: null,
         title,
         bullets,
         paragraphs: finalParagraphs,
+        truth: createEmptyTruthMetadata(defaults),
       });
     }
   }
@@ -647,8 +881,23 @@ function readExecutiveSummaryParagraphs(value: unknown, warnings: string[], cont
   }
 
   if (isRecord(value)) {
-    const paragraphs = uniqueStrings([...toStringArray(value.paragraphs), ...toStringArray(value.points), ...toStringArray(value.items)]);
-    const fallback = readStringFromRecord(value, ["summary", "headline", "overview", "text", "description"]);
+    const structuredNarrative = isRecord(value.narrative_structured) ? value.narrative_structured : null;
+    const paragraphs = uniqueStrings([
+      ...toStringArray(value.paragraphs),
+      ...toStringArray(value.points),
+      ...toStringArray(value.items),
+      ...toStringArray(structuredNarrative?.paragraphs),
+      ...toStringArray(structuredNarrative?.key_takeaways),
+    ]);
+    const fallback = readStringFromRecord(value, [
+      "summary",
+      "headline",
+      "overview",
+      "text",
+      "description",
+      "narrative_text",
+      "explanation",
+    ]);
     if (fallback) {
       paragraphs.push(fallback);
     }
@@ -659,12 +908,238 @@ function readExecutiveSummaryParagraphs(value: unknown, warnings: string[], cont
   return [];
 }
 
+function readMetricProvenance(records: Record<string, unknown>[], defaults: Partial<ReportTruthMetadata>) {
+  const result: Record<string, ReportMetricProvenanceEntry> = {};
+  const raw = readRecordFromPaths(records, ["metric_provenance", "report.metric_provenance"]);
+  if (!raw) {
+    return result;
+  }
+
+  for (const [key, value] of Object.entries(raw)) {
+    if (!isRecord(value)) {
+      continue;
+    }
+
+    result[key] = {
+      ...buildTruthMetadata(value, defaults),
+      value: readNumber(value.value),
+      source: readString(value.source),
+      confidenceScore: null,
+    };
+  }
+
+  return result;
+}
+
+function readMetricSnapshot(records: Record<string, unknown>[]): ReportMetricSnapshot | null {
+  const raw = readRecordFromPaths(records, ["metric_snapshot", "report.metric_snapshot"]);
+  if (!raw) {
+    return null;
+  }
+
+  return {
+    churnRisk: readNumber(raw.churn_risk),
+    churnRiskRawScore: readNumber(raw.churn_risk_raw_score),
+    churnRiskConfidence: normalizeTruthConfidence(raw.churn_risk_confidence),
+    churnRiskAvailability: readEnumString(raw.churn_risk_availability, ["available", "limited", "unavailable"] as const),
+    churnRiskReasonCodes: collectReasonCodes(raw.churn_risk_reason_codes),
+    activeSubscribersSource: readString(raw.active_subscribers_source),
+    churnRateSource: readString(raw.churn_rate_source),
+    arpuSource: readString(raw.arpu_source),
+    stabilityConfidence: readNumber(raw.stability_confidence),
+    analysisMode: readString(raw.analysis_mode),
+    dataQualityLevel: readString(raw.data_quality_level),
+  };
+}
+
+function readSignals(value: unknown, defaults: Partial<ReportTruthMetadata>): ReportSignalViewModel[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry, index) => {
+      if (typeof entry === "string") {
+        const title = readString(entry);
+        if (!title) {
+          return null;
+        }
+
+        return {
+          ...createEmptyTruthMetadata(defaults),
+          id: `signal-${index + 1}`,
+          title,
+          description: null,
+          category: null,
+          severity: null,
+          signalType: null,
+          confidenceScore: null,
+        };
+      }
+
+      if (!isRecord(entry)) {
+        return null;
+      }
+
+      return {
+        ...buildTruthMetadata(entry, defaults),
+        id: readString(entry.id) ?? readString(entry.signal_type) ?? `signal-${index + 1}`,
+        title: readStringFromRecord(entry, ["title", "headline", "label", "text", "description", "summary"]) ?? `Signal ${index + 1}`,
+        description: readStringFromRecord(entry, ["description", "summary", "text", "explanation"]),
+        category: readString(entry.category),
+        severity: readNumber(entry.severity),
+        signalType: readString(entry.signal_type),
+        confidenceScore: readNumber(entry.confidence),
+      };
+    })
+    .filter((entry): entry is ReportSignalViewModel => entry !== null);
+}
+
+function readRecommendations(value: unknown, defaults: Partial<ReportTruthMetadata>): ReportRecommendationViewModel[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry, index) => {
+      if (typeof entry === "string") {
+        const title = readString(entry);
+        if (!title) {
+          return null;
+        }
+
+        return {
+          ...createEmptyTruthMetadata(defaults),
+          id: `recommendation-${index + 1}`,
+          title,
+          description: null,
+          expectedImpact: null,
+          effort: null,
+          confidenceScore: null,
+          steps: [],
+          linkedSignals: [],
+        };
+      }
+
+      if (!isRecord(entry)) {
+        return null;
+      }
+
+      return {
+        ...buildTruthMetadata(entry, defaults),
+        id: readString(entry.id) ?? readString(entry.rank) ?? `recommendation-${index + 1}`,
+        title: readStringFromRecord(entry, ["title", "headline", "label", "text", "description", "summary"]) ?? `Recommendation ${index + 1}`,
+        description: readStringFromRecord(entry, ["description", "summary", "text"]),
+        expectedImpact: readString(entry.expected_impact),
+        effort: readString(entry.effort),
+        confidenceScore: readNumber(entry.confidence),
+        steps: toStringArray(entry.steps_30d),
+        linkedSignals: toStringArray(entry.linked_signals),
+      };
+    })
+    .filter((entry): entry is ReportRecommendationViewModel => entry !== null);
+}
+
+function readOutlook(value: unknown, defaults: Partial<ReportTruthMetadata>): ReportOutlookViewModel | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const items: ReportOutlookItemViewModel[] = [];
+  for (const [key, title] of [
+    ["churn_outlook", "Churn Outlook"],
+    ["platform_risk_outlook", "Platform Risk Outlook"],
+    ["revenue_projection", "Revenue Projection"],
+  ] as const) {
+    const entry = value[key];
+    if (!isRecord(entry)) {
+      continue;
+    }
+
+    const body = readStringFromRecord(entry, ["explanation", "summary", "description", "text", "headline"]) ?? readString(entry.level) ?? null;
+    if (!body) {
+      continue;
+    }
+
+    items.push({
+      ...buildTruthMetadata(entry, defaults),
+      id: key,
+      title,
+      body,
+      level: readString(entry.level),
+      score: readNumber(entry.score_0_100),
+      scoreBeforeAdjustment: readNumber(entry.score_before_adjustment),
+      confidenceScore: readNumber(entry.confidence),
+    });
+  }
+
+  const summary = uniqueStrings([
+    ...toStringArray(value.paragraphs),
+    ...toStringArray(value.items),
+    ...toStringArray(value.bullets),
+    ...(readStringFromRecord(value, ["summary", "description", "text", "headline"]) ? [readStringFromRecord(value, ["summary", "description", "text", "headline"]) as string] : []),
+    ...extractScalarBullets(value),
+  ]);
+
+  if (items.length === 0 && summary.length === 0) {
+    return null;
+  }
+
+  return {
+    summary,
+    items,
+  };
+}
+
+function toComponentNumbers(value: unknown): Record<string, number> | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const entries = Object.entries(value)
+    .map(([key, raw]) => {
+      const parsed = readNumber(raw);
+      return parsed === null ? null : [key, parsed] as const;
+    })
+    .filter((entry): entry is readonly [string, number] => entry !== null);
+
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return Object.fromEntries(entries);
+}
+
+function readStability(value: unknown, defaults: Partial<ReportTruthMetadata>): ReportStabilityViewModel | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const truth = buildTruthMetadata(value, defaults);
+  const confidenceScore = readNumber(value.confidence);
+  if (readNumber(value.stability_index) === null && !readString(value.band) && !readStringFromRecord(value, ["explanation", "summary", "text"])) {
+    return null;
+  }
+
+  return {
+    ...truth,
+    confidence: truth.confidence ?? normalizeTruthConfidence(confidenceScore),
+    score: readNumber(value.stability_index),
+    band: readString(value.band),
+    explanation: readStringFromRecord(value, ["explanation", "summary", "text"]),
+    confidenceScore,
+    components: toComponentNumbers(value.components),
+  };
+}
+
 export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArtifactResult {
   const warnings: string[] = [];
   const emptyModel: ReportViewModel = {
     reportId: null,
     schemaVersion: null,
     createdAt: null,
+    analysisMode: null,
+    dataQualityLevel: null,
     executiveSummaryParagraphs: [],
     kpis: {
       netRevenue: null,
@@ -673,6 +1148,12 @@ export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArti
       churnVelocity: null,
     },
     sections: [],
+    metricSnapshot: null,
+    metricProvenance: {},
+    signals: [],
+    recommendations: [],
+    outlook: null,
+    stability: null,
   };
 
   if (!isRecord(artifact)) {
@@ -683,6 +1164,12 @@ export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArti
   const reportRecord = isRecord(artifact.report) ? artifact.report : null;
   const primaryRecord = reportRecord ?? artifact;
   const records = primaryRecord === artifact ? [artifact] : [primaryRecord, artifact];
+  const analysisMode = readStringFromPaths(records, ["analysis_mode", "report.analysis_mode"]);
+  const dataQualityLevel = readStringFromPaths(records, ["data_quality_level", "report.data_quality_level"]);
+  const truthDefaults = createEmptyTruthMetadata({
+    analysisMode,
+    dataQualityLevel,
+  });
 
   let executiveSummaryParagraphs = readExecutiveSummaryParagraphs(
     primaryRecord.executive_summary,
@@ -698,7 +1185,7 @@ export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArti
   const topLevelSectionInputs = collectSectionInputs(artifact.sections, "sections", warnings);
   const sectionInputs = reportSectionInputs ?? topLevelSectionInputs ?? [];
   for (const sectionInput of sectionInputs) {
-    const normalized = toSection(sectionInput, warnings);
+    const normalized = toSection(sectionInput, warnings, truthDefaults);
     if (!normalized) {
       continue;
     }
@@ -713,16 +1200,26 @@ export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArti
     sections.push(normalized);
   }
 
-  appendOptionalSections(primaryRecord, sections);
+  appendOptionalSections(primaryRecord, sections, truthDefaults);
+
+  const namedSections = reportRecord && isRecord(reportRecord.sections) ? reportRecord.sections : isRecord(artifact.sections) ? artifact.sections : null;
 
   return {
     model: {
       reportId: readStringFromRecords(records, ["report_id", "reportId", "id"]),
       schemaVersion: readStringFromRecords(records, ["schema_version", "schemaVersion"]),
       createdAt: readStringFromRecords(records, ["created_at", "createdAt"]),
+      analysisMode,
+      dataQualityLevel,
       executiveSummaryParagraphs,
       kpis: readKpis(records),
       sections,
+      metricSnapshot: readMetricSnapshot(records),
+      metricProvenance: readMetricProvenance(records, truthDefaults),
+      signals: readSignals(namedSections?.prioritized_insights, truthDefaults),
+      recommendations: readRecommendations(namedSections?.ranked_recommendations ?? namedSections?.recommendations, truthDefaults),
+      outlook: readOutlook(namedSections?.outlook, truthDefaults),
+      stability: readStability(namedSections?.stability, truthDefaults),
     },
     warnings,
   };

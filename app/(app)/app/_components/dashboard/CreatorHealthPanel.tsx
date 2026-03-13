@@ -40,12 +40,20 @@ type ScoreTrajectory = {
   dotClassName: string;
 };
 
-function resolveScoreTrajectory(score: number | null): ScoreTrajectory {
+function resolveScoreTrajectory(score: number | null, stateLabel: string | null): ScoreTrajectory {
   if (score === null) {
     return {
       label: "Trajectory unlocks after your next report.",
       className: "border-brand-border/70 bg-brand-panel/70 text-brand-text-secondary",
       dotClassName: "bg-brand-text-muted",
+    };
+  }
+
+  if (stateLabel) {
+    return {
+      label: "Trajectory: provisional, confirm next cycle.",
+      className: "border-amber-300/45 bg-amber-500/15 text-amber-100",
+      dotClassName: "bg-amber-300",
     };
   }
 
@@ -99,7 +107,7 @@ export function CreatorHealthPanel({
   ctaLabel,
   ctaHref,
 }: CreatorHealthPanelProps) {
-  const trajectory = resolveScoreTrajectory(creatorHealth.score);
+  const trajectory = resolveScoreTrajectory(creatorHealth.score, creatorHealth.stateLabel);
   const supportCardClassName =
     "rounded-[1.15rem] border border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.84),rgba(16,32,67,0.9))] p-5 shadow-brand-card";
 
@@ -138,6 +146,11 @@ export function CreatorHealthPanel({
               <span className={`h-1.5 w-1.5 rounded-full ${trajectory.dotClassName}`} />
               {trajectory.label}
             </p>
+            {creatorHealth.stateLabel ? (
+              <div className="mt-3">
+                <Badge variant={creatorHealth.stateTone ?? "neutral"}>{creatorHealth.stateLabel}</Badge>
+              </div>
+            ) : null}
             <h3 className="mt-5 text-xl font-semibold text-brand-text-primary">{creatorHealth.title}</h3>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-brand-text-secondary">{creatorHealth.subtitle}</p>
           </article>

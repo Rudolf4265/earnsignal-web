@@ -35,15 +35,23 @@ export function InsightCardsSection({ insights }: InsightCardsSectionProps) {
                     <div className={`absolute inset-x-0 top-0 h-0.5 ${presentation.accentClassName}`} />
                     <div className="relative flex items-center justify-between gap-3">
                       <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Signal</p>
-                      <Badge
-                        variant={presentation.badgeVariant}
-                        className={`px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${presentation.badgeClassName}`}
-                      >
-                        {presentation.badgeLabel}
-                      </Badge>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {insight.stateLabel ? (
+                          <Badge variant={insight.stateTone ?? "neutral"} className="px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]">
+                            {insight.stateLabel}
+                          </Badge>
+                        ) : null}
+                        <Badge
+                          variant={presentation.badgeVariant}
+                          className={`px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${presentation.badgeClassName}`}
+                        >
+                          {presentation.badgeLabel}
+                        </Badge>
+                      </div>
                     </div>
                     <h3 className="mt-3 text-lg font-semibold leading-snug text-brand-text-primary break-words">{insight.title}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary break-words">{insight.body}</p>
+                    {insight.stateDetail ? <p className="mt-3 text-xs leading-relaxed text-brand-text-muted break-words">{insight.stateDetail}</p> : null}
                     <div className={`mt-4 rounded-xl border p-3.5 ${presentation.implicationPanelClassName}`}>
                       <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Why it matters</p>
                       <p className="mt-1.5 text-sm leading-relaxed text-brand-text-primary break-words">{insight.implication}</p>

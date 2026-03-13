@@ -32,7 +32,7 @@ import {
   canRenderReportDetailProContent,
   resolveReportDetailPdfAccessMode,
 } from "@/src/lib/report/detail-gating";
-import { buildReportDetailPresentationModel } from "@/src/lib/report/detail-presentation";
+import { buildReportDetailPresentationModel, type ReportDetailPresentationNotice } from "@/src/lib/report/detail-presentation";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability";
 import { formatReportCreatedAt, toReportStatusLabel, toReportStatusVariant } from "@/src/lib/report/list-model";
@@ -118,6 +118,24 @@ function ProSectionLoadingCard({ message, testId }: { message: string; testId: s
         <div className="h-2.5 w-full animate-pulse rounded-full bg-brand-border/70" />
         <div className="h-2.5 w-4/5 animate-pulse rounded-full bg-brand-border/55" />
       </div>
+    </div>
+  );
+}
+
+function TruthNotice({ notice, testId }: { notice: ReportDetailPresentationNotice; testId?: string }) {
+  const toneClassName =
+    notice.tone === "warn"
+      ? "border-amber-300/40 bg-amber-500/[0.08]"
+      : notice.tone === "good"
+        ? "border-emerald-300/35 bg-emerald-500/[0.08]"
+        : "border-brand-border-strong/70 bg-brand-panel/72";
+
+  return (
+    <div className={`rounded-2xl border p-4 ${toneClassName}`} data-testid={testId}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant={notice.tone}>{notice.label}</Badge>
+      </div>
+      <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{notice.body}</p>
     </div>
   );
 }
@@ -238,12 +256,13 @@ export default function ReportPage() {
           }
 
           const contract = validateReportArtifactContract(artifactRaw);
+          const normalized = normalizeArtifactToReportModel(artifactRaw);
           if (!contract.valid) {
             setState({
               view: "success",
               report,
-              artifactModel: null,
-              artifactWarnings: contract.errors,
+              artifactModel: normalized.model,
+              artifactWarnings: [...contract.errors, ...normalized.warnings],
               artifactRaw,
               artifactError: formatReportArtifactContractErrors(contract.errors),
               artifactJsonMissing: false,
@@ -251,7 +270,6 @@ export default function ReportPage() {
             return;
           }
 
-          const normalized = normalizeArtifactToReportModel(artifactRaw);
           setState({
             view: "success",
             report,
@@ -352,8 +370,7 @@ export default function ReportPage() {
       return null;
     }
 
-    const hydrated = hydrateDashboardFromArtifact(state.artifactRaw);
-    return hydrated.contractValid ? hydrated : null;
+    return hydrateDashboardFromArtifact(state.artifactRaw);
   }, [state.artifactRaw]);
 
   const presentation = useMemo(() => {
@@ -371,9 +388,10 @@ export default function ReportPage() {
     () =>
       buildDashboardInsights({
         keySignals: presentation?.keySignals ?? [],
+        signals: presentation?.signals ?? [],
         maxCards: 3,
       }),
-    [presentation?.keySignals],
+    [presentation?.keySignals, presentation?.signals],
   );
   const revenueTrend = useMemo(
     () =>
@@ -491,13 +509,18 @@ export default function ReportPage() {
                 </div>
               </div>
 
+              {presentation.heroNotice ? <TruthNotice notice={presentation.heroNotice} testId="report-hero-truth-notice" /> : null}
+
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 {presentation.heroMetrics.map((metric) => (
                   <article
                     key={metric.id}
                     className="rounded-[1.1rem] border border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(19,41,80,0.9),rgba(16,32,67,0.95))] p-4 shadow-brand-card"
                   >
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
+                      {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
+                    </div>
                     <p className="mt-2 text-3xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
                     {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
                   </article>
@@ -555,15 +578,19 @@ export default function ReportPage() {
                           <div className={`absolute inset-x-0 top-0 h-0.5 ${tone.accentClassName}`} />
                           <div className="relative flex items-center justify-between gap-3">
                             <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Signal</p>
-                            <Badge
-                              variant={tone.badgeVariant}
-                              className={`px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${tone.badgeClassName}`}
-                            >
-                              {tone.badgeLabel}
-                            </Badge>
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              {insight.stateLabel ? <Badge variant={insight.stateTone ?? "neutral"}>{insight.stateLabel}</Badge> : null}
+                              <Badge
+                                variant={tone.badgeVariant}
+                                className={`px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${tone.badgeClassName}`}
+                              >
+                                {tone.badgeLabel}
+                              </Badge>
+                            </div>
                           </div>
                           <h3 className="mt-3 text-lg font-semibold leading-snug text-brand-text-primary break-words">{insight.title}</h3>
                           <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary break-words">{insight.body}</p>
+                          {insight.stateDetail ? <p className="mt-3 text-xs leading-relaxed text-brand-text-muted break-words">{insight.stateDetail}</p> : null}
                           <div className={`mt-4 rounded-xl border p-3.5 ${tone.implicationPanelClassName}`}>
                             <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Why it matters</p>
                             <p className="mt-1.5 text-sm leading-relaxed text-brand-text-primary break-words">{insight.implication}</p>
@@ -630,6 +657,7 @@ export default function ReportPage() {
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               {showSubscriberHealthContent ? (
                 <div data-testid="report-subscriber-health-unlocked">
+                  {presentation.subscriberHealth.notice ? <TruthNotice notice={presentation.subscriberHealth.notice} testId="report-subscriber-health-notice" /> : null}
                   {presentation.subscriberHealth.metrics.length > 0 ? (
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                       {presentation.subscriberHealth.metrics.map((metric) => (
@@ -637,7 +665,10 @@ export default function ReportPage() {
                           key={metric.id}
                           className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
                         >
-                          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
+                            {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
+                          </div>
                           <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
                           {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
                         </article>
@@ -675,13 +706,14 @@ export default function ReportPage() {
           <section className="space-y-3">
             <DashboardSectionHeader title="Platform Mix" description="Current concentration and channel exposure signals." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              {presentation.platformMix.notice ? <TruthNotice notice={presentation.platformMix.notice} testId="report-platform-mix-notice" /> : null}
               {presentation.platformMix.concentrationScore !== null ||
               presentation.platformMix.platformsConnected !== null ||
               presentation.platformMix.highlights.length > 0 ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <article className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Concentration</p>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Platform Risk Score</p>
                       <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">
                         {presentation.platformMix.concentrationScore !== null
                           ? `${presentation.platformMix.concentrationScore % 1 === 0 ? presentation.platformMix.concentrationScore.toFixed(0) : presentation.platformMix.concentrationScore.toFixed(1)}%`
@@ -759,11 +791,15 @@ export default function ReportPage() {
                     <ul className="space-y-3">
                       {presentation.recommendations.map((recommendation, index) => (
                         <li
-                          key={recommendation}
+                          key={recommendation.id}
                           className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
                         >
-                          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">{`Action ${index + 1}`}</p>
-                          <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{recommendation}</p>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">{recommendation.label || `Recommendation ${index + 1}`}</p>
+                            {recommendation.stateLabel ? <Badge variant={recommendation.stateTone ?? "neutral"}>{recommendation.stateLabel}</Badge> : null}
+                          </div>
+                          <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{recommendation.body}</p>
+                          {recommendation.detail ? <p className="mt-3 text-xs leading-relaxed text-brand-text-muted">{recommendation.detail}</p> : null}
                         </li>
                       ))}
                     </ul>
@@ -794,6 +830,7 @@ export default function ReportPage() {
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               {showRevenueOutlookContent ? (
                 <div data-testid="report-revenue-outlook-unlocked">
+                  {presentation.revenueOutlook.notice ? <TruthNotice notice={presentation.revenueOutlook.notice} testId="report-revenue-outlook-notice" /> : null}
                   {presentation.revenueOutlook.cards.length > 0 ? (
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                       {presentation.revenueOutlook.cards.map((card) => (
@@ -801,7 +838,10 @@ export default function ReportPage() {
                           key={card.id}
                           className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
                         >
-                          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{card.title}</p>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{card.title}</p>
+                            {card.stateLabel ? <Badge variant={card.stateTone ?? "neutral"}>{card.stateLabel}</Badge> : null}
+                          </div>
                           <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{card.body}</p>
                         </article>
                       ))}

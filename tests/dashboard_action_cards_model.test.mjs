@@ -125,3 +125,38 @@ test("unlocks action cards for override-based paid equivalent access", async () 
   assert.equal(result.cards.length, 1);
   assert.equal(result.cards[0]?.body, "Override unlock recommendation should render.");
 });
+
+test("dashboard action cards distinguish validate recommendations from action-ready ones", async () => {
+  const { buildDashboardActionCardsViewModel } = await loadModule(Date.now() + 6);
+
+  const result = buildDashboardActionCardsViewModel({
+    gateState: "authed_entitled",
+    entitlements: createEntitlements({ effectivePlanTier: "pro", plan: "pro", plan_tier: "pro", planTier: "pro" }),
+    recommendedActions: [],
+    recommendationItems: [
+      {
+        id: "rec_1",
+        title: "Validate churn visibility before a retention sprint",
+        description: "Confirm subscriber snapshot coverage before acting.",
+        expectedImpact: "low",
+        effort: "low",
+        confidenceScore: 0.45,
+        steps: ["Verify subscriber snapshot coverage."],
+        linkedSignals: ["churn_acceleration"],
+        availability: "limited",
+        confidence: "low",
+        confidenceAdjusted: true,
+        evidenceStrength: "weak",
+        insufficientReason: "missing_subscriber_snapshot",
+        reasonCodes: ["missing_subscriber_snapshot"],
+        dataQualityLevel: "limited",
+        analysisMode: "reduced",
+        recommendationMode: "validate",
+      },
+    ],
+  });
+
+  assert.equal(result.mode, "unlocked");
+  assert.equal(result.cards[0]?.label, "Validate first");
+  assert.equal(result.cards[0]?.detail?.includes("Validate before acting"), true);
+});

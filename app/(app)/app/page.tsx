@@ -391,16 +391,18 @@ export default function DashboardPage() {
           subscribers: kpis.subscribers,
           stabilityIndex: kpis.stabilityIndex,
         },
+        stability: state.latestArtifact?.model?.stability ?? null,
       }),
-    [kpis.netRevenue, kpis.stabilityIndex, kpis.subscribers],
+    [kpis.netRevenue, kpis.stabilityIndex, kpis.subscribers, state.latestArtifact?.model?.stability],
   );
 
   const insightCards = useMemo(
     () =>
       buildDashboardInsights({
         keySignals,
+        signals: state.latestArtifact?.model?.signals ?? [],
       }),
-    [keySignals],
+    [keySignals, state.latestArtifact?.model?.signals],
   );
 
   const actionCardsSection = useMemo(
@@ -409,9 +411,10 @@ export default function DashboardPage() {
         gateState,
         entitlements,
         recommendedActions,
+        recommendationItems: state.latestArtifact?.model?.recommendations ?? [],
         fallbackActions: fallbackProActions,
       }),
-    [entitlements, gateState, recommendedActions],
+    [entitlements, gateState, recommendedActions, state.latestArtifact?.model?.recommendations],
   );
 
   const platformsConnected = kpis.platformsConnected ?? (state.latestUpload ? 1 : 0);

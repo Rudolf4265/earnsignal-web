@@ -77,3 +77,34 @@ test("dashboard view-model clamps score and drops non-renderable sparkline input
   assert.deepEqual(result.revenueSnapshot.revenueSparkline, [100, 300]);
   assert.equal(result.revenueSnapshot.subscribersSparkline, null);
 });
+
+test("dashboard view-model marks creator health as provisional when stability confidence is reduced", async () => {
+  const { buildDashboardViewModel } = await loadModule(Date.now() + 4);
+  const result = buildDashboardViewModel({
+    kpis: {
+      netRevenue: 1000,
+      subscribers: 25,
+      stabilityIndex: 61,
+    },
+    stability: {
+      score: 61,
+      band: "medium",
+      explanation: "Stability is medium with reduced confidence due to limited evidence.",
+      confidenceScore: 0.52,
+      components: null,
+      availability: "limited",
+      confidence: "low",
+      confidenceAdjusted: true,
+      evidenceStrength: "weak",
+      insufficientReason: "missing_subscriber_snapshot",
+      reasonCodes: ["missing_subscriber_snapshot"],
+      dataQualityLevel: "limited",
+      analysisMode: "reduced",
+      recommendationMode: null,
+    },
+  });
+
+  assert.equal(result.creatorHealth.title, "Creator health is provisional at 61/100.");
+  assert.equal(result.creatorHealth.stateLabel, "Reduced confidence");
+  assert.equal(result.creatorHealth.subtitle.includes("Reduced confidence"), true);
+});

@@ -1,9 +1,11 @@
 import {
   normalizeArtifactToReportModel,
   type ReportComparisonDeltaViewModel,
+  type ReportDiagnosisViewModel,
   type ReportRecommendationViewModel,
   type ReportSignalViewModel,
   type ReportViewModel,
+  type ReportWhatChangedViewModel,
 } from "../report/normalize-artifact-to-report-model";
 import { validateReportArtifactContract } from "../report/artifact-contract";
 
@@ -16,6 +18,8 @@ export type DashboardArtifactHydrationResult = {
   contractValid: boolean;
   contractErrors: string[];
   model: ReportViewModel | null;
+  diagnosis: ReportDiagnosisViewModel | null;
+  whatChanged: ReportWhatChangedViewModel | null;
   warnings: string[];
   kpis: {
     netRevenue: number | null;
@@ -299,6 +303,8 @@ export function hydrateDashboardFromArtifact(artifact: unknown): DashboardArtifa
     contractValid: contract.valid,
     contractErrors: contract.valid ? [] : contract.errors,
     model: normalized.model,
+    diagnosis: normalized.model.diagnosis,
+    whatChanged: normalized.model.whatChanged,
     warnings: contract.valid ? normalized.warnings : [...contract.errors, ...normalized.warnings],
     kpis: {
       netRevenue: normalized.model.kpis.netRevenue,

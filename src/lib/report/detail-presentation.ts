@@ -354,7 +354,10 @@ function formatDateLabel(value: string | null): string | null {
     return null;
   }
 
-  const date = new Date(value);
+  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const date = dateOnly
+    ? new Date(Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])))
+    : new Date(value);
   if (Number.isNaN(date.getTime())) {
     return value;
   }
@@ -363,6 +366,7 @@ function formatDateLabel(value: string | null): string | null {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   }).format(date);
 }
 

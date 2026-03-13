@@ -504,7 +504,7 @@ test("buildReportDetailPresentationModel surfaces typed diagnosis and what-chang
   assert.equal(model.diagnosis.supportingMetrics[0]?.label, "Churn Rate");
   assert.equal(model.diagnosis.primitives.some((entry) => entry.label === "Churn pressure" && entry.value === "High"), true);
   assert.equal(model.whatChanged.comparisonAvailable, true);
-  assert.equal(model.whatChanged.priorPeriodLabel?.includes("Compared with"), true);
+  assert.equal(model.whatChanged.priorPeriodLabel, "Compared with Jan 1, 2026 to Jan 31, 2026");
   assert.equal(model.whatChanged.improved[0]?.body, "Platform concentration eased versus the prior report.");
   assert.equal(model.whatChanged.worsened[0]?.body, "Churn worsened relative to the prior report.");
   assert.equal(model.whatChanged.watchNext[0]?.stateLabel, "Reduced confidence");

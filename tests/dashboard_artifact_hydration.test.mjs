@@ -103,6 +103,33 @@ function createProductionArtifactShape() {
         what_worsened: [],
         watch_next: [],
       },
+      diagnosis: {
+        diagnosis_type: "monetization_pressure",
+        summary_text: "Current profile looks more monetization-limited in the latest report data.",
+        supporting_metrics: [
+          {
+            metric: "arpu",
+            current_value: 42,
+            prior_value: 39,
+            direction: "up",
+            source: "observed",
+            availability: "available",
+            confidence: "medium",
+            confidence_adjusted: false,
+            evidence_strength: "moderate",
+            reason_codes: ["arpu_improved"],
+            data_quality_level: "good",
+            analysis_mode: "full",
+          },
+        ],
+        availability: "available",
+        confidence: "medium",
+        confidence_adjusted: false,
+        evidence_strength: "moderate",
+        reason_codes: ["monetization_pressure_primary"],
+        data_quality_level: "good",
+        analysis_mode: "full",
+      },
     },
   };
 }
@@ -120,6 +147,10 @@ test("dashboard artifact hydrator maps production report.sections shape", async 
   assert.equal(result.keySignals.some((entry) => entry.includes("High-retention cohorts")), true);
   assert.equal(result.recommendedActions.length > 0, true);
   assert.equal(result.recommendedActions.some((entry) => entry.includes("retention experiments")), true);
+  assert.equal(result.diagnosis?.diagnosisType, "monetization_pressure");
+  assert.equal(result.diagnosis?.summaryText, "Current profile looks more monetization-limited in the latest report data.");
+  assert.equal(result.diagnosis?.supportingMetrics[0]?.metric, "arpu");
+  assert.equal(result.whatChanged?.comparisonAvailable, true);
   assert.equal(result.revenueDeltaText, "Up 4.6% vs prior comparable report.");
   assert.equal(result.subscriberDeltaText, "Up 200 vs prior comparable report.");
   assert.equal(result.trendPreview?.includes("growth-positive"), true);
@@ -150,6 +181,8 @@ test("dashboard artifact hydrator surfaces contract drift errors for malformed p
   assert.deepEqual(result.revenueTrend, []);
   assert.equal(result.kpis.netRevenue, null);
   assert.equal(result.kpis.stabilityIndex, null);
+  assert.equal(result.diagnosis, null);
+  assert.equal(result.whatChanged, null);
 });
 
 test("dashboard artifact hydrator still normalizes older but renderable artifacts conservatively", async () => {
@@ -181,4 +214,6 @@ test("dashboard artifact hydrator still normalizes older but renderable artifact
   assert.equal(result.recommendedActions[0], "Validate the churn signal after the next report.");
   assert.equal(result.revenueDeltaText, null);
   assert.equal(result.subscriberDeltaText, null);
+  assert.equal(result.diagnosis, null);
+  assert.equal(result.whatChanged, null);
 });

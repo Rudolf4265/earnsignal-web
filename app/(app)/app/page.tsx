@@ -6,6 +6,7 @@ import { useAppGate } from "../_components/app-gate-provider";
 import { useEntitlementState } from "../_components/use-entitlement-state";
 import { ActionCardsSection } from "./_components/dashboard/ActionCardsSection";
 import { CreatorHealthPanel } from "./_components/dashboard/CreatorHealthPanel";
+import { DiagnosisSection } from "./_components/dashboard/DiagnosisSection";
 import { InsightCardsSection } from "./_components/dashboard/InsightCardsSection";
 import { RevenueSnapshotSection } from "./_components/dashboard/RevenueSnapshotSection";
 import { RevenueTrendSection } from "./_components/dashboard/RevenueTrendSection";
@@ -18,6 +19,7 @@ import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
 import { hydrateDashboardFromArtifact, type DashboardArtifactHydrationResult } from "@/src/lib/dashboard/artifact-hydration";
 import { findFirstCompletedReport, loadLatestDashboardReport } from "@/src/lib/dashboard/latest-report";
 import { buildDashboardInsights } from "@/src/lib/dashboard/insights";
+import { buildDashboardDiagnosisViewModel } from "@/src/lib/dashboard/diagnosis";
 import { buildDashboardViewModel } from "@/src/lib/dashboard/view-model";
 import { buildDashboardActionCardsViewModel } from "@/src/lib/dashboard/action-cards";
 import { buildDashboardRevenueTrendViewModel } from "@/src/lib/dashboard/revenue-trend";
@@ -414,6 +416,16 @@ export default function DashboardPage() {
     [keySignals, state.latestArtifact?.model?.signals],
   );
 
+  const diagnosisViewModel = useMemo(
+    () =>
+      buildDashboardDiagnosisViewModel({
+        diagnosis: state.latestArtifact?.diagnosis ?? null,
+        whatChanged: state.latestArtifact?.whatChanged ?? null,
+        hasReport: state.latestReport !== null,
+      }),
+    [state.latestArtifact?.diagnosis, state.latestArtifact?.whatChanged, state.latestReport],
+  );
+
   const actionCardsSection = useMemo(
     () =>
       buildDashboardActionCardsViewModel({
@@ -421,17 +433,17 @@ export default function DashboardPage() {
         entitlements,
         recommendedActions,
         recommendationItems: state.latestArtifact?.model?.recommendations ?? [],
-        diagnosis: state.latestArtifact?.model?.diagnosis ?? null,
-        whatChanged: state.latestArtifact?.model?.whatChanged ?? null,
+        diagnosis: state.latestArtifact?.diagnosis ?? null,
+        whatChanged: state.latestArtifact?.whatChanged ?? null,
         fallbackActions: fallbackProActions,
       }),
     [
       entitlements,
       gateState,
       recommendedActions,
-      state.latestArtifact?.model?.diagnosis,
+      state.latestArtifact?.diagnosis,
       state.latestArtifact?.model?.recommendations,
-      state.latestArtifact?.model?.whatChanged,
+      state.latestArtifact?.whatChanged,
     ],
   );
 
@@ -485,6 +497,8 @@ export default function DashboardPage() {
       />
 
       <RevenueSnapshotSection revenueSnapshot={dashboardViewModel.revenueSnapshot} />
+
+      <DiagnosisSection diagnosis={diagnosisViewModel} loading={state.loading} />
 
       <InsightCardsSection insights={insightCards} />
 

@@ -21,6 +21,14 @@ test("report detail includes unlocked rendering branches for Pro-gated sections"
 
   assert.equal(source.includes("showPlatformRiskExplanationContent ? ("), true);
   assert.equal(source.includes('data-testid="report-platform-risk-explanation-unlocked"'), true);
+  assert.equal(source.includes('data-testid="report-diagnosis-section"'), true);
+  assert.equal(source.includes('testId="report-diagnosis-notice"'), true);
+  assert.equal(source.includes('data-testid="report-what-changed-section"'), true);
+  assert.equal(source.includes('testId="report-what-changed-notice"'), true);
+  assert.equal(source.includes('data-testid="report-what-changed-unavailable"'), true);
+  assert.equal(source.includes('testId="report-what-changed-improved"'), true);
+  assert.equal(source.includes('testId="report-what-changed-worsened"'), true);
+  assert.equal(source.includes('testId="report-what-changed-watch-next"'), true);
 });
 
 test("report detail includes locked upsell rendering for Basic users", async () => {

@@ -1,5 +1,6 @@
 import {
   normalizeArtifactToReportModel,
+  type ReportComparisonDeltaViewModel,
   type ReportRecommendationViewModel,
   type ReportSignalViewModel,
   type ReportViewModel,
@@ -24,6 +25,8 @@ export type DashboardArtifactHydrationResult = {
   };
   keySignals: string[];
   recommendedActions: string[];
+  revenueDeltaText: string | null;
+  subscriberDeltaText: string | null;
   trendPreview: string | null;
   revenueTrend: DashboardRevenueTrendPoint[];
 };
@@ -129,6 +132,48 @@ function readNumber(value: unknown): number | null {
   }
 
   return null;
+}
+
+function formatSignedPercent(value: number): string {
+  const percent = value <= 1 && value >= -1 ? value * 100 : value;
+  const rounded = Math.round(percent * 10) / 10;
+  const normalized = Math.abs(rounded);
+  return `${rounded < 0 ? "Down" : rounded > 0 ? "Up" : "Flat"} ${
+    Number.isInteger(normalized) ? normalized.toFixed(0) : normalized.toFixed(1)
+  }%`;
+}
+
+function formatSignedCount(value: number): string {
+  const rounded = Math.round(Math.abs(value));
+  const formatted = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(rounded);
+  return `${value < 0 ? "Down" : value > 0 ? "Up" : "Flat"} ${formatted}`;
+}
+
+function buildMetricDeltaText(
+  whatChanged: ReportViewModel["whatChanged"],
+  metricKey: string,
+  valueFormatter: (value: number) => string,
+  options?: { preferPercent?: boolean },
+): string | null {
+  if (!whatChanged?.comparisonAvailable) {
+    return null;
+  }
+
+  const delta = whatChanged.deltas[metricKey] as ReportComparisonDeltaViewModel | undefined;
+  if (!delta?.comparable) {
+    return null;
+  }
+
+  const deltaValue = options?.preferPercent ? (delta.percentDelta ?? delta.absoluteDelta) : (delta.absoluteDelta ?? delta.percentDelta);
+  if (deltaValue === null) {
+    return null;
+  }
+
+  const caution = delta.confidenceAdjusted || delta.confidence === "low" || delta.evidenceStrength === "weak"
+    ? " Limited-confidence comparison."
+    : "";
+
+  return `${valueFormatter(deltaValue)} vs prior comparable report.${caution}`;
 }
 
 function formatPeriodLabel(value: string): string {
@@ -263,6 +308,8 @@ export function hydrateDashboardFromArtifact(artifact: unknown): DashboardArtifa
     },
     keySignals: typedKeySignals.length > 0 ? typedKeySignals : readSectionText(keySignalsSection),
     recommendedActions: typedRecommendations.length > 0 ? typedRecommendations : readSectionText(recommendationsSection),
+    revenueDeltaText: buildMetricDeltaText(normalized.model.whatChanged, "latest_net_revenue", formatSignedPercent, { preferPercent: true }),
+    subscriberDeltaText: buildMetricDeltaText(normalized.model.whatChanged, "active_subscribers", formatSignedCount),
     trendPreview: normalized.model.outlook?.summary[0] ?? pickTrendPreview(normalized.model.sections, normalized.model.executiveSummaryParagraphs[0] ?? null),
     revenueTrend: pickRevenueTrend(artifact),
   };

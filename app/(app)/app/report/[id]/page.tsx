@@ -141,6 +141,49 @@ function TruthNotice({ notice, testId }: { notice: ReportDetailPresentationNotic
   );
 }
 
+function ComparisonBucket({
+  title,
+  items,
+  emptyMessage,
+  testId,
+}: {
+  title: string;
+  items: Array<{ id: string; body: string; detail: string | null; stateLabel: string | null; stateTone: "good" | "warn" | "neutral" | null }>;
+  emptyMessage: string;
+  testId: string;
+}) {
+  return (
+    <article
+      className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+      data-testid={testId}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{title}</p>
+        <span className="rounded-full border border-brand-border/70 bg-brand-panel/70 px-2.5 py-1 text-[11px] text-brand-text-muted">
+          {items.length}
+        </span>
+      </div>
+      {items.length > 0 ? (
+        <ul className="mt-3 space-y-3">
+          {items.map((item) => (
+            <li key={item.id} className="rounded-xl border border-brand-border/70 bg-brand-panel/72 p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm leading-relaxed text-brand-text-primary">{item.body}</p>
+                {item.stateLabel ? <Badge variant={item.stateTone ?? "neutral"}>{item.stateLabel}</Badge> : null}
+              </div>
+              {item.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{item.detail}</p> : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="mt-3 rounded-xl border border-dashed border-brand-border/70 bg-brand-panel-muted/70 p-3.5">
+          <p className="text-sm text-brand-text-secondary">{emptyMessage}</p>
+        </div>
+      )}
+    </article>
+  );
+}
+
 function PdfExportLockedState() {
   return (
     <div
@@ -559,6 +602,111 @@ export default function ReportPage() {
                     {paragraph}
                   </p>
                 ))}
+              </div>
+            </PanelCard>
+          </section>
+
+          <section className="space-y-3" data-testid="report-diagnosis-section">
+            <DashboardSectionHeader
+              title="Diagnosis"
+              description="Typed growth-constraint diagnosis surfaced from backend evidence without strengthening the narrative."
+            />
+            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              <div className="space-y-4">
+                {presentation.diagnosis.notice ? <TruthNotice notice={presentation.diagnosis.notice} testId="report-diagnosis-notice" /> : null}
+                {presentation.diagnosis.diagnosisTypeLabel || presentation.diagnosis.summary || presentation.diagnosis.unavailableBody ? (
+                  <article className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.78),rgba(16,32,67,0.9))] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Primary typed read</p>
+                      {presentation.diagnosis.diagnosisTypeLabel ? (
+                        <span className="rounded-full border border-brand-border/70 bg-brand-panel/72 px-3 py-1 text-[11px] font-medium text-brand-text-primary">
+                          {presentation.diagnosis.diagnosisTypeLabel}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">
+                      {presentation.diagnosis.summary ?? presentation.diagnosis.unavailableBody ?? "Diagnosis details are limited in this report artifact."}
+                    </p>
+                  </article>
+                ) : null}
+
+                {presentation.diagnosis.supportingMetrics.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {presentation.diagnosis.supportingMetrics.map((metric) => (
+                      <article
+                        key={metric.id}
+                        className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
+                          {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
+                        </div>
+                        <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
+                        {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+
+                {presentation.diagnosis.primitives.length > 0 ? (
+                  <div className="rounded-[1.15rem] border border-brand-border/70 bg-brand-panel/70 p-4">
+                    <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Typed signals behind the diagnosis</p>
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {presentation.diagnosis.primitives.map((entry) => (
+                        <div key={entry.label} className="rounded-xl border border-brand-border/60 bg-brand-panel-muted/60 px-3 py-3">
+                          <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-muted">{entry.label}</p>
+                          <p className="mt-1.5 text-sm font-medium text-brand-text-primary">{entry.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </PanelCard>
+          </section>
+
+          <section className="space-y-3" data-testid="report-what-changed-section">
+            <DashboardSectionHeader
+              title="What Changed"
+              description="Typed report-over-report changes, shown only within the confidence and comparability the backend provides."
+            />
+            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              <div className="space-y-4">
+                {presentation.whatChanged.notice ? <TruthNotice notice={presentation.whatChanged.notice} testId="report-what-changed-notice" /> : null}
+                {presentation.whatChanged.priorPeriodLabel ? (
+                  <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">{presentation.whatChanged.priorPeriodLabel}</p>
+                ) : null}
+                {presentation.whatChanged.comparisonAvailable ? (
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    <ComparisonBucket
+                      title="Improved"
+                      items={presentation.whatChanged.improved}
+                      emptyMessage="No typed improvements were material enough to highlight."
+                      testId="report-what-changed-improved"
+                    />
+                    <ComparisonBucket
+                      title="Worsened"
+                      items={presentation.whatChanged.worsened}
+                      emptyMessage="No typed deterioration was material enough to highlight."
+                      testId="report-what-changed-worsened"
+                    />
+                    <ComparisonBucket
+                      title="Watch Next"
+                      items={presentation.whatChanged.watchNext}
+                      emptyMessage="No typed watch-next items were emitted for this comparison."
+                      testId="report-what-changed-watch-next"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/70 p-4"
+                    data-testid="report-what-changed-unavailable"
+                  >
+                    <p className="text-sm text-brand-text-secondary">
+                      {presentation.whatChanged.unavailableBody ?? "A prior comparable report is not available yet."}
+                    </p>
+                  </div>
+                )}
               </div>
             </PanelCard>
           </section>

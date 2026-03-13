@@ -66,6 +66,43 @@ function createProductionArtifactShape() {
           paragraphs: ["Method notes and assumptions."],
         },
       },
+      what_changed: {
+        comparison_available: true,
+        prior_report_id: "rep_dashboard_prior_001",
+        prior_period_start: "2026-01-01",
+        prior_period_end: "2026-01-31",
+        comparable_metric_count: 2,
+        comparison_basis_metrics: ["latest_net_revenue", "active_subscribers"],
+        confidence: "medium",
+        evidence_strength: "moderate",
+        deltas: {
+          latest_net_revenue: {
+            metric: "latest_net_revenue",
+            current_value: 215000,
+            prior_value: 205500,
+            absolute_delta: 9500,
+            percent_delta: 0.046,
+            direction: "up",
+            comparable: true,
+            confidence: "medium",
+            evidence_strength: "moderate",
+          },
+          active_subscribers: {
+            metric: "active_subscribers",
+            current_value: 12150,
+            prior_value: 11950,
+            absolute_delta: 200,
+            percent_delta: 0.017,
+            direction: "up",
+            comparable: true,
+            confidence: "medium",
+            evidence_strength: "moderate",
+          },
+        },
+        what_improved: [],
+        what_worsened: [],
+        watch_next: [],
+      },
     },
   };
 }
@@ -83,6 +120,8 @@ test("dashboard artifact hydrator maps production report.sections shape", async 
   assert.equal(result.keySignals.some((entry) => entry.includes("High-retention cohorts")), true);
   assert.equal(result.recommendedActions.length > 0, true);
   assert.equal(result.recommendedActions.some((entry) => entry.includes("retention experiments")), true);
+  assert.equal(result.revenueDeltaText, "Up 4.6% vs prior comparable report.");
+  assert.equal(result.subscriberDeltaText, "Up 200 vs prior comparable report.");
   assert.equal(result.trendPreview?.includes("growth-positive"), true);
   assert.equal(result.revenueTrend.length, 3);
   assert.deepEqual(result.revenueTrend.map((point) => point.value), [198000, 205500, 215000]);
@@ -105,6 +144,8 @@ test("dashboard artifact hydrator surfaces contract drift errors for malformed p
   assert.equal(result.model?.sections.length ?? 0, 0);
   assert.deepEqual(result.keySignals, []);
   assert.deepEqual(result.recommendedActions, []);
+  assert.equal(result.revenueDeltaText, null);
+  assert.equal(result.subscriberDeltaText, null);
   assert.equal(result.trendPreview, null);
   assert.deepEqual(result.revenueTrend, []);
   assert.equal(result.kpis.netRevenue, null);
@@ -138,4 +179,6 @@ test("dashboard artifact hydrator still normalizes older but renderable artifact
   assert.equal(result.kpis.netRevenue, 12000);
   assert.equal(result.keySignals[0], "Watch subscriber quality next cycle.");
   assert.equal(result.recommendedActions[0], "Validate the churn signal after the next report.");
+  assert.equal(result.revenueDeltaText, null);
+  assert.equal(result.subscriberDeltaText, null);
 });

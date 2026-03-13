@@ -1,5 +1,6 @@
 import type { DashboardRevenueTrendPoint } from "../dashboard/artifact-hydration";
 import type { ReportDetail } from "../api/reports";
+import { prioritizeRecommendations } from "./recommendation-prioritization";
 import {
   createEmptyTruthMetadata,
   getTruthStateDescription,
@@ -9,12 +10,15 @@ import {
   type ReportTruthTone,
 } from "./truth";
 import type {
+  ReportComparisonItemViewModel,
+  ReportDiagnosisViewModel,
+  ReportDiagnosisSupportingMetricViewModel,
   ReportMetricProvenanceEntry,
-  ReportOutlookItemViewModel,
   ReportRecommendationViewModel,
   ReportSectionViewModel,
   ReportSignalViewModel,
   ReportViewModel,
+  ReportWhatChangedViewModel,
 } from "./normalize-artifact-to-report-model";
 
 export type ReportDetailPresentationNotice = {
@@ -56,6 +60,14 @@ export type ReportDetailPresentationAppendixSection = {
   bullets: string[];
 };
 
+export type ReportDetailPresentationComparisonItem = {
+  id: string;
+  body: string;
+  detail: string | null;
+  stateLabel: string | null;
+  stateTone: ReportTruthTone | null;
+};
+
 export type ReportDetailPresentationModel = {
   heroTitle: string;
   heroSubtitle: string | null;
@@ -84,6 +96,23 @@ export type ReportDetailPresentationModel = {
     notice: ReportDetailPresentationNotice | null;
     cards: ReportDetailOutlookCard[];
     highlights: string[];
+  };
+  diagnosis: {
+    diagnosisTypeLabel: string | null;
+    summary: string | null;
+    notice: ReportDetailPresentationNotice | null;
+    supportingMetrics: ReportDetailPresentationMetric[];
+    primitives: Array<{ label: string; value: string }>;
+    unavailableBody: string | null;
+  };
+  whatChanged: {
+    comparisonAvailable: boolean;
+    priorPeriodLabel: string | null;
+    notice: ReportDetailPresentationNotice | null;
+    improved: ReportDetailPresentationComparisonItem[];
+    worsened: ReportDetailPresentationComparisonItem[];
+    watchNext: ReportDetailPresentationComparisonItem[];
+    unavailableBody: string | null;
   };
   appendixSections: ReportDetailPresentationAppendixSection[];
 };
@@ -313,6 +342,162 @@ function findFirstLineByKeywords(lines: string[], keywords: string[]): string | 
   return null;
 }
 
+function formatSignedPercent(value: number): string {
+  const percent = value <= 1 && value >= -1 ? value * 100 : value;
+  const rounded = Math.round(percent * 10) / 10;
+  const normalized = Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1);
+  return `${rounded > 0 ? "+" : ""}${normalized}%`;
+}
+
+function formatDateLabel(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatDiagnosisTypeLabel(value: ReportDiagnosisViewModel["diagnosisType"]): string | null {
+  if (!value) {
+    return null;
+  }
+
+  switch (value) {
+    case "acquisition_pressure":
+      return "Acquisition pressure";
+    case "churn_pressure":
+      return "Churn pressure";
+    case "monetization_pressure":
+      return "Monetization pressure";
+    case "concentration_pressure":
+      return "Concentration pressure";
+    case "mixed_pressure":
+      return "Mixed pressure";
+    case "insufficient_evidence":
+      return "Insufficient evidence";
+    default:
+      return null;
+  }
+}
+
+function formatDirectionLabel(value: string): string {
+  if (value === "up") {
+    return "Up";
+  }
+  if (value === "down") {
+    return "Down";
+  }
+  if (value === "flat") {
+    return "Flat";
+  }
+  if (value === "mixed") {
+    return "Mixed";
+  }
+
+  return "Unknown";
+}
+
+function formatSupportingMetricValue(metric: string, value: number | null): string {
+  if (value === null) {
+    return "--";
+  }
+
+  if (/revenue|arpu/i.test(metric)) {
+    return formatCurrency(value);
+  }
+
+  if (/rate|share|pct|percent/i.test(metric)) {
+    return formatPercent(value);
+  }
+
+  if (/risk|stability|score/i.test(metric)) {
+    return formatScore(value);
+  }
+
+  return formatNumber(value);
+}
+
+function buildDiagnosisSupportingMetric(metric: ReportDiagnosisSupportingMetricViewModel): ReportDetailPresentationMetric {
+  const detailParts = [
+    metric.priorValue !== null ? `Prior ${formatSupportingMetricValue(metric.metric, metric.priorValue)}` : null,
+    metric.direction !== "unknown" ? `${formatDirectionLabel(metric.direction)} trend` : null,
+    getTruthStateDescription(metric, { source: metric.source ?? null }),
+  ].filter((value): value is string => Boolean(value));
+
+  return createMetric({
+    id: `diagnosis-${metric.metric}`,
+    label: metric.metric.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()),
+    value: formatSupportingMetricValue(metric.metric, metric.currentValue),
+    truth: metric,
+    source: metric.source ?? null,
+    detail: detailParts.join(". "),
+  });
+}
+
+function buildDiagnosisPrimitives(
+  diagnosis: ReportViewModel["diagnosis"],
+): Array<{ label: string; value: string }> {
+  if (!diagnosis?.primitives) {
+    return [];
+  }
+
+  return [
+    { label: "Revenue trend", value: formatDirectionLabel(diagnosis.primitives.revenueTrendDirection) },
+    { label: "Subscriber trend", value: formatDirectionLabel(diagnosis.primitives.activeSubscribersDirection) },
+    { label: "Churn pressure", value: toTitleCase(diagnosis.primitives.churnPressureLevel) },
+    { label: "Concentration pressure", value: toTitleCase(diagnosis.primitives.concentrationPressureLevel) },
+    { label: "Monetization efficiency", value: toTitleCase(diagnosis.primitives.monetizationEfficiencyLevel) },
+    { label: "Stability trend", value: formatDirectionLabel(diagnosis.primitives.stabilityDirection) },
+  ].filter((entry) => entry.value !== "Unknown");
+}
+
+function toTitleCase(value: string): string {
+  return value.replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function buildComparisonItem(item: ReportComparisonItemViewModel, index: number): ReportDetailPresentationComparisonItem {
+  const stateLabel = getTruthStateLabel(item);
+  const detailParts = [
+    item.materiality ? `${toTitleCase(item.materiality)} materiality` : null,
+    item.direction !== "unknown" ? `${formatDirectionLabel(item.direction)} direction` : null,
+    getTruthStateDescription(item),
+  ].filter((value): value is string => Boolean(value));
+
+  return {
+    id: `${item.metric ?? item.category ?? "comparison"}-${index + 1}`,
+    body: item.summaryText,
+    detail: detailParts.join(". ") || null,
+    stateLabel,
+    stateTone: stateLabel ? getTruthStateTone(item) : null,
+  };
+}
+
+function buildWhatChangedPeriodLabel(whatChanged: ReportWhatChangedViewModel | null | undefined): string | null {
+  if (!whatChanged) {
+    return null;
+  }
+
+  const start = formatDateLabel(whatChanged.priorPeriodStart);
+  const end = formatDateLabel(whatChanged.priorPeriodEnd);
+  if (start && end) {
+    return `Compared with ${start} to ${end}`;
+  }
+  if (whatChanged.priorReportId) {
+    return `Compared with prior report ${whatChanged.priorReportId}`;
+  }
+
+  return null;
+}
+
 function buildExecutiveSummary(input: {
   reportSummary: string;
   reportPlatformsConnected: number | null;
@@ -320,16 +505,20 @@ function buildExecutiveSummary(input: {
   stabilityIndex: number | null;
   artifactSummary: string[];
   keySignals: string[];
+  diagnosisSummary?: string | null;
+  comparisonHighlights?: string[];
 }): string[] {
+  const typedHighlights = dedupeText([input.diagnosisSummary ?? "", ...(input.comparisonHighlights ?? [])]);
   if (input.artifactSummary.length > 0) {
-    return input.artifactSummary.slice(0, 3);
+    return dedupeText([...input.artifactSummary, ...typedHighlights]).slice(0, 3);
   }
 
   if (input.reportSummary && !isSummaryPlaceholder(input.reportSummary)) {
-    return [input.reportSummary];
+    return dedupeText([input.reportSummary, ...typedHighlights]).slice(0, 3);
   }
 
   const fallback: string[] = [];
+  fallback.push(...typedHighlights);
   if (input.netRevenue !== null) {
     fallback.push(`Net revenue in this report is ${formatCurrency(input.netRevenue)}.`);
   }
@@ -624,8 +813,67 @@ function readPlatformRiskSignalTone(lines: string[]): { tone: "Warning" | "Posit
   return { tone: "Neutral", body: platformLine };
 }
 
+function buildDiagnosisSection(
+  diagnosis: ReportViewModel["diagnosis"],
+): ReportDetailPresentationModel["diagnosis"] {
+  if (!diagnosis) {
+    return {
+      diagnosisTypeLabel: null,
+      summary: null,
+      notice: null,
+      supportingMetrics: [],
+      primitives: [],
+      unavailableBody: "Typed diagnosis is unavailable for this report artifact.",
+    };
+  }
+
+  return {
+    diagnosisTypeLabel: formatDiagnosisTypeLabel(diagnosis.diagnosisType),
+    summary: diagnosis.summaryText,
+    notice: buildNotice(diagnosis, {
+      fallbackBody: "Diagnosis is bounded by the available evidence in this report.",
+    }),
+    supportingMetrics: diagnosis.supportingMetrics.slice(0, 4).map((metric) => buildDiagnosisSupportingMetric(metric)),
+    primitives: buildDiagnosisPrimitives(diagnosis),
+    unavailableBody: diagnosis.summaryText ? null : getTruthStateDescription(diagnosis) ?? "Diagnosis details are limited for this report.",
+  };
+}
+
+function buildWhatChangedSection(
+  whatChanged: ReportViewModel["whatChanged"],
+): ReportDetailPresentationModel["whatChanged"] {
+  if (!whatChanged) {
+    return {
+      comparisonAvailable: false,
+      priorPeriodLabel: null,
+      notice: null,
+      improved: [],
+      worsened: [],
+      watchNext: [],
+      unavailableBody: "Typed report-over-report comparison is unavailable for this report artifact.",
+    };
+  }
+
+  return {
+    comparisonAvailable: whatChanged.comparisonAvailable,
+    priorPeriodLabel: buildWhatChangedPeriodLabel(whatChanged),
+    notice: buildNotice(whatChanged, {
+      fallbackBody: "Comparison results are bounded by the comparable report evidence that was available.",
+    }),
+    improved: whatChanged.whatImproved.slice(0, 3).map((item, index) => buildComparisonItem(item, index)),
+    worsened: whatChanged.whatWorsened.slice(0, 3).map((item, index) => buildComparisonItem(item, index)),
+    watchNext: whatChanged.watchNext.slice(0, 3).map((item, index) => buildComparisonItem(item, index)),
+    unavailableBody:
+      !whatChanged.comparisonAvailable
+        ? getTruthStateDescription(whatChanged) ?? "A prior comparable report is not available yet."
+        : null,
+  };
+}
+
 function buildReportDetailPresentationModel(input: BuildReportDetailPresentationInput): ReportDetailPresentationModel {
   const sectionEntries = toIndexedSections(input.artifactModel?.sections);
+  const diagnosis = buildDiagnosisSection(input.artifactModel?.diagnosis ?? null);
+  const whatChanged = buildWhatChangedSection(input.artifactModel?.whatChanged ?? null);
 
   const revenueSections = selectSections(sectionEntries, ["revenue snapshot", "revenue trend"]);
   const subscriberSections = selectSections(sectionEntries, ["subscribers retention", "subscriber", "retention", "tier health", "churn", "arpu"]);
@@ -669,6 +917,12 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
     stabilityIndex: kpis.stabilityIndex,
     artifactSummary: dedupeText(input.artifactModel?.executiveSummaryParagraphs ?? []),
     keySignals: rawKeySignals,
+    diagnosisSummary: input.artifactModel?.diagnosis?.summaryText ?? null,
+    comparisonHighlights: [
+      input.artifactModel?.whatChanged?.whatImproved[0]?.summaryText ?? "",
+      input.artifactModel?.whatChanged?.whatWorsened[0]?.summaryText ?? "",
+      input.artifactModel?.whatChanged?.watchNext[0]?.summaryText ?? "",
+    ],
   });
 
   const revenueLines = collectSectionText(revenueSections);
@@ -697,7 +951,10 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
   };
   const platformRiskSignal = readPlatformRiskSignalTone(platformLines.length > 0 ? platformLines : rawKeySignals);
 
-  const typedRecommendations = input.artifactModel?.recommendations ?? [];
+  const typedRecommendations = prioritizeRecommendations(input.artifactModel?.recommendations ?? [], {
+    diagnosis: input.artifactModel?.diagnosis ?? null,
+    whatChanged: input.artifactModel?.whatChanged ?? null,
+  });
   const recommendationFallback = dedupeText([
     ...(input.artifactSignals?.recommendedActions ?? []),
     ...input.report.recommendedActions,
@@ -797,6 +1054,8 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
     platformMix,
     recommendations,
     revenueOutlook,
+    diagnosis,
+    whatChanged,
     appendixSections,
   };
 }

@@ -1,7 +1,12 @@
 import type { EntitlementsResponse } from "../api/entitlements";
 import type { AppGateState } from "../gating/app-gate";
 import { hasProEquivalentEntitlement } from "../entitlements/model.ts";
-import type { ReportRecommendationViewModel } from "../report/normalize-artifact-to-report-model";
+import type {
+  ReportDiagnosisViewModel,
+  ReportRecommendationViewModel,
+  ReportWhatChangedViewModel,
+} from "../report/normalize-artifact-to-report-model";
+import { prioritizeRecommendations } from "../report/recommendation-prioritization";
 import { getTruthStateDescription, getTruthStateLabel, getTruthStateTone, type ReportTruthTone } from "../report/truth.ts";
 
 export type DashboardActionCardsMode = "unlocked" | "locked" | "loading";
@@ -25,6 +30,8 @@ export type BuildDashboardActionCardsViewModelInput = {
   entitlements: EntitlementsResponse | null;
   recommendedActions: string[] | null | undefined;
   recommendationItems?: ReportRecommendationViewModel[] | null;
+  diagnosis?: ReportDiagnosisViewModel | null;
+  whatChanged?: ReportWhatChangedViewModel | null;
   fallbackActions?: string[] | null;
   maxCards?: number;
 };
@@ -133,9 +140,13 @@ export function buildDashboardActionCardsViewModel(input: BuildDashboardActionCa
     ? input.recommendationItems.filter((item) => typeof item?.title === "string" && item.title.trim().length > 0)
     : [];
   if (typedItems.length > 0) {
+    const prioritizedItems = prioritizeRecommendations(typedItems, {
+      diagnosis: input.diagnosis ?? null,
+      whatChanged: input.whatChanged ?? null,
+    });
     return {
       mode,
-      cards: toTypedCards(typedItems, maxCards),
+      cards: toTypedCards(prioritizedItems, maxCards),
     };
   }
 

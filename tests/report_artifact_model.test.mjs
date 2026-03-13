@@ -275,6 +275,144 @@ test("normalizeArtifactToReportModel preserves typed uncertainty and recommendat
   assert.equal(result.model.outlook?.items[0]?.availability, "unavailable");
 });
 
+test("normalizeArtifactToReportModel extracts typed diagnosis and what-changed models without flattening them into generic sections", async () => {
+  const { normalizeArtifactToReportModel } = await loadArtifactNormalizer(Date.now() + 41);
+  const diagnosis = {
+    diagnosis_type: "churn_pressure",
+    confidence: "medium",
+    evidence_strength: "moderate",
+    confidence_adjusted: true,
+    reason_codes: ["churn_pressure_primary", "analysis_mode_full"],
+    summary_text: "Current profile looks more churn-limited based on elevated churn pressure.",
+    supporting_metrics: [
+      {
+        metric: "churn_rate",
+        current_value: 0.12,
+        prior_value: 0.08,
+        direction: "up",
+        source: "observed",
+        confidence: "medium",
+        evidence_strength: "moderate",
+        reason_codes: ["churn_pressure_high"],
+      },
+    ],
+    primitives: {
+      revenue_trend_direction: "down",
+      active_subscribers_direction: "down",
+      churn_pressure_level: "high",
+      concentration_pressure_level: "low",
+      monetization_efficiency_level: "low",
+      stability_direction: "down",
+      evidence_strength: "moderate",
+      data_quality_level: "good",
+      analysis_mode: "full",
+    },
+  };
+  const whatChanged = {
+    comparison_available: true,
+    prior_report_id: "rep_prior_001",
+    prior_period_start: "2026-01-01",
+    prior_period_end: "2026-01-31",
+    comparable_metric_count: 4,
+    comparison_basis_metrics: ["latest_net_revenue", "active_subscribers"],
+    confidence: "medium",
+    evidence_strength: "moderate",
+    comparison_reason_codes: ["comparison_basis_available", "churn_rate_worsened"],
+    deltas: {
+      latest_net_revenue: {
+        metric: "latest_net_revenue",
+        current_value: 9400,
+        prior_value: 10000,
+        absolute_delta: -600,
+        percent_delta: -0.06,
+        direction: "down",
+        comparable: true,
+        confidence: "medium",
+        evidence_strength: "moderate",
+      },
+    },
+    what_improved: [
+      {
+        category: "platform",
+        metric: "concentration_risk",
+        change_type: "improved",
+        direction: "down",
+        materiality: "medium",
+        confidence: "medium",
+        evidence_strength: "moderate",
+        summary_text: "Platform concentration eased versus the prior report.",
+      },
+    ],
+    what_worsened: [
+      {
+        category: "churn",
+        metric: "churn_rate",
+        change_type: "worsened",
+        direction: "up",
+        materiality: "high",
+        confidence: "medium",
+        evidence_strength: "moderate",
+        reason_codes: ["churn_rate_worsened"],
+        summary_text: "Churn worsened relative to the prior report.",
+      },
+    ],
+    watch_next: [
+      {
+        category: "revenue",
+        metric: "latest_net_revenue",
+        change_type: "watch",
+        direction: "down",
+        materiality: "medium",
+        confidence: "low",
+        evidence_strength: "weak",
+        summary_text: "Revenue softened and should be watched next cycle.",
+      },
+    ],
+  };
+
+  const result = normalizeArtifactToReportModel({
+    schema_version: "v1",
+    report: {
+      report_id: "rep_diag_cmp_001",
+      sections: {
+        executive_summary: {
+          summary: "Current report shows pressure that needs validation.",
+        },
+        revenue_snapshot: {
+          series: [{ period: "2026-02", net_revenue: 9400 }],
+        },
+        stability: {
+          stability_index: 57,
+        },
+        prioritized_insights: ["Retention pressure remains elevated."],
+        ranked_recommendations: [
+          {
+            id: "rec_1",
+            title: "Audit churn drivers before expanding acquisition spend",
+            recommendation_mode: "validate",
+            supporting_context_reason_codes: ["churn_pressure_primary", "churn_rate_worsened"],
+          },
+        ],
+        outlook: {
+          summary: "Outlook remains cautious while churn is elevated.",
+        },
+        diagnosis,
+        what_changed: whatChanged,
+      },
+      diagnosis,
+      what_changed: whatChanged,
+    },
+  });
+
+  assert.equal(result.model.diagnosis?.diagnosisType, "churn_pressure");
+  assert.equal(result.model.diagnosis?.supportingMetrics[0]?.metric, "churn_rate");
+  assert.equal(result.model.whatChanged?.comparisonAvailable, true);
+  assert.equal(result.model.whatChanged?.whatWorsened[0]?.summaryText, "Churn worsened relative to the prior report.");
+  assert.deepEqual(result.model.recommendations[0]?.supportingContextReasonCodes, ["churn_pressure_primary", "churn_rate_worsened"]);
+  assert.equal(result.model.sections.some((section) => section.title === "Diagnosis"), false);
+  assert.equal(result.model.sections.some((section) => section.title === "What Changed"), false);
+});
+
 test("normalizeArtifactToReportModel keeps older artifacts conservative when typed fields are absent", async () => {
   const { normalizeArtifactToReportModel } = await loadArtifactNormalizer(Date.now() + 5);
   const result = normalizeArtifactToReportModel({
@@ -300,6 +438,8 @@ test("normalizeArtifactToReportModel keeps older artifacts conservative when typ
   assert.equal(result.model.analysisMode, null);
   assert.equal(result.model.metricSnapshot, null);
   assert.equal(result.model.metricProvenance.active_subscribers, undefined);
+  assert.equal(result.model.diagnosis, null);
+  assert.equal(result.model.whatChanged, null);
   assert.equal(result.model.signals[0]?.title, "Revenue momentum appears stable.");
   assert.equal(result.model.recommendations[0]?.recommendationMode, null);
   assert.equal(result.model.outlook?.items.length, 0);

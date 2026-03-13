@@ -4,6 +4,7 @@ import {
   normalizeTruthConfidence,
   type ReportAvailability,
   type ReportConfidenceLevel,
+  type ReportEvidenceStrength,
   type ReportTruthMetadata,
 } from "./truth";
 
@@ -20,6 +21,79 @@ export type ReportSectionViewModel = {
   bullets: string[];
   paragraphs: string[];
   truth: ReportTruthMetadata;
+};
+
+export type ReportDiagnosisType =
+  | "acquisition_pressure"
+  | "churn_pressure"
+  | "monetization_pressure"
+  | "concentration_pressure"
+  | "mixed_pressure"
+  | "insufficient_evidence";
+
+export type ReportDiagnosisDirection = "up" | "down" | "flat" | "mixed" | "unknown";
+export type ReportPressureLevel = "low" | "medium" | "high" | "unknown";
+export type ReportComparisonDirection = "up" | "down" | "flat" | "mixed" | "unknown";
+export type ReportComparisonChangeType = "improved" | "worsened" | "watch";
+export type ReportComparisonMateriality = "low" | "medium" | "high";
+
+export type ReportDiagnosisPrimitivesViewModel = {
+  revenueTrendDirection: ReportDiagnosisDirection;
+  activeSubscribersDirection: ReportDiagnosisDirection;
+  churnPressureLevel: ReportPressureLevel;
+  concentrationPressureLevel: ReportPressureLevel;
+  monetizationEfficiencyLevel: ReportPressureLevel;
+  stabilityDirection: ReportDiagnosisDirection;
+  evidenceStrength: ReportEvidenceStrength | null;
+  dataQualityLevel: string | null;
+  analysisMode: string | null;
+};
+
+export type ReportDiagnosisSupportingMetricViewModel = ReportTruthMetadata & {
+  metric: string;
+  currentValue: number | null;
+  priorValue: number | null;
+  direction: ReportDiagnosisDirection;
+  source: string | null;
+};
+
+export type ReportDiagnosisViewModel = ReportTruthMetadata & {
+  diagnosisType: ReportDiagnosisType | null;
+  summaryText: string | null;
+  supportingMetrics: ReportDiagnosisSupportingMetricViewModel[];
+  primitives: ReportDiagnosisPrimitivesViewModel | null;
+};
+
+export type ReportComparisonDeltaViewModel = ReportTruthMetadata & {
+  metric: string;
+  currentValue: number | null;
+  priorValue: number | null;
+  absoluteDelta: number | null;
+  percentDelta: number | null;
+  direction: ReportComparisonDirection;
+  comparable: boolean;
+};
+
+export type ReportComparisonItemViewModel = ReportTruthMetadata & {
+  category: string | null;
+  metric: string | null;
+  changeType: ReportComparisonChangeType | null;
+  direction: ReportComparisonDirection;
+  materiality: ReportComparisonMateriality | null;
+  summaryText: string;
+};
+
+export type ReportWhatChangedViewModel = ReportTruthMetadata & {
+  comparisonAvailable: boolean;
+  priorReportId: string | null;
+  priorPeriodStart: string | null;
+  priorPeriodEnd: string | null;
+  comparableMetricCount: number;
+  comparisonBasisMetrics: string[];
+  deltas: Record<string, ReportComparisonDeltaViewModel>;
+  whatImproved: ReportComparisonItemViewModel[];
+  whatWorsened: ReportComparisonItemViewModel[];
+  watchNext: ReportComparisonItemViewModel[];
 };
 
 export type ReportMetricSnapshot = {
@@ -61,6 +135,7 @@ export type ReportRecommendationViewModel = ReportTruthMetadata & {
   confidenceScore: number | null;
   steps: string[];
   linkedSignals: string[];
+  supportingContextReasonCodes: string[];
 };
 
 export type ReportOutlookItemViewModel = ReportTruthMetadata & {
@@ -95,6 +170,8 @@ export type ReportViewModel = {
   executiveSummaryParagraphs: string[];
   kpis: ReportKpis;
   sections: ReportSectionViewModel[];
+  diagnosis: ReportDiagnosisViewModel | null;
+  whatChanged: ReportWhatChangedViewModel | null;
   metricSnapshot: ReportMetricSnapshot | null;
   metricProvenance: Record<string, ReportMetricProvenanceEntry>;
   signals: ReportSignalViewModel[];
@@ -138,33 +215,75 @@ const SECTION_TITLE_BY_KEY: Partial<Record<(typeof SECTION_KEY_ORDER)[number], s
   appendix: "Appendix",
 };
 
+const EXCLUDED_TYPED_SECTION_KEYS = new Set(["diagnosis", "what_changed"]);
+
 const TREND_KEY_HINTS = ["series", "trend", "timeline", "history", "points", "data"];
 const SERIES_LABEL_KEYS = ["period", "date", "month", "week", "day", "label", "name", "x"];
 const SERIES_VALUE_KEYS = ["value", "net_revenue", "revenue", "amount", "metric", "y", "index"];
 const TEXT_LIST_KEYS = ["text", "title", "label", "summary", "description", "headline", "explanation", "body", "name", "value"];
 
 const METADATA_KEYS = new Set([
+  "absolute_delta",
   "analysis_mode",
   "availability",
+  "category",
+  "change_type",
+  "comparable",
+  "comparable_metric_count",
+  "comparison_available",
+  "comparison_basis_metrics",
+  "comparison_reason_codes",
   "confidence",
   "confidence_adjusted",
+  "current_value",
   "data_quality_level",
+  "deltas",
+  "diagnosis_type",
+  "direction",
+  "effort",
   "evidence_strength",
+  "expected_impact",
   "insufficient_reason",
+  "level",
+  "linked_signals",
+  "materiality",
+  "metric",
+  "percent_delta",
+  "primitives",
+  "prior_period_end",
+  "prior_period_start",
+  "prior_report_id",
+  "prior_value",
   "reason_codes",
   "recommendation_mode",
   "score_0_100",
   "score_before_adjustment",
-  "level",
-  "source",
-  "signal_type",
-  "category",
   "severity",
-  "expected_impact",
-  "effort",
-  "linked_signals",
+  "signal_type",
+  "source",
   "steps_30d",
+  "summary_text",
+  "supporting_context_reason_codes",
+  "supporting_metrics",
+  "what_improved",
+  "what_worsened",
+  "watch_next",
 ]);
+
+const DIAGNOSIS_TYPES = [
+  "acquisition_pressure",
+  "churn_pressure",
+  "monetization_pressure",
+  "concentration_pressure",
+  "mixed_pressure",
+  "insufficient_evidence",
+] as const;
+
+const DIAGNOSIS_DIRECTIONS = ["up", "down", "flat", "mixed", "unknown"] as const;
+const PRESSURE_LEVELS = ["low", "medium", "high", "unknown"] as const;
+const COMPARISON_DIRECTIONS = ["up", "down", "flat", "mixed", "unknown"] as const;
+const COMPARISON_CHANGE_TYPES = ["improved", "worsened", "watch"] as const;
+const COMPARISON_MATERIALITY = ["low", "medium", "high"] as const;
 
 type SectionInput = {
   key: string | null;
@@ -172,6 +291,11 @@ type SectionInput = {
   fallbackTitle: string | null;
   allowScalarValue: boolean;
   value: unknown;
+};
+
+type TruthMetadataOptions = {
+  reasonCodeKeys?: string[];
+  insufficientReasonKeys?: string[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -361,11 +485,16 @@ function uniqueStrings(values: string[]): string[] {
   const seen = new Set<string>();
   for (const value of values) {
     const trimmed = value.trim();
-    if (!trimmed || seen.has(trimmed)) {
+    if (!trimmed) {
       continue;
     }
 
-    seen.add(trimmed);
+    const normalized = trimmed.toLowerCase();
+    if (seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
     result.push(trimmed);
   }
 
@@ -380,6 +509,10 @@ function collectReasonCodes(value: unknown): string[] {
   return uniqueStrings(value.map((entry) => readString(entry)).filter((entry): entry is string => entry !== null));
 }
 
+function collectReasonCodesFromKeys(record: Record<string, unknown>, keys: string[]): string[] {
+  return uniqueStrings(keys.flatMap((key) => collectReasonCodes(record[key])));
+}
+
 function readEnumString<T extends string>(value: unknown, allowed: readonly T[]): T | null {
   const normalized = readString(value)?.toLowerCase();
   if (!normalized) {
@@ -389,7 +522,11 @@ function readEnumString<T extends string>(value: unknown, allowed: readonly T[])
   return allowed.includes(normalized as T) ? (normalized as T) : null;
 }
 
-function buildTruthMetadata(value: unknown, defaults?: Partial<ReportTruthMetadata>): ReportTruthMetadata {
+function buildTruthMetadata(
+  value: unknown,
+  defaults?: Partial<ReportTruthMetadata>,
+  options?: TruthMetadataOptions,
+): ReportTruthMetadata {
   const base = createEmptyTruthMetadata(defaults);
   if (!isRecord(value)) {
     return {
@@ -398,14 +535,19 @@ function buildTruthMetadata(value: unknown, defaults?: Partial<ReportTruthMetada
     };
   }
 
+  const reasonCodeKeys = options?.reasonCodeKeys ?? ["reason_codes"];
+  const insufficientReasonKeys = options?.insufficientReasonKeys ?? ["insufficient_reason"];
+  const insufficientReason =
+    insufficientReasonKeys.map((key) => readString(value[key])).find((entry) => entry !== null) ?? base.insufficientReason;
+
   const truth = createEmptyTruthMetadata({
     ...base,
     availability: readEnumString(value.availability, ["available", "limited", "unavailable"] as const) ?? base.availability,
     confidence: normalizeTruthConfidence(value.confidence) ?? base.confidence,
     confidenceAdjusted: readBoolean(value.confidence_adjusted) ?? base.confidenceAdjusted,
     evidenceStrength: readEnumString(value.evidence_strength, ["none", "weak", "moderate", "strong"] as const) ?? base.evidenceStrength,
-    insufficientReason: readString(value.insufficient_reason) ?? base.insufficientReason,
-    reasonCodes: [...base.reasonCodes, ...collectReasonCodes(value.reason_codes)],
+    insufficientReason,
+    reasonCodes: [...base.reasonCodes, ...collectReasonCodesFromKeys(value, reasonCodeKeys)],
     dataQualityLevel: readString(value.data_quality_level) ?? base.dataQualityLevel,
     analysisMode: readString(value.analysis_mode) ?? base.analysisMode,
     recommendationMode: readEnumString(value.recommendation_mode, ["action", "watch", "validate"] as const) ?? base.recommendationMode,
@@ -852,9 +994,9 @@ function collectSectionInputs(raw: unknown, sourceLabel: string, warnings: strin
   }
 
   if (isRecord(raw)) {
-    const rawKeys = Object.keys(raw);
+    const rawKeys = Object.keys(raw).filter((key) => !EXCLUDED_TYPED_SECTION_KEYS.has(key));
     const orderedKeys = [
-      ...SECTION_KEY_ORDER.filter((key) => Object.prototype.hasOwnProperty.call(raw, key)),
+      ...SECTION_KEY_ORDER.filter((key) => rawKeys.includes(key)),
       ...rawKeys.filter((key) => !SECTION_KEY_ORDER.includes(key as (typeof SECTION_KEY_ORDER)[number])),
     ];
 
@@ -1018,6 +1160,7 @@ function readRecommendations(value: unknown, defaults: Partial<ReportTruthMetada
           confidenceScore: null,
           steps: [],
           linkedSignals: [],
+          supportingContextReasonCodes: [],
         };
       }
 
@@ -1035,6 +1178,7 @@ function readRecommendations(value: unknown, defaults: Partial<ReportTruthMetada
         confidenceScore: readNumber(entry.confidence),
         steps: toStringArray(entry.steps_30d),
         linkedSignals: toStringArray(entry.linked_signals),
+        supportingContextReasonCodes: collectReasonCodes(entry.supporting_context_reason_codes),
       };
     })
     .filter((entry): entry is ReportRecommendationViewModel => entry !== null);
@@ -1132,9 +1276,195 @@ function readStability(value: unknown, defaults: Partial<ReportTruthMetadata>): 
   };
 }
 
-export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArtifactResult {
-  const warnings: string[] = [];
-  const emptyModel: ReportViewModel = {
+function readDiagnosisPrimitives(value: unknown): ReportDiagnosisPrimitivesViewModel | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  return {
+    revenueTrendDirection: readEnumString(value.revenue_trend_direction, DIAGNOSIS_DIRECTIONS) ?? "unknown",
+    activeSubscribersDirection: readEnumString(value.active_subscribers_direction, DIAGNOSIS_DIRECTIONS) ?? "unknown",
+    churnPressureLevel: readEnumString(value.churn_pressure_level, PRESSURE_LEVELS) ?? "unknown",
+    concentrationPressureLevel: readEnumString(value.concentration_pressure_level, PRESSURE_LEVELS) ?? "unknown",
+    monetizationEfficiencyLevel: readEnumString(value.monetization_efficiency_level, PRESSURE_LEVELS) ?? "unknown",
+    stabilityDirection: readEnumString(value.stability_direction, DIAGNOSIS_DIRECTIONS) ?? "unknown",
+    evidenceStrength: readEnumString(value.evidence_strength, ["none", "weak", "moderate", "strong"] as const),
+    dataQualityLevel: readString(value.data_quality_level),
+    analysisMode: readString(value.analysis_mode),
+  };
+}
+
+function readDiagnosisSupportingMetrics(
+  value: unknown,
+  defaults: Partial<ReportTruthMetadata>,
+): ReportDiagnosisSupportingMetricViewModel[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      if (!isRecord(entry)) {
+        return null;
+      }
+
+      const metric = readString(entry.metric);
+      if (!metric) {
+        return null;
+      }
+
+      return {
+        ...buildTruthMetadata(entry, defaults),
+        metric,
+        currentValue: readNumber(entry.current_value),
+        priorValue: readNumber(entry.prior_value),
+        direction: readEnumString(entry.direction, DIAGNOSIS_DIRECTIONS) ?? "unknown",
+        source: readString(entry.source),
+      };
+    })
+    .filter((entry): entry is ReportDiagnosisSupportingMetricViewModel => entry !== null);
+}
+
+function readDiagnosis(records: Record<string, unknown>[], defaults: Partial<ReportTruthMetadata>): ReportDiagnosisViewModel | null {
+  const raw = readRecordFromPaths(records, ["diagnosis", "report.diagnosis", "sections.diagnosis", "report.sections.diagnosis"]);
+  if (!raw) {
+    return null;
+  }
+
+  const diagnosisType = readEnumString(raw.diagnosis_type, DIAGNOSIS_TYPES);
+  const summaryText = readString(raw.summary_text);
+  const supportingMetrics = readDiagnosisSupportingMetrics(raw.supporting_metrics, defaults);
+  const primitives = readDiagnosisPrimitives(raw.primitives);
+  if (!diagnosisType && !summaryText && supportingMetrics.length === 0 && !primitives) {
+    return null;
+  }
+
+  return {
+    ...buildTruthMetadata(raw, defaults),
+    diagnosisType,
+    summaryText,
+    supportingMetrics,
+    primitives,
+  };
+}
+
+function readComparisonDelta(
+  metric: string,
+  value: unknown,
+  defaults: Partial<ReportTruthMetadata>,
+): ReportComparisonDeltaViewModel | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  return {
+    ...buildTruthMetadata(value, defaults),
+    metric: readString(value.metric) ?? metric,
+    currentValue: readNumber(value.current_value),
+    priorValue: readNumber(value.prior_value),
+    absoluteDelta: readNumber(value.absolute_delta),
+    percentDelta: readNumber(value.percent_delta),
+    direction: readEnumString(value.direction, COMPARISON_DIRECTIONS) ?? "unknown",
+    comparable: readBoolean(value.comparable) ?? false,
+  };
+}
+
+function readComparisonItems(value: unknown, defaults: Partial<ReportTruthMetadata>): ReportComparisonItemViewModel[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      if (!isRecord(entry)) {
+        return null;
+      }
+
+      const summaryText = readString(entry.summary_text);
+      if (!summaryText) {
+        return null;
+      }
+
+      return {
+        ...buildTruthMetadata(entry, defaults),
+        category: readString(entry.category),
+        metric: readString(entry.metric),
+        changeType: readEnumString(entry.change_type, COMPARISON_CHANGE_TYPES),
+        direction: readEnumString(entry.direction, COMPARISON_DIRECTIONS) ?? "unknown",
+        materiality: readEnumString(entry.materiality, COMPARISON_MATERIALITY),
+        summaryText,
+      };
+    })
+    .filter((entry): entry is ReportComparisonItemViewModel => entry !== null);
+}
+
+function readComparisonDeltas(
+  value: unknown,
+  defaults: Partial<ReportTruthMetadata>,
+): Record<string, ReportComparisonDeltaViewModel> {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  const entries = Object.entries(value)
+    .map(([metric, entry]) => {
+      const normalized = readComparisonDelta(metric, entry, defaults);
+      return normalized ? ([metric, normalized] as const) : null;
+    })
+    .filter((entry): entry is readonly [string, ReportComparisonDeltaViewModel] => entry !== null);
+
+  return Object.fromEntries(entries);
+}
+
+function readWhatChanged(records: Record<string, unknown>[], defaults: Partial<ReportTruthMetadata>): ReportWhatChangedViewModel | null {
+  const raw = readRecordFromPaths(records, [
+    "what_changed",
+    "whatChanged",
+    "report.what_changed",
+    "report.whatChanged",
+    "sections.what_changed",
+    "sections.whatChanged",
+    "report.sections.what_changed",
+    "report.sections.whatChanged",
+  ]);
+  if (!raw) {
+    return null;
+  }
+
+  const comparisonAvailable = readBoolean(raw.comparison_available);
+  const priorReportId = readString(raw.prior_report_id);
+  const whatImproved = readComparisonItems(raw.what_improved, defaults);
+  const whatWorsened = readComparisonItems(raw.what_worsened, defaults);
+  const watchNext = readComparisonItems(raw.watch_next, defaults);
+  const deltas = readComparisonDeltas(raw.deltas, defaults);
+  if (
+    comparisonAvailable === null &&
+    !priorReportId &&
+    Object.keys(deltas).length === 0 &&
+    whatImproved.length === 0 &&
+    whatWorsened.length === 0 &&
+    watchNext.length === 0
+  ) {
+    return null;
+  }
+
+  return {
+    ...buildTruthMetadata(raw, defaults, { reasonCodeKeys: ["comparison_reason_codes", "reason_codes"] }),
+    comparisonAvailable: comparisonAvailable ?? false,
+    priorReportId,
+    priorPeriodStart: readString(raw.prior_period_start),
+    priorPeriodEnd: readString(raw.prior_period_end),
+    comparableMetricCount: readNumber(raw.comparable_metric_count) ?? 0,
+    comparisonBasisMetrics: uniqueStrings(toStringArray(raw.comparison_basis_metrics)),
+    deltas,
+    whatImproved,
+    whatWorsened,
+    watchNext,
+  };
+}
+
+function emptyModel(): ReportViewModel {
+  return {
     reportId: null,
     schemaVersion: null,
     createdAt: null,
@@ -1148,6 +1478,8 @@ export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArti
       churnVelocity: null,
     },
     sections: [],
+    diagnosis: null,
+    whatChanged: null,
     metricSnapshot: null,
     metricProvenance: {},
     signals: [],
@@ -1155,10 +1487,15 @@ export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArti
     outlook: null,
     stability: null,
   };
+}
+
+export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArtifactResult {
+  const warnings: string[] = [];
+  const model = emptyModel();
 
   if (!isRecord(artifact)) {
     warnings.push("Artifact payload is not an object.");
-    return { model: emptyModel, warnings };
+    return { model, warnings };
   }
 
   const reportRecord = isRecord(artifact.report) ? artifact.report : null;
@@ -1214,6 +1551,8 @@ export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArti
       executiveSummaryParagraphs,
       kpis: readKpis(records),
       sections,
+      diagnosis: readDiagnosis(records, truthDefaults),
+      whatChanged: readWhatChanged(records, truthDefaults),
       metricSnapshot: readMetricSnapshot(records),
       metricProvenance: readMetricProvenance(records, truthDefaults),
       signals: readSignals(namedSections?.prioritized_insights, truthDefaults),

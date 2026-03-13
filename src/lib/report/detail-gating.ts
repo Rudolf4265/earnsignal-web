@@ -1,6 +1,6 @@
 import type { EntitlementsResponse } from "../api/entitlements";
 import type { AppGateState } from "../gating/app-gate";
-import { canDownloadPdfFromEntitlement, hasProEquivalentEntitlement } from "../entitlements/model.ts";
+import { canDownloadPdfFromEntitlement, hasProEquivalentEntitlement } from "../entitlements/model";
 
 export type ReportDetailProSectionMode = "pro-unlocked" | "pro-locked" | "loading-safe";
 export type ReportDetailPdfAccessMode = "pdf-unlocked" | "pdf-locked" | "loading-safe";

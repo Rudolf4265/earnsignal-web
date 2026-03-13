@@ -27,6 +27,8 @@ import type {
   ReportViewModel,
 } from "./normalize-artifact-to-report-model";
 
+export type { ReportDetailPresentationNotice };
+
 export type ReportDetailOutlookCard = {
   id: "base_case" | "upside" | "downside" | "outlook" | "churn_outlook" | "platform_risk_outlook" | "revenue_projection";
   title: string;

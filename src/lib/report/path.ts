@@ -1,4 +1,4 @@
-import { normalizeReportId } from "./id.ts";
+import { normalizeReportId } from "./id";
 
 export const REPORTS_INDEX_PATH = "/app/report";
 

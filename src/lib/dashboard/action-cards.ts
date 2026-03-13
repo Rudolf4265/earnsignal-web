@@ -1,13 +1,13 @@
 import type { EntitlementsResponse } from "../api/entitlements";
 import type { AppGateState } from "../gating/app-gate";
-import { hasProEquivalentEntitlement } from "../entitlements/model.ts";
+import { hasProEquivalentEntitlement } from "../entitlements/model";
 import type {
   ReportDiagnosisViewModel,
   ReportRecommendationViewModel,
   ReportWhatChangedViewModel,
 } from "../report/normalize-artifact-to-report-model";
 import { prioritizeRecommendations } from "../report/recommendation-prioritization";
-import { getTruthStateDescription, getTruthStateLabel, getTruthStateTone, type ReportTruthTone } from "../report/truth.ts";
+import { getTruthStateDescription, getTruthStateLabel, getTruthStateTone, type ReportTruthTone } from "../report/truth";
 
 export type DashboardActionCardsMode = "unlocked" | "locked" | "loading";
 

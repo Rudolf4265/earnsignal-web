@@ -1,4 +1,4 @@
-import { normalizeReportId } from "./id.ts";
+import { normalizeReportId } from "./id";
 
 export type ReportDetail = {
   id: string;

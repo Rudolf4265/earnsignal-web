@@ -1,7 +1,7 @@
-import { ApiError, apiFetchBlobWithMeta, apiFetchJson, getApiBaseOrigin, getApiBaseUrl, isEntitlementRequiredError } from "./client.ts";
-import { normalizeReportDetail, type ReportDetail } from "../report/normalize-report-detail.ts";
-import { normalizeReportsListResponse, type ReportListItem, type ReportListResult } from "../report/list-model.ts";
-import { normalizeReportId } from "../report/id.ts";
+import { ApiError, apiFetchBlobWithMeta, apiFetchJson, getApiBaseOrigin, getApiBaseUrl, isEntitlementRequiredError } from "./client";
+import { normalizeReportDetail, type ReportDetail } from "../report/normalize-report-detail";
+import { normalizeReportsListResponse, type ReportListItem, type ReportListResult } from "../report/list-model";
+import { normalizeReportId } from "../report/id";
 import type { ReportDetailResponseSchema } from "./generated";
 
 export type { ReportDetail, ReportListItem, ReportListResult };

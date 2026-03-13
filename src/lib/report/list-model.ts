@@ -1,6 +1,6 @@
-import { normalizeReportId } from "./id.ts";
-import { buildReportDetailPath } from "./path.ts";
-import { hasUsableReportArtifact } from "./artifact-availability.ts";
+import { normalizeReportId } from "./id";
+import { buildReportDetailPath } from "./path";
+import { hasUsableReportArtifact } from "./artifact-availability";
 
 export type ReportListItem = {
   reportId: string | null;

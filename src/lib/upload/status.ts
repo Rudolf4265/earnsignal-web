@@ -1,4 +1,4 @@
-import { normalizeReportId } from "../report/id.ts";
+import { normalizeReportId } from "../report/id";
 
 export type UploadBackendStatus =
   | "pending"

@@ -17,5 +17,5 @@ test("report list blocks download handler when canonical PDF entitlement is fals
   const source = await readFile(reportListPagePath, "utf8");
 
   assert.equal(source.includes("if (!row.canDownload || !entitlementState.canDownloadPdf || !row.reportId || !row.artifactUrl || downloadingReportId)"), true);
-  assert.equal(source.includes('const downloadTooltip = row.canDownload ? "Upgrade to Pro to download PDF" : "PDF not available yet";'), true);
+  assert.equal(source.includes('const downloadTooltip = row.canDownload ? "Report or Pro access is required to download this PDF" : "PDF not available yet";'), true);
 });

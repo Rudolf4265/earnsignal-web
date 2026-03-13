@@ -27,14 +27,14 @@ function jsonResponse(payload, status = 200) {
 
 async function buildEntitlementsTestModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
-  const mockSpecifier = `./mocks/api-client-${tag}`;
+  const mockSpecifier = `./mocks/api-client-${tag}.mjs`;
   const patched = source
     .replace('from "./client";', `from "${mockSpecifier}";`)
-    .replace('from "../entitlements/model";', 'from "../src/lib/entitlements/model";');
+    .replace('from "../entitlements/model";', 'from "../src/lib/entitlements/model.ts";');
   const outDir = path.resolve(".tmp-tests");
   await mkdir(path.join(outDir, "mocks"), { recursive: true });
 
-  const mockPath = path.join(outDir, "mocks", `api-client-${tag}`);
+  const mockPath = path.join(outDir, "mocks", `api-client-${tag}.mjs`);
   await writeFile(
     mockPath,
     `export class ApiError extends Error {
@@ -61,7 +61,7 @@ test("fetchEntitlements caches response in memory and sessionStorage", async () 
   global.window = createWindow();
   global.fetch = async () => {
     fetchCalls += 1;
-    return jsonResponse({ plan: "plan_a", status: "active", entitled: true, features: { app: true, upload: true } });
+    return jsonResponse({ plan: "plan_a", status: "active", entitled: true, can_download_pdf: true });
   };
 
   const moduleUrl = await buildEntitlementsTestModule(`cache-${Date.now()}`);
@@ -71,13 +71,13 @@ test("fetchEntitlements caches response in memory and sessionStorage", async () 
   const second = await fetchEntitlements();
 
   assert.equal(fetchCalls, 1);
-  assert.equal(first.planTier, "basic");
-  assert.equal(first.effectivePlanTier, "basic");
-  assert.equal(first.plan_tier, "basic");
-  assert.equal(first.plan, "basic");
+  assert.equal(first.planTier, "report");
+  assert.equal(first.effectivePlanTier, "report");
+  assert.equal(first.plan_tier, "report");
+  assert.equal(first.plan, "report");
   assert.equal(first.isActive, true);
   assert.equal(first.accessGranted, true);
-  assert.equal(first.canUpload, true);
+  assert.equal(first.canDownloadPdf, true);
   assert.equal(second.entitled, true);
 
   resetEntitlementsCache();
@@ -95,15 +95,18 @@ test("fetchEntitlements prefers canonical effective_plan_tier and access_granted
       access_reason_code: "ACTIVE_SUBSCRIPTION",
       billing_required: false,
       plan: "plan_a",
-      plan_tier: "basic",
+      plan_tier: "report",
       status: "inactive",
       entitled: false,
       is_active: false,
-      can_upload: false,
+      can_upload: true,
+      can_validate_upload: true,
       can_generate_report: true,
       can_view_reports: true,
       can_download_pdf: true,
       can_access_dashboard: true,
+      can_access_recurring_monitoring: true,
+      can_access_pro_comparisons_or_future_pro_features: true,
       reports_remaining_this_period: 7,
       reports_generated_this_period: 3,
       monthly_report_limit: 10,
@@ -125,21 +128,21 @@ test("fetchEntitlements prefers canonical effective_plan_tier and access_granted
   assert.equal(value.accessReasonCode, "ACTIVE_SUBSCRIPTION");
   assert.equal(value.billingRequired, false);
   assert.equal(value.source, "stripe");
-  assert.equal(value.canUpload, false);
+  assert.equal(value.canUpload, true);
+  assert.equal(value.canValidateUpload, true);
   assert.equal(value.canGenerateReport, true);
   assert.equal(value.canViewReports, true);
   assert.equal(value.canDownloadPdf, true);
   assert.equal(value.canAccessDashboard, true);
-  assert.equal(value.reportsRemainingThisPeriod, 7);
-  assert.equal(value.reportsGeneratedThisPeriod, 3);
-  assert.equal(value.monthlyReportLimit, 10);
+  assert.equal(value.canAccessRecurringMonitoring, true);
+  assert.equal(value.canAccessProComparisonsOrFutureProFeatures, true);
 
   resetEntitlementsCache();
   delete global.window;
   delete global.fetch;
 });
 
-test("fetchEntitlements defaults plan tier to none when backend omits both canonical and legacy plan fields", async () => {
+test("fetchEntitlements defaults to free upload validation when backend omits plan fields", async () => {
   global.window = createWindow();
   global.fetch = async () =>
     jsonResponse({
@@ -152,15 +155,16 @@ test("fetchEntitlements defaults plan tier to none when backend omits both canon
   const { fetchEntitlements, resetEntitlementsCache } = await import(moduleUrl);
   const value = await fetchEntitlements({ forceRefresh: true });
 
-  assert.equal(value.planTier, "none");
-  assert.equal(value.effectivePlanTier, "none");
-  assert.equal(value.plan_tier, "none");
-  assert.equal(value.plan, "none");
+  assert.equal(value.planTier, "free");
+  assert.equal(value.effectivePlanTier, "free");
+  assert.equal(value.plan_tier, "free");
+  assert.equal(value.plan, "free");
   assert.equal(value.isActive, false);
   assert.equal(value.accessGranted, false);
   assert.equal(value.canUpload, true);
+  assert.equal(value.canValidateUpload, true);
   assert.equal(value.canGenerateReport, false);
-  assert.equal(value.canAccessDashboard, true);
+  assert.equal(value.canAccessDashboard, false);
 
   resetEntitlementsCache();
   delete global.window;
@@ -173,7 +177,7 @@ test("fetchEntitlements force refresh bypasses cache", async () => {
   global.window = createWindow();
   global.fetch = async () => {
     fetchCalls += 1;
-    return jsonResponse({ plan_tier: "pro", status: "active", is_active: true, features: { app: true } });
+    return jsonResponse({ plan_tier: "report", status: "active", is_active: true, can_download_pdf: true });
   };
 
   const moduleUrl = await buildEntitlementsTestModule(`force-${Date.now()}`);
@@ -193,7 +197,7 @@ test("fetchEntitlements fail-closes contradictory payloads where canonical acces
   global.window = createWindow();
   global.fetch = async () =>
     jsonResponse({
-      effective_plan_tier: "none",
+      effective_plan_tier: "free",
       access_granted: false,
       access_reason_code: "OVERRIDE_REVOKED",
       billing_required: true,
@@ -209,8 +213,8 @@ test("fetchEntitlements fail-closes contradictory payloads where canonical acces
   const { fetchEntitlements, resetEntitlementsCache } = await import(moduleUrl);
   const value = await fetchEntitlements({ forceRefresh: true });
 
-  assert.equal(value.planTier, "none");
-  assert.equal(value.effectivePlanTier, "none");
+  assert.equal(value.planTier, "free");
+  assert.equal(value.effectivePlanTier, "free");
   assert.equal(value.accessGranted, false);
   assert.equal(value.entitled, false);
   assert.equal(value.isActive, false);

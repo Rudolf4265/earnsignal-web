@@ -646,7 +646,7 @@ test.describe("Entitlement lifecycle (backend fixtures)", () => {
 
       await page.goto("/app/billing", { waitUntil: "domcontentloaded" });
       await expect(page.getByRole("heading", { name: "Billing" })).toBeVisible();
-      await expect(page.getByText("Feature access: Limited until subscription is active")).toBeVisible();
+      await expect(page.getByText("Feature access: No paid access active")).toBeVisible();
       await expect(page.getByText("Billing action is required to restore premium access.")).toBeVisible();
       await expect(page.getByRole("button", { name: "Choose Pro" })).toBeVisible();
 

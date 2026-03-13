@@ -1,4 +1,4 @@
-import { normalizeReportId } from "../report/id";
+import { normalizeReportId } from "../report/id.ts";
 
 export type UploadBackendStatus =
   | "pending"
@@ -26,7 +26,7 @@ export type UploadBackendStatus =
   | "report_failed"
   | string;
 
-export type UploadUiStatus = "processing" | "ready" | "failed";
+export type UploadUiStatus = "processing" | "validated" | "ready" | "failed";
 
 export type UploadFailureReason = "session_expired" | "upload_not_found" | "timeout" | "upload_failed" | string;
 
@@ -57,6 +57,7 @@ export type UploadStatusView = {
 };
 
 const READY = new Set(["ready", "report_ready", "completed", "complete", "succeeded", "success"]);
+const VALIDATED = new Set(["validated", "ingestion_succeeded"]);
 const FAILED = new Set(["failed", "error", "rejected", "validation_failed", "ingest_failed", "report_failed"]);
 
 function normalizeNullableString(value: NullableBackendString): string | undefined {
@@ -65,7 +66,7 @@ function normalizeNullableString(value: NullableBackendString): string | undefin
 
 export function mapUploadStatus(input: UploadStatusEnvelope): UploadStatusView {
   const rawStatus = normalizeNullableString(input.status)?.toLowerCase() ?? null;
-  const status: UploadUiStatus = rawStatus && READY.has(rawStatus) ? "ready" : rawStatus && FAILED.has(rawStatus) ? "failed" : "processing";
+  const status: UploadUiStatus = rawStatus && READY.has(rawStatus) ? "ready" : rawStatus && VALIDATED.has(rawStatus) ? "validated" : rawStatus && FAILED.has(rawStatus) ? "failed" : "processing";
   const reasonCode = normalizeNullableString(input.reason_code) ?? normalizeNullableString(input.reasonCode);
   const message = normalizeNullableString(input.message);
   const reportId = normalizeNullableString(input.report_id) ?? normalizeNullableString(input.reportId);
@@ -83,7 +84,7 @@ export function mapUploadStatus(input: UploadStatusEnvelope): UploadStatusView {
 }
 
 export function isTerminalUploadStatus(status: UploadUiStatus): boolean {
-  return status === "ready" || status === "failed";
+  return status === "validated" || status === "ready" || status === "failed";
 }
 
 export function buildUploadDiagnostics(params: {

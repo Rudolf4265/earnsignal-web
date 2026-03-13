@@ -11,6 +11,7 @@ const { buildReportDetailPathOrIndex } = await import(`${reportPathModuleUrl}?t=
 
 test("mapUploadStatus maps terminal and processing states", () => {
   assert.equal(mapUploadStatus({ status: "ready" }).status, "ready");
+  assert.equal(mapUploadStatus({ status: "validated" }).status, "validated");
   assert.equal(mapUploadStatus({ status: "FAILED" }).status, "failed");
   assert.equal(mapUploadStatus({ status: "processing" }).status, "processing");
   assert.equal(mapUploadStatus({ status: "validating" }).status, "processing");

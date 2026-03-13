@@ -1,9 +1,9 @@
 import type { EntitlementsResponse } from "../api/entitlements";
 import type { AppGateState } from "../gating/app-gate";
-import { hasProEquivalentEntitlement } from "../entitlements/model";
+import { canDownloadPdfFromEntitlement, hasProEquivalentEntitlement } from "../entitlements/model.ts";
 
 export type ReportDetailProSectionMode = "pro-unlocked" | "pro-locked" | "loading-safe";
-export type ReportDetailPdfAccessMode = ReportDetailProSectionMode;
+export type ReportDetailPdfAccessMode = "pdf-unlocked" | "pdf-locked" | "loading-safe";
 
 export type ReportDetailSectionGatingModel = {
   subscriberHealth: ReportDetailProSectionMode;
@@ -46,10 +46,25 @@ export function canRenderReportDetailProContent(mode: ReportDetailProSectionMode
   return mode === "pro-unlocked";
 }
 
+function resolvePdfAccessMode(gateState: AppGateState, entitlements: EntitlementsResponse | null): ReportDetailPdfAccessMode {
+  if (
+    gateState === "session_loading" ||
+    gateState === "authed_loading_entitlements" ||
+    gateState === "anon" ||
+    gateState === "session_expired" ||
+    gateState === "entitlements_error" ||
+    entitlements === null
+  ) {
+    return "loading-safe";
+  }
+
+  return canDownloadPdfFromEntitlement(entitlements) ? "pdf-unlocked" : "pdf-locked";
+}
+
 export function resolveReportDetailPdfAccessMode(input: BuildReportDetailSectionGatingInput): ReportDetailPdfAccessMode {
-  return resolveProSectionMode(input.gateState, input.entitlements);
+  return resolvePdfAccessMode(input.gateState, input.entitlements);
 }
 
 export function canAccessFullReportPdf(mode: ReportDetailPdfAccessMode): boolean {
-  return mode === "pro-unlocked";
+  return mode === "pdf-unlocked";
 }

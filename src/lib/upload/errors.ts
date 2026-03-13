@@ -17,7 +17,7 @@ export function mapApiErrorToUploadFailure(error: unknown): UploadFailure {
   if (isEntitlementRequiredError(error)) {
     return {
       reasonCode: "entitlement_required",
-      message: "Report generation requires an active paid entitlement. Continue in Billing to upgrade access.",
+      message: "Paid report generation requires Report or Pro access. Continue in Billing to upgrade access.",
       shouldStopPolling: true,
       requestId,
       operation,

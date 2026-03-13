@@ -31,61 +31,53 @@ test("active Pro plan resolves premium current variant with dark-theme classes",
   assert.equal(viewModel.badgeClassName.includes("text-emerald-100"), true);
 });
 
-test("paid-equivalent aliases render as current Pro state", async () => {
+test("legacy report aliases render as current Report state, not Pro", async () => {
   const { buildBillingPlanCardViewModel } = await loadModule(Date.now() + 2);
 
-  const paidEquivalent = buildBillingPlanCardViewModel({
-    planId: "pro",
-    planLabel: "Pro",
-    activePlanTier: "paid_equivalent",
-    isActive: true,
-    allowCheckout: true,
-  });
-  const founderEquivalent = buildBillingPlanCardViewModel({
-    planId: "pro",
-    planLabel: "Pro",
+  const legacyReport = buildBillingPlanCardViewModel({
+    planId: "report",
+    planLabel: "Report",
     activePlanTier: "founder_creator_report",
     isActive: true,
     allowCheckout: true,
   });
 
-  assert.equal(paidEquivalent.variant, "pro_current_active");
-  assert.equal(founderEquivalent.variant, "pro_current_active");
+  assert.equal(legacyReport.variant, "report_current");
 });
 
-test("free or unentitled state keeps both plans selectable", async () => {
+test("free state keeps report and pro plans selectable", async () => {
   const { buildBillingPlanCardViewModel } = await loadModule(Date.now() + 3);
 
-  const basic = buildBillingPlanCardViewModel({
-    planId: "basic",
-    planLabel: "Basic",
-    activePlanTier: "none",
+  const report = buildBillingPlanCardViewModel({
+    planId: "report",
+    planLabel: "Report",
+    activePlanTier: "free",
     isActive: false,
     allowCheckout: true,
   });
   const pro = buildBillingPlanCardViewModel({
     planId: "pro",
     planLabel: "Pro",
-    activePlanTier: "none",
+    activePlanTier: "free",
     isActive: false,
     allowCheckout: true,
   });
 
-  assert.equal(basic.variant, "basic_selectable");
+  assert.equal(report.variant, "report_selectable");
   assert.equal(pro.variant, "pro_selectable");
-  assert.equal(basic.ctaLabel, "Choose Basic");
+  assert.equal(report.ctaLabel, "Choose Report");
   assert.equal(pro.ctaLabel, "Choose Pro");
-  assert.equal(basic.checkoutDisabled, false);
+  assert.equal(report.checkoutDisabled, false);
   assert.equal(pro.checkoutDisabled, false);
 });
 
 test("cta label and disabled semantics stay aligned with current active plan behavior", async () => {
-  const { buildBillingPlanCardViewModel } = await loadModule(Date.now() + 4);
+  const { buildBillingPlanCardViewModel, formatPlanLabel } = await loadModule(Date.now() + 4);
 
-  const activeBasic = buildBillingPlanCardViewModel({
-    planId: "basic",
-    planLabel: "Basic",
-    activePlanTier: "basic",
+  const activeReport = buildBillingPlanCardViewModel({
+    planId: "report",
+    planLabel: "Report",
+    activePlanTier: "report",
     isActive: true,
     allowCheckout: true,
   });
@@ -99,16 +91,19 @@ test("cta label and disabled semantics stay aligned with current active plan beh
   const checkoutBlocked = buildBillingPlanCardViewModel({
     planId: "pro",
     planLabel: "Pro",
-    activePlanTier: "none",
+    activePlanTier: "free",
     isActive: false,
     allowCheckout: false,
   });
 
-  assert.equal(activeBasic.ctaLabel, "Basic active");
-  assert.equal(activeBasic.checkoutDisabled, true);
+  assert.equal(activeReport.ctaLabel, "Report active");
+  assert.equal(activeReport.checkoutDisabled, true);
   assert.equal(inactiveCurrentPro.ctaLabel, "Choose Pro");
   assert.equal(inactiveCurrentPro.checkoutDisabled, false);
   assert.equal(checkoutBlocked.checkoutDisabled, true);
+  assert.equal(formatPlanLabel("free"), "Free");
+  assert.equal(formatPlanLabel("founder_creator_report"), "Report");
+  assert.equal(formatPlanLabel("paid_equivalent"), "Pro");
 });
 
 test("billing page source no longer includes the legacy light selected-card class", async () => {

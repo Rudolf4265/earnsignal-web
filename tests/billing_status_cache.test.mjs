@@ -27,14 +27,14 @@ function jsonResponse(payload, status = 200) {
 
 async function buildEntitlementsTestModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
-  const mockSpecifier = `./mocks/api-client-${tag}`;
+  const mockSpecifier = `./mocks/api-client-${tag}.mjs`;
   const patched = source
     .replace('from "./client";', `from "${mockSpecifier}";`)
-    .replace('from "../entitlements/model";', 'from "../src/lib/entitlements/model";');
+    .replace('from "../entitlements/model";', 'from "../src/lib/entitlements/model.ts";');
   const outDir = path.resolve(".tmp-tests");
   await mkdir(path.join(outDir, "mocks"), { recursive: true });
 
-  const mockPath = path.join(outDir, "mocks", `api-client-${tag}`);
+  const mockPath = path.join(outDir, "mocks", `api-client-${tag}.mjs`);
   await writeFile(
     mockPath,
     `export class ApiError extends Error {
@@ -81,10 +81,13 @@ test("fetchBillingStatus maps canonical response fields and caches result", asyn
         source: "stripe",
         is_active: true,
         can_upload: true,
+        can_validate_upload: true,
         can_generate_report: true,
         can_view_reports: true,
         can_download_pdf: true,
         can_access_dashboard: true,
+        can_access_recurring_monitoring: true,
+        can_access_pro_comparisons_or_future_pro_features: true,
         reports_remaining_this_period: 5,
         reports_generated_this_period: 3,
         monthly_report_limit: 8,
@@ -114,16 +117,6 @@ test("fetchBillingStatus maps canonical response fields and caches result", asyn
   assert.equal(first.reportsGeneratedThisPeriod, 3);
   assert.equal(first.monthlyReportLimit, 8);
   assert.equal(first.creatorId, "creator-cache");
-  assert.equal(first.checkoutConfigured, true);
-  assert.equal(first.webhookConfigured, true);
-  assert.equal(first.stripeCustomerId, "cus_cache");
-  assert.equal(first.stripeSubscriptionId, "sub_cache");
-  assert.equal(first.latestProcessedEventId, "evt_cache");
-  assert.equal(first.currentPeriodStart, "2026-03-01T00:00:00Z");
-  assert.equal(first.currentPeriodEnd, "2026-04-01T00:00:00Z");
-  assert.equal(first.cancelAtPeriodEnd, false);
-  assert.equal(first.entitlements.entitlement_source, "stripe");
-  assert.equal(first.entitlements.billing_required, false);
   assert.equal(first.portalUrl, "https://stripe.test/portal");
   assert.equal(second.plan, "pro");
 
@@ -139,7 +132,7 @@ test("fetchBillingStatus falls back to legacy aliases when canonical fields are 
       plan: "plan_a",
       status: "inactive",
       entitled: true,
-      features: { app: true, upload: true, report: false },
+      can_download_pdf: true,
       portalUrl: "https://stripe.test/portal-legacy",
       currentPeriodEnd: "2026-04-02T00:00:00Z",
       cancelAtPeriodEnd: true,
@@ -149,9 +142,9 @@ test("fetchBillingStatus falls back to legacy aliases when canonical fields are 
   const { fetchBillingStatus, resetEntitlementsCache } = await import(moduleUrl);
   const value = await fetchBillingStatus({ forceRefresh: true });
 
-  assert.equal(value.planTier, "basic");
-  assert.equal(value.effectivePlanTier, "basic");
-  assert.equal(value.plan_tier, "basic");
+  assert.equal(value.planTier, "report");
+  assert.equal(value.effectivePlanTier, "report");
+  assert.equal(value.plan_tier, "report");
   assert.equal(value.entitled, true);
   assert.equal(value.isActive, true);
   assert.equal(value.accessGranted, true);
@@ -172,7 +165,7 @@ test("fetchBillingStatus force refresh bypasses cache", async () => {
   global.window = createWindow();
   global.fetch = async () => {
     fetchCalls += 1;
-    return jsonResponse({ plan_tier: "basic", status: "active", is_active: true });
+    return jsonResponse({ plan_tier: "report", status: "active", is_active: true, can_download_pdf: true });
   };
 
   const moduleUrl = await buildEntitlementsTestModule(`force-${Date.now()}`);

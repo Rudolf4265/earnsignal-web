@@ -122,7 +122,7 @@ const reportSectionPillars = [
   "Platform Risk",
 ];
 
-const primaryCtaHref = `${appBaseUrl}${marketingCtas.startTrial.appPath}?plan=founder_creator_report`;
+const primaryCtaHref = `${appBaseUrl}${marketingCtas.startTrial.appPath}?plan=report`;
 const secondaryCtaHref = `${appBaseUrl}${marketingCtas.startTrial.appPath}?plan=free`;
 
 function InsightGlyph({ icon, className }: { icon: InsightIconKey; className?: string }) {
@@ -268,9 +268,7 @@ export default function MarketingHomePage() {
                 </a>
               </div>
 
-              <p className="mt-5 text-[11px] font-medium uppercase tracking-[0.14em] text-brand-accent-teal/90">
-                Founding creator report &mdash; $25 launch pricing
-              </p>
+              <p className="mt-5 text-[11px] font-medium uppercase tracking-[0.14em] text-brand-accent-teal/90">Free validation • $79 Report • $59/month Pro</p>
             </div>
 
             <div className="relative mx-auto w-full max-w-[33rem] lg:max-w-none lg:pl-4">

@@ -73,7 +73,7 @@ test("report detail renders truth notices and metric badges for limited states",
 test("report detail keeps active PDF actions in the Pro-only branch", async () => {
   const source = await readFile(reportDetailPagePath, "utf8");
 
-  assert.equal(source.includes('pdfAccessMode === "pro-unlocked"'), true);
+  assert.equal(source.includes('pdfAccessMode === "pdf-unlocked"'), true);
   assert.equal(source.includes('canAccessPdf ? ('), true);
   assert.equal(source.includes('"Open PDF"'), true);
   assert.equal(source.includes('"Download PDF"'), true);
@@ -84,8 +84,8 @@ test("report detail includes locked PDF export state for Basic users", async () 
 
   assert.equal(source.includes('data-testid="report-pdf-locked"'), true);
   assert.equal(source.includes("Full PDF Export."), true);
-  assert.equal(source.includes("Upgrade to Pro to open and download the full creator earnings report PDF."), true);
-  assert.equal(source.includes("Upgrade to Pro"), true);
+  assert.equal(source.includes("Report or Pro access is required to open and download this creator earnings report PDF."), true);
+  assert.equal(source.includes("View plans"), true);
 });
 
 test("report detail includes loading-safe PDF placeholder while entitlements resolve", async () => {
@@ -107,14 +107,15 @@ test("report detail blocks PDF handler execution and avoids artifact URL leakage
 test("report detail preserves Pro artifact-missing PDF unavailable state", async () => {
   const source = await readFile(reportDetailPagePath, "utf8");
 
-  assert.equal(source.includes('pdfAccessMode === "pro-unlocked" ? ('), true);
+  assert.equal(source.includes('pdfAccessMode === "pdf-unlocked" ? ('), true);
   assert.equal(source.includes("PDF unavailable"), true);
 });
 
 test("report detail gates raw artifact debug payload behind Pro access", async () => {
   const source = await readFile(reportDetailPagePath, "utf8");
 
-  assert.equal(source.includes("canAccessFullPdf ? ("), true);
+  assert.equal(source.includes("const canAccessDebugPayload = useMemo(() => hasProEquivalentEntitlement(entitlements), [entitlements]);"), true);
+  assert.equal(source.includes("canAccessDebugPayload ? ("), true);
   assert.equal(source.includes('data-testid="report-debug-accordion"'), true);
   assert.equal(source.includes("Debug payload view is available with Pro access."), true);
 });

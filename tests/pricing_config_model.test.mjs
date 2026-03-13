@@ -9,26 +9,26 @@ function load(tag) {
   return import(`${modulePath}?t=${tag}`);
 }
 
-test("pricing config defines launch plans with stable keys and pricing", async () => {
+test("pricing config defines the canonical Free / Report / Pro ladder", async () => {
   const { pricingPlans } = await load(Date.now());
 
   assert.equal(Array.isArray(pricingPlans), true);
   assert.deepEqual(
     pricingPlans.map((plan) => plan.key),
-    ["free", "founder_creator_report", "creator_pro"],
+    ["free", "report", "pro"],
   );
 
   const free = pricingPlans.find((plan) => plan.key === "free");
-  const founder = pricingPlans.find((plan) => plan.key === "founder_creator_report");
-  const pro = pricingPlans.find((plan) => plan.key === "creator_pro");
+  const report = pricingPlans.find((plan) => plan.key === "report");
+  const pro = pricingPlans.find((plan) => plan.key === "pro");
 
   assert.equal(free?.price, "$0");
   assert.equal(free?.cadence, "forever");
 
-  assert.equal(founder?.price, "$25");
-  assert.equal(founder?.anchorPrice, "$49");
-  assert.match(founder?.priceNote ?? "", /60 days/i);
+  assert.equal(report?.price, "$79");
+  assert.equal(report?.cadence, "one_time");
+  assert.equal(report?.badge, "One-time");
 
-  assert.equal(pro?.price, "$39");
+  assert.equal(pro?.price, "$59");
   assert.equal(pro?.cadence, "monthly");
 });

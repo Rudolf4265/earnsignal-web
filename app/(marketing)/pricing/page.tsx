@@ -9,7 +9,6 @@ type PricingCardCopy = {
   description: string;
   helperText?: string;
   badge?: string;
-  anchorPrice?: string;
   features: string[];
   ctaLabel: string;
   footnote?: string;
@@ -17,71 +16,69 @@ type PricingCardCopy = {
 
 type ComparisonAvailability = Record<PricingPlanKey, boolean>;
 
-const orderedPlanKeys: PricingPlanKey[] = ["free", "founder_creator_report", "creator_pro"];
+const orderedPlanKeys: PricingPlanKey[] = ["free", "report", "pro"];
 
 const pricingCardCopy: Record<PricingPlanKey, PricingCardCopy> = {
   free: {
     title: "Free",
-    description: "Best for exploring your data",
+    description: "Validate data before you buy",
     features: [
       "Upload creator earnings data",
-      "Basic dashboard insights",
-      "Revenue trends",
-      "Platform breakdown",
-      "Preview optimization signals",
+      "CSV validation and ingestion checks",
+      "Teaser dashboard preview",
+      "No recurring monitoring access",
     ],
     ctaLabel: "Start Free",
   },
-  founder_creator_report: {
-    title: "Founder Creator Report",
-    description: "Limited launch pricing",
-    helperText: "Used by early creators to identify new revenue opportunities",
-    badge: "Most Popular",
-    anchorPrice: "$49",
+  report: {
+    title: "Report",
+    description: "One-time access for one owned report",
+    helperText: "Best when you need a single creator revenue report without a subscription.",
+    badge: "One-time",
     features: [
-      "Full Creator Optimization PDF",
-      "Revenue growth opportunities",
-      "Churn risk analysis",
-      "Platform dependence insights",
-      "Tier pricing optimization",
-      "Narrative insights & strategy",
+      "One purchased report for one upload",
+      "View and download the owned PDF",
+      "Report detail context tied to that purchase",
+      "Not equivalent to Pro monitoring access",
     ],
-    ctaLabel: "Generate My Report",
-    footnote: "Launch price for first 60 days",
+    ctaLabel: "Buy Report",
   },
-  creator_pro: {
-    title: "Creator Pro",
-    description: "For creators who want continuous optimization",
+  pro: {
+    title: "Pro",
+    description: "Recurring access for ongoing analysis",
+    badge: "Most popular",
     features: [
-      "Unlimited optimization reports",
-      "Multi-platform insights",
-      "Migration detection",
-      "Dependence tracking",
-      "Priority processing",
-      "Monthly revenue monitoring",
+      "Recurring report history",
+      "Dashboard intelligence access",
+      "Recurring monitoring-oriented surfaces",
+      "Pro-only comparisons as they ship",
     ],
     ctaLabel: "Start Pro",
   },
 };
 
-const workflowSteps = [
-  "Upload Data",
-  "See Free Dashboard",
-  "Unlock Optimization Report",
-  "Grow Revenue",
-] as const;
+const workflowSteps = ["Upload Data", "Validate for Free", "Buy Report or Start Pro", "Review Signals"] as const;
 
 const comparisonRows: Array<{ feature: string; availability: ComparisonAvailability }> = [
-  { feature: "Upload data", availability: { free: true, founder_creator_report: true, creator_pro: true } },
-  { feature: "Dashboard insights", availability: { free: true, founder_creator_report: true, creator_pro: true } },
-  { feature: "Optimization report", availability: { free: false, founder_creator_report: true, creator_pro: true } },
-  { feature: "Revenue recommendations", availability: { free: false, founder_creator_report: true, creator_pro: true } },
-  { feature: "Multi-platform insights", availability: { free: false, founder_creator_report: true, creator_pro: true } },
-  { feature: "Unlimited reports", availability: { free: false, founder_creator_report: false, creator_pro: true } },
+  { feature: "Upload data", availability: { free: true, report: true, pro: true } },
+  { feature: "Validate upload", availability: { free: true, report: true, pro: true } },
+  { feature: "Teaser dashboard preview", availability: { free: true, report: true, pro: true } },
+  { feature: "View purchased report", availability: { free: false, report: true, pro: true } },
+  { feature: "Download purchased PDF", availability: { free: false, report: true, pro: true } },
+  { feature: "Recurring monitoring access", availability: { free: false, report: false, pro: true } },
+  { feature: "Pro-only comparisons", availability: { free: false, report: false, pro: true } },
 ];
 
 function cadenceSuffix(planKey: PricingPlanKey): string {
-  return planKey === "creator_pro" ? " / month" : "";
+  if (planKey === "pro") {
+    return " / month";
+  }
+
+  if (planKey === "report") {
+    return " one time";
+  }
+
+  return "";
 }
 
 function planCtaHref(planKey: PricingPlanKey): string {
@@ -118,12 +115,12 @@ export default function PricingPage() {
               style={{ backgroundImage: BRAND.gradientPrimary }}
             />
             <div className="relative max-w-3xl">
-              <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Optimize Your Creator Revenue</h1>
+              <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Free, Report, and Pro</h1>
               <p className="mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
-                Upload your earnings data and get a full creator revenue analysis &mdash; including churn risks, platform dependence, and growth opportunities.
+                EarnSigma now follows one commercial ladder: Free for upload validation, a $79 one-time Report, and $59/month Pro for recurring access.
               </p>
               <p className="mt-5 text-xs font-medium uppercase tracking-[0.14em] text-brand-accent-teal">
-                Free dashboard &bull; Founding creator pricing available
+                Free validation • $79 Report • $59/month Pro
               </p>
             </div>
           </div>
@@ -134,7 +131,7 @@ export default function PricingPage() {
         <Container>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {orderedPlans.map((plan) => {
-              const isFeatured = plan.key === "founder_creator_report";
+              const isFeatured = plan.key === "report";
 
               return (
                 <Card
@@ -154,11 +151,6 @@ export default function PricingPage() {
                         {plan.price}
                         <span className="text-base font-medium text-brand-text-secondary">{cadenceSuffix(plan.key)}</span>
                       </p>
-                      {plan.anchorPrice ? (
-                        <p className="mt-1 text-sm text-brand-text-muted">
-                          <span className="line-through">{plan.anchorPrice}</span>
-                        </p>
-                      ) : null}
                     </div>
                     {plan.badge ? <Badge variant={isFeatured ? "success" : "neutral"}>{plan.badge}</Badge> : null}
                   </CardHeader>
@@ -226,7 +218,7 @@ export default function PricingPage() {
 
       <Section className="py-8 sm:py-10">
         <Container>
-          <h2 className="text-2xl font-semibold tracking-tight">What&apos;s Inside the Creator Optimization Report</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Capability Matrix</h2>
           <Card className="mt-6 overflow-hidden border-brand-border-strong/70 bg-brand-panel/78 p-0">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[620px] border-collapse text-left">
@@ -277,18 +269,18 @@ export default function PricingPage() {
             />
             <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-3xl font-semibold tracking-tight sm:text-[2rem]">Start Optimizing Your Creator Revenue Today</h2>
+                <h2 className="text-3xl font-semibold tracking-tight sm:text-[2rem]">Start With The Right Level of Access</h2>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <a
-                  href={planCtaHref("founder_creator_report")}
+                  href={planCtaHref("report")}
                   className={buttonClassName({
                     variant: "primary",
                     className:
                       "justify-center border-brand-accent-emerald/45 bg-[linear-gradient(120deg,rgba(29,78,216,0.96),rgba(47,217,197,0.88))] px-5 shadow-brand-glow hover:border-brand-accent-emerald/65 hover:brightness-110",
                   })}
                 >
-                  Generate Report
+                  Buy Report
                 </a>
                 <a href={planCtaHref("free")} className={buttonClassName({ variant: "secondary", className: "justify-center px-5" })}>
                   Start Free

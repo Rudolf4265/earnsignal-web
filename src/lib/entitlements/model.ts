@@ -1,3 +1,5 @@
+export type CommercialTier = "free" | "report" | "pro";
+
 export type EntitlementSnapshotLike = {
   effectivePlanTier?: string | null;
   effective_plan_tier?: string | null;
@@ -12,10 +14,32 @@ export type EntitlementSnapshotLike = {
   isActive?: boolean | null;
   is_active?: boolean | null;
   entitled?: boolean | null;
+  canUpload?: boolean | null;
+  can_upload?: boolean | null;
+  canValidateUpload?: boolean | null;
+  can_validate_upload?: boolean | null;
+  canGeneratePaidReport?: boolean | null;
+  can_generate_paid_report?: boolean | null;
   canGenerateReport?: boolean | null;
   can_generate_report?: boolean | null;
+  canViewOwnedReport?: boolean | null;
+  can_view_owned_report?: boolean | null;
+  canViewReports?: boolean | null;
+  can_view_reports?: boolean | null;
+  canDownloadOwnedReport?: boolean | null;
+  can_download_owned_report?: boolean | null;
   canDownloadPdf?: boolean | null;
   can_download_pdf?: boolean | null;
+  canAccessDashboardIntelligence?: boolean | null;
+  can_access_dashboard_intelligence?: boolean | null;
+  canAccessDashboard?: boolean | null;
+  can_access_dashboard?: boolean | null;
+  canViewReportHistory?: boolean | null;
+  can_view_report_history?: boolean | null;
+  canAccessRecurringMonitoring?: boolean | null;
+  can_access_recurring_monitoring?: boolean | null;
+  canAccessProComparisonsOrFutureProFeatures?: boolean | null;
+  can_access_pro_comparisons_or_future_pro_features?: boolean | null;
   accessReasonCode?: string | null;
   access_reason_code?: string | null;
   reason_code?: string | null;
@@ -23,34 +47,74 @@ export type EntitlementSnapshotLike = {
   billing_required?: boolean | null;
 };
 
-const PLAN_TIER_ALIASES: Record<string, string> = {
-  basic: "basic",
-  plan_a: "basic",
-  free: "basic",
-  starter: "basic",
-  founder_creator_report: "founder_creator_report",
-  founder: "founder_creator_report",
+export type EntitlementCapabilityKey =
+  | "canUpload"
+  | "canValidateUpload"
+  | "canGeneratePaidReport"
+  | "canViewOwnedReport"
+  | "canDownloadOwnedReport"
+  | "canViewReportHistory"
+  | "canAccessDashboardIntelligence"
+  | "canAccessRecurringMonitoring"
+  | "canAccessProComparisonsOrFutureProFeatures";
+
+type CommercialCapabilityMatrix = Record<CommercialTier, Record<EntitlementCapabilityKey, boolean>>;
+
+const PLAN_TIER_ALIASES: Record<string, CommercialTier> = {
+  free: "free",
+  none: "free",
+  no_plan: "free",
+  inactive: "free",
+  report: "report",
+  basic: "report",
+  starter: "report",
+  plan_a: "report",
+  founder_creator_report: "report",
+  founder: "report",
   pro: "pro",
   plan_b: "pro",
   creator_pro: "pro",
-  protected_paid: "protected_paid",
-  protected: "protected_paid",
-  none: "none",
-  no_plan: "none",
-  inactive: "none",
+  protected_paid: "pro",
+  protected: "pro",
+  paid_equivalent: "pro",
 };
 
-const PRO_EQUIVALENT_PLAN_TIERS = new Set([
-  "pro",
-  "creator_pro",
-  "plan_b",
-  "founder_creator_report",
-  "founder",
-  "protected_paid",
-  "paid_equivalent",
-]);
-const OVERRIDE_SOURCES = new Set(["override", "admin_override", "manual_override", "grant", "comp"]);
-const OVERRIDE_ACCESS_REASON_CODES = new Set(["OVERRIDE_ACTIVE", "ADMIN_OVERRIDE", "COMP_ACCESS"]);
+const COMMERCIAL_CAPABILITY_MATRIX: CommercialCapabilityMatrix = {
+  free: {
+    canUpload: true,
+    canValidateUpload: true,
+    canGeneratePaidReport: false,
+    canViewOwnedReport: false,
+    canDownloadOwnedReport: false,
+    canViewReportHistory: false,
+    canAccessDashboardIntelligence: false,
+    canAccessRecurringMonitoring: false,
+    canAccessProComparisonsOrFutureProFeatures: false,
+  },
+  report: {
+    canUpload: true,
+    canValidateUpload: true,
+    canGeneratePaidReport: true,
+    canViewOwnedReport: true,
+    canDownloadOwnedReport: true,
+    canViewReportHistory: true,
+    canAccessDashboardIntelligence: true,
+    canAccessRecurringMonitoring: false,
+    canAccessProComparisonsOrFutureProFeatures: false,
+  },
+  pro: {
+    canUpload: true,
+    canValidateUpload: true,
+    canGeneratePaidReport: true,
+    canViewOwnedReport: true,
+    canDownloadOwnedReport: true,
+    canViewReportHistory: true,
+    canAccessDashboardIntelligence: true,
+    canAccessRecurringMonitoring: true,
+    canAccessProComparisonsOrFutureProFeatures: true,
+  },
+};
+
 const BILLING_REQUIRED_REASON_CODES = new Set(["ENTITLEMENT_REQUIRED", "BILLING_REQUIRED", "PLAN_REQUIRED", "UPGRADE_REQUIRED"]);
 
 function asBoolean(value: unknown): boolean | undefined {
@@ -70,18 +134,18 @@ function normalizeString(value: string | null | undefined): string | null {
   return trimmed;
 }
 
-export function normalizePlanTierAlias(value: string | null | undefined): string {
+export function normalizePlanTierAlias(value: string | null | undefined): CommercialTier {
   const normalized = normalizeString(value)?.toLowerCase();
   if (!normalized) {
-    return "none";
+    return "free";
   }
 
-  return PLAN_TIER_ALIASES[normalized] ?? normalized;
+  return PLAN_TIER_ALIASES[normalized] ?? "free";
 }
 
-export function resolveEffectivePlanTier(entitlements: EntitlementSnapshotLike | null | undefined): string {
+export function resolveEffectivePlanTier(entitlements: EntitlementSnapshotLike | null | undefined): CommercialTier {
   if (!entitlements) {
-    return "none";
+    return "free";
   }
 
   return normalizePlanTierAlias(
@@ -143,75 +207,107 @@ export function resolveBillingRequired(entitlements: EntitlementSnapshotLike | n
   return reasonCode ? BILLING_REQUIRED_REASON_CODES.has(reasonCode) : false;
 }
 
-export function canGenerateReportFromEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
+function resolveExplicitCapability(
+  entitlements: EntitlementSnapshotLike,
+  capability: EntitlementCapabilityKey,
+): boolean | undefined {
+  switch (capability) {
+    case "canUpload":
+      return asBoolean(entitlements.canUpload) ?? asBoolean(entitlements.can_upload);
+    case "canValidateUpload":
+      return asBoolean(entitlements.canValidateUpload) ?? asBoolean(entitlements.can_validate_upload);
+    case "canGeneratePaidReport":
+      return (
+        asBoolean(entitlements.canGeneratePaidReport) ??
+        asBoolean(entitlements.can_generate_paid_report) ??
+        asBoolean(entitlements.canGenerateReport) ??
+        asBoolean(entitlements.can_generate_report)
+      );
+    case "canViewOwnedReport":
+      return (
+        asBoolean(entitlements.canViewOwnedReport) ??
+        asBoolean(entitlements.can_view_owned_report) ??
+        asBoolean(entitlements.canViewReports) ??
+        asBoolean(entitlements.can_view_reports)
+      );
+    case "canDownloadOwnedReport":
+      return (
+        asBoolean(entitlements.canDownloadOwnedReport) ??
+        asBoolean(entitlements.can_download_owned_report) ??
+        asBoolean(entitlements.canDownloadPdf) ??
+        asBoolean(entitlements.can_download_pdf)
+      );
+    case "canViewReportHistory":
+      return (
+        asBoolean(entitlements.canViewReportHistory) ??
+        asBoolean(entitlements.can_view_report_history) ??
+        asBoolean(entitlements.canViewReports) ??
+        asBoolean(entitlements.can_view_reports)
+      );
+    case "canAccessDashboardIntelligence":
+      return (
+        asBoolean(entitlements.canAccessDashboardIntelligence) ??
+        asBoolean(entitlements.can_access_dashboard_intelligence) ??
+        asBoolean(entitlements.canAccessDashboard) ??
+        asBoolean(entitlements.can_access_dashboard)
+      );
+    case "canAccessRecurringMonitoring":
+      return asBoolean(entitlements.canAccessRecurringMonitoring) ?? asBoolean(entitlements.can_access_recurring_monitoring);
+    case "canAccessProComparisonsOrFutureProFeatures":
+      return (
+        asBoolean(entitlements.canAccessProComparisonsOrFutureProFeatures) ??
+        asBoolean(entitlements.can_access_pro_comparisons_or_future_pro_features)
+      );
+    default:
+      return undefined;
+  }
+}
+
+export function resolveCapability(
+  entitlements: EntitlementSnapshotLike | null | undefined,
+  capability: EntitlementCapabilityKey,
+): boolean {
   if (!entitlements) {
     return false;
   }
 
+  const tier = resolveEffectivePlanTier(entitlements);
   if (!resolveAccessGranted(entitlements)) {
-    return false;
+    return tier === "free" ? COMMERCIAL_CAPABILITY_MATRIX.free[capability] : false;
   }
 
-  const explicit = asBoolean(entitlements.canGenerateReport) ?? asBoolean(entitlements.can_generate_report);
+  const explicit = resolveExplicitCapability(entitlements, capability);
   if (typeof explicit === "boolean") {
     return explicit;
   }
 
-  return true;
+  return COMMERCIAL_CAPABILITY_MATRIX[tier][capability];
+}
+
+export function canGenerateReportFromEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
+  return resolveCapability(entitlements, "canGeneratePaidReport");
 }
 
 export function canDownloadPdfFromEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
-  if (!entitlements) {
-    return false;
-  }
-
-  if (!resolveAccessGranted(entitlements)) {
-    return false;
-  }
-
-  const explicit = asBoolean(entitlements.canDownloadPdf) ?? asBoolean(entitlements.can_download_pdf);
-  if (typeof explicit === "boolean") {
-    return explicit;
-  }
-
-  const planTier = resolveEffectivePlanTier(entitlements);
-  if (isProEquivalentPlanTier(planTier)) {
-    return true;
-  }
-
-  const source = resolveEntitlementSource(entitlements);
-  if (source && OVERRIDE_SOURCES.has(source)) {
-    return true;
-  }
-
-  const reasonCode = resolveAccessReasonCode(entitlements);
-  return reasonCode ? OVERRIDE_ACCESS_REASON_CODES.has(reasonCode) : false;
+  return resolveCapability(entitlements, "canDownloadOwnedReport");
 }
 
-export function isProEquivalentPlanTier(planTier: string | null | undefined): boolean {
-  const normalized = normalizePlanTierAlias(planTier);
-  return PRO_EQUIVALENT_PLAN_TIERS.has(normalized);
+export function canViewOwnedReportFromEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
+  return resolveCapability(entitlements, "canViewOwnedReport");
+}
+
+export function canViewReportHistoryFromEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
+  return resolveCapability(entitlements, "canViewReportHistory");
+}
+
+export function canAccessDashboardFromEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
+  return resolveCapability(entitlements, "canAccessDashboardIntelligence");
 }
 
 export function hasProEquivalentEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
-  if (!entitlements || !resolveAccessGranted(entitlements)) {
-    return false;
-  }
+  return resolveCapability(entitlements, "canAccessProComparisonsOrFutureProFeatures");
+}
 
-  if (canDownloadPdfFromEntitlement(entitlements)) {
-    return true;
-  }
-
-  const planTier = resolveEffectivePlanTier(entitlements);
-  if (isProEquivalentPlanTier(planTier)) {
-    return true;
-  }
-
-  const source = resolveEntitlementSource(entitlements);
-  if (source && OVERRIDE_SOURCES.has(source)) {
-    return true;
-  }
-
-  const reasonCode = resolveAccessReasonCode(entitlements);
-  return reasonCode ? OVERRIDE_ACCESS_REASON_CODES.has(reasonCode) : false;
+export function isProEquivalentPlanTier(planTier: string | null | undefined): boolean {
+  return normalizePlanTierAlias(planTier) === "pro";
 }

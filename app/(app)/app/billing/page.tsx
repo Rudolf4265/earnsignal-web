@@ -18,18 +18,20 @@ import { useAppGate } from "../../_components/app-gate-provider";
 import { useEntitlementState } from "../../_components/use-entitlement-state";
 import { SessionExpiredCallout } from "../../_components/gate-callouts";
 
-const plans: Array<{ id: CheckoutPlan; label: string; summary: string; highlights: string[] }> = [
+const plans: Array<{ id: CheckoutPlan; label: string; priceLabel: string; summary: string; highlights: string[] }> = [
   {
-    id: "basic",
-    label: "Basic",
-    summary: "Core uploads and report generation with practical monthly limits.",
-    highlights: ["Upload and process creator data", "Generate core reports", "Dashboard and report access"],
+    id: "report",
+    label: "Report",
+    priceLabel: "$79 one-time",
+    summary: "One purchased report for one upload, with owned report view and PDF download access.",
+    highlights: ["Generate one paid report", "View and download the owned report", "Not equivalent to Pro monitoring access"],
   },
   {
     id: "pro",
     label: "Pro",
-    summary: "Higher limits with full premium insights and PDF download access.",
-    highlights: ["Higher monthly report allowance", "Full report and PDF access", "Priority support"],
+    priceLabel: "$59 / month",
+    summary: "Recurring access for report history, dashboard intelligence, and monitoring-oriented surfaces.",
+    highlights: ["Recurring report history", "Dashboard intelligence access", "Monitoring-oriented Pro surfaces"],
   },
 ];
 
@@ -188,14 +190,14 @@ export default function BillingPage() {
     <div className="mx-auto max-w-5xl space-y-8">
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold text-brand-text-primary">Billing</h1>
-        <p className="text-brand-text-secondary">Compare plans, confirm subscription state, and manage access.</p>
+        <p className="text-brand-text-secondary">Compare Free, Report, and Pro access, then manage current billing state.</p>
       </header>
 
       {state === "session_expired" ? <SessionExpiredCallout requestId={requestId} /> : null}
 
       <section className="rounded-2xl border border-brand-border bg-brand-panel p-6 shadow-brand-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-medium text-brand-text-primary">Current subscription</h2>
+          <h2 className="text-lg font-medium text-brand-text-primary">Current access</h2>
           <button
             type="button"
             onClick={() => void refreshBillingAndEntitlements()}
@@ -208,7 +210,7 @@ export default function BillingPage() {
 
         <p className="mt-3 text-sm text-brand-text-secondary" data-testid="billing-current-plan">{`Plan: ${formatPlanLabel(activePlanTier)} - Status: ${activeStatus}`}</p>
         <p className="mt-1 text-xs text-brand-text-muted">
-          Feature access: {isActive ? "Active" : "Limited until subscription is active"}
+          Feature access: {isActive ? "Active" : "No paid access active"}
           {source ? ` (${source})` : ""}
         </p>
         {!isActive && billingRequired ? <p className="mt-1 text-xs text-amber-100">Billing action is required to restore premium access.</p> : null}
@@ -252,7 +254,7 @@ export default function BillingPage() {
             Manage subscription
           </Link>
         ) : (
-          <p className="mt-3 text-xs text-brand-text-muted">Manage subscription is unavailable for this account right now.</p>
+          <p className="mt-3 text-xs text-brand-text-muted">Manage subscription is unavailable when this account only has Free or one-time Report access.</p>
         )}
       </section>
 
@@ -286,14 +288,17 @@ export default function BillingPage() {
             <article key={plan.id} className={planCard.cardClassName} data-testid={`billing-plan-card-${plan.id}`}>
               <div>
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className={`text-xl font-semibold ${planCard.titleClassName}`}>{plan.label}</h3>
+                  <div>
+                    <h3 className={`text-xl font-semibold ${planCard.titleClassName}`}>{plan.label}</h3>
+                    <p className={`mt-1 text-sm ${planCard.bodyClassName}`}>{plan.priceLabel}</p>
+                  </div>
                   {planCard.isCurrent ? (
                     <span data-testid="billing-current-badge" className={planCard.badgeClassName}>
                       Current
                     </span>
                   ) : null}
                 </div>
-                <p className={`mt-1 text-sm ${planCard.bodyClassName}`}>{plan.summary}</p>
+                <p className={`mt-2 text-sm ${planCard.bodyClassName}`}>{plan.summary}</p>
               </div>
 
               <ul className={`space-y-1 text-xs ${planCard.highlightsClassName}`}>

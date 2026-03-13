@@ -85,6 +85,6 @@ test("getReportErrorMessage maps canonical ENTITLEMENT_REQUIRED to upgrade guida
 
   assert.equal(
     getReportErrorMessage(error),
-    "This action requires an active paid entitlement. Continue in Billing to upgrade or restore access.",
+    "This action requires Report or Pro access. Continue in Billing to upgrade or restore access.",
   );
 });

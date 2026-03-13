@@ -6,15 +6,15 @@ import type {
   EntitlementsResponseSchema,
 } from "./generated";
 import {
-  canDownloadPdfFromEntitlement,
+  resolveCapability,
   resolveBillingRequired,
   resolveEffectivePlanTier,
   resolveEntitlementSource,
 } from "../entitlements/model";
 
 export type EntitlementFeatures = Record<string, boolean | undefined>;
-export type CanonicalPlanTier = "basic" | "pro" | "none";
-export type CheckoutPlan = Exclude<CanonicalPlanTier, "none">;
+export type CanonicalPlanTier = "free" | "report" | "pro";
+export type CheckoutPlan = "report" | "pro";
 
 export type EntitlementsResponse = Omit<
   EntitlementsResponseSchema,
@@ -52,10 +52,18 @@ export type EntitlementsResponse = Omit<
   source: string | null;
   status: string;
   canUpload: boolean;
+  canValidateUpload: boolean;
   canGenerateReport: boolean;
+  canGeneratePaidReport: boolean;
   canViewReports: boolean;
+  canViewOwnedReport: boolean;
   canDownloadPdf: boolean;
+  canDownloadOwnedReport: boolean;
   canAccessDashboard: boolean;
+  canViewReportHistory: boolean;
+  canAccessDashboardIntelligence: boolean;
+  canAccessRecurringMonitoring: boolean;
+  canAccessProComparisonsOrFutureProFeatures: boolean;
   reportsRemainingThisPeriod: number | null;
   reportsGeneratedThisPeriod: number | null;
   monthlyReportLimit: number | null;
@@ -72,10 +80,18 @@ export type EntitlementsResponse = Omit<
   entitled: boolean;
   is_active: boolean;
   can_upload: boolean;
+  can_validate_upload: boolean;
   can_generate_report: boolean;
+  can_generate_paid_report: boolean;
   can_view_reports: boolean;
+  can_view_owned_report: boolean;
   can_download_pdf: boolean;
+  can_download_owned_report: boolean;
   can_access_dashboard: boolean;
+  can_view_report_history: boolean;
+  can_access_dashboard_intelligence: boolean;
+  can_access_recurring_monitoring: boolean;
+  can_access_pro_comparisons_or_future_pro_features: boolean;
   reports_remaining_this_period: number | null;
   reports_generated_this_period: number | null;
   monthly_report_limit: number | null;
@@ -159,10 +175,11 @@ const BILLING_STATUS_PATH = "/v1/billing/status";
 const DEFAULT_STATUS = "inactive";
 
 const CHECKOUT_PLAN_ALIASES: Record<string, CheckoutPlan> = {
-  basic: "basic",
-  plan_a: "basic",
-  founder_creator_report: "basic",
-  free: "basic",
+  report: "report",
+  basic: "report",
+  starter: "report",
+  plan_a: "report",
+  founder_creator_report: "report",
   pro: "pro",
   plan_b: "pro",
   creator_pro: "pro",
@@ -170,7 +187,7 @@ const CHECKOUT_PLAN_ALIASES: Record<string, CheckoutPlan> = {
 
 const ACTIVE_STATUSES = new Set(["active", "trialing", "trial", "grace_period"]);
 const LEGACY_PLAN_BY_CHECKOUT_PLAN: Record<CheckoutPlan, CheckoutCreateRequestSchema["plan"]> = {
-  basic: "plan_a",
+  report: "plan_a",
   pro: "plan_b",
 };
 
@@ -283,6 +300,16 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function hasAnyTrue(values: Array<boolean | undefined>): boolean {
+  for (const value of values) {
+    if (value === true) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function resolvePlanTier(raw: Record<string, unknown>): string {
   return resolveEffectivePlanTier({
     effective_plan_tier: asNullableString(raw.effective_plan_tier),
@@ -330,24 +357,48 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
   const raw = asRecord(value);
   const features = normalizeFeatures(raw.features);
   const effectivePlanTier = resolvePlanTier(raw);
-  const explicitAccessGranted =
-    asBoolean(raw.access_granted) ??
-    asBoolean(raw.accessGranted) ??
-    asBoolean(raw.is_active) ??
-    asBoolean(raw.isActive) ??
-    asBoolean(raw.entitled);
-  const featureEntitled = features.app === true || features.upload === true || features.report === true;
-  const inferredStatus = asNullableString(raw.status);
-  const inferredStatusNormalized = typeof inferredStatus === "string" ? normalizeString(inferredStatus) : null;
-  const isStatusActive = inferredStatusNormalized ? ACTIVE_STATUSES.has(inferredStatusNormalized) : false;
-  const accessGranted = explicitAccessGranted ?? (featureEntitled || isStatusActive);
-  const status = resolveStatus(raw, accessGranted);
   const entitlementSource = resolveEntitlementSource({
     entitlement_source: asNullableString(raw.entitlement_source),
     entitlementSource: asNullableString(raw.entitlementSource),
     source: asNullableString(raw.source),
   });
   const accessReasonCode = resolveAccessReasonCode(raw);
+  const explicitAccessGranted =
+    asBoolean(raw.access_granted) ??
+    asBoolean(raw.accessGranted) ??
+    asBoolean(raw.is_active) ??
+    asBoolean(raw.isActive) ??
+    asBoolean(raw.entitled);
+  const inferredStatus = asNullableString(raw.status);
+  const inferredStatusNormalized = typeof inferredStatus === "string" ? normalizeString(inferredStatus) : null;
+  const isStatusActive = inferredStatusNormalized ? ACTIVE_STATUSES.has(inferredStatusNormalized) : false;
+  const hasPaidCapabilitySignal = hasAnyTrue([
+    asBoolean(raw.can_generate_paid_report),
+    asBoolean(raw.canGeneratePaidReport),
+    asBoolean(raw.can_view_owned_report),
+    asBoolean(raw.canViewOwnedReport),
+    asBoolean(raw.can_download_owned_report),
+    asBoolean(raw.canDownloadOwnedReport),
+    asBoolean(raw.can_view_report_history),
+    asBoolean(raw.canViewReportHistory),
+    asBoolean(raw.can_access_dashboard_intelligence),
+    asBoolean(raw.canAccessDashboardIntelligence),
+    asBoolean(raw.can_access_recurring_monitoring),
+    asBoolean(raw.canAccessRecurringMonitoring),
+    asBoolean(raw.can_access_pro_comparisons_or_future_pro_features),
+    asBoolean(raw.canAccessProComparisonsOrFutureProFeatures),
+    asBoolean(raw.can_generate_report),
+    asBoolean(raw.canGenerateReport),
+    asBoolean(raw.can_view_reports),
+    asBoolean(raw.canViewReports),
+    asBoolean(raw.can_download_pdf),
+    asBoolean(raw.canDownloadPdf),
+    asBoolean(raw.can_access_dashboard),
+    asBoolean(raw.canAccessDashboard),
+  ]);
+  const accessGranted =
+    typeof explicitAccessGranted === "boolean" ? explicitAccessGranted : isStatusActive || hasPaidCapabilitySignal;
+  const status = resolveStatus(raw, accessGranted);
   const billingRequired =
     asBoolean(raw.billing_required) ??
     asBoolean(raw.billingRequired) ??
@@ -356,22 +407,35 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
       billingRequired: asBoolean(raw.billingRequired),
       access_reason_code: accessReasonCode,
     });
-  const canUpload = asBoolean(raw.can_upload) ?? asBoolean(raw.canUpload) ?? features.upload ?? features.app ?? accessGranted;
-  const resolvedCanGenerateReport = asBoolean(raw.can_generate_report) ?? asBoolean(raw.canGenerateReport) ?? features.report ?? accessGranted;
-  const canGenerateReport = accessGranted ? resolvedCanGenerateReport : false;
-  const resolvedCanViewReports = asBoolean(raw.can_view_reports) ?? asBoolean(raw.canViewReports) ?? canGenerateReport;
-  const canViewReports = accessGranted ? resolvedCanViewReports : false;
-  const resolvedCanDownloadPdf =
-    asBoolean(raw.can_download_pdf) ??
-    asBoolean(raw.canDownloadPdf) ??
-    canDownloadPdfFromEntitlement({
-      effective_plan_tier: effectivePlanTier,
-      entitlement_source: entitlementSource,
-      access_granted: accessGranted,
-      access_reason_code: accessReasonCode,
-    });
-  const canDownloadPdf = accessGranted ? resolvedCanDownloadPdf : false;
-  const canAccessDashboard = asBoolean(raw.can_access_dashboard) ?? asBoolean(raw.canAccessDashboard) ?? features.app ?? accessGranted;
+  const capabilitySnapshot = {
+    ...raw,
+    effective_plan_tier: effectivePlanTier,
+    effectivePlanTier,
+    entitlement_source: entitlementSource,
+    entitlementSource,
+    access_granted: accessGranted,
+    accessGranted,
+    access_reason_code: accessReasonCode,
+    accessReasonCode,
+    billing_required: billingRequired,
+    billingRequired,
+  };
+  const canUpload = resolveCapability(capabilitySnapshot, "canUpload");
+  const canValidateUpload = resolveCapability(capabilitySnapshot, "canValidateUpload");
+  const canGeneratePaidReport = resolveCapability(capabilitySnapshot, "canGeneratePaidReport");
+  const canViewOwnedReport = resolveCapability(capabilitySnapshot, "canViewOwnedReport");
+  const canDownloadOwnedReport = resolveCapability(capabilitySnapshot, "canDownloadOwnedReport");
+  const canViewReportHistory = resolveCapability(capabilitySnapshot, "canViewReportHistory");
+  const canAccessDashboardIntelligence = resolveCapability(capabilitySnapshot, "canAccessDashboardIntelligence");
+  const canAccessRecurringMonitoring = resolveCapability(capabilitySnapshot, "canAccessRecurringMonitoring");
+  const canAccessProComparisonsOrFutureProFeatures = resolveCapability(
+    capabilitySnapshot,
+    "canAccessProComparisonsOrFutureProFeatures",
+  );
+  const canGenerateReport = canGeneratePaidReport;
+  const canViewReports = canViewReportHistory;
+  const canDownloadPdf = canDownloadOwnedReport;
+  const canAccessDashboard = canAccessDashboardIntelligence;
   const reportsRemainingThisPeriod =
     asNullableNumber(raw.reports_remaining_this_period) ?? asNullableNumber(raw.reportsRemainingThisPeriod) ?? null;
   const reportsGeneratedThisPeriod =
@@ -403,10 +467,18 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
     source: entitlementSource,
     status,
     canUpload,
+    canValidateUpload,
     canGenerateReport,
+    canGeneratePaidReport,
     canViewReports,
+    canViewOwnedReport,
     canDownloadPdf,
+    canDownloadOwnedReport,
     canAccessDashboard,
+    canViewReportHistory,
+    canAccessDashboardIntelligence,
+    canAccessRecurringMonitoring,
+    canAccessProComparisonsOrFutureProFeatures,
     reportsRemainingThisPeriod,
     reportsGeneratedThisPeriod,
     monthlyReportLimit,
@@ -423,10 +495,18 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
     entitled: accessGranted,
     is_active: accessGranted,
     can_upload: canUpload,
+    can_validate_upload: canValidateUpload,
     can_generate_report: canGenerateReport,
+    can_generate_paid_report: canGeneratePaidReport,
     can_view_reports: canViewReports,
+    can_view_owned_report: canViewOwnedReport,
     can_download_pdf: canDownloadPdf,
+    can_download_owned_report: canDownloadOwnedReport,
     can_access_dashboard: canAccessDashboard,
+    can_view_report_history: canViewReportHistory,
+    can_access_dashboard_intelligence: canAccessDashboardIntelligence,
+    can_access_recurring_monitoring: canAccessRecurringMonitoring,
+    can_access_pro_comparisons_or_future_pro_features: canAccessProComparisonsOrFutureProFeatures,
     reports_remaining_this_period: reportsRemainingThisPeriod,
     reports_generated_this_period: reportsGeneratedThisPeriod,
     monthly_report_limit: monthlyReportLimit,
@@ -715,7 +795,7 @@ export async function createCheckoutSession(plan: CheckoutPlan | string): Promis
 
   const normalizedPlan = normalizeCheckoutPlan(plan);
   if (!normalizedPlan) {
-    throw new Error("Invalid checkout plan selected. Choose Basic or Pro.");
+    throw new Error("Invalid checkout plan selected. Choose Report or Pro.");
   }
 
   if (hasRecentCheckoutAttempt()) {

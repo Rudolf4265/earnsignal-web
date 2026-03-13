@@ -269,7 +269,7 @@ export default function ReportsPage() {
 
                 {reportRows.map((row) => {
                   const canOfferPdfDownload = row.canDownload && entitlementState.canDownloadPdf;
-                  const downloadTooltip = row.canDownload ? "Upgrade to Pro to download PDF" : "PDF not available yet";
+                  const downloadTooltip = row.canDownload ? "Report or Pro access is required to download this PDF" : "PDF not available yet";
 
                   return (
                     <div

@@ -1,8 +1,8 @@
 import type { EntitlementsResponse } from "../api/entitlements";
 import type { AppGateState } from "../gating/app-gate";
-import { hasProEquivalentEntitlement, isProEquivalentPlanTier, resolveEffectivePlanTier } from "../entitlements/model";
+import { hasProEquivalentEntitlement } from "../entitlements/model.ts";
 import type { ReportRecommendationViewModel } from "../report/normalize-artifact-to-report-model";
-import { getTruthStateDescription, getTruthStateLabel, getTruthStateTone, type ReportTruthTone } from "../report/truth";
+import { getTruthStateDescription, getTruthStateLabel, getTruthStateTone, type ReportTruthTone } from "../report/truth.ts";
 
 export type DashboardActionCardsMode = "unlocked" | "locked" | "loading";
 
@@ -36,11 +36,7 @@ const DEFAULT_PRO_ACTIONS = [
 ];
 
 export function isProPlan(entitlements: EntitlementsResponse | null): boolean {
-  if (!entitlements) {
-    return false;
-  }
-
-  return isProEquivalentPlanTier(resolveEffectivePlanTier(entitlements));
+  return hasProEquivalentEntitlement(entitlements);
 }
 
 function resolveMode(gateState: AppGateState, entitlements: EntitlementsResponse | null): DashboardActionCardsMode {

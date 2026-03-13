@@ -27,14 +27,14 @@ function jsonResponse(payload, status = 200) {
 
 async function buildEntitlementsTestModule(tag) {
   const source = await readFile(path.resolve("src/lib/api/entitlements.ts"), "utf8");
-  const mockSpecifier = `./mocks/api-client-${tag}`;
+  const mockSpecifier = `./mocks/api-client-${tag}.mjs`;
   const patched = source
     .replace('from "./client";', `from "${mockSpecifier}";`)
-    .replace('from "../entitlements/model";', 'from "../src/lib/entitlements/model";');
+    .replace('from "../entitlements/model";', 'from "../src/lib/entitlements/model.ts";');
   const outDir = path.resolve(".tmp-tests");
   await mkdir(path.join(outDir, "mocks"), { recursive: true });
 
-  const mockPath = path.join(outDir, "mocks", `api-client-${tag}`);
+  const mockPath = path.join(outDir, "mocks", `api-client-${tag}.mjs`);
   await writeFile(
     mockPath,
     `export class ApiError extends Error {
@@ -73,12 +73,12 @@ test("createCheckoutSession uses canonical endpoint when available", async () =>
 
   const moduleUrl = await buildEntitlementsTestModule(`primary-${Date.now()}`);
   const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
-  const response = await createCheckoutSession("basic");
+  const response = await createCheckoutSession("report");
 
   assert.equal(response.checkout_url, "https://checkout.stripe.test/session_123");
   assert.equal(calls.length, 1);
   assert.equal(calls[0], "/v1/billing/create-checkout-session");
-  assert.deepEqual(requestBodies[0], { plan_tier: "basic" });
+  assert.deepEqual(requestBodies[0], { plan_tier: "report" });
 
   clearCheckoutAttempt();
   delete global.fetch;
@@ -134,7 +134,7 @@ test("createCheckoutSession falls back to legacy endpoint only when canonical en
 
   const moduleUrl = await buildEntitlementsTestModule(`endpoint-fallback-${Date.now()}`);
   const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
-  const response = await createCheckoutSession("basic");
+  const response = await createCheckoutSession("report");
 
   assert.equal(response.checkout_url, "https://checkout.stripe.test/session_456");
   assert.equal(calls.length, 2);
@@ -159,7 +159,7 @@ test("createCheckoutSession does not call legacy endpoints on canonical 500 erro
   const moduleUrl = await buildEntitlementsTestModule(`error-${Date.now()}`);
   const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
 
-  await assert.rejects(createCheckoutSession("basic"), /request failed/);
+  await assert.rejects(createCheckoutSession("report"), /request failed/);
   assert.equal(calls.length, 1);
   assert.equal(calls[0], "/v1/billing/create-checkout-session");
 
@@ -205,8 +205,8 @@ test("createCheckoutSession in-flight lock dedupes repeated calls", async () => 
   const moduleUrl = await buildEntitlementsTestModule(`lock-${Date.now()}`);
   const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
 
-  const first = createCheckoutSession("basic");
-  const second = createCheckoutSession("basic");
+  const first = createCheckoutSession("report");
+  const second = createCheckoutSession("report");
   resolveFetch();
 
   const [firstResult, secondResult] = await Promise.all([first, second]);

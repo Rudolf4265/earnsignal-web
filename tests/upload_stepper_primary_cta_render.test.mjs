@@ -8,7 +8,8 @@ const uploadStepperPath = path.resolve("app/(app)/app/_components/upload/upload-
 test("upload stepper keeps Upload & Validate as primary CTA with ready-only emphasis", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
-  assert.equal(source.includes("const uploadReady = Boolean(platform && file) && !busy && !entitlementState.loading && entitlementState.canGenerateReport;"), true);
+  assert.equal(source.includes("entitlementState.canUpload &&"), true);
+  assert.equal(source.includes("entitlementState.canValidateUpload;"), true);
   assert.equal(source.includes("const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;"), true);
   assert.equal(source.includes("disabled={!uploadReady}"), true);
   assert.equal(source.includes("Checking access..."), true);

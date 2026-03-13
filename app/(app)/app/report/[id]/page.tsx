@@ -32,6 +32,7 @@ import {
   canRenderReportDetailProContent,
   resolveReportDetailPdfAccessMode,
 } from "@/src/lib/report/detail-gating";
+import { hasProEquivalentEntitlement } from "@/src/lib/entitlements/model";
 import { buildReportDetailPresentationModel, type ReportDetailPresentationNotice } from "@/src/lib/report/detail-presentation";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability";
@@ -149,16 +150,16 @@ function PdfExportLockedState() {
       <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-brand-accent-blue/20 blur-3xl" />
       <div className="pointer-events-none absolute -left-10 bottom-[-3rem] h-24 w-24 rounded-full bg-brand-accent-emerald/16 blur-3xl" />
       <span className="relative inline-flex rounded-full border border-brand-border-strong/80 bg-brand-panel/72 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
-        Pro Feature
+        Report Access
       </span>
       <p className="relative text-xs text-brand-text-secondary">
-        <span className="font-semibold text-brand-text-primary">Full PDF Export.</span> Upgrade to Pro to open and download the full creator earnings report PDF.
+        <span className="font-semibold text-brand-text-primary">Full PDF Export.</span> Report or Pro access is required to open and download this creator earnings report PDF.
       </p>
       <Link
         href="/app/billing"
         className={buttonClassName({ variant: "primary", size: "sm", className: "relative z-10 ml-auto px-3 shadow-brand-glow" })}
       >
-        Upgrade to Pro
+        View plans
       </Link>
     </div>
   );
@@ -417,6 +418,7 @@ export default function ReportPage() {
     [entitlements, gateState],
   );
   const canAccessFullPdf = canAccessFullReportPdf(pdfAccessMode);
+  const canAccessDebugPayload = useMemo(() => hasProEquivalentEntitlement(entitlements), [entitlements]);
 
   const createdAtLabel = formatReportCreatedAt(state.report?.createdAt ?? state.artifactModel?.createdAt ?? null);
   const status = state.report?.status ?? "unknown";
@@ -476,7 +478,7 @@ export default function ReportPage() {
 
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={statusVariant}>{statusLabel}</Badge>
-                  {pdfAccessMode === "pro-unlocked" ? (
+                  {pdfAccessMode === "pdf-unlocked" ? (
                     canAccessPdf ? (
                       <>
                         <button
@@ -501,7 +503,7 @@ export default function ReportPage() {
                         PDF unavailable
                       </span>
                     )
-                  ) : pdfAccessMode === "pro-locked" ? (
+                  ) : pdfAccessMode === "pdf-locked" ? (
                     <PdfExportLockedState />
                   ) : (
                     <PdfExportLoadingState />
@@ -903,7 +905,7 @@ export default function ReportPage() {
                 <p className="text-sm text-brand-text-secondary">No appendix sections were provided in this report artifact.</p>
               )}
 
-              {canAccessFullPdf ? (
+              {canAccessDebugPayload ? (
                 <details
                   data-testid="report-debug-accordion"
                   className="mt-4 rounded-2xl border border-brand-border/70 bg-brand-bg-elevated/72 p-4"
@@ -975,7 +977,7 @@ export default function ReportPage() {
       {state.view === "entitlement_required" ? (
         <section className="space-y-3" data-testid="report-entitlement-required">
           <h1 className="text-2xl font-semibold">Upgrade required</h1>
-          <p className="text-slate-400">This report requires an active paid entitlement. Continue in Billing to unlock access.</p>
+          <p className="text-slate-400">This report requires Report or Pro access. Continue in Billing to unlock access.</p>
           <Link href="/app/billing" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
             Go to Billing
           </Link>

@@ -1,4 +1,4 @@
-import { normalizeReportId } from "./id";
+import { normalizeReportId } from "./id.ts";
 
 const COMPLETED_REPORT_STATUSES = new Set(["ready", "completed", "complete", "success", "succeeded"]);
 

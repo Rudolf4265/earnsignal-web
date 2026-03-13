@@ -1,12 +1,13 @@
-export type BillingPlanId = "basic" | "pro";
+export type BillingPlanId = "report" | "pro";
 
-export const BASIC_PLAN_ALIASES = new Set(["basic", "plan_a", "free", "starter"]);
-export const PRO_PLAN_ALIASES = new Set(["pro", "plan_b", "creator_pro", "founder_creator_report", "founder", "protected_paid", "paid_equivalent"]);
+export const FREE_PLAN_ALIASES = new Set(["free", "none", "inactive", "no_plan"]);
+export const REPORT_PLAN_ALIASES = new Set(["report", "basic", "starter", "plan_a", "founder_creator_report", "founder"]);
+export const PRO_PLAN_ALIASES = new Set(["pro", "plan_b", "creator_pro", "protected_paid", "protected", "paid_equivalent"]);
 
 export type BillingPlanCardVariant =
-  | "basic_selectable"
+  | "report_selectable"
   | "pro_selectable"
-  | "basic_current"
+  | "report_current"
   | "pro_current_active"
   | "pro_current_inactive";
 
@@ -44,11 +45,11 @@ const CARD_BASE_CLASS_NAME = "space-y-4 rounded-2xl border p-6 transition durati
 
 const CURRENT_PLAN_BUTTON_CLASS_NAME =
   "border-emerald-300/45 bg-emerald-500/15 text-emerald-100 hover:border-emerald-300/45 hover:bg-emerald-500/15 disabled:opacity-100";
-const BASIC_BUTTON_CLASS_NAME = "disabled:opacity-70";
+const REPORT_BUTTON_CLASS_NAME = "disabled:opacity-70";
 const PRO_BUTTON_CLASS_NAME = "shadow-brand-glow disabled:opacity-70";
 
 const CARD_STYLE_BY_VARIANT: Record<BillingPlanCardVariant, BillingPlanCardStyle> = {
-  basic_selectable: {
+  report_selectable: {
     cardClassName: "border-brand-border bg-brand-panel shadow-brand-card",
     titleClassName: "text-brand-text-primary",
     bodyClassName: "text-brand-text-secondary",
@@ -62,7 +63,7 @@ const CARD_STYLE_BY_VARIANT: Record<BillingPlanCardVariant, BillingPlanCardStyle
     highlightsClassName: "text-brand-text-secondary",
     badgeClassName: "rounded-full border border-brand-border bg-brand-panel-muted px-2 py-0.5 text-[11px] font-medium text-brand-text-secondary",
   },
-  basic_current: {
+  report_current: {
     cardClassName: "border-brand-border-strong bg-brand-panel-muted shadow-brand-card ring-1 ring-brand-border-strong",
     titleClassName: "text-brand-text-primary",
     bodyClassName: "text-brand-text-secondary",
@@ -93,12 +94,12 @@ function normalizePlanTier(planTier: string | null | undefined): string {
 
 export function formatPlanLabel(planTier: string | null | undefined): string {
   const normalized = normalizePlanTier(planTier);
-  if (!normalized || normalized === "none") {
-    return "None";
+  if (!normalized || FREE_PLAN_ALIASES.has(normalized)) {
+    return "Free";
   }
 
-  if (BASIC_PLAN_ALIASES.has(normalized)) {
-    return "Basic";
+  if (REPORT_PLAN_ALIASES.has(normalized)) {
+    return "Report";
   }
 
   if (PRO_PLAN_ALIASES.has(normalized)) {
@@ -114,8 +115,8 @@ export function isCurrentPlan(planId: BillingPlanId, planTier: string | null | u
     return false;
   }
 
-  if (planId === "basic") {
-    return BASIC_PLAN_ALIASES.has(normalized);
+  if (planId === "report") {
+    return REPORT_PLAN_ALIASES.has(normalized);
   }
 
   return PRO_PLAN_ALIASES.has(normalized);
@@ -132,11 +133,11 @@ export function resolveBillingPlanCardVariant({
 }): BillingPlanCardVariant {
   const current = isCurrentPlan(planId, activePlanTier);
   if (!current) {
-    return planId === "pro" ? "pro_selectable" : "basic_selectable";
+    return planId === "pro" ? "pro_selectable" : "report_selectable";
   }
 
-  if (planId === "basic") {
-    return "basic_current";
+  if (planId === "report") {
+    return "report_current";
   }
 
   return isActive ? "pro_current_active" : "pro_current_inactive";
@@ -164,7 +165,7 @@ export function buildBillingPlanCardViewModel({
     badgeClassName: style.badgeClassName,
     ctaLabel: currentPlanActive ? `${planLabel} active` : `Choose ${planLabel}`,
     ctaVariant: planId === "pro" && !currentPlanActive ? "primary" : "secondary",
-    ctaClassName: currentPlanActive ? CURRENT_PLAN_BUTTON_CLASS_NAME : planId === "pro" ? PRO_BUTTON_CLASS_NAME : BASIC_BUTTON_CLASS_NAME,
+    ctaClassName: currentPlanActive ? CURRENT_PLAN_BUTTON_CLASS_NAME : planId === "pro" ? PRO_BUTTON_CLASS_NAME : REPORT_BUTTON_CLASS_NAME,
     checkoutDisabled: !allowCheckout || currentPlanActive,
   };
 }

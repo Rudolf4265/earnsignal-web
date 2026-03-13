@@ -61,7 +61,7 @@ const friendlyFailureMessage = (reasonCode: string | null) => {
     case "timeout":
       return "This upload is still processing and timed out in the dashboard. You can retry status checks or reset.";
     case "entitlement_required":
-      return "Your current plan does not include report generation. Upgrade in Billing to continue.";
+      return "Paid report generation requires Report or Pro access. Upgrade in Billing to continue.";
     default:
       return "We couldn’t complete processing for this upload yet.";
   }
@@ -172,7 +172,12 @@ export default function UploadStepper() {
     ],
     [],
   );
-  const uploadReady = Boolean(platform && file) && !busy && !entitlementState.loading && entitlementState.canGenerateReport;
+  const uploadReady =
+    Boolean(platform && file) &&
+    !busy &&
+    !entitlementState.loading &&
+    entitlementState.canUpload &&
+    entitlementState.canValidateUpload;
   const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
   const directFanSelected = platform ? directFanBackendIds.has(platform) : false;
 
@@ -244,6 +249,17 @@ export default function UploadStepper() {
       if (mapped.status === "processing") {
         setStatusMsg("Processing upload…");
         setStep("processing");
+        setError(null);
+        setReasonCode(null);
+        setErrorDetails(null);
+        setErrorRequestId(null);
+        setErrorOperation(null);
+        return;
+      }
+
+      if (mapped.status === "validated") {
+        setStatusMsg(mapped.message ?? "Upload validated. Upgrade to Report or Pro to generate a paid report.");
+        setStep("done");
         setError(null);
         setReasonCode(null);
         setErrorDetails(null);
@@ -396,13 +412,15 @@ export default function UploadStepper() {
       const mapped = mapUploadStatus(statusEnvelope);
       const activeUploadId = mapped.uploadId ?? fallbackUploadId;
 
-      if (mapped.status !== "processing" || !activeUploadId) {
+      if (!activeUploadId) {
         return false;
       }
 
       setHasResumeCandidate(false);
       updateProcessingFromEnvelope(statusEnvelope, activeUploadId);
-      await pollUntilTerminal(activeUploadId);
+      if (mapped.status === "processing") {
+        await pollUntilTerminal(activeUploadId);
+      }
       return true;
     },
     [pollUntilTerminal, updateProcessingFromEnvelope],
@@ -413,13 +431,13 @@ export default function UploadStepper() {
       return;
     }
 
-    if (!entitlementState.canGenerateReport) {
+    if (!entitlementState.canUpload || !entitlementState.canValidateUpload) {
       setFailureState({
         uploadId,
         rawStatus: null,
         reasonCode: "entitlement_required",
-        message: "Report generation requires an active paid entitlement.",
-        operation: "reports.generate",
+        message: "Upload validation is unavailable for this account.",
+        operation: "uploads.presign",
       });
       return;
     }
@@ -502,6 +520,21 @@ export default function UploadStepper() {
 
       if (callback.warnings?.length) {
         setWarnings(callback.warnings);
+      }
+
+      const callbackStatus = mapUploadStatus({
+        upload_id: presign.upload_id,
+        status: callback.status,
+      });
+      if (callbackStatus.status !== "processing") {
+        updateProcessingFromEnvelope(
+          {
+            upload_id: presign.upload_id,
+            status: callback.status,
+          },
+          presign.upload_id,
+        );
+        return;
       }
 
       setStep("processing");
@@ -691,7 +724,7 @@ export default function UploadStepper() {
       {reportAccessBlocked ? (
         <InlineAlert variant="warn" title="Upgrade required for report generation" data-testid="upload-entitlement-required">
           <p className="mb-2 text-sm text-amber-100/90">
-            Your current entitlement does not include report generation.
+            Free includes upload validation only. Upgrade to Report or Pro to generate a paid report.
             {entitlementState.accessReasonCode ? ` (${entitlementState.accessReasonCode})` : ""}
           </p>
           <Link href="/app/billing" className="inline-flex rounded-lg border border-amber-200/60 px-3 py-1.5 text-xs text-amber-100 hover:bg-amber-300/10">
@@ -922,25 +955,47 @@ export default function UploadStepper() {
 
       {step === "done" ? (
         <div className="space-y-5">
-          <InlineAlert variant="success" title="Report ready" data-testid="upload-terminal-success">
-            Your upload was validated and your report is now available.
-          </InlineAlert>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={buildReportDetailPathOrIndex(reportId)}
-              data-testid="upload-view-report"
-              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90"
-            >
-              View report
-            </Link>
-            <button
-              type="button"
-              onClick={resetFlow}
-              className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
-            >
-              Upload another
-            </button>
-          </div>
+          {processingStatus === "validated" ? (
+            <>
+              <InlineAlert variant="info" title="Upload validated" data-testid="upload-terminal-validated">
+                Your file passed validation. Upgrade to Report or Pro to generate a paid report from this upload.
+              </InlineAlert>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/app/billing" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
+                  Unlock report
+                </Link>
+                <button
+                  type="button"
+                  onClick={resetFlow}
+                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                >
+                  Upload another
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <InlineAlert variant="success" title="Report ready" data-testid="upload-terminal-success">
+                Your upload was validated and your report is now available.
+              </InlineAlert>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={buildReportDetailPathOrIndex(reportId)}
+                  data-testid="upload-view-report"
+                  className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90"
+                >
+                  View report
+                </Link>
+                <button
+                  type="button"
+                  onClick={resetFlow}
+                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                >
+                  Upload another
+                </button>
+              </div>
+            </>
+          )}
           <p className="text-xs text-slate-500">Upload ID: {uploadId ?? "n/a"}</p>
         </div>
       ) : null}

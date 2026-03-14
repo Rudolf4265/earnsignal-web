@@ -136,27 +136,29 @@ test.describe("Dashboard layout redesign", () => {
 
     await page.goto("/app");
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Creator Health" })).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Revenue Snapshot" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "What We See" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "What To Do Next" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Revenue Trend" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Creator Health" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Key metrics" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Signals worth watching" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Revenue trend" })).toBeVisible();
     await expect(page.getByText("Creator Health Score")).toBeVisible();
+    await expect(page.getByText("Plan & access")).toBeVisible();
     await expect(page.getByTestId("revenue-snapshot-card-revenue")).toContainText("Revenue");
     await expect(page.getByTestId("revenue-snapshot-card-subscribers")).toContainText("Subscribers");
     await expect(page.getByText("Stability Index")).toHaveCount(0);
     await expect(page.getByText("Churn Velocity")).toHaveCount(0);
 
-    const sectionOrder = await page.locator("[data-testid^='dashboard-section-']").evaluateAll((elements) =>
+    const sectionOrder = await page.locator("[data-testid='dashboard-diagnosis-section'], [data-testid^='dashboard-section-']").evaluateAll((elements) =>
       elements.map((element) => element.getAttribute("data-testid")),
     );
 
     expect(sectionOrder).toEqual([
       "dashboard-section-creator-health",
+      "dashboard-diagnosis-section",
+      "dashboard-section-what-to-do-next",
       "dashboard-section-revenue-snapshot",
       "dashboard-section-what-we-see",
-      "dashboard-section-what-to-do-next",
       "dashboard-section-revenue-trend",
+      "dashboard-section-workspace-overview",
     ]);
   });
 
@@ -187,9 +189,9 @@ test.describe("Dashboard layout redesign", () => {
     });
 
     await page.goto("/app");
-    await expect(page.getByText("Loading report data...")).toBeVisible();
-    await expect(page.getByText("No reports generated yet.")).toBeVisible();
-    await expect(page.getByText("Charts appear once data is connected")).toBeVisible();
+    await expect(page.getByText("Loading your latest report baseline...")).toBeVisible();
+    await expect(page.getByText("No report is ready yet.")).toBeVisible();
+    await expect(page.getByText("Trendline appears once revenue history is connected")).toBeVisible();
   });
 
   test("keeps dashboard refresh error banner behavior", async ({ page }) => {
@@ -298,7 +300,7 @@ test.describe("Dashboard layout redesign", () => {
 
     await page.goto("/app");
     await expect(page.getByTestId("dashboard-action-cards-locked")).toBeVisible();
-    await expect(page.getByText("Upgrade to Pro to unlock tailored growth recommendations based on your revenue and subscriber patterns.")).toBeVisible();
+    await expect(page.getByText("Upgrade to Pro to unlock tailored next steps based on your revenue, subscriber, and diagnosis signals.")).toBeVisible();
     await expect(page.getByTestId("dashboard-action-cards-unlocked")).toHaveCount(0);
     await expect(page.getByText(recommendationThatMustStayHidden)).toHaveCount(0);
   });

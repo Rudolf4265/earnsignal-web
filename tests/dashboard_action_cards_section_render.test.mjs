@@ -10,8 +10,8 @@ test("ActionCardsSection includes unlocked rendering for recommendation cards", 
 
   assert.equal(source.includes("mode === \"unlocked\""), true);
   assert.equal(source.includes('data-testid="dashboard-action-cards-unlocked"'), true);
-  assert.equal(source.includes("cards.map((card"), true);
-  assert.equal(source.includes("card.label"), true);
+  assert.equal(source.includes("supportingCards.map((card, index) => ("), true);
+  assert.equal(source.includes("featuredCard.label"), true);
   assert.equal(source.includes("card.stateLabel"), true);
   assert.equal(source.includes("card.detail"), true);
 });
@@ -20,10 +20,8 @@ test("ActionCardsSection includes locked upsell rendering for Basic users", asyn
   const source = await readFile(actionCardsSectionPath, "utf8");
 
   assert.equal(source.includes('data-testid="dashboard-action-cards-locked"'), true);
-  assert.equal(
-    source.includes("Upgrade to Pro to unlock tailored growth recommendations based on your revenue and subscriber patterns."),
-    true,
-  );
+  assert.equal(source.includes("Unlock prioritized next actions."), true);
+  assert.equal(source.includes("Upgrade to Pro to unlock tailored next steps based on your revenue, subscriber, and diagnosis signals."), true);
   assert.equal(source.includes("Upgrade to Pro"), true);
 });
 
@@ -31,5 +29,5 @@ test("ActionCardsSection includes loading-safe rendering while entitlements reso
   const source = await readFile(actionCardsSectionPath, "utf8");
 
   assert.equal(source.includes('data-testid="dashboard-action-cards-loading"'), true);
-  assert.equal(source.includes("Checking plan access for tailored recommendations..."), true);
+  assert.equal(source.includes("Checking access to premium next actions..."), true);
 });

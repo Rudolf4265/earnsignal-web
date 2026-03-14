@@ -9,14 +9,13 @@ test("insight cards section includes graceful empty state copy", async () => {
   const source = await readFile(insightCardsSectionPath, "utf8");
 
   assert.equal(source.includes('data-testid="dashboard-insights-empty"'), true);
-  assert.equal(source.includes("Not enough signal data is available yet."), true);
-  assert.equal(source.includes("Narrative insight cards will appear here after your next completed report."), true);
+  assert.equal(source.includes("New insight cards appear after a completed report with enough evidence to summarize the pattern clearly."), true);
 });
 
 test("insight cards section renders narrative fields for signal and implication", async () => {
   const source = await readFile(insightCardsSectionPath, "utf8");
 
-  assert.equal(source.includes(">Signal<"), true);
+  assert.equal(source.includes(">Pattern<"), true);
   assert.equal(source.includes(">Why it matters<"), true);
   assert.equal(source.includes("break-words"), true);
   assert.equal(source.includes("insight.stateLabel"), true);

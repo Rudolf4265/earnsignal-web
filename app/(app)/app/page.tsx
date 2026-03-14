@@ -1,12 +1,12 @@
 "use client";
-
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppGate } from "../_components/app-gate-provider";
 import { useEntitlementState } from "../_components/use-entitlement-state";
 import { ActionCardsSection } from "./_components/dashboard/ActionCardsSection";
 import { CreatorHealthPanel } from "./_components/dashboard/CreatorHealthPanel";
+import { DashboardTopShell } from "./_components/dashboard/DashboardTopShell";
+import { DashboardUtilitySection } from "./_components/dashboard/DashboardUtilitySection";
 import { DiagnosisSection } from "./_components/dashboard/DiagnosisSection";
 import { GrowDashboardSection } from "./_components/dashboard/GrowDashboardSection";
 import { InsightCardsSection } from "./_components/dashboard/InsightCardsSection";
@@ -14,8 +14,6 @@ import { RevenueSnapshotSection } from "./_components/dashboard/RevenueSnapshotS
 import { RevenueTrendSection } from "./_components/dashboard/RevenueTrendSection";
 import { DashboardModeSwitch } from "@/src/components/dashboard/mode-switch";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
-import { Button, buttonClassName } from "@/src/components/ui/button";
-import { PageHeader } from "@/src/components/ui/page-header";
 import { isApiError } from "@/src/lib/api/client";
 import { fetchReportArtifactJson, fetchReportDetail, fetchReportsList, type ReportDetail, type ReportListResult } from "@/src/lib/api/reports";
 import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
@@ -468,13 +466,17 @@ export default function DashboardPage() {
   );
 
   const platformsConnected = kpis.platformsConnected ?? (state.latestUpload ? 1 : 0);
-  const workspaceReadiness = `${state.latestUpload ? "Uploads detected" : "No uploads yet"} - ${
-    state.hasReports === true
-      ? "Reports available"
+  const workspaceReadiness = state.latestUpload
+    ? state.hasReports === true
+      ? "Uploads are connected and reports are available."
       : state.hasReports === false
-        ? "No reports yet"
-        : "Checking reports..."
-  }`;
+        ? "Uploads are connected. Generate the first report to unlock more dashboard detail."
+        : "Uploads are connected. Checking for the latest report."
+    : state.hasReports === true
+      ? "Reports are available from earlier uploads."
+      : state.hasReports === false
+        ? "Connect your latest export to populate the dashboard."
+        : "Checking workspace data availability.";
   const handleModeChange = useCallback(
     (nextMode: "earn" | "grow") => {
       const query = buildDashboardModeSearch(searchParams, nextMode);
@@ -484,56 +486,45 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="space-y-10">
-      <PageHeader
-        title="Dashboard"
-        subtitle="Your latest creator health and topline numbers in one place."
-        actions={
-          <>
-            <Button type="button" variant="secondary" onClick={refresh} disabled={state.loading || state.refreshing}>
-              {state.refreshing ? "Refreshing..." : "Refresh"}
-            </Button>
-            <Link href={primaryCta.href} className={buttonClassName({ variant: "primary" })}>
-              {primaryCta.label}
-            </Link>
-          </>
-        }
+    <div className="space-y-6">
+      <DashboardTopShell
+        mode={dashboardMode}
+        refreshing={state.refreshing}
+        refreshDisabled={state.loading || state.refreshing}
+        onRefresh={refresh}
+        primaryCtaLabel={primaryCta.label}
+        primaryCtaHref={primaryCta.href}
+        modeSwitch={<DashboardModeSwitch mode={dashboardMode} onChange={handleModeChange} />}
       />
 
-      <DashboardModeSwitch mode={dashboardMode} onChange={handleModeChange} />
-
-      {state.error ? <ErrorBanner title="Data refresh failed" message={state.error} /> : null}
-      {state.latestArtifactError ? <ErrorBanner title="Latest report artifact mismatch" message={state.latestArtifactError} /> : null}
+      {state.error || state.latestArtifactError ? (
+        <div className="space-y-3">
+          {state.error ? <ErrorBanner title="Data refresh failed" message={state.error} /> : null}
+          {state.latestArtifactError ? <ErrorBanner title="Latest report artifact mismatch" message={state.latestArtifactError} /> : null}
+        </div>
+      ) : null}
 
       {dashboardMode === "earn" ? (
         <>
-          <CreatorHealthPanel
-            creatorHealth={earnDashboardModel.creatorHealth}
-            entitled={entitled}
-            planTier={planTier}
-            planStatusLabel={toBadgeLabel(planStatus)}
-            planStatusVariant={toPlanBadgeVariant(planStatus, entitled)}
-            loading={state.loading}
-            workspaceReadiness={workspaceReadiness}
-            reportsCheckError={state.reportsCheckError}
-            platformsConnectedLabel={platformsConnected > 0 ? String(platformsConnected) : "None"}
-            coverageLabel={kpis.coverageMonths !== null ? `${formatNumber(kpis.coverageMonths)} months` : "-- months"}
-            lastUploadLabel={formatDate(state.latestUpload?.updatedAt ?? state.latestReport?.createdAt)}
-            latestReportRow={state.latestReportRow}
-            latestReportHref={latestReportHref}
-            latestReportStatusLabel={toBadgeLabel(state.latestReportRow?.status ?? "unknown")}
-            latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
-            ctaLabel={primaryCta.label}
-            ctaHref={primaryCta.href}
-          />
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr),minmax(0,0.95fr),minmax(0,0.95fr)]">
+            <CreatorHealthPanel
+              creatorHealth={earnDashboardModel.creatorHealth}
+              loading={state.loading}
+              latestReportRow={state.latestReportRow}
+              latestReportHref={latestReportHref}
+              latestReportStatusLabel={toBadgeLabel(state.latestReportRow?.status ?? "unknown")}
+              latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
+            />
 
-          <RevenueSnapshotSection revenueSnapshot={earnDashboardModel.revenueSnapshot} />
+            <DiagnosisSection diagnosis={diagnosisViewModel} loading={state.loading} presentation="hero" />
 
-          <DiagnosisSection diagnosis={diagnosisViewModel} loading={state.loading} />
+            <ActionCardsSection mode={actionCardsSection.mode} cards={actionCardsSection.cards} presentation="hero" />
+          </div>
 
-          <InsightCardsSection insights={insightCards} />
-
-          <ActionCardsSection mode={actionCardsSection.mode} cards={actionCardsSection.cards} />
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.86fr),minmax(0,1.14fr)]">
+            <RevenueSnapshotSection revenueSnapshot={earnDashboardModel.revenueSnapshot} />
+            <InsightCardsSection insights={insightCards} />
+          </div>
 
           <RevenueTrendSection
             trend={revenueTrend}
@@ -542,15 +533,55 @@ export default function DashboardPage() {
             ctaLabel={primaryCta.label}
             ctaHref={primaryCta.href}
           />
+
+          <DashboardUtilitySection
+            entitled={entitled}
+            planTier={planTier}
+            planStatusLabel={toBadgeLabel(planStatus)}
+            planStatusVariant={toPlanBadgeVariant(planStatus, entitled)}
+            loading={state.loading}
+            workspaceReadiness={workspaceReadiness}
+            reportsCheckError={state.reportsCheckError}
+            platformsConnectedLabel={platformsConnected > 0 ? `${formatNumber(platformsConnected)} connected` : "No connected platforms yet"}
+            coverageLabel={kpis.coverageMonths !== null ? `${formatNumber(kpis.coverageMonths)} months` : "Coverage appears after reporting starts"}
+            lastUploadLabel={formatDate(state.latestUpload?.updatedAt ?? state.latestReport?.createdAt)}
+            latestReportRow={state.latestReportRow}
+            latestReportHref={latestReportHref}
+            latestReportStatusLabel={toBadgeLabel(state.latestReportRow?.status ?? "unknown")}
+            latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
+            ctaLabel={primaryCta.label}
+            ctaHref={primaryCta.href}
+          />
         </>
       ) : (
-        <GrowDashboardSection
-          model={growDashboardModel}
-          loading={state.loading}
-          actionMode={actionCardsSection.mode}
-          ctaLabel={primaryCta.label}
-          ctaHref={primaryCta.href}
-        />
+        <>
+          <GrowDashboardSection
+            model={growDashboardModel}
+            loading={state.loading}
+            actionMode={actionCardsSection.mode}
+            ctaLabel={primaryCta.label}
+            ctaHref={primaryCta.href}
+          />
+
+          <DashboardUtilitySection
+            entitled={entitled}
+            planTier={planTier}
+            planStatusLabel={toBadgeLabel(planStatus)}
+            planStatusVariant={toPlanBadgeVariant(planStatus, entitled)}
+            loading={state.loading}
+            workspaceReadiness={workspaceReadiness}
+            reportsCheckError={state.reportsCheckError}
+            platformsConnectedLabel={platformsConnected > 0 ? `${formatNumber(platformsConnected)} connected` : "No connected platforms yet"}
+            coverageLabel={kpis.coverageMonths !== null ? `${formatNumber(kpis.coverageMonths)} months` : "Coverage appears after reporting starts"}
+            lastUploadLabel={formatDate(state.latestUpload?.updatedAt ?? state.latestReport?.createdAt)}
+            latestReportRow={state.latestReportRow}
+            latestReportHref={latestReportHref}
+            latestReportStatusLabel={toBadgeLabel(state.latestReportRow?.status ?? "unknown")}
+            latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
+            ctaLabel={primaryCta.label}
+            ctaHref={primaryCta.href}
+          />
+        </>
       )}
     </div>
   );

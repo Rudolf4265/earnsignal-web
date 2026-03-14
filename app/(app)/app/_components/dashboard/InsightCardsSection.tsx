@@ -11,7 +11,7 @@ type InsightCardsSectionProps = {
 export function InsightCardsSection({ insights }: InsightCardsSectionProps) {
   return (
     <section className="space-y-3" data-testid="dashboard-section-what-we-see">
-      <DashboardSectionHeader title="What We See" description="Narrative insights from your latest completed analysis." />
+      <DashboardSectionHeader title="Signals worth watching" description="High-signal patterns surfaced in the latest completed report." />
       <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
         {insights.length === 0 ? (
           <div
@@ -19,7 +19,7 @@ export function InsightCardsSection({ insights }: InsightCardsSectionProps) {
             data-testid="dashboard-insights-empty"
           >
             <p className="text-sm text-brand-text-secondary">
-              Not enough signal data is available yet. Narrative insight cards will appear here after your next completed report.
+              New insight cards appear after a completed report with enough evidence to summarize the pattern clearly.
             </p>
           </div>
         ) : (
@@ -34,7 +34,7 @@ export function InsightCardsSection({ insights }: InsightCardsSectionProps) {
                   >
                     <div className={`absolute inset-x-0 top-0 h-0.5 ${presentation.accentClassName}`} />
                     <div className="relative flex items-center justify-between gap-3">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Signal</p>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Pattern</p>
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         {insight.stateLabel ? (
                           <Badge variant={insight.stateTone ?? "neutral"} className="px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]">

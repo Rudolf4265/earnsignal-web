@@ -218,7 +218,7 @@ test.describe("Dashboard diagnosis regression", () => {
 
     await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
     await expect(page.getByTestId("dashboard-diagnosis-section")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Diagnosis" })).toBeVisible();
+    await expect(page.getByText("Biggest constraint")).toBeVisible();
     await expect(page.getByTestId("dashboard-diagnosis-summary")).toHaveText(DIAGNOSIS_TEXT);
     await expect(page.getByTestId("dashboard-diagnosis-context")).toContainText(DASHBOARD_WHAT_CHANGED_TEXT);
     await expect(page.getByText(FALLBACK_TITLE)).toHaveCount(0);
@@ -238,7 +238,7 @@ test.describe("Dashboard diagnosis regression", () => {
 
     await page.goto("/app");
 
-    await expect(page.getByRole("heading", { name: "Revenue Snapshot" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Key metrics" })).toBeVisible();
     await expect(page.getByTestId("revenue-snapshot-card-revenue")).toContainText("$1,550");
     await expect(page.getByText(FALLBACK_TITLE)).toBeVisible();
     await expect(page.getByTestId("dashboard-diagnosis-unavailable")).toHaveText(FALLBACK_BODY);

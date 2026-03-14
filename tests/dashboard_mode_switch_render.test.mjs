@@ -45,7 +45,7 @@ test("grow dashboard section uses truthful empty and partial states", async () =
   assert.equal(source.includes('data-testid="grow-dashboard-playbook-locked"'), true);
   assert.equal(source.includes('data-testid="grow-dashboard-playbook-loading"'), true);
   assert.equal(source.includes("model.creatorScore ? ("), true);
-  assert.equal(source.includes("Growth insights are not available for this workspace yet."), true);
+  assert.equal(source.includes("Grow is not ready for this workspace yet."), true);
   assert.equal(
     source.includes("Earn is available now. Grow will unlock when supported audience and engagement analytics are added."),
     true,

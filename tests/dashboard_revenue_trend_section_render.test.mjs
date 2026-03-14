@@ -20,7 +20,7 @@ test("revenue trend section keeps intentional missing-data fallback", async () =
   const source = await readFile(revenueTrendSectionPath, "utf8");
 
   assert.equal(source.includes('data-testid="dashboard-revenue-trend-empty"'), true);
-  assert.equal(source.includes("Charts appear once data is connected"), true);
+  assert.equal(source.includes("Trendline appears once revenue history is connected"), true);
   assert.equal(source.includes("Latest narrative signal"), true);
 });
 

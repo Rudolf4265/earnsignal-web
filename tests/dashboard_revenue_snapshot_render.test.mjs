@@ -15,6 +15,5 @@ test("revenue snapshot renders only revenue and subscribers cards", async () => 
 
 test("revenue snapshot keeps graceful fallback subtext when deltas are missing", async () => {
   const source = await readFile(revenueSnapshotSectionPath, "utf8");
-  assert.equal(source.includes("No revenue comparison available yet."), true);
-  assert.equal(source.includes("No subscriber comparison available yet."), true);
+  assert.equal(source.includes("Comparison appears after enough report history is available."), true);
 });

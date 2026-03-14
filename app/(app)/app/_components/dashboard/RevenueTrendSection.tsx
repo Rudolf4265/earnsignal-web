@@ -35,7 +35,7 @@ export function RevenueTrendSection({ trend, trendPreview, loading, ctaLabel, ct
 
   return (
     <section className="space-y-3" data-testid="dashboard-section-revenue-trend">
-      <DashboardSectionHeader title="Revenue Trend" description="Recent net revenue movement from your latest completed report." />
+      <DashboardSectionHeader title="Revenue trend" description="How net revenue moved across the latest completed reporting window." />
       <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
         {loading ? (
           <div className="space-y-3" data-testid="dashboard-revenue-trend-loading">
@@ -77,8 +77,8 @@ export function RevenueTrendSection({ trend, trendPreview, loading, ctaLabel, ct
               </div>
             ) : null}
             <EmptyState
-              title="Charts appear once data is connected"
-              body="Upload revenue data to populate a readable month-over-month trend line."
+              title="Trendline appears once revenue history is connected"
+              body="Upload revenue history to unlock a readable month-over-month trend."
               ctaLabel={ctaLabel}
               ctaHref={ctaHref}
               appearance="dashboard"

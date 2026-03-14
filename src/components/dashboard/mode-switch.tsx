@@ -29,13 +29,18 @@ export function DashboardModeSwitch({ mode, onChange }: DashboardModeSwitchProps
 
   return (
     <section className="space-y-3" data-testid="dashboard-mode-switch">
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.18em] text-brand-text-secondary">Dashboard Mode</p>
-        <p className="mt-1 text-sm text-brand-text-secondary">{activeOption.description}</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-brand-text-secondary">Dashboard Mode</p>
+          <p className="mt-1 text-sm text-brand-text-secondary">Choose the lens you want on the current workspace.</p>
+        </div>
+        <p className="rounded-full border border-brand-border/70 bg-brand-panel/70 px-3 py-1 text-xs text-brand-text-muted">
+          Active: {activeOption.label}
+        </p>
       </div>
 
       <div
-        className="inline-flex rounded-full border border-brand-border-strong/80 bg-brand-panel-muted/70 p-1 shadow-brand-card"
+        className="grid gap-2 rounded-[1.35rem] border border-brand-border-strong/80 bg-brand-panel-muted/65 p-2 shadow-brand-card sm:grid-cols-2"
         role="tablist"
         aria-label="Dashboard mode"
       >
@@ -50,13 +55,14 @@ export function DashboardModeSwitch({ mode, onChange }: DashboardModeSwitchProps
               aria-selected={active}
               onClick={() => onChange(option.id)}
               data-testid={`dashboard-mode-${option.id}`}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              className={`rounded-[1rem] border px-4 py-3 text-left transition ${
                 active
-                  ? "bg-brand-accent-teal text-slate-950 shadow-brand-glow"
-                  : "text-brand-text-secondary hover:bg-brand-panel hover:text-brand-text-primary"
+                  ? "border-brand-accent-teal/45 bg-[linear-gradient(135deg,rgba(47,217,197,0.94),rgba(59,130,246,0.76))] text-slate-950 shadow-brand-glow"
+                  : "border-transparent bg-brand-panel/45 text-brand-text-secondary hover:border-brand-border/70 hover:bg-brand-panel/85 hover:text-brand-text-primary"
               }`}
             >
-              {option.label}
+              <span className="block text-sm font-semibold">{option.label}</span>
+              <span className={`mt-1 block text-xs leading-relaxed ${active ? "text-slate-950/78" : "text-brand-text-muted"}`}>{option.description}</span>
             </button>
           );
         })}

@@ -14,7 +14,7 @@ test("dashboard page wires a dedicated diagnosis section from typed diagnosis an
   assert.equal(source.includes("diagnosis: state.latestArtifact?.diagnosis ?? state.latestReport?.diagnosis ?? null"), true);
   assert.equal(source.includes("whatChanged: state.latestArtifact?.whatChanged ?? state.latestReport?.whatChanged ?? null"), true);
   assert.equal(source.includes("hasReport: state.latestReport !== null"), true);
-  assert.equal(source.includes("<DiagnosisSection diagnosis={diagnosisViewModel} loading={state.loading} />"), true);
+  assert.equal(source.includes('<DiagnosisSection diagnosis={diagnosisViewModel} loading={state.loading} presentation="hero" />'), true);
 });
 
 test("diagnosis section includes loading-safe, honest summary, unavailable, notice, and bounded context branches", async () => {
@@ -27,9 +27,10 @@ test("diagnosis section includes loading-safe, honest summary, unavailable, noti
   assert.equal(source.includes('data-testid="dashboard-diagnosis-unavailable"'), true);
   assert.equal(source.includes('data-testid="dashboard-diagnosis-context"'), true);
   assert.equal(source.includes('data-testid="dashboard-diagnosis-supporting-metrics"'), true);
-  assert.equal(source.includes("Based on available report data"), true);
+  assert.equal(source.includes("From current report evidence"), true);
   assert.equal(source.includes("diagnosis.heading"), true);
   assert.equal(source.includes("Latest report diagnosis"), true);
+  assert.equal(source.includes('presentation?: "default" | "hero"'), true);
   assert.equal(source.includes("Current primary constraint from typed report evidence, bounded by the available report data."), true);
   assert.equal(source.includes("diagnosis.summary ? ("), true);
   assert.equal(source.includes("diagnosis.comparisonContext ? ("), true);

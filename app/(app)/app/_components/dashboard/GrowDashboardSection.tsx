@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Badge } from "./Badge";
-import { DashboardSectionHeader } from "./DashboardSectionHeader";
 import { EmptyState } from "./EmptyState";
 import { SkeletonBlock } from "../../../_components/ui/skeleton";
 import { buttonClassName } from "@/src/components/ui/button";
@@ -149,7 +148,7 @@ function renderHero(model: GrowDashboardModel) {
     <PanelCard className="relative overflow-hidden border-brand-border-strong/80 bg-[linear-gradient(145deg,rgba(16,32,67,0.95),rgba(19,41,80,0.94),rgba(16,32,67,0.96))] p-0 shadow-brand-card">
       <div className="pointer-events-none absolute -left-20 top-[-5rem] h-64 w-64 rounded-full bg-brand-accent-blue/20 blur-3xl" />
       <div className="pointer-events-none absolute right-[-6rem] top-20 h-56 w-56 rounded-full bg-brand-accent-emerald/14 blur-3xl" />
-      <div className="relative grid gap-6 p-6 md:grid-cols-[minmax(0,0.95fr),minmax(0,1.05fr)] md:p-7" data-testid="grow-dashboard-hero">
+      <div className="relative grid gap-4 p-6 md:p-7 xl:grid-cols-[minmax(0,1.25fr),minmax(0,0.9fr),minmax(0,0.9fr)]" data-testid="grow-dashboard-hero">
         {model.creatorScore ? (
           <article className="rounded-[1.35rem] border border-brand-border-strong/80 bg-brand-panel/88 px-5 py-6 shadow-brand-glow md:px-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -190,6 +189,32 @@ function renderHero(model: GrowDashboardModel) {
           </article>
         )}
 
+        {model.topOpportunity ? (
+          <article className="rounded-[1.25rem] border border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.84),rgba(16,32,67,0.92))] p-5 shadow-brand-card">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Top opportunity</p>
+              <Badge variant={toBadgeVariant(summaryTone)}>{summaryTone === "warning" ? "Focus now" : "Current opening"}</Badge>
+            </div>
+            <h3 className="mt-4 text-xl font-semibold tracking-tight text-brand-text-primary">{model.topOpportunity.title}</h3>
+            <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">{model.topOpportunity.summary}</p>
+            {model.topOpportunity.estimatedImpact ? (
+              <p className="mt-4 text-xs uppercase tracking-[0.14em] text-brand-text-muted">{model.topOpportunity.estimatedImpact}</p>
+            ) : null}
+          </article>
+        ) : (
+          <article className="rounded-[1.25rem] border border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.84),rgba(16,32,67,0.92))] p-5 shadow-brand-card">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">What unlocks next</p>
+            <h3 className="mt-4 text-2xl font-semibold tracking-tight text-brand-text-primary">
+              {model.availability === "structured" ? "More structured signals are available." : "Grow is waiting for measured analytics."}
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">
+              {model.availability === "structured"
+                ? "Supported audience and engagement inputs are present, but a clear top opportunity is not available in this workspace yet."
+                : "Grow will show measured scorecards when supported audience and engagement analytics are added."}
+            </p>
+          </article>
+        )}
+
         {model.growthHealth ? (
           <article className="rounded-[1.25rem] border border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.82),rgba(16,32,67,0.92))] p-5 shadow-brand-card">
             <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Growth Health</p>
@@ -224,13 +249,13 @@ function renderPostingWindowPanel(model: GrowDashboardModel) {
   if (!model.bestPostingWindow) {
     return (
       <PanelCard
-        title="What Grow Will Show"
+        title="What Grow unlocks next"
         description="Structured timing, audience, and engagement inputs unlock richer growth cards."
         className="border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.8),rgba(16,32,67,0.92))]"
       >
         <div className="space-y-3" data-testid="grow-dashboard-what-grow-shows">
           <p className="text-sm leading-relaxed text-brand-text-secondary">
-            Grow will add measured creator scores, comparable audience-growth velocity, audience quality, and best posting windows when supported analytics are available.
+            Grow adds measured creator scores, comparable audience-growth velocity, audience quality, and best posting windows when supported analytics are available.
           </p>
           <ul className="space-y-2 text-sm text-brand-text-secondary">
             <li>Creator score from supported audience and engagement scoring inputs.</li>
@@ -264,14 +289,14 @@ function renderPostingWindowPanel(model: GrowDashboardModel) {
 }
 
 function renderPlaybookPanel(model: GrowDashboardModel, actionMode: DashboardActionCardsMode) {
-  const hasPlaybookContent = Boolean(model.topOpportunity) || model.nextActions.length > 0;
+  const hasPlaybookContent = model.nextActions.length > 0;
 
   return (
     <PanelCard
-      title={hasPlaybookContent ? "Growth Playbook" : "Grow Guidance"}
+      title={hasPlaybookContent ? "Next actions" : "Grow guidance"}
       description={
         hasPlaybookContent
-          ? "Top opportunity and the next three moves from the current normalized growth path."
+          ? "The clearest next moves from the current normalized growth path."
           : "Guidance stays limited until supported analytics produce a clear, growth-derived opportunity."
       }
       className="border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.8),rgba(16,32,67,0.92))]"
@@ -291,33 +316,20 @@ function renderPlaybookPanel(model: GrowDashboardModel, actionMode: DashboardAct
         renderLockedPlaybook()
       ) : (
         <div className="space-y-5" data-testid="grow-dashboard-playbook">
-          {model.topOpportunity ? (
-            <article className="rounded-2xl border border-brand-border/70 bg-brand-panel/82 p-4 shadow-brand-card">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Top opportunity</p>
-              <h3 className="mt-3 text-lg font-semibold text-brand-text-primary">{model.topOpportunity.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{model.topOpportunity.summary}</p>
-              {model.topOpportunity.estimatedImpact ? (
-                <p className="mt-3 text-xs uppercase tracking-[0.14em] text-brand-text-muted">{model.topOpportunity.estimatedImpact}</p>
-              ) : null}
-            </article>
-          ) : null}
-
-          {model.nextActions.length > 0 ? (
-            <div data-testid="grow-dashboard-actions">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Next actions</p>
-              <ol className="mt-3 space-y-3">
-                {model.nextActions.map((action, index) => (
-                  <li
-                    key={`${action.title}-${index}`}
-                    className="rounded-2xl border border-brand-border/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.78),rgba(16,32,67,0.88))] p-4 shadow-brand-card"
-                  >
-                    <p className="text-sm font-medium text-brand-text-primary">{action.title}</p>
-                    {action.impact ? <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{action.impact}</p> : null}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ) : null}
+          <div data-testid="grow-dashboard-actions">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Next actions</p>
+            <ol className="mt-3 space-y-3">
+              {model.nextActions.map((action, index) => (
+                <li
+                  key={`${action.title}-${index}`}
+                  className="rounded-2xl border border-brand-border/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.78),rgba(16,32,67,0.88))] p-4 shadow-brand-card"
+                >
+                  <p className="text-sm font-medium text-brand-text-primary">{action.title}</p>
+                  {action.impact ? <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{action.impact}</p> : null}
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
       )}
     </PanelCard>
@@ -355,9 +367,7 @@ export function GrowDashboardSection({ model, loading, actionMode, ctaLabel, cta
   }
 
   return (
-    <section className="space-y-4" data-testid="grow-dashboard-section">
-      <DashboardSectionHeader title="Growth Dashboard" description="Supported audience and engagement signals from the latest dashboard evidence." />
-
+    <section className="space-y-5" data-testid="grow-dashboard-section">
       {loading && !model ? (
         renderLoadingState()
       ) : model ? (
@@ -378,10 +388,12 @@ export function GrowDashboardSection({ model, loading, actionMode, ctaLabel, cta
           </div>
         </>
       ) : (
-        <PanelCard className="border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.78),rgba(16,32,67,0.9))]">
+        <PanelCard className="relative overflow-hidden border-brand-border-strong/75 bg-[linear-gradient(145deg,rgba(16,32,67,0.95),rgba(19,41,80,0.92),rgba(16,32,67,0.96))]">
+          <div className="pointer-events-none absolute -left-20 top-[-5rem] h-64 w-64 rounded-full bg-brand-accent-blue/18 blur-3xl" />
+          <div className="pointer-events-none absolute right-[-6rem] top-16 h-56 w-56 rounded-full bg-brand-accent-emerald/12 blur-3xl" />
           <div data-testid="grow-dashboard-empty">
             <EmptyState
-              title="Growth insights are not available for this workspace yet."
+              title="Grow is not ready for this workspace yet."
               body="Earn is available now. Grow will unlock when supported audience and engagement analytics are added."
               ctaLabel={ctaLabel}
               ctaHref={ctaHref}

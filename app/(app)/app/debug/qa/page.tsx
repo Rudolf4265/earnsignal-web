@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useAppGate } from "@/app/(app)/_components/app-gate-provider";
-import { DEBUG_QA_ROUTE } from "@/src/lib/debug/routes";
+import { DEBUG_DEMO_ROUTE, DEBUG_QA_ROUTE } from "@/src/lib/debug/routes";
 
 const checks = [
   { label: "Auth: login", href: "/login" },
@@ -13,6 +13,7 @@ const checks = [
   { label: "Billing", href: "/app/billing" },
   { label: "Admin console", href: "/app/admin" },
   { label: "Env debug", href: "/app/debug/env" },
+  ...(DEBUG_DEMO_ROUTE ? [{ label: "Demo workspaces", href: DEBUG_DEMO_ROUTE }] : []),
 ];
 
 export default function QaDebugPage() {

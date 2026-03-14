@@ -139,7 +139,7 @@ export function CreatorHealthPanel({
                 </>
               ) : (
                 <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                  {loading ? "Loading your latest report baseline..." : "Run a report to unlock a measured health baseline."}
+                  {loading ? "Loading your latest report baseline..." : "Upload a supported CSV export and run a report to unlock a measured health baseline."}
                 </p>
               )}
             </div>

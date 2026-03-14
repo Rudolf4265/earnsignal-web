@@ -15,12 +15,12 @@ const MODE_OPTIONS: Array<{
   {
     id: "earn",
     label: "Earn",
-    description: "Revenue, reports, and creator business health.",
+    description: "Revenue, subscriptions, and monetization health.",
   },
   {
     id: "grow",
     label: "Grow",
-    description: "Audience growth signals and next actions.",
+    description: "Audience and engagement guidance with richer scorecards when supported analytics are available.",
   },
 ];
 
@@ -67,6 +67,10 @@ export function DashboardModeSwitch({ mode, onChange }: DashboardModeSwitchProps
           );
         })}
       </div>
+
+      <p className="text-xs leading-relaxed text-brand-text-muted" data-testid="dashboard-mode-explainer">
+        Earn stays focused on business health. Grow is the audience and engagement side, and richer scorecards appear when supported analytics are available.
+      </p>
     </section>
   );
 }

@@ -23,6 +23,7 @@ import {
   resolveDirectFanBackendId,
   UPLOAD_PLATFORM_CARDS,
 } from "@/src/lib/upload/platform-metadata";
+import { getSupportedRevenueUploadSummary } from "@/src/lib/upload/platform-guidance";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
 import InlineAlert from "./InlineAlert";
@@ -36,6 +37,7 @@ type Step = "platform" | "file" | "uploading" | "processing" | "done";
 const stepOrder: Step[] = ["platform", "file", "uploading", "processing", "done"];
 const RESUME_STATUS_TIMEOUT_MS = 2_500;
 const platformSections = groupPlatformCards(UPLOAD_PLATFORM_CARDS);
+const supportedRevenueUploads = getSupportedRevenueUploadSummary();
 const directFanBackendIds = new Set(
   DIRECT_FAN_PLATFORMS.map((item) => item.backendId).filter((id): id is UploadPlatform => id !== null),
 );
@@ -741,6 +743,13 @@ export default function UploadStepper() {
             </InlineAlert>
           ) : null}
           <StepHeader title="Choose platform" subtitle="Select the data source for this upload." />
+          <InlineAlert variant="info" title="Start with currently supported revenue exports" data-testid="upload-platform-guide">
+            <p>Today, the guided upload flow accepts {supportedRevenueUploads}. Choose the platform that matches your export, then continue with a fresh CSV file.</p>
+            <p className="mt-2">Earn unlocks first from revenue and subscriber data. Grow is the audience and engagement side, and richer scorecards appear when supported analytics are available.</p>
+            <Link href="/app/help#upload-guide" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
+              Open upload guide
+            </Link>
+          </InlineAlert>
           <div className="space-y-4">
             {platformSections.map((section) => (
               <section key={section.category} className="space-y-2" data-testid={`platform-section-${section.category}`}>
@@ -850,6 +859,13 @@ export default function UploadStepper() {
       {step === "file" ? (
         <div className="space-y-5">
           <StepHeader title="Select file" subtitle="Upload a CSV export from your platform." />
+          <InlineAlert variant="info" title="What happens after upload" data-testid="upload-file-guide">
+            <p>Accepted file type: CSV. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation.</p>
+            <p className="mt-2">If validation fails, export a fresh CSV from your platform and retry. If processing stalls, retry status before starting over.</p>
+            <Link href="/app/help#after-upload" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
+              Review upload help
+            </Link>
+          </InlineAlert>
           <button
             type="button"
             className="w-full rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center hover:border-brand-blue/60 hover:bg-slate-100"

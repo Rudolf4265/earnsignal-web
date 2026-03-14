@@ -11,6 +11,9 @@ test("upload stepper keeps Upload & Validate as primary CTA with ready-only emph
   assert.equal(source.includes("entitlementState.canUpload &&"), true);
   assert.equal(source.includes("entitlementState.canValidateUpload;"), true);
   assert.equal(source.includes("const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;"), true);
+  assert.equal(source.includes('data-testid="upload-file-guide"'), true);
+  assert.equal(source.includes("Accepted file type: CSV."), true);
+  assert.equal(source.includes("/app/help#after-upload"), true);
   assert.equal(source.includes("disabled={!uploadReady}"), true);
   assert.equal(source.includes("Checking access..."), true);
   assert.equal(source.includes("shadow-[0_0_0_3px_rgba(16,185,129,0.18)]"), true);

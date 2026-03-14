@@ -78,7 +78,7 @@ export function RevenueTrendSection({ trend, trendPreview, loading, ctaLabel, ct
             ) : null}
             <EmptyState
               title="Trendline appears once revenue history is connected"
-              body="Upload revenue history to unlock a readable month-over-month trend."
+              body="Upload a supported revenue CSV and run your first report to unlock a readable month-over-month trend."
               ctaLabel={ctaLabel}
               ctaHref={ctaHref}
               appearance="dashboard"

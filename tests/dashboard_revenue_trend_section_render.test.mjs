@@ -21,6 +21,7 @@ test("revenue trend section keeps intentional missing-data fallback", async () =
 
   assert.equal(source.includes('data-testid="dashboard-revenue-trend-empty"'), true);
   assert.equal(source.includes("Trendline appears once revenue history is connected"), true);
+  assert.equal(source.includes("Upload a supported revenue CSV and run your first report to unlock a readable month-over-month trend."), true);
   assert.equal(source.includes("Latest narrative signal"), true);
 });
 

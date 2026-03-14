@@ -5,6 +5,7 @@ import { useAppGate } from "../_components/app-gate-provider";
 import { useEntitlementState } from "../_components/use-entitlement-state";
 import { ActionCardsSection } from "./_components/dashboard/ActionCardsSection";
 import { CreatorHealthPanel } from "./_components/dashboard/CreatorHealthPanel";
+import { DashboardOnboardingSection } from "./_components/dashboard/DashboardOnboardingSection";
 import { DashboardTopShell } from "./_components/dashboard/DashboardTopShell";
 import { DashboardUtilitySection } from "./_components/dashboard/DashboardUtilitySection";
 import { DiagnosisSection } from "./_components/dashboard/DiagnosisSection";
@@ -466,16 +467,19 @@ export default function DashboardPage() {
   );
 
   const platformsConnected = kpis.platformsConnected ?? (state.latestUpload ? 1 : 0);
+  const growGuidanceLimited =
+    dashboardMode === "grow" && (!growDashboardModel || growDashboardModel.availability !== "structured" || !growDashboardModel.creatorScore);
+  const showDashboardOnboarding = state.hasReports !== true || growGuidanceLimited;
   const workspaceReadiness = state.latestUpload
     ? state.hasReports === true
-      ? "Uploads are connected and reports are available."
+      ? "Uploads are connected and at least one report is ready."
       : state.hasReports === false
-        ? "Uploads are connected. Generate the first report to unlock more dashboard detail."
-        : "Uploads are connected. Checking for the latest report."
+        ? "Your upload is connected. Generate the first report to unlock measured dashboard detail."
+        : "Your upload is connected. Checking the latest report availability."
     : state.hasReports === true
-      ? "Reports are available from earlier uploads."
+      ? "Reports are available from earlier uploads. Add a fresh export when you want to refresh the workspace."
       : state.hasReports === false
-        ? "Connect your latest export to populate the dashboard."
+        ? "This workspace is still empty. Upload a supported CSV export to populate Earn."
         : "Checking workspace data availability.";
   const handleModeChange = useCallback(
     (nextMode: "earn" | "grow") => {
@@ -502,6 +506,17 @@ export default function DashboardPage() {
           {state.error ? <ErrorBanner title="Data refresh failed" message={state.error} /> : null}
           {state.latestArtifactError ? <ErrorBanner title="Latest report artifact mismatch" message={state.latestArtifactError} /> : null}
         </div>
+      ) : null}
+
+      {showDashboardOnboarding ? (
+        <DashboardOnboardingSection
+          mode={dashboardMode}
+          hasUpload={state.latestUpload !== null}
+          hasReports={state.hasReports}
+          growGuidanceLimited={growGuidanceLimited}
+          ctaLabel={primaryCta.label}
+          ctaHref={primaryCta.href}
+        />
       ) : null}
 
       {dashboardMode === "earn" ? (

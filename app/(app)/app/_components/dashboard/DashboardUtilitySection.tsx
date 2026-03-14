@@ -62,7 +62,7 @@ export function DashboardUtilitySection({
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <article className={utilityCardClassName}>
           <h3 className="text-sm font-semibold text-brand-text-primary">Plan & access</h3>
           <dl className="mt-4 space-y-3.5">
@@ -147,6 +147,35 @@ export function DashboardUtilitySection({
               />
             </div>
           )}
+        </article>
+
+        <article className={utilityCardClassName} data-testid="dashboard-help-card">
+          <h3 className="text-sm font-semibold text-brand-text-primary">Help & guidance</h3>
+          <p className="mt-4 text-sm leading-relaxed text-brand-text-primary">
+            See what to upload, how Earn and Grow differ, and what to expect after validation finishes.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/app/help#upload-guide"
+              className={buttonClassName({
+                variant: "secondary",
+                size: "sm",
+                className: "border-brand-border-strong/70 bg-brand-panel/80 shadow-brand-card hover:bg-brand-panel-muted/90",
+              })}
+            >
+              Open help guide
+            </Link>
+            <Link
+              href="/app/data"
+              className={buttonClassName({
+                variant: "secondary",
+                size: "sm",
+                className: "border-brand-border/70 bg-brand-panel/70 shadow-brand-card hover:bg-brand-panel-muted/90",
+              })}
+            >
+              Go to data
+            </Link>
+          </div>
         </article>
       </div>
     </section>

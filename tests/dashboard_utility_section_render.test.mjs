@@ -13,6 +13,9 @@ test("dashboard utility section keeps lower-priority account and workspace cards
   assert.equal(source.includes("Workspace status"), true);
   assert.equal(source.includes("Connected data"), true);
   assert.equal(source.includes("Latest report"), true);
+  assert.equal(source.includes('data-testid="dashboard-help-card"'), true);
+  assert.equal(source.includes("Help & guidance"), true);
+  assert.equal(source.includes("/app/help#upload-guide"), true);
   assert.equal(source.includes("Lower-priority account and workspace details live here"), true);
   assert.equal(source.includes("reportsCheckError"), true);
 });

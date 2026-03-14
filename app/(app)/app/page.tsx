@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppGate } from "../_components/app-gate-provider";
 import { useEntitlementState } from "../_components/use-entitlement-state";
 import { ActionCardsSection } from "./_components/dashboard/ActionCardsSection";
 import { CreatorHealthPanel } from "./_components/dashboard/CreatorHealthPanel";
 import { DiagnosisSection } from "./_components/dashboard/DiagnosisSection";
+import { GrowDashboardSection } from "./_components/dashboard/GrowDashboardSection";
 import { InsightCardsSection } from "./_components/dashboard/InsightCardsSection";
 import { RevenueSnapshotSection } from "./_components/dashboard/RevenueSnapshotSection";
 import { RevenueTrendSection } from "./_components/dashboard/RevenueTrendSection";
+import { DashboardModeSwitch } from "@/src/components/dashboard/mode-switch";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { Button, buttonClassName } from "@/src/components/ui/button";
 import { PageHeader } from "@/src/components/ui/page-header";
@@ -20,9 +23,12 @@ import { hydrateDashboardFromArtifact, type DashboardArtifactHydrationResult } f
 import { findFirstCompletedReport, loadLatestDashboardReport } from "@/src/lib/dashboard/latest-report";
 import { buildDashboardInsights } from "@/src/lib/dashboard/insights";
 import { buildDashboardDiagnosisViewModel } from "@/src/lib/dashboard/diagnosis";
-import { buildDashboardViewModel } from "@/src/lib/dashboard/view-model";
 import { buildDashboardActionCardsViewModel } from "@/src/lib/dashboard/action-cards";
 import { buildDashboardRevenueTrendViewModel } from "@/src/lib/dashboard/revenue-trend";
+import { buildEarnDashboardModel } from "@/src/lib/dashboard/earn-model";
+import { adaptGrowDashboardSource } from "@/src/lib/dashboard/grow-adapter";
+import { buildGrowDashboardModel } from "@/src/lib/dashboard/grow-model";
+import { buildDashboardModeSearch, parseDashboardMode } from "@/src/lib/dashboard/mode";
 import { formatReportArtifactContractErrors } from "@/src/lib/report/artifact-contract";
 import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
@@ -277,9 +283,13 @@ function toPlanBadgeVariant(status: string | null, entitled: boolean): "good" | 
 export default function DashboardPage() {
   const { state: gateState, entitlements, isLoading: authLoading } = useAppGate();
   const entitlementState = useEntitlementState();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [state, setState] = useState<DashboardState>(() => getInitialDashboardState());
   const [refreshNonce, setRefreshNonce] = useState(0);
   const latestReportHref = useMemo(() => buildReportDetailPathOrIndex(state.latestReportRow?.id), [state.latestReportRow?.id]);
+  const dashboardMode = parseDashboardMode(searchParams.get("mode"));
 
   useEffect(() => {
     let cancelled = false;
@@ -385,9 +395,9 @@ export default function DashboardPage() {
     platformsConnected: reportMetrics?.platformsConnected ?? null,
   };
 
-  const dashboardViewModel = useMemo(
+  const earnDashboardModel = useMemo(
     () =>
-      buildDashboardViewModel({
+      buildEarnDashboardModel({
         kpis: {
           netRevenue: kpis.netRevenue,
           subscribers: kpis.subscribers,
@@ -406,6 +416,15 @@ export default function DashboardPage() {
       state.latestArtifact?.subscriberDeltaText,
     ],
   );
+  const growDashboardModel = useMemo(() => {
+    const growSource = adaptGrowDashboardSource({
+      latestArtifact: state.latestArtifact,
+      latestReport: state.latestReport,
+      latestUpload: state.latestUpload,
+    });
+
+    return growSource ? buildGrowDashboardModel(growSource) : null;
+  }, [state.latestArtifact, state.latestReport, state.latestUpload]);
 
   const insightCards = useMemo(
     () =>
@@ -456,6 +475,13 @@ export default function DashboardPage() {
         ? "No reports yet"
         : "Checking reports..."
   }`;
+  const handleModeChange = useCallback(
+    (nextMode: "earn" | "grow") => {
+      const query = buildDashboardModeSearch(searchParams, nextMode);
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
 
   return (
     <div className="space-y-10">
@@ -474,38 +500,58 @@ export default function DashboardPage() {
         }
       />
 
+      <DashboardModeSwitch mode={dashboardMode} onChange={handleModeChange} />
+
       {state.error ? <ErrorBanner title="Data refresh failed" message={state.error} /> : null}
       {state.latestArtifactError ? <ErrorBanner title="Latest report artifact mismatch" message={state.latestArtifactError} /> : null}
 
-      <CreatorHealthPanel
-        creatorHealth={dashboardViewModel.creatorHealth}
-        entitled={entitled}
-        planTier={planTier}
-        planStatusLabel={toBadgeLabel(planStatus)}
-        planStatusVariant={toPlanBadgeVariant(planStatus, entitled)}
-        loading={state.loading}
-        workspaceReadiness={workspaceReadiness}
-        reportsCheckError={state.reportsCheckError}
-        platformsConnectedLabel={platformsConnected > 0 ? String(platformsConnected) : "None"}
-        coverageLabel={kpis.coverageMonths !== null ? `${formatNumber(kpis.coverageMonths)} months` : "-- months"}
-        lastUploadLabel={formatDate(state.latestUpload?.updatedAt ?? state.latestReport?.createdAt)}
-        latestReportRow={state.latestReportRow}
-        latestReportHref={latestReportHref}
-        latestReportStatusLabel={toBadgeLabel(state.latestReportRow?.status ?? "unknown")}
-        latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
-        ctaLabel={primaryCta.label}
-        ctaHref={primaryCta.href}
-      />
+      {dashboardMode === "earn" ? (
+        <>
+          <CreatorHealthPanel
+            creatorHealth={earnDashboardModel.creatorHealth}
+            entitled={entitled}
+            planTier={planTier}
+            planStatusLabel={toBadgeLabel(planStatus)}
+            planStatusVariant={toPlanBadgeVariant(planStatus, entitled)}
+            loading={state.loading}
+            workspaceReadiness={workspaceReadiness}
+            reportsCheckError={state.reportsCheckError}
+            platformsConnectedLabel={platformsConnected > 0 ? String(platformsConnected) : "None"}
+            coverageLabel={kpis.coverageMonths !== null ? `${formatNumber(kpis.coverageMonths)} months` : "-- months"}
+            lastUploadLabel={formatDate(state.latestUpload?.updatedAt ?? state.latestReport?.createdAt)}
+            latestReportRow={state.latestReportRow}
+            latestReportHref={latestReportHref}
+            latestReportStatusLabel={toBadgeLabel(state.latestReportRow?.status ?? "unknown")}
+            latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
+            ctaLabel={primaryCta.label}
+            ctaHref={primaryCta.href}
+          />
 
-      <RevenueSnapshotSection revenueSnapshot={dashboardViewModel.revenueSnapshot} />
+          <RevenueSnapshotSection revenueSnapshot={earnDashboardModel.revenueSnapshot} />
 
-      <DiagnosisSection diagnosis={diagnosisViewModel} loading={state.loading} />
+          <DiagnosisSection diagnosis={diagnosisViewModel} loading={state.loading} />
 
-      <InsightCardsSection insights={insightCards} />
+          <InsightCardsSection insights={insightCards} />
 
-      <ActionCardsSection mode={actionCardsSection.mode} cards={actionCardsSection.cards} />
+          <ActionCardsSection mode={actionCardsSection.mode} cards={actionCardsSection.cards} />
 
-      <RevenueTrendSection trend={revenueTrend} trendPreview={trendPreview} loading={state.loading} ctaLabel={primaryCta.label} ctaHref={primaryCta.href} />
+          <RevenueTrendSection
+            trend={revenueTrend}
+            trendPreview={trendPreview}
+            loading={state.loading}
+            ctaLabel={primaryCta.label}
+            ctaHref={primaryCta.href}
+          />
+        </>
+      ) : (
+        <GrowDashboardSection
+          model={growDashboardModel}
+          loading={state.loading}
+          actionMode={actionCardsSection.mode}
+          ctaLabel={primaryCta.label}
+          ctaHref={primaryCta.href}
+        />
+      )}
     </div>
   );
 }

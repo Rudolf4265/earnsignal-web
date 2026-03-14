@@ -11,8 +11,8 @@ test("dashboard page wires a dedicated diagnosis section from typed diagnosis an
 
   assert.equal(source.includes("import { DiagnosisSection } from \"./_components/dashboard/DiagnosisSection\";"), true);
   assert.equal(source.includes("buildDashboardDiagnosisViewModel"), true);
-  assert.equal(source.includes("diagnosis: state.latestArtifact?.diagnosis ?? null"), true);
-  assert.equal(source.includes("whatChanged: state.latestArtifact?.whatChanged ?? null"), true);
+  assert.equal(source.includes("diagnosis: state.latestArtifact?.diagnosis ?? state.latestReport?.diagnosis ?? null"), true);
+  assert.equal(source.includes("whatChanged: state.latestArtifact?.whatChanged ?? state.latestReport?.whatChanged ?? null"), true);
   assert.equal(source.includes("hasReport: state.latestReport !== null"), true);
   assert.equal(source.includes("<DiagnosisSection diagnosis={diagnosisViewModel} loading={state.loading} />"), true);
 });
@@ -28,7 +28,7 @@ test("diagnosis section includes loading-safe, honest summary, unavailable, noti
   assert.equal(source.includes('data-testid="dashboard-diagnosis-context"'), true);
   assert.equal(source.includes('data-testid="dashboard-diagnosis-supporting-metrics"'), true);
   assert.equal(source.includes("Based on available report data"), true);
-  assert.equal(source.includes("Diagnosis unavailable"), true);
+  assert.equal(source.includes("diagnosis.heading"), true);
   assert.equal(source.includes("Latest report diagnosis"), true);
   assert.equal(source.includes("Current primary constraint from typed report evidence, bounded by the available report data."), true);
   assert.equal(source.includes("diagnosis.summary ? ("), true);

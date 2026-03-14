@@ -1282,15 +1282,15 @@ function readDiagnosisPrimitives(value: unknown): ReportDiagnosisPrimitivesViewM
   }
 
   return {
-    revenueTrendDirection: readEnumString(value.revenue_trend_direction, DIAGNOSIS_DIRECTIONS) ?? "unknown",
-    activeSubscribersDirection: readEnumString(value.active_subscribers_direction, DIAGNOSIS_DIRECTIONS) ?? "unknown",
-    churnPressureLevel: readEnumString(value.churn_pressure_level, PRESSURE_LEVELS) ?? "unknown",
-    concentrationPressureLevel: readEnumString(value.concentration_pressure_level, PRESSURE_LEVELS) ?? "unknown",
-    monetizationEfficiencyLevel: readEnumString(value.monetization_efficiency_level, PRESSURE_LEVELS) ?? "unknown",
-    stabilityDirection: readEnumString(value.stability_direction, DIAGNOSIS_DIRECTIONS) ?? "unknown",
-    evidenceStrength: readEnumString(value.evidence_strength, ["none", "weak", "moderate", "strong"] as const),
-    dataQualityLevel: readString(value.data_quality_level),
-    analysisMode: readString(value.analysis_mode),
+    revenueTrendDirection: readEnumString(value.revenue_trend_direction ?? value.revenueTrendDirection, DIAGNOSIS_DIRECTIONS) ?? "unknown",
+    activeSubscribersDirection: readEnumString(value.active_subscribers_direction ?? value.activeSubscribersDirection, DIAGNOSIS_DIRECTIONS) ?? "unknown",
+    churnPressureLevel: readEnumString(value.churn_pressure_level ?? value.churnPressureLevel, PRESSURE_LEVELS) ?? "unknown",
+    concentrationPressureLevel: readEnumString(value.concentration_pressure_level ?? value.concentrationPressureLevel, PRESSURE_LEVELS) ?? "unknown",
+    monetizationEfficiencyLevel: readEnumString(value.monetization_efficiency_level ?? value.monetizationEfficiencyLevel, PRESSURE_LEVELS) ?? "unknown",
+    stabilityDirection: readEnumString(value.stability_direction ?? value.stabilityDirection, DIAGNOSIS_DIRECTIONS) ?? "unknown",
+    evidenceStrength: readEnumString(value.evidence_strength ?? value.evidenceStrength, ["none", "weak", "moderate", "strong"] as const),
+    dataQualityLevel: readString(value.data_quality_level ?? value.dataQualityLevel),
+    analysisMode: readString(value.analysis_mode ?? value.analysisMode),
   };
 }
 
@@ -1316,8 +1316,8 @@ function readDiagnosisSupportingMetrics(
       return {
         ...buildTruthMetadata(entry, defaults),
         metric,
-        currentValue: readNumber(entry.current_value),
-        priorValue: readNumber(entry.prior_value),
+        currentValue: readNumber(entry.current_value ?? entry.currentValue),
+        priorValue: readNumber(entry.prior_value ?? entry.priorValue),
         direction: readEnumString(entry.direction, DIAGNOSIS_DIRECTIONS) ?? "unknown",
         source: readString(entry.source),
       };
@@ -1325,15 +1325,74 @@ function readDiagnosisSupportingMetrics(
     .filter((entry): entry is ReportDiagnosisSupportingMetricViewModel => entry !== null);
 }
 
+function buildDiagnosisFallbackRecord(records: Record<string, unknown>[]): Record<string, unknown> | null {
+  const diagnosisType = readStringFromPaths(records, [
+    "diagnosis_type",
+    "diagnosisType",
+    "primary_constraint_type",
+    "primaryConstraintType",
+    "report.diagnosis_type",
+    "report.diagnosisType",
+    "report.primary_constraint_type",
+    "report.primaryConstraintType",
+  ]);
+  const summaryText = readStringFromPaths(records, [
+    "diagnosis_summary",
+    "diagnosisSummary",
+    "primary_constraint_summary",
+    "primaryConstraintSummary",
+    "report.diagnosis_summary",
+    "report.diagnosisSummary",
+    "report.primary_constraint_summary",
+    "report.primaryConstraintSummary",
+  ]);
+
+  if (!diagnosisType && !summaryText) {
+    return null;
+  }
+
+  return {
+    ...(diagnosisType ? { diagnosis_type: diagnosisType } : {}),
+    ...(summaryText ? { summary_text: summaryText } : {}),
+  };
+}
+
 function readDiagnosis(records: Record<string, unknown>[], defaults: Partial<ReportTruthMetadata>): ReportDiagnosisViewModel | null {
-  const raw = readRecordFromPaths(records, ["diagnosis", "report.diagnosis", "sections.diagnosis", "report.sections.diagnosis"]);
+  const raw =
+    readRecordFromPaths(records, [
+      "diagnosis",
+      "primary_constraint",
+      "primaryConstraint",
+      "report.diagnosis",
+      "report.primary_constraint",
+      "report.primaryConstraint",
+      "sections.diagnosis",
+      "sections.primary_constraint",
+      "sections.primaryConstraint",
+      "report.sections.diagnosis",
+      "report.sections.primary_constraint",
+      "report.sections.primaryConstraint",
+    ]) ?? buildDiagnosisFallbackRecord(records);
   if (!raw) {
     return null;
   }
 
-  const diagnosisType = readEnumString(raw.diagnosis_type, DIAGNOSIS_TYPES);
-  const summaryText = readString(raw.summary_text);
-  const supportingMetrics = readDiagnosisSupportingMetrics(raw.supporting_metrics, defaults);
+  const diagnosisType = readEnumString(
+    raw.diagnosis_type ?? raw.diagnosisType ?? raw.primary_constraint_type ?? raw.primaryConstraintType,
+    DIAGNOSIS_TYPES,
+  );
+  const summaryText = readStringFromRecord(raw, [
+    "summary_text",
+    "summaryText",
+    "diagnosis_summary",
+    "diagnosisSummary",
+    "primary_constraint_summary",
+    "primaryConstraintSummary",
+    "summary",
+    "description",
+    "body",
+  ]);
+  const supportingMetrics = readDiagnosisSupportingMetrics(raw.supporting_metrics ?? raw.supportingMetrics, defaults);
   const primitives = readDiagnosisPrimitives(raw.primitives);
   if (!diagnosisType && !summaryText && supportingMetrics.length === 0 && !primitives) {
     return null;
@@ -1360,10 +1419,10 @@ function readComparisonDelta(
   return {
     ...buildTruthMetadata(value, defaults),
     metric: readString(value.metric) ?? metric,
-    currentValue: readNumber(value.current_value),
-    priorValue: readNumber(value.prior_value),
-    absoluteDelta: readNumber(value.absolute_delta),
-    percentDelta: readNumber(value.percent_delta),
+    currentValue: readNumber(value.current_value ?? value.currentValue),
+    priorValue: readNumber(value.prior_value ?? value.priorValue),
+    absoluteDelta: readNumber(value.absolute_delta ?? value.absoluteDelta),
+    percentDelta: readNumber(value.percent_delta ?? value.percentDelta),
     direction: readEnumString(value.direction, COMPARISON_DIRECTIONS) ?? "unknown",
     comparable: readBoolean(value.comparable) ?? false,
   };
@@ -1380,7 +1439,7 @@ function readComparisonItems(value: unknown, defaults: Partial<ReportTruthMetada
         return null;
       }
 
-      const summaryText = readString(entry.summary_text);
+      const summaryText = readString(entry.summary_text ?? entry.summaryText);
       if (!summaryText) {
         return null;
       }
@@ -1389,7 +1448,7 @@ function readComparisonItems(value: unknown, defaults: Partial<ReportTruthMetada
         ...buildTruthMetadata(entry, defaults),
         category: readString(entry.category),
         metric: readString(entry.metric),
-        changeType: readEnumString(entry.change_type, COMPARISON_CHANGE_TYPES),
+        changeType: readEnumString(entry.change_type ?? entry.changeType, COMPARISON_CHANGE_TYPES),
         direction: readEnumString(entry.direction, COMPARISON_DIRECTIONS) ?? "unknown",
         materiality: readEnumString(entry.materiality, COMPARISON_MATERIALITY),
         summaryText,
@@ -1431,11 +1490,11 @@ function readWhatChanged(records: Record<string, unknown>[], defaults: Partial<R
     return null;
   }
 
-  const comparisonAvailable = readBoolean(raw.comparison_available);
-  const priorReportId = readString(raw.prior_report_id);
-  const whatImproved = readComparisonItems(raw.what_improved, defaults);
-  const whatWorsened = readComparisonItems(raw.what_worsened, defaults);
-  const watchNext = readComparisonItems(raw.watch_next, defaults);
+  const comparisonAvailable = readBoolean(raw.comparison_available ?? raw.comparisonAvailable);
+  const priorReportId = readString(raw.prior_report_id ?? raw.priorReportId);
+  const whatImproved = readComparisonItems(raw.what_improved ?? raw.whatImproved, defaults);
+  const whatWorsened = readComparisonItems(raw.what_worsened ?? raw.whatWorsened, defaults);
+  const watchNext = readComparisonItems(raw.watch_next ?? raw.watchNext, defaults);
   const deltas = readComparisonDeltas(raw.deltas, defaults);
   if (
     comparisonAvailable === null &&
@@ -1449,13 +1508,13 @@ function readWhatChanged(records: Record<string, unknown>[], defaults: Partial<R
   }
 
   return {
-    ...buildTruthMetadata(raw, defaults, { reasonCodeKeys: ["comparison_reason_codes", "reason_codes"] }),
+    ...buildTruthMetadata(raw, defaults, { reasonCodeKeys: ["comparison_reason_codes", "comparisonReasonCodes", "reason_codes", "reasonCodes"] }),
     comparisonAvailable: comparisonAvailable ?? false,
     priorReportId,
-    priorPeriodStart: readString(raw.prior_period_start),
-    priorPeriodEnd: readString(raw.prior_period_end),
-    comparableMetricCount: readNumber(raw.comparable_metric_count) ?? 0,
-    comparisonBasisMetrics: uniqueStrings(toStringArray(raw.comparison_basis_metrics)),
+    priorPeriodStart: readString(raw.prior_period_start ?? raw.priorPeriodStart),
+    priorPeriodEnd: readString(raw.prior_period_end ?? raw.priorPeriodEnd),
+    comparableMetricCount: readNumber(raw.comparable_metric_count ?? raw.comparableMetricCount) ?? 0,
+    comparisonBasisMetrics: uniqueStrings(toStringArray(raw.comparison_basis_metrics ?? raw.comparisonBasisMetrics)),
     deltas,
     whatImproved,
     whatWorsened,

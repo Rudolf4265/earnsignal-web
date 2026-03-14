@@ -168,10 +168,24 @@ test("dashboard diagnosis view-model stays conservative for older artifacts with
     hasReport: true,
   });
 
+  assert.equal(result.heading, "No primary constraint identified yet");
   assert.equal(result.hasTypedDiagnosis, false);
   assert.equal(result.notice, null);
   assert.equal(result.comparisonContext, null);
-  assert.equal(result.unavailableBody, "Diagnosis unavailable for this dashboard snapshot.");
+  assert.equal(result.unavailableBody, "This snapshot does not contain enough structured evidence to identify a primary growth constraint yet.");
+});
+
+test("dashboard diagnosis view-model keeps the no-report empty state unchanged", async () => {
+  const { buildDashboardDiagnosisViewModel } = await loadModule(Date.now() + 8);
+  const result = buildDashboardDiagnosisViewModel({
+    diagnosis: null,
+    whatChanged: null,
+    hasReport: false,
+  });
+
+  assert.equal(result.heading, "Diagnosis unavailable");
+  assert.equal(result.hasTypedDiagnosis, false);
+  assert.equal(result.unavailableBody, "Diagnosis will appear after your next completed report.");
 });
 
 test("dashboard diagnosis view-model does not overstate when typed diagnosis summary is present", async () => {

@@ -419,8 +419,8 @@ export default function DashboardPage() {
   const diagnosisViewModel = useMemo(
     () =>
       buildDashboardDiagnosisViewModel({
-        diagnosis: state.latestArtifact?.diagnosis ?? null,
-        whatChanged: state.latestArtifact?.whatChanged ?? null,
+        diagnosis: state.latestArtifact?.diagnosis ?? state.latestReport?.diagnosis ?? null,
+        whatChanged: state.latestArtifact?.whatChanged ?? state.latestReport?.whatChanged ?? null,
         hasReport: state.latestReport !== null,
       }),
     [state.latestArtifact?.diagnosis, state.latestArtifact?.whatChanged, state.latestReport],
@@ -433,8 +433,8 @@ export default function DashboardPage() {
         entitlements,
         recommendedActions,
         recommendationItems: state.latestArtifact?.model?.recommendations ?? [],
-        diagnosis: state.latestArtifact?.diagnosis ?? null,
-        whatChanged: state.latestArtifact?.whatChanged ?? null,
+        diagnosis: state.latestArtifact?.diagnosis ?? state.latestReport?.diagnosis ?? null,
+        whatChanged: state.latestArtifact?.whatChanged ?? state.latestReport?.whatChanged ?? null,
         fallbackActions: fallbackProActions,
       }),
     [
@@ -444,6 +444,7 @@ export default function DashboardPage() {
       state.latestArtifact?.diagnosis,
       state.latestArtifact?.model?.recommendations,
       state.latestArtifact?.whatChanged,
+      state.latestReport,
     ],
   );
 

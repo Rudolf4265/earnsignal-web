@@ -334,10 +334,11 @@ test("older artifacts without typed diagnosis or comparison stay conservative th
   assert.equal(sharedWhatChanged.notice, null);
   assert.equal(sharedWhatChanged.improved.length, 0);
   assert.equal(sharedWhatChanged.unavailableBody, "Typed report-over-report comparison is unavailable for this report artifact.");
+  assert.equal(dashboard.heading, "No primary constraint identified yet");
   assert.equal(dashboard.hasTypedDiagnosis, false);
   assert.equal(dashboard.notice, null);
   assert.equal(dashboard.comparisonContext, null);
-  assert.equal(dashboard.unavailableBody, "Diagnosis unavailable for this dashboard snapshot.");
+  assert.equal(dashboard.unavailableBody, "This snapshot does not contain enough structured evidence to identify a primary growth constraint yet.");
   assert.equal(report.diagnosis.notice, null);
   assert.equal(report.diagnosis.unavailableBody, "Typed diagnosis is unavailable for this report artifact.");
   assert.equal(report.whatChanged.notice, null);

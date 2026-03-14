@@ -114,6 +114,8 @@ test("report detail normalization supports report wrapper aliases", async () => 
     coverageMonths: 10,
     platformsConnected: 3,
   });
+  assert.equal(result.diagnosis, null);
+  assert.equal(result.whatChanged, null);
 });
 
 test("report detail normalization supports report trend preview aliases", async () => {
@@ -147,6 +149,40 @@ test("report detail normalization supports report trend preview aliases", async 
     coverageMonths: 8,
     platformsConnected: 2,
   });
+  assert.equal(result.diagnosis, null);
+  assert.equal(result.whatChanged, null);
+});
+
+test("report detail normalization carries typed diagnosis and comparison from the canonical detail payload", async () => {
+  const { normalizeReportDetail } = await loadModules(Date.now() + 15);
+  const result = normalizeReportDetail("rep_diag_detail", {
+    report: {
+      diagnosis: {
+        diagnosisType: "churn_pressure",
+        summaryText: "Current profile looks more churn-limited based on the latest typed report evidence.",
+      },
+      whatChanged: {
+        comparisonAvailable: true,
+        priorReportId: "rep_diag_detail_prev",
+        watchNext: [
+          {
+            category: "revenue",
+            metric: "latest_net_revenue",
+            changeType: "watch",
+            direction: "down",
+            materiality: "medium",
+            summaryText: "Revenue softened and should be watched next cycle.",
+          },
+        ],
+      },
+    },
+  });
+
+  assert.equal(result.diagnosis?.diagnosisType, "churn_pressure");
+  assert.equal(result.diagnosis?.summaryText, "Current profile looks more churn-limited based on the latest typed report evidence.");
+  assert.equal(result.whatChanged?.comparisonAvailable, true);
+  assert.equal(result.whatChanged?.priorReportId, "rep_diag_detail_prev");
+  assert.equal(result.whatChanged?.watchNext[0]?.summaryText, "Revenue softened and should be watched next cycle.");
 });
 
 test("report detail normalization keeps canonical route id when payload id is a sentinel", async () => {

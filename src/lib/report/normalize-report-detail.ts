@@ -1,4 +1,9 @@
 import { normalizeReportId } from "./id";
+import {
+  normalizeArtifactToReportModel,
+  type ReportDiagnosisViewModel,
+  type ReportWhatChangedViewModel,
+} from "./normalize-artifact-to-report-model";
 
 export type ReportDetail = {
   id: string;
@@ -12,6 +17,8 @@ export type ReportDetail = {
   artifactJsonUrl: string | null;
   keySignals: string[];
   recommendedActions: string[];
+  diagnosis: ReportDiagnosisViewModel | null;
+  whatChanged: ReportWhatChangedViewModel | null;
   metrics: {
     netRevenue: number | null;
     subscribers: number | null;
@@ -165,6 +172,7 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
   const fallbackReportId = normalizeReportId(reportId) ?? "unknown";
   const normalizedReportId =
     normalizeReportId(readString(payload, ["id", "report_id", "reportId"], "")) ?? fallbackReportId;
+  const typedReportModel = normalizeArtifactToReportModel(payload).model;
   const platforms = readStringArray(payload, [
     "platforms",
     "sources",
@@ -254,6 +262,8 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
     artifactJsonUrl: readString(payload, ["artifact_json_url", "artifactJsonUrl"], "") || null,
     keySignals,
     recommendedActions,
+    diagnosis: typedReportModel.diagnosis,
+    whatChanged: typedReportModel.whatChanged,
     metrics: {
       netRevenue: readNumber(payload, [
         "net_revenue",

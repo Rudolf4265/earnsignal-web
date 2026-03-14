@@ -107,21 +107,21 @@ export default function PricingPage() {
 
   return (
     <MarketingShell>
-      <Section className="pb-8 pt-14 sm:pb-10 sm:pt-16">
+      <Section className="pb-5 pt-12 sm:pb-6 sm:pt-14">
         <Container>
-          <div className="relative overflow-hidden rounded-[1.75rem] border border-brand-border-strong/70 bg-[linear-gradient(160deg,rgba(12,25,51,0.96),rgba(16,32,67,0.92),rgba(12,25,51,0.95))] px-6 py-8 shadow-brand-card sm:px-10 sm:py-10">
+          <div className="relative overflow-hidden rounded-[1.5rem] border border-brand-border-strong/70 bg-[linear-gradient(160deg,rgba(12,25,51,0.96),rgba(16,32,67,0.92),rgba(12,25,51,0.95))] px-6 py-6 shadow-brand-card sm:px-8 sm:py-7">
             <div
-              className="pointer-events-none absolute -right-24 -top-28 h-56 w-56 rounded-full opacity-35 blur-3xl"
+              className="pointer-events-none absolute -right-20 -top-24 h-44 w-44 rounded-full opacity-20 blur-3xl"
               style={{ backgroundImage: BRAND.gradientPrimary }}
             />
             <div className="relative max-w-3xl">
-              <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Free, Report, and Pro</h1>
-              <p className="mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
-                EarnSigma now follows one commercial ladder: Free for upload validation, a $79 one-time Report, and $59/month Pro for recurring access.
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-accent-teal">Pricing</p>
+              <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-[2.5rem]">Choose how you want to access EarnSigma</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-brand-text-secondary sm:text-base">
+                Start with free validation, buy a one-time report when you need a decision, or unlock ongoing revenue intelligence with Pro.
               </p>
-              <p className="mt-5 text-xs font-medium uppercase tracking-[0.14em] text-brand-accent-teal">
-                Free validation • $79 Report • $59/month Pro
-              </p>
+              <p className="mt-3 text-sm text-brand-text-muted">Built for creators who want clarity before they commit.</p>
+              <div className="mt-4 h-px w-full max-w-xl bg-gradient-to-r from-brand-accent-teal/55 via-brand-border-strong/65 to-transparent" aria-hidden="true" />
             </div>
           </div>
         </Container>

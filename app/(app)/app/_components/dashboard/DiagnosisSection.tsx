@@ -10,8 +10,6 @@ type DiagnosisSectionProps = {
 };
 
 export function DiagnosisSection({ diagnosis, loading = false }: DiagnosisSectionProps) {
-  const heading = diagnosis.diagnosisTypeLabel ?? (diagnosis.hasTypedDiagnosis ? "Diagnosis" : "Diagnosis unavailable");
-
   return (
     <section className="space-y-3" data-testid="dashboard-diagnosis-section">
       <DashboardSectionHeader
@@ -39,7 +37,7 @@ export function DiagnosisSection({ diagnosis, loading = false }: DiagnosisSectio
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Latest report diagnosis</p>
-                    <h3 className="mt-2 text-xl font-semibold leading-snug text-brand-text-primary">{heading}</h3>
+                    <h3 className="mt-2 text-xl font-semibold leading-snug text-brand-text-primary">{diagnosis.heading}</h3>
                   </div>
                   {diagnosis.hasTypedDiagnosis ? (
                     <span className="rounded-full border border-brand-border/75 bg-brand-panel/75 px-3 py-1 text-[11px] uppercase tracking-[0.12em] text-brand-text-muted">

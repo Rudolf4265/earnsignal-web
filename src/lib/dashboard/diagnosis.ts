@@ -15,6 +15,7 @@ export type DashboardDiagnosisMetric = SharedPresentationMetric;
 export type DashboardDiagnosisContext = SharedPresentationComparisonContext;
 
 export type DashboardDiagnosisViewModel = {
+  heading: string;
   hasTypedDiagnosis: boolean;
   diagnosisTypeLabel: string | null;
   summary: string | null;
@@ -32,15 +33,19 @@ export type BuildDashboardDiagnosisViewModelInput = {
 
 export function buildDashboardDiagnosisViewModel(input: BuildDashboardDiagnosisViewModelInput): DashboardDiagnosisViewModel {
   const diagnosis = input.diagnosis ?? null;
+  const hasReport = input.hasReport ?? false;
   const presentation = buildDiagnosisPresentation(diagnosis, {
     metricIdPrefix: "dashboard-diagnosis",
     supportingMetricLimit: 3,
     noticeFallbackBody: "Diagnosis is bounded by the available evidence in this report.",
-    missingDiagnosisBody: input.hasReport ? "Diagnosis unavailable for this dashboard snapshot." : "Diagnosis will appear after your next completed report.",
+    missingDiagnosisBody: hasReport
+      ? "This snapshot does not contain enough structured evidence to identify a primary growth constraint yet."
+      : "Diagnosis will appear after your next completed report.",
     missingSummaryBody: "Diagnosis details are limited for this dashboard snapshot.",
   });
 
   return {
+    heading: presentation.diagnosisTypeLabel ?? (diagnosis ? "Diagnosis" : hasReport ? "No primary constraint identified yet" : "Diagnosis unavailable"),
     hasTypedDiagnosis: Boolean(diagnosis),
     diagnosisTypeLabel: presentation.diagnosisTypeLabel,
     summary: presentation.summary,

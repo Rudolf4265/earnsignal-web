@@ -25,6 +25,7 @@ import {
 } from "@/src/lib/upload/platform-metadata";
 import { getSupportedRevenueUploadSummary } from "@/src/lib/upload/platform-guidance";
 import { detectPatreonExportType } from "@/src/lib/upload/patreon-csv-detector";
+import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detector";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
 import InlineAlert from "./InlineAlert";
@@ -97,6 +98,26 @@ async function buildPatreonClientContext(file: File): Promise<string | undefined
   }
 }
 
+/**
+ * Build an optional `client_context` JSON string that hints to the backend
+ * which Instagram export sub-type was detected client-side.
+ * Returns `undefined` if detection is inconclusive or not applicable.
+ */
+async function buildInstagramClientContext(file: File): Promise<string | undefined> {
+  try {
+    const headers = await readCSVHeaders(file);
+    const detection = detectInstagramExportType(headers);
+    if (detection.detected_export_type === "unknown") return undefined;
+    return JSON.stringify({
+      detected_export_type: detection.detected_export_type,
+      confidence: Math.round(detection.confidence * 100) / 100,
+    });
+  } catch {
+    // Non-fatal – proceed without the hint
+    return undefined;
+  }
+}
+
 const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?: UploadPlatform | null }) => {
   switch (reasonCode) {
     case "validation_failed":
@@ -105,6 +126,13 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
           "We couldn’t validate that Patreon CSV. Make sure you’re uploading the native Members export " +
           "(Patreon › Audience › Members › Export CSV), which includes columns like Patron Status, " +
           "Pledge Amount, and Patronage Since Date."
+        );
+      }
+      if (context?.platform === "instagram") {
+        return (
+          "We couldn’t validate that Instagram CSV. Please upload a native Content export from " +
+          "Meta Business Suite › Content › Export, which should include columns like " +
+          "Permalink, Publish time, Reach, Impressions, Likes, and Saves."
         );
       }
       return "We couldn’t validate that CSV. Please export a fresh file and try again.";
@@ -116,10 +144,25 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
           "This file should include columns like Patron Status, Pledge Amount, and Patronage Since Date."
         );
       }
+      if (context?.platform === "instagram") {
+        return (
+          "The CSV columns don’t match the expected Instagram Content export format. " +
+          "Please export a Content CSV directly from Meta Business Suite › Content › Export. " +
+          "The file should include columns like Permalink, Publish time, Reach, and Saves."
+        );
+      }
       return (
         "The CSV columns don’t match the expected format for this platform. " +
         "Please export a fresh file directly from the platform and try again."
       );
+    case "recognized_not_implemented":
+      if (context?.platform === "instagram") {
+        return (
+          "We recognised your Instagram export but full support for this export type is coming soon. " +
+          "Instagram Content exports (with Permalink, Reach, Saves, etc.) are fully supported today."
+        );
+      }
+      return "We recognised your file but full support for this export type is coming soon.";
     case "ingest_failed":
       return "We couldn’t ingest the file right now. Please retry in a moment.";
     case "report_failed":
@@ -527,7 +570,11 @@ export default function UploadStepper() {
       // Compute checksum and detect export type concurrently to save time.
       const [checksum, clientContext] = await Promise.all([
         computeSHA256Hex(file),
-        platform === "patreon" ? buildPatreonClientContext(file) : Promise.resolve(undefined),
+        platform === "patreon"
+          ? buildPatreonClientContext(file)
+          : platform === "instagram"
+            ? buildInstagramClientContext(file)
+            : Promise.resolve(undefined),
       ]);
       console.debug("Presign checksum computed", {
         fileName: file.name,

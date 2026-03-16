@@ -36,7 +36,7 @@ const AVAILABLE_PLATFORMS: Partial<Record<UploadPlatform, boolean>> = {
   patreon: true,
   substack: true,
   youtube: false,
-  instagram: false,
+  instagram: true,
   tiktok: false,
   onlyfans: false,
 };
@@ -69,9 +69,9 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
   {
     id: "instagram",
     label: "Instagram",
-    subtitle: "Creator monetization exports",
+    subtitle: "Content & insights exports",
     icon: "/platforms/instagram.svg",
-    category: "creator",
+    category: "supported",
     available: AVAILABLE_PLATFORMS.instagram ?? false,
   },
   {

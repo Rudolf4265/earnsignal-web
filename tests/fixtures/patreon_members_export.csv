@@ -1,0 +1,5 @@
+Name,Email,Discord,Patron Status,Follows You,Free Member,Free Trial,Lifetime Amount,Pledge Amount,Charge Frequency,Tier,Addressee,Street,City,State,Zip,Country,Phone,Patronage Since Date,Last Charge Date,Last Charge Status,Additional Details,User ID,Last Updated,Currency,Max Posts,Access Expiration,Next Charge Date,Full country name,Subscription Source
+Jane Doe,jane@example.com,,Active patron,true,false,false,120.00,10.00,monthly,Supporter Tier,,,,,,US,,2025-01-01,2026-03-01,Paid,,usr_001,2026-03-01,USD,,,2026-04-01,United States,patreon
+John Smith,john@example.com,john#1234,Active patron,false,false,false,60.00,5.00,monthly,Basic Tier,,,,,,US,,2025-06-15,2026-03-01,Paid,,usr_002,2026-03-01,USD,,,2026-04-01,United States,patreon
+Alice Chen,alice@example.com,alice#9999,Former patron,false,false,false,35.00,0.00,monthly,Basic Tier,,,,,,US,,2024-09-01,2025-12-01,Declined,,usr_003,2026-01-15,USD,,,,United States,patreon
+Bob Torres,bob@example.com,,Active patron,true,true,false,0.00,0.00,monthly,Free Tier,,,,,,CA,,2025-11-01,2026-03-01,Paid,,usr_004,2026-03-01,CAD,,,,Canada,patreon

@@ -38,6 +38,13 @@ export type UploadPresignRequestSchema = SchemaOrFallback<
     checksum?: string;
     sha256?: string;
     content_md5?: string;
+    /**
+     * Optional JSON string passed through to the backend for routing hints.
+     * Used to communicate detected_export_type (e.g. "patreon_members_export")
+     * so the backend can route to the correct validator without relying on
+     * the legacy patreon_monthly_rollup path.
+     */
+    client_context?: string | null;
   }
 >;
 

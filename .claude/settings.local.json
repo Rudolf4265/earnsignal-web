@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/brits/GitHub/earnsignal-web -type f \\\\\\(-name *.ts -o -name *.tsx -o -name *.py \\\\\\) ! -path */node_modules/* ! -path */.next/* ! -path */.git/*)",
+      "Bash(find /c/Users/brits/GitHub/earnsignal-web -type f \\\\\\(-name *.py -o -name *.go -o -name *.java \\\\\\) ! -path */node_modules/* ! -path */.next/* ! -path */.git/*)",
+      "Bash(grep -r \"patreon\\\\|substack\" /c/Users/brits/GitHub/earnsignal-web/src --include=*.ts)",
+      "Bash(ls -la /c/Users/brits/GitHub/earnsignal-web/app/\\\\\\(app\\\\\\)/app/_components/upload/)",
+      "Bash(ls -1 /c/Users/brits/GitHub/earnsignal-web/tests/upload*.test.mjs)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(grep -rn \"schema_mismatch\\\\|monthly_rollup\\\\|patreon_monthly\\\\|members_export\\\\|ingest_validate\\\\|export_type\\\\|detected_export\" c:/Users/brits/GitHub/earnsignal-web/src c:/Users/brits/GitHub/earnsignal-web/tests c:/Users/brits/GitHub/earnsignal-web/app --include=*.ts --include=*.tsx --include=*.mjs)",
+      "Bash(find c:/Users/brits/GitHub/earnsignal-web -name *.sql -not -path */node_modules/*)",
+      "Bash(ls c:/Users/brits/GitHub/earnsignal-web/app/*.md)",
+      "Bash(node --experimental-specifier-resolution=node --loader ./tests/node-ts-loader.mjs --test tests/patreon_csv_detector.test.mjs)",
+      "Bash(node --experimental-specifier-resolution=node --loader ./tests/node-ts-loader.mjs --test tests/upload_*.test.mjs)",
+      "Bash(npx tsc:*)",
+      "Read(//c/Users/brits/GitHub/**)",
+      "Read(//c/Users/brits/**)",
+      "Bash(python -m pytest tests/test_patreon_members_ingestion.py -x -q)",
+      "Bash(.venv/Scripts/pytest.exe tests/test_patreon_members_ingestion.py -x -q)",
+      "Bash(.venv/Scripts/pytest.exe tests/test_fr10_ingestion.py -x -q)",
+      "Bash(.venv/Scripts/pytest.exe tests/ -q --ignore=tests/test_patreon_members_ingestion.py)",
+      "Bash(.venv/Scripts/pytest.exe tests/test_fr10_ingestion.py tests/test_patreon_members_ingestion.py -q)"
+    ]
+  }
+}

@@ -24,6 +24,7 @@ import {
   UPLOAD_PLATFORM_CARDS,
 } from "@/src/lib/upload/platform-metadata";
 import { getSupportedRevenueUploadSummary } from "@/src/lib/upload/platform-guidance";
+import { detectPatreonExportType } from "@/src/lib/upload/patreon-csv-detector";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
 import InlineAlert from "./InlineAlert";
@@ -48,10 +49,77 @@ const readableFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 };
 
-const friendlyFailureMessage = (reasonCode: string | null) => {
+/**
+ * Read the first line of a CSV file and return the header cells.
+ * Reads only the first 8 KB so we never block the UI on large files.
+ */
+async function readCSVHeaders(file: File): Promise<string[]> {
+  const slice = file.slice(0, 8192);
+  const text = await slice.text();
+  const firstLine = (text.split(/\r?\n/)[0] ?? "").trim();
+  if (!firstLine) return [];
+
+  // Basic quoted-CSV parser (handles quotes around individual cells)
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (const char of firstLine) {
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  cells.push(current.trim());
+  return cells.filter((h) => h.length > 0);
+}
+
+/**
+ * Build an optional `client_context` JSON string that hints to the backend
+ * which Patreon export sub-type was detected client-side.
+ * Returns `undefined` if detection is inconclusive or not applicable.
+ */
+async function buildPatreonClientContext(file: File): Promise<string | undefined> {
+  try {
+    const headers = await readCSVHeaders(file);
+    const detection = detectPatreonExportType(headers);
+    if (detection.detected_export_type === "unknown") return undefined;
+    return JSON.stringify({
+      detected_export_type: detection.detected_export_type,
+      confidence: Math.round(detection.confidence * 100) / 100,
+    });
+  } catch {
+    // Non-fatal – proceed without the hint
+    return undefined;
+  }
+}
+
+const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?: UploadPlatform | null }) => {
   switch (reasonCode) {
     case "validation_failed":
+      if (context?.platform === "patreon") {
+        return (
+          "We couldn’t validate that Patreon CSV. Make sure you’re uploading the native Members export " +
+          "(Patreon › Audience › Members › Export CSV), which includes columns like Patron Status, " +
+          "Pledge Amount, and Patronage Since Date."
+        );
+      }
       return "We couldn’t validate that CSV. Please export a fresh file and try again.";
+    case "schema_mismatch_or_missing_columns":
+      if (context?.platform === "patreon") {
+        return (
+          "The CSV columns don’t match the expected Patreon Members export format. " +
+          "Please use the native Members CSV export from Patreon › Audience › Members › Export CSV. " +
+          "This file should include columns like Patron Status, Pledge Amount, and Patronage Since Date."
+        );
+      }
+      return (
+        "The CSV columns don’t match the expected format for this platform. " +
+        "Please export a fresh file directly from the platform and try again."
+      );
     case "ingest_failed":
       return "We couldn’t ingest the file right now. Please retry in a moment.";
     case "report_failed":
@@ -211,7 +279,7 @@ export default function UploadStepper() {
     }) => {
       setStep("processing");
       setProcessingStatus("failed");
-      setError(friendlyFailureMessage(params.reasonCode));
+      setError(friendlyFailureMessage(params.reasonCode, { platform }));
       setReasonCode(params.reasonCode);
       setStatusMsg(params.message);
       setErrorRequestId(params.requestId ?? null);
@@ -234,7 +302,7 @@ export default function UploadStepper() {
         operation: params.operation ?? null,
       });
     },
-    [logUploadDiagnostic],
+    [logUploadDiagnostic, platform],
   );
 
   const updateProcessingFromEnvelope = useCallback(
@@ -456,11 +524,16 @@ export default function UploadStepper() {
     try {
       setStep("uploading");
       setStatusMsg("Preparing file…");
-      const checksum = await computeSHA256Hex(file);
+      // Compute checksum and detect export type concurrently to save time.
+      const [checksum, clientContext] = await Promise.all([
+        computeSHA256Hex(file),
+        platform === "patreon" ? buildPatreonClientContext(file) : Promise.resolve(undefined),
+      ]);
       console.debug("Presign checksum computed", {
         fileName: file.name,
         size: file.size,
         hasChecksum: true,
+        ...(clientContext ? { detectedExportType: JSON.parse(clientContext).detected_export_type } : {}),
       });
 
       setStatusMsg("Requesting secure upload URL…");
@@ -470,6 +543,7 @@ export default function UploadStepper() {
         content_type: file.type || "text/csv",
         size: file.size,
         checksum,
+        ...(clientContext ? { client_context: clientContext } : {}),
       });
 
       setUploadId(presign.upload_id);

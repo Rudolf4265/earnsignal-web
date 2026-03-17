@@ -35,7 +35,7 @@ export const DIRECT_FAN_PLATFORM_CARD_ID: PlatformCardId = "direct-fan-platforms
 const AVAILABLE_PLATFORMS: Partial<Record<UploadPlatform, boolean>> = {
   patreon: true,
   substack: true,
-  youtube: false,
+  youtube: true,
   instagram: true,
   tiktok: false,
   onlyfans: false,
@@ -63,7 +63,7 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
     label: "YouTube",
     subtitle: "Video creator earnings",
     icon: "/platforms/youtube.png",
-    category: "creator",
+    category: "supported",
     available: AVAILABLE_PLATFORMS.youtube ?? false,
   },
   {
@@ -73,14 +73,6 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
     icon: "/platforms/instagram.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.instagram ?? false,
-  },
-  {
-    id: "tiktok",
-    label: "TikTok",
-    subtitle: "Short-form creator earnings",
-    icon: "/platforms/tiktok.svg",
-    category: "creator",
-    available: AVAILABLE_PLATFORMS.tiktok ?? false,
   },
   {
     id: DIRECT_FAN_PLATFORM_CARD_ID,
@@ -135,4 +127,10 @@ export function resolveDirectFanBackendId(id: DirectFanPlatformId): UploadPlatfo
   const match = DIRECT_FAN_PLATFORMS.find((item) => item.id === id);
   return match?.backendId ?? null;
 }
+
+export const COMING_SOON_CHIP_PLATFORMS: { id: string; label: string }[] = [
+  { id: "tiktok", label: "TikTok" },
+  { id: "twitch", label: "Twitch" },
+  { id: "snapchat", label: "Snapchat" },
+];
 

@@ -17,6 +17,7 @@ import { buildUploadDiagnostics, mapUploadStatus, type UploadStatusEnvelope, typ
 import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/lib/upload/resume";
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import {
+  COMING_SOON_CHIP_PLATFORMS,
   DIRECT_FAN_PLATFORM_CARD_ID,
   DIRECT_FAN_PLATFORMS,
   groupPlatformCards,
@@ -919,9 +920,8 @@ export default function UploadStepper() {
             </InlineAlert>
           ) : null}
           <StepHeader title="Choose platform" subtitle="Select the data source for this upload." />
-          <InlineAlert variant="info" title="Start with currently supported revenue exports" data-testid="upload-platform-guide">
-            <p>Today, the guided upload flow accepts {supportedRevenueUploads}. Choose the platform that matches your export, then continue with a fresh CSV file.</p>
-            <p className="mt-2">Earn unlocks first from revenue and subscriber data. Grow is the audience and engagement side, and richer scorecards appear when supported analytics are available.</p>
+          <InlineAlert variant="info" title="Start with a supported CSV export" data-testid="upload-platform-guide">
+            <p>Upload accepts {supportedRevenueUploads}. Choose the platform that matches your export, then continue with a fresh CSV file.</p>
             <Link href="/app/help#upload-guide" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
               Open upload guide
             </Link>
@@ -1010,6 +1010,21 @@ export default function UploadStepper() {
                 ) : null}
               </section>
             ))}
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">Coming soon</p>
+            <div className="flex flex-wrap gap-2" aria-label="Platforms coming soon">
+              {COMING_SOON_CHIP_PLATFORMS.map((item) => (
+                <span
+                  key={item.id}
+                  className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-400"
+                  aria-disabled="true"
+                >
+                  {item.label}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div className="flex justify-end">

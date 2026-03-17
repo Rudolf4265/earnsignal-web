@@ -234,7 +234,19 @@ export default function MarketingHomePage() {
     <MarketingShell>
 
       {/* ── 1. HERO ─────────────────────────────────────────────────────────── */}
-      <Section className="pb-20 pt-16 sm:pb-24 sm:pt-20 lg:pb-28 lg:pt-24">
+      <Section className="relative overflow-hidden pb-20 pt-16 sm:pb-24 sm:pt-20 lg:pb-28 lg:pt-24">
+        {/* Ghosted Sigma brand mark — decorative background composition element */}
+        <div
+          className="pointer-events-none absolute -left-14 -top-20 select-none font-light leading-none text-brand-accent-blue opacity-[0.052] blur-[5px]"
+          style={{ fontSize: "clamp(20rem, 38vw, 50rem)" }}
+          aria-hidden="true"
+        >
+          Σ
+        </div>
+        <div
+          className="pointer-events-none absolute -left-32 -top-28 h-[36rem] w-[36rem] rounded-full bg-brand-accent-blue/[0.06] blur-[8rem]"
+          aria-hidden="true"
+        />
         <Container>
           <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-16 xl:gap-20">
             <div className="relative">
@@ -252,8 +264,12 @@ export default function MarketingHomePage() {
               </h1>
 
               <p className="mt-7 max-w-2xl text-base leading-7 text-brand-text-secondary sm:text-lg sm:leading-8">
-                EarnSigma turns your real creator business data into private diagnostics &mdash;
-                revealing revenue concentration, churn risk, monetization health, and next best actions.
+                EarnSigma turns your{" "}
+                <strong className="font-semibold text-white">real business data</strong> into{" "}
+                <strong className="font-semibold text-white">private diagnostics</strong> &mdash; revealing{" "}
+                <strong className="font-semibold text-white">revenue concentration</strong>,{" "}
+                <strong className="font-semibold text-white">churn risk</strong>, monetization health, and{" "}
+                <strong className="font-semibold text-white">next best actions</strong>.
               </p>
 
               <div className="mt-11 flex flex-wrap items-center gap-3.5 sm:gap-4">
@@ -281,6 +297,9 @@ export default function MarketingHomePage() {
 
               <p className="mt-5 text-[11px] font-medium uppercase tracking-[0.14em] text-brand-accent-teal/90">
                 Free validation • $79 Report • $59/month Pro
+              </p>
+              <p className="mt-2.5 text-[11px] tracking-[0.06em] text-brand-text-muted/60">
+                Private workspace · Real exports · Actionable diagnostics
               </p>
             </div>
 
@@ -402,32 +421,36 @@ export default function MarketingHomePage() {
             <div className="rounded-2xl border border-brand-border/50 bg-brand-panel-muted/15 p-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Public Trackers</p>
               <ul className="mt-5 space-y-3">
-                {[
-                  "Follower counts and estimated reach",
-                  "Public growth rankings",
-                  "Rough revenue guesses from public data",
-                ].map((point) => (
-                  <li key={point} className="flex items-start gap-2.5 text-sm text-brand-text-muted">
-                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
-                    {point}
-                  </li>
-                ))}
+                <li className="flex items-start gap-2.5 text-sm text-brand-text-muted">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
+                  Follower counts and estimated reach
+                </li>
+                <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
+                  Public growth rankings
+                </li>
+                <li className="flex items-start gap-2.5 text-sm text-brand-text-muted">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
+                  Rough revenue guesses from public data
+                </li>
               </ul>
             </div>
 
             <div className="rounded-2xl border border-brand-border/50 bg-brand-panel-muted/15 p-6">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Native Dashboards</p>
               <ul className="mt-5 space-y-3">
-                {[
-                  "Siloed per-platform metrics",
-                  "No cross-platform revenue view",
-                  "Raw numbers without diagnosis",
-                ].map((point) => (
-                  <li key={point} className="flex items-start gap-2.5 text-sm text-brand-text-muted">
-                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
-                    {point}
-                  </li>
-                ))}
+                <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
+                  Siloed per-platform metrics
+                </li>
+                <li className="flex items-start gap-2.5 text-sm text-brand-text-muted">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
+                  No cross-platform revenue view
+                </li>
+                <li className="flex items-start gap-2.5 text-sm text-brand-text-muted">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
+                  Raw numbers without diagnosis
+                </li>
               </ul>
             </div>
 
@@ -439,16 +462,18 @@ export default function MarketingHomePage() {
                 </span>
               </div>
               <ul className="mt-5 space-y-3">
-                {[
-                  "Private diagnostics from your real exports",
-                  "Concentration, churn, and monetization health",
-                  "Next-action guidance — not just charts",
-                ].map((point) => (
-                  <li key={point} className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
-                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
-                    {point}
-                  </li>
-                ))}
+                <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
+                  <span><strong className="font-semibold text-white">Private diagnostics</strong> from your real exports</span>
+                </li>
+                <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
+                  Concentration, churn, and monetization health
+                </li>
+                <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
+                  <span><strong className="font-semibold text-white">Next-action guidance</strong> — not just charts</span>
+                </li>
               </ul>
             </div>
           </div>
@@ -464,7 +489,7 @@ export default function MarketingHomePage() {
               What your business data reveals
             </h2>
             <p className="mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
-              Upload your creator exports and EarnSigma surfaces the patterns that native dashboards and public tools can&apos;t see.
+              Upload your exports. See the patterns public tools can&apos;t.
             </p>
           </div>
 
@@ -532,7 +557,7 @@ export default function MarketingHomePage() {
             {[
               {
                 title: "Upload your exports",
-                body: "Patreon, Instagram, and other creator revenue exports. Your actual business data — not third-party estimates.",
+                body: <>Patreon, Instagram, and other creator exports. <strong className="font-medium text-brand-text-primary">Your actual data</strong> — not third-party estimates.</>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -543,7 +568,7 @@ export default function MarketingHomePage() {
               },
               {
                 title: "Get private diagnostics",
-                body: "Concentration risk, churn maps, monetization health, and stability scores — not estimated vanity metrics.",
+                body: <><strong className="font-medium text-brand-text-primary">Concentration risk, churn maps, and monetization health</strong> — not estimated vanity metrics.</>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <circle cx="11" cy="11" r="8" />
@@ -555,7 +580,7 @@ export default function MarketingHomePage() {
               },
               {
                 title: "Receive recommendations",
-                body: "Every report surfaces specific next actions tailored to your data — not generic creator advice.",
+                body: <>Every report surfaces <strong className="font-medium text-brand-text-primary">specific next actions</strong> tailored to your data — not generic creator advice.</>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <path d="M9 11l3 3L22 4" />
@@ -565,7 +590,7 @@ export default function MarketingHomePage() {
               },
               {
                 title: "Data stays yours",
-                body: "Private, workspace-specific, never shared or made public. Your business intelligence stays yours.",
+                body: <>Private, workspace-specific, never shared or made public. <strong className="font-medium text-brand-text-primary">Your business intelligence stays yours.</strong></>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -677,8 +702,7 @@ export default function MarketingHomePage() {
               </p>
 
               <p className="mt-6 text-sm leading-relaxed text-brand-text-secondary">
-                Every report includes specific diagnostics and clear next-action guidance tailored to
-                your creator business.
+                Every report includes specific diagnostics and clear next-action guidance.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2.5">
@@ -830,7 +854,7 @@ export default function MarketingHomePage() {
                 key={item.title}
                 className="rounded-2xl border border-brand-border/65 bg-brand-panel-muted/20 p-6"
               >
-                <h3 className="text-sm font-semibold text-white">{item.title}</h3>
+                <h3 className="text-base font-semibold text-white">{item.title}</h3>
                 <p className="mt-2.5 text-sm leading-relaxed text-brand-text-secondary">{item.body}</p>
               </div>
             ))}

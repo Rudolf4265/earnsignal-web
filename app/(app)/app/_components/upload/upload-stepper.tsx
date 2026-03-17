@@ -18,10 +18,7 @@ import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/li
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import {
   COMING_SOON_CHIP_PLATFORMS,
-  DIRECT_FAN_PLATFORM_CARD_ID,
-  DIRECT_FAN_PLATFORMS,
   groupPlatformCards,
-  resolveDirectFanBackendId,
   UPLOAD_PLATFORM_CARDS,
 } from "@/src/lib/upload/platform-metadata";
 import { getSupportedRevenueUploadSummary } from "@/src/lib/upload/platform-guidance";
@@ -41,9 +38,6 @@ const stepOrder: Step[] = ["platform", "file", "uploading", "processing", "done"
 const RESUME_STATUS_TIMEOUT_MS = 2_500;
 const platformSections = groupPlatformCards(UPLOAD_PLATFORM_CARDS);
 const supportedRevenueUploads = getSupportedRevenueUploadSummary();
-const directFanBackendIds = new Set(
-  DIRECT_FAN_PLATFORMS.map((item) => item.backendId).filter((id): id is UploadPlatform => id !== null),
-);
 
 const readableFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -192,35 +186,44 @@ type PlatformCardProps = {
 };
 
 function PlatformCard({ label, subtitle, icon, available, selected, onClick, testId }: PlatformCardProps) {
-  const statusLabel = available ? "Available" : "Coming soon";
-
   return (
     <button
       type="button"
       data-testid={testId}
       disabled={!available}
       onClick={onClick}
-      className={`group flex h-full w-full flex-col rounded-2xl border bg-white p-4 text-left transition-all duration-200 ${
+      className={[
+        "group relative flex h-full w-full flex-col rounded-2xl border p-4 text-left transition-all duration-200",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
         available
-          ? "cursor-pointer border-slate-200 shadow-[0_8px_24px_-22px_rgba(15,23,42,0.45)] hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-[0_14px_28px_-18px_rgba(14,116,144,0.4)]"
-          : "cursor-not-allowed border-slate-200 opacity-65"
-      } ${selected ? "border-brand-blue shadow-[0_0_0_1px_rgba(37,99,235,0.45),0_14px_30px_-18px_rgba(37,99,235,0.35)]" : ""}`}
+          ? selected
+            ? "cursor-pointer border-blue-500 bg-gradient-to-br from-blue-50 to-slate-50 shadow-[0_0_0_3px_rgba(59,130,246,0.18),0_8px_24px_-10px_rgba(37,99,235,0.25)]"
+            : "cursor-pointer border-slate-200 bg-white shadow-[0_2px_8px_-2px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 hover:border-blue-300/70 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/40 hover:shadow-[0_8px_20px_-8px_rgba(37,99,235,0.18)]"
+          : "cursor-not-allowed border-slate-200 bg-white opacity-55",
+      ].join(" ")}
     >
-      <Image
-        src={icon}
-        alt={`${label} logo`}
-        width={28}
-        height={28}
-        className="platform-icon block h-[28px] w-[28px] object-contain"
-      />
+      {selected ? (
+        <span className="absolute right-3 top-3 inline-flex items-center rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+          Selected
+        </span>
+      ) : null}
+      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_3px_rgba(15,23,42,0.08)]">
+        <Image
+          src={icon}
+          alt={`${label} logo`}
+          width={24}
+          height={24}
+          className="platform-icon block h-6 w-6 object-contain"
+        />
+      </span>
       <p className="mt-3 text-sm font-semibold text-slate-900">{label}</p>
-      <p className="mt-1 text-xs text-slate-600">{subtitle}</p>
+      <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
       <span
-        className={`mt-4 inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
-          available ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-100 text-slate-500"
+        className={`mt-auto pt-3 inline-flex w-fit rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+          available ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-100 text-slate-400"
         }`}
       >
-        {statusLabel}
+        {available ? "Available" : "Coming soon"}
       </span>
     </button>
   );
@@ -259,7 +262,6 @@ export default function UploadStepper() {
 
   const [step, setStep] = useState<Step>("platform");
   const [platform, setPlatform] = useState<UploadPlatform | null>(null);
-  const [directFanExpanded, setDirectFanExpanded] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadId, setUploadId] = useState<string | null>(null);
   const [reportId, setReportId] = useState<string | null>(null);
@@ -298,7 +300,6 @@ export default function UploadStepper() {
     entitlementState.canUpload &&
     entitlementState.canValidateUpload;
   const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
-  const directFanSelected = platform ? directFanBackendIds.has(platform) : false;
 
   const unsupportedCsvWarning = file && !file.name.toLowerCase().endsWith(".csv");
 
@@ -413,7 +414,6 @@ export default function UploadStepper() {
     stopPolling();
     setStep("platform");
     setPlatform(null);
-    setDirectFanExpanded(false);
     setFile(null);
     setUploadId(null);
     setReportId(null);
@@ -932,21 +932,6 @@ export default function UploadStepper() {
                 <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{section.label}</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {section.items.map((item) => {
-                    if (item.id === DIRECT_FAN_PLATFORM_CARD_ID) {
-                      return (
-                        <PlatformCard
-                          key={item.id}
-                          label={item.label}
-                          subtitle={item.subtitle}
-                          icon={item.icon}
-                          available={item.available}
-                          selected={directFanExpanded || directFanSelected}
-                          onClick={() => setDirectFanExpanded((value) => !value)}
-                          testId={`platform-card-${item.id}`}
-                        />
-                      );
-                    }
-
                     const selected = platform === item.id;
                     return (
                       <PlatformCard
@@ -957,57 +942,14 @@ export default function UploadStepper() {
                         available={item.available}
                         selected={selected}
                         onClick={() => {
-                          if (!item.available) {
-                            return;
-                          }
+                          if (!item.available) return;
                           setPlatform(item.id);
-                          setDirectFanExpanded(false);
                         }}
                         testId={`platform-card-${item.id}`}
                       />
                     );
                   })}
                 </div>
-
-                {section.category === "additional" ? (
-                  <div
-                    data-testid="direct-fan-reveal"
-                    className="overflow-hidden transition-[max-height] duration-200 ease-out"
-                    style={{ maxHeight: directFanExpanded ? "560px" : "0px" }}
-                    aria-hidden={!directFanExpanded}
-                  >
-                    <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-50/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
-                      <p className="text-sm font-semibold text-slate-900">Choose your platform</p>
-                      <p className="mt-1 text-xs text-slate-600">Select the platform that matches your creator revenue export.</p>
-                      <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                        {DIRECT_FAN_PLATFORMS.map((item) => {
-                          const backendId = resolveDirectFanBackendId(item.id);
-                          const selectable = item.available && Boolean(backendId);
-                          const selected = Boolean(backendId && platform === backendId);
-
-                          return (
-                            <PlatformCard
-                              key={item.id}
-                              label={item.label}
-                              subtitle={item.subtitle}
-                              icon={item.icon}
-                              available={selectable}
-                              selected={selected}
-                              onClick={() => {
-                                if (!selectable || !backendId) {
-                                  return;
-                                }
-                                setPlatform(backendId);
-                                setDirectFanExpanded(false);
-                              }}
-                              testId={`direct-fan-option-${item.id}`}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
               </section>
             ))}
           </div>
@@ -1018,9 +960,22 @@ export default function UploadStepper() {
               {COMING_SOON_CHIP_PLATFORMS.map((item) => (
                 <span
                   key={item.id}
-                  className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-400"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 py-1 pl-1.5 pr-3 text-xs font-medium text-slate-400"
                   aria-disabled="true"
                 >
+                  {item.icon ? (
+                    <Image
+                      src={item.icon}
+                      alt={`${item.label} logo`}
+                      width={16}
+                      height={16}
+                      className="block h-4 w-4 object-contain opacity-50"
+                    />
+                  ) : (
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[9px] font-bold text-slate-500">
+                      {item.label[0]}
+                    </span>
+                  )}
                   {item.label}
                 </span>
               ))}
@@ -1033,7 +988,6 @@ export default function UploadStepper() {
               disabled={!platform}
               onClick={() => {
                 setStep("file");
-                setDirectFanExpanded(false);
                 setError(null);
                 setErrorDetails(null);
                 setErrorRequestId(null);

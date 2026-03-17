@@ -74,14 +74,6 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
     category: "supported",
     available: AVAILABLE_PLATFORMS.instagram ?? false,
   },
-  {
-    id: DIRECT_FAN_PLATFORM_CARD_ID,
-    label: "Direct fan platforms",
-    subtitle: "Creator subscription platforms",
-    icon: "/platforms/direct-fan.svg",
-    category: "additional",
-    available: true,
-  },
 ];
 
 export const DIRECT_FAN_PLATFORMS: DirectFanPlatformMetadata[] = [
@@ -89,7 +81,7 @@ export const DIRECT_FAN_PLATFORMS: DirectFanPlatformMetadata[] = [
     id: "onlyfans",
     label: "OnlyFans",
     subtitle: "Direct creator subscriptions",
-    icon: "/platforms/direct-fan.svg",
+    icon: "/platforms/direct-fan.png",
     available: AVAILABLE_PLATFORMS.onlyfans ?? false,
     backendId: "onlyfans",
   },
@@ -97,7 +89,7 @@ export const DIRECT_FAN_PLATFORMS: DirectFanPlatformMetadata[] = [
     id: "fansly",
     label: "Fansly",
     subtitle: "Direct creator subscriptions",
-    icon: "/platforms/direct-fan.svg",
+    icon: "/platforms/direct-fan.png",
     available: false,
     backendId: null,
   },
@@ -105,7 +97,7 @@ export const DIRECT_FAN_PLATFORMS: DirectFanPlatformMetadata[] = [
     id: "fanfix",
     label: "Fanfix",
     subtitle: "Direct creator subscriptions",
-    icon: "/platforms/direct-fan.svg",
+    icon: "/platforms/direct-fan.png",
     available: false,
     backendId: null,
   },
@@ -128,9 +120,9 @@ export function resolveDirectFanBackendId(id: DirectFanPlatformId): UploadPlatfo
   return match?.backendId ?? null;
 }
 
-export const COMING_SOON_CHIP_PLATFORMS: { id: string; label: string }[] = [
-  { id: "tiktok", label: "TikTok" },
-  { id: "twitch", label: "Twitch" },
-  { id: "snapchat", label: "Snapchat" },
+export const COMING_SOON_CHIP_PLATFORMS: { id: string; label: string; icon: string | null }[] = [
+  { id: "tiktok", label: "TikTok", icon: "/platforms/tiktok.svg" },
+  { id: "twitch", label: "Twitch", icon: "/platforms/twitch.svg" },
+  { id: "snapchat", label: "Snapchat", icon: "/platforms/snapchat.svg" },
 ];
 

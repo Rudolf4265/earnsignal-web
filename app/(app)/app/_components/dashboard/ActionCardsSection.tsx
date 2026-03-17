@@ -17,16 +17,10 @@ export function ActionCardsSection({ mode, cards, presentation = "default" }: Ac
   const supportingCards = cards.slice(1);
 
   return (
-    <section className={isHero ? "h-full" : "space-y-3"} data-testid="dashboard-section-what-to-do-next">
-      {isHero ? null : <DashboardSectionHeader title="Next best move" description="Clear next steps based on currently available signals." />}
+    <section className="space-y-3" data-testid="dashboard-section-what-to-do-next">
+      <DashboardSectionHeader title="Next best move" description="Clear next steps based on currently available signals." />
 
-      <PanelCard
-        className={`h-full border-brand-border/75 ${
-          isHero
-            ? "bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(21,44,88,0.92),rgba(16,32,67,0.96))]"
-            : "bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]"
-        }`}
-      >
+      <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(21,44,88,0.92),rgba(16,32,67,0.96))]">
         {mode === "unlocked" ? (
           <div className="space-y-4" data-testid="dashboard-action-cards-unlocked">
             <div>

@@ -2,7 +2,7 @@ import type { DashboardViewModel } from "@/src/lib/dashboard/view-model";
 
 type DashboardMetricStripProps = {
   revenueSnapshot: DashboardViewModel["revenueSnapshot"];
-  stabilityIndex: number | null;
+  churnVelocity: number | null;
   coverageMonths: number | null;
 };
 
@@ -24,8 +24,8 @@ function CompactTile({ label, value, subtext }: CompactTileProps) {
   );
 }
 
-export function DashboardMetricStrip({ revenueSnapshot, stabilityIndex, coverageMonths }: DashboardMetricStripProps) {
-  const stabilityDisplay = stabilityIndex !== null ? String(stabilityIndex) : "--";
+export function DashboardMetricStrip({ revenueSnapshot, churnVelocity, coverageMonths }: DashboardMetricStripProps) {
+  const churnDisplay = churnVelocity !== null ? `${churnVelocity}%` : "--";
   const coverageDisplay = coverageMonths !== null ? `${coverageMonths}mo` : "--";
 
   return (
@@ -41,9 +41,9 @@ export function DashboardMetricStrip({ revenueSnapshot, stabilityIndex, coverage
         subtext={revenueSnapshot.subscriberDeltaText ?? "Comparison appears after enough report history."}
       />
       <CompactTile
-        label="Stability Index"
-        value={stabilityDisplay}
-        subtext="Creator health score from the latest report."
+        label="Churn Rate"
+        value={churnDisplay}
+        subtext="Churn velocity from latest report."
       />
       <CompactTile
         label="Coverage"

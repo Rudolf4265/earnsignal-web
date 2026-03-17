@@ -5,12 +5,10 @@ import { useAppGate } from "../_components/app-gate-provider";
 import { useEntitlementState } from "../_components/use-entitlement-state";
 import { ActionCardsSection } from "./_components/dashboard/ActionCardsSection";
 import { CreatorHealthPanel } from "./_components/dashboard/CreatorHealthPanel";
-import { DashboardContextTile } from "./_components/dashboard/DashboardContextTile";
 import { DashboardMetricStrip } from "./_components/dashboard/DashboardMetricStrip";
 import { DashboardOnboardingSection } from "./_components/dashboard/DashboardOnboardingSection";
 import { DashboardTopShell } from "./_components/dashboard/DashboardTopShell";
 import { DashboardUtilitySection } from "./_components/dashboard/DashboardUtilitySection";
-import { DiagnosisSection } from "./_components/dashboard/DiagnosisSection";
 import { GrowDashboardSection } from "./_components/dashboard/GrowDashboardSection";
 import { InsightCardsSection } from "./_components/dashboard/InsightCardsSection";
 import { RevenueTrendSection } from "./_components/dashboard/RevenueTrendSection";
@@ -390,6 +388,7 @@ export default function DashboardPage() {
     netRevenue: artifactKpis?.netRevenue ?? reportMetrics?.netRevenue ?? null,
     subscribers: artifactKpis?.subscribers ?? reportMetrics?.subscribers ?? null,
     stabilityIndex: artifactKpis?.stabilityIndex ?? reportMetrics?.stabilityIndex ?? null,
+    churnVelocity: artifactKpis?.churnVelocity ?? null,
     coverageMonths: reportMetrics?.coverageMonths ?? null,
     platformsConnected: reportMetrics?.platformsConnected ?? null,
   };
@@ -496,6 +495,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <DashboardTopShell
         mode={dashboardMode}
+        onModeChange={handleModeChange}
         refreshing={state.refreshing}
         refreshDisabled={state.loading || state.refreshing}
         onRefresh={refresh}
@@ -523,14 +523,8 @@ export default function DashboardPage() {
 
       {dashboardMode === "earn" ? (
         <>
-          {/* Row 1: Context tile + Creator Health + Actions */}
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,5fr),minmax(0,4fr),minmax(0,3fr)]">
-            <DashboardContextTile
-              mode={dashboardMode}
-              onChange={handleModeChange}
-              workspaceStatusLabel={workspaceStatusLabel}
-            />
-
+          {/* Row 1: Creator Health + Next Best Move */}
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr),minmax(0,5fr)]">
             <CreatorHealthPanel
               creatorHealth={earnDashboardModel.creatorHealth}
               loading={state.loading}
@@ -538,23 +532,21 @@ export default function DashboardPage() {
               latestReportHref={latestReportHref}
               latestReportStatusLabel={toBadgeLabel(state.latestReportRow?.status ?? "unknown")}
               latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
+              diagnosisNotice={diagnosisViewModel.notice}
             />
 
             <ActionCardsSection mode={actionCardsSection.mode} cards={actionCardsSection.cards} presentation="hero" />
           </div>
 
-          {/* Row 2: Signals (featured, large) + Diagnosis */}
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr),minmax(0,5fr)]">
-            <InsightCardsSection insights={insightCards} />
-            <DiagnosisSection diagnosis={diagnosisViewModel} loading={state.loading} presentation="hero" />
-          </div>
-
-          {/* Row 3: Compact metric strip */}
+          {/* Row 2: Compact metric strip */}
           <DashboardMetricStrip
             revenueSnapshot={earnDashboardModel.revenueSnapshot}
-            stabilityIndex={kpis.stabilityIndex}
+            churnVelocity={kpis.churnVelocity}
             coverageMonths={kpis.coverageMonths}
           />
+
+          {/* Row 3: Signals + Biggest Constraint embedded */}
+          <InsightCardsSection insights={insightCards} diagnosis={diagnosisViewModel} loading={state.loading} />
 
           <RevenueTrendSection
             trend={revenueTrend}

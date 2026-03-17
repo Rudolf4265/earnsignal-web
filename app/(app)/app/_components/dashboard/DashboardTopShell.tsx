@@ -4,6 +4,7 @@ import type { DashboardMode } from "@/src/lib/dashboard/mode";
 
 type DashboardTopShellProps = {
   mode: DashboardMode;
+  onModeChange: (mode: DashboardMode) => void;
   refreshing: boolean;
   refreshDisabled: boolean;
   onRefresh: () => void;
@@ -13,6 +14,7 @@ type DashboardTopShellProps = {
 
 export function DashboardTopShell({
   mode,
+  onModeChange,
   refreshing,
   refreshDisabled,
   onRefresh,
@@ -28,6 +30,30 @@ export function DashboardTopShell({
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center rounded-full border border-brand-border-strong/60 bg-brand-panel/70 p-0.5">
+          <button
+            type="button"
+            onClick={() => onModeChange("earn")}
+            className={`rounded-full px-3 py-1 text-xs font-semibold tracking-wide transition ${
+              mode === "earn"
+                ? "bg-brand-accent-teal/20 text-brand-accent-teal"
+                : "text-brand-text-muted hover:text-brand-text-secondary"
+            }`}
+          >
+            Earn
+          </button>
+          <button
+            type="button"
+            onClick={() => onModeChange("grow")}
+            className={`rounded-full px-3 py-1 text-xs font-semibold tracking-wide transition ${
+              mode === "grow"
+                ? "bg-brand-accent-teal/20 text-brand-accent-teal"
+                : "text-brand-text-muted hover:text-brand-text-secondary"
+            }`}
+          >
+            Grow
+          </button>
+        </div>
         <Button
           type="button"
           variant="secondary"

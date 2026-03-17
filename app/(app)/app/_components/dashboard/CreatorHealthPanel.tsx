@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Badge } from "./Badge";
+import { TruthNotice } from "./TruthNotice";
 import { buttonClassName } from "@/src/components/ui/button";
 import { PanelCard } from "@/src/components/ui/panel-card";
 import type { DashboardViewModel } from "@/src/lib/dashboard/view-model";
+import type { DashboardDiagnosisNotice } from "@/src/lib/dashboard/diagnosis";
 
 type LatestReportRow = {
   id: string;
@@ -19,6 +21,7 @@ type CreatorHealthPanelProps = {
   latestReportHref: string;
   latestReportStatusLabel: string;
   latestReportStatusVariant: BadgeVariant;
+  diagnosisNotice?: DashboardDiagnosisNotice | null;
 };
 
 type ScoreTrajectory = {
@@ -82,6 +85,7 @@ export function CreatorHealthPanel({
   latestReportHref,
   latestReportStatusLabel,
   latestReportStatusVariant,
+  diagnosisNotice,
 }: CreatorHealthPanelProps) {
   const trajectory = resolveScoreTrajectory(creatorHealth.score, creatorHealth.stateLabel);
 
@@ -122,6 +126,10 @@ export function CreatorHealthPanel({
               <h3 className="mt-5 text-xl font-semibold text-brand-text-primary">{creatorHealth.title}</h3>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-brand-text-secondary">{creatorHealth.subtitle}</p>
             </article>
+
+            {diagnosisNotice ? (
+              <TruthNotice notice={diagnosisNotice} testId="creator-health-diagnosis-notice" />
+            ) : null}
           </div>
 
           <div className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1fr),auto]">

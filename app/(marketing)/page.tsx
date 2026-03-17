@@ -9,6 +9,7 @@ import { MarketingShell } from "./_components/marketing-shell";
 import { appBaseUrl } from "@/src/lib/urls";
 
 type InsightIconKey = "churn" | "dependence" | "supporters" | "migration" | "stability" | "platform" | "opportunity";
+type InsightBucket = "revenue-risk" | "monetization" | "growth";
 
 type ReportSignal = {
   label: string;
@@ -28,6 +29,7 @@ type DiscoverInsight = {
   indicator: string;
   bars: [number, number, number, number, number, number];
   icon: InsightIconKey;
+  bucket: InsightBucket;
 };
 
 const reportSignals: ReportSignal[] = [
@@ -71,6 +73,7 @@ const discoverInsights: DiscoverInsight[] = [
     indicator: "Loss Concentration",
     bars: [92, 70, 46, 34, 28, 20],
     icon: "churn",
+    bucket: "revenue-risk",
   },
   {
     title: "How Dependent You Are On Top Fans",
@@ -79,6 +82,7 @@ const discoverInsights: DiscoverInsight[] = [
     indicator: "Concentration",
     bars: [26, 34, 43, 57, 70, 88],
     icon: "dependence",
+    bucket: "revenue-risk",
   },
   {
     title: "Your Top 5% of Supporters",
@@ -87,6 +91,7 @@ const discoverInsights: DiscoverInsight[] = [
     indicator: "High Value Segment",
     bars: [20, 24, 29, 36, 56, 76],
     icon: "supporters",
+    bucket: "monetization",
   },
   {
     title: "How Fans Move Between Tiers",
@@ -95,6 +100,7 @@ const discoverInsights: DiscoverInsight[] = [
     indicator: "Tier Migration",
     bars: [24, 28, 34, 45, 56, 72],
     icon: "migration",
+    bucket: "monetization",
   },
   {
     title: "Revenue Stability Score",
@@ -103,14 +109,16 @@ const discoverInsights: DiscoverInsight[] = [
     indicator: "Stability",
     bars: [42, 48, 56, 66, 74, 78],
     icon: "stability",
+    bucket: "growth",
   },
   {
     title: "Platform Dependence",
-    description: "See whether your revenue relies too heavily on a single platform.",
+    description: "See whether your revenue relies too heavily on a single platform or is diversifying.",
     signal: "71% of revenue is currently tied to Patreon",
     indicator: "Platform Risk",
     bars: [78, 72, 67, 55, 40, 28],
     icon: "platform",
+    bucket: "growth",
   },
 ];
 
@@ -120,10 +128,11 @@ const reportSectionPillars = [
   "Tier Migration Flow",
   "Revenue Stability Score",
   "Platform Risk",
+  "Next Best Move",
 ];
 
 const primaryCtaHref = `${appBaseUrl}${marketingCtas.startTrial.appPath}?plan=report`;
-const secondaryCtaHref = `${appBaseUrl}${marketingCtas.startTrial.appPath}?plan=free`;
+const secondaryCtaHref = marketingCtas.viewExampleReport.href;
 
 function InsightGlyph({ icon, className }: { icon: InsightIconKey; className?: string }) {
   const classes = cn("h-4 w-4", className);
@@ -223,6 +232,8 @@ export default function MarketingHomePage() {
 
   return (
     <MarketingShell>
+
+      {/* ── 1. HERO ─────────────────────────────────────────────────────────── */}
       <Section className="pb-20 pt-16 sm:pb-24 sm:pt-20 lg:pb-28 lg:pt-24">
         <Container>
           <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-16 xl:gap-20">
@@ -232,17 +243,17 @@ export default function MarketingHomePage() {
                 variant="accent"
                 className="relative border-brand-border-strong/65 bg-brand-panel/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.17em] text-brand-accent-blue"
               >
-                CREATOR OPTIMIZATION REPORT
+                PRIVATE CREATOR BUSINESS INTELLIGENCE
               </Badge>
 
               <h1 className="relative mt-7 max-w-[17ch] text-4xl font-semibold leading-[1.06] tracking-[-0.025em] text-white sm:mt-8 sm:text-5xl lg:max-w-[16ch] lg:text-[3.45rem] xl:text-[3.85rem]">
-                <span className="block lg:whitespace-nowrap">See What&apos;s Really Driving</span>
-                <span className="block lg:whitespace-nowrap">Your Creator Revenue</span>
+                <span className="block">See what public</span>
+                <span className="block">creator stats miss.</span>
               </h1>
 
               <p className="mt-7 max-w-2xl text-base leading-7 text-brand-text-secondary sm:text-lg sm:leading-8">
-                Upload your creator earnings data and generate a revenue optimization report in minutes &mdash;
-                revealing churn risk, tier migration, and platform dependence.
+                EarnSigma turns your real creator business data into private diagnostics &mdash;
+                revealing revenue concentration, churn risk, monetization health, and next best actions.
               </p>
 
               <div className="mt-11 flex flex-wrap items-center gap-3.5 sm:gap-4">
@@ -254,7 +265,7 @@ export default function MarketingHomePage() {
                       "rounded-xl border-brand-accent-emerald/50 bg-[linear-gradient(120deg,rgba(29,78,216,0.98),rgba(47,217,197,0.9))] px-6 py-3 text-sm font-semibold text-white shadow-brand-glow hover:border-brand-accent-emerald/70 hover:brightness-110 sm:px-7 sm:py-3.5",
                   })}
                 >
-                  Generate My Revenue Report
+                  Generate My Private Report
                 </a>
                 <a
                   href={secondaryCtaHref}
@@ -264,13 +275,16 @@ export default function MarketingHomePage() {
                       "rounded-xl border-brand-border-strong/70 bg-brand-panel/70 px-5 py-3 text-sm text-brand-text-secondary hover:bg-brand-panel hover:text-white sm:px-6",
                   })}
                 >
-                  See Free Dashboard
+                  See Sample Diagnostics
                 </a>
               </div>
 
-              <p className="mt-5 text-[11px] font-medium uppercase tracking-[0.14em] text-brand-accent-teal/90">Free validation • $79 Report • $59/month Pro</p>
+              <p className="mt-5 text-[11px] font-medium uppercase tracking-[0.14em] text-brand-accent-teal/90">
+                Free validation • $79 Report • $59/month Pro
+              </p>
             </div>
 
+            {/* Hero sample report card */}
             <div className="relative mx-auto w-full max-w-[33rem] lg:max-w-none lg:pl-4">
               <div className="pointer-events-none absolute inset-x-2 -top-8 bottom-3 rounded-[2rem] bg-[radial-gradient(circle_at_24%_18%,rgba(29,78,216,0.3),rgba(9,18,35,0))] blur-2xl" />
               <div
@@ -282,7 +296,7 @@ export default function MarketingHomePage() {
               <Card className="relative overflow-hidden rounded-2xl border border-brand-border-strong/65 bg-[linear-gradient(162deg,rgba(11,24,49,0.97),rgba(15,31,64,0.95),rgba(9,21,43,0.98))] p-0 shadow-[0_34px_75px_-42px_rgba(13,57,142,0.95)]">
                 <div className="border-b border-brand-border/70 bg-brand-panel-muted/35 px-6 py-5 sm:px-7">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">Creator Revenue Report</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">Private Business Report</p>
                     <span className="inline-flex rounded-full border border-brand-border-strong/60 bg-brand-panel px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-brand-text-secondary">
                       Sample Output
                     </span>
@@ -335,7 +349,7 @@ export default function MarketingHomePage() {
                         <InsightGlyph icon="opportunity" className="h-4 w-4" />
                       </span>
                       <div>
-                        <p className="text-sm font-semibold text-white">Opportunity detected</p>
+                        <p className="text-sm font-semibold text-white">Next best action</p>
                         <p className="mt-1 text-sm leading-relaxed text-brand-text-secondary">
                           Adding a $15 tier could increase revenue by ~18%.
                         </p>
@@ -370,74 +384,301 @@ export default function MarketingHomePage() {
         </Container>
       </Section>
 
-      <Section id="features" className="relative border-t border-brand-border/60 pb-16 pt-16 sm:pb-20 sm:pt-20 lg:pb-24 lg:pt-24">
+      {/* ── 2. CATEGORY CONTRAST BAND ───────────────────────────────────────── */}
+      <Section className="relative border-t border-brand-border/60 pb-16 pt-16 sm:pb-20 sm:pt-20">
         <div
-          className="pointer-events-none absolute inset-x-0 -top-px h-24 bg-[linear-gradient(to_bottom,rgba(25,72,171,0.2),rgba(10,22,44,0))]"
+          className="pointer-events-none absolute inset-x-0 -top-px h-24 bg-[linear-gradient(to_bottom,rgba(25,72,171,0.15),rgba(10,22,44,0))]"
           aria-hidden="true"
         />
         <Container>
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">THE DIFFERENCE</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
+              Not another public stats dashboard
+            </h2>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-brand-border/50 bg-brand-panel-muted/15 p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Public Trackers</p>
+              <ul className="mt-5 space-y-3">
+                {[
+                  "Follower counts and estimated reach",
+                  "Public growth rankings",
+                  "Rough revenue guesses from public data",
+                ].map((point) => (
+                  <li key={point} className="flex items-start gap-2.5 text-sm text-brand-text-muted">
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border border-brand-border/50 bg-brand-panel-muted/15 p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Native Dashboards</p>
+              <ul className="mt-5 space-y-3">
+                {[
+                  "Siloed per-platform metrics",
+                  "No cross-platform revenue view",
+                  "Raw numbers without diagnosis",
+                ].map((point) => (
+                  <li key={point} className="flex items-start gap-2.5 text-sm text-brand-text-muted">
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border border-brand-accent-blue/40 bg-[linear-gradient(165deg,rgba(17,34,69,0.92),rgba(11,24,50,0.86))] p-6">
+              <div className="flex items-center gap-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">EarnSigma</p>
+                <span className="inline-flex rounded-full border border-brand-accent-emerald/45 bg-brand-accent-emerald/12 px-2 py-0.5 text-[10px] font-medium text-brand-accent-teal">
+                  Private
+                </span>
+              </div>
+              <ul className="mt-5 space-y-3">
+                {[
+                  "Private diagnostics from your real exports",
+                  "Concentration, churn, and monetization health",
+                  "Next-action guidance — not just charts",
+                ].map((point) => (
+                  <li key={point} className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Container>
+      </Section>
+
+      {/* ── 3. INSIGHTS — "What your business data reveals" ─────────────────── */}
+      <Section id="features" className="relative border-t border-brand-border/55 pb-16 pt-16 sm:pb-20 sm:pt-20 lg:pb-24 lg:pt-24">
+        <Container>
           <div className="max-w-3xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">Pattern Intelligence</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">Real Insights Creators Discover</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">WHAT YOUR DATA REVEALS</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
+              What your business data reveals
+            </h2>
             <p className="mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
-              These are the kinds of patterns EarnSigma uncovers from your earnings data.
+              Upload your creator exports and EarnSigma surfaces the patterns that native dashboards and public tools can&apos;t see.
             </p>
           </div>
 
-          <div className="mt-10 grid auto-rows-fr gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {discoverInsights.map((insight) => (
+          <div className="mt-12 space-y-10">
+            {/* Revenue Risk */}
+            <div>
+              <div className="mb-5 flex items-center gap-4">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Revenue Risk</span>
+                <span className="h-px flex-1 bg-brand-border/55" aria-hidden="true" />
+              </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                {discoverInsights
+                  .filter((i) => i.bucket === "revenue-risk")
+                  .map((insight) => (
+                    <InsightCard key={insight.title} insight={insight} />
+                  ))}
+              </div>
+            </div>
+
+            {/* Monetization Opportunity */}
+            <div>
+              <div className="mb-5 flex items-center gap-4">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Monetization Opportunity</span>
+                <span className="h-px flex-1 bg-brand-border/55" aria-hidden="true" />
+              </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                {discoverInsights
+                  .filter((i) => i.bucket === "monetization")
+                  .map((insight) => (
+                    <InsightCard key={insight.title} insight={insight} />
+                  ))}
+              </div>
+            </div>
+
+            {/* Growth Quality */}
+            <div>
+              <div className="mb-5 flex items-center gap-4">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Growth Quality</span>
+                <span className="h-px flex-1 bg-brand-border/55" aria-hidden="true" />
+                <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-brand-text-muted/65">Revenue sustainability metrics</span>
+              </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                {discoverInsights
+                  .filter((i) => i.bucket === "growth")
+                  .map((insight) => (
+                    <InsightCard key={insight.title} insight={insight} />
+                  ))}
+              </div>
+            </div>
+          </div>
+        </Container>
+      </Section>
+
+      {/* ── 4. DIFFERENTIATION — "Built from your real data" ────────────────── */}
+      <Section className="relative border-t border-brand-border/55 pb-16 pt-16 sm:pb-20 sm:pt-20">
+        <Container>
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">HOW IT WORKS</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
+              Built from your real data &mdash; not public guesses
+            </h2>
+          </div>
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                title: "Upload your exports",
+                body: "Patreon, Instagram, and other creator revenue exports. Your actual business data — not third-party estimates.",
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                ),
+              },
+              {
+                title: "Get private diagnostics",
+                body: "Concentration risk, churn maps, monetization health, and stability scores — not estimated vanity metrics.",
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                    <path d="M11 8v6" />
+                    <path d="M8 11h6" />
+                  </svg>
+                ),
+              },
+              {
+                title: "Receive recommendations",
+                body: "Every report surfaces specific next actions tailored to your data — not generic creator advice.",
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
+                    <path d="M9 11l3 3L22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  </svg>
+                ),
+              },
+              {
+                title: "Data stays yours",
+                body: "Private, workspace-specific, never shared or made public. Your business intelligence stays yours.",
+                icon: (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                ),
+              },
+            ].map((item) => (
               <Card
-                key={insight.title}
+                key={item.title}
                 className="relative flex h-full flex-col overflow-hidden border-brand-border/75 bg-[linear-gradient(165deg,rgba(17,34,69,0.92),rgba(11,24,50,0.86))] p-5 sm:p-6"
               >
-                <div className="pointer-events-none absolute -right-9 -top-10 h-24 w-24 rounded-full bg-brand-accent-blue/14 blur-2xl" />
-                <div className="relative flex items-center justify-between gap-4">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-brand-border-strong/65 bg-brand-panel text-brand-accent-blue">
-                    <InsightGlyph icon={insight.icon} className="h-4 w-4" />
-                  </span>
-                  <span className="inline-flex rounded-full border border-brand-border-strong/60 bg-brand-panel px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.11em] text-brand-text-secondary">
-                    {insight.indicator}
-                  </span>
-                </div>
-                <h3 className="relative mt-5 text-lg font-semibold tracking-tight text-white">{insight.title}</h3>
-                <p className="relative mt-2.5 text-sm leading-relaxed text-brand-text-secondary">{insight.description}</p>
-
-                <div className="relative mt-5 rounded-lg border border-brand-border/65 bg-brand-panel/70 p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-text-muted">{insight.signal}</p>
-                  <div className="mt-3 flex h-9 items-end gap-1.5">
-                    {insight.bars.map((height, index) => (
-                      <span
-                        // Index is stable for this static series that only controls bar visual state.
-                        key={`${insight.title}-bar-${index}`}
-                        className="w-full rounded-sm bg-brand-accent-blue/65"
-                        style={{ height: `${height}%` }}
-                        aria-hidden="true"
-                      />
-                    ))}
-                  </div>
-                </div>
+                <div className="pointer-events-none absolute -right-9 -top-10 h-24 w-24 rounded-full bg-brand-accent-blue/12 blur-2xl" />
+                <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-brand-border-strong/65 bg-brand-panel text-brand-accent-blue">
+                  {item.icon}
+                </span>
+                <h3 className="relative mt-5 text-base font-semibold tracking-tight text-white">{item.title}</h3>
+                <p className="relative mt-2 text-sm leading-relaxed text-brand-text-secondary">{item.body}</p>
               </Card>
             ))}
           </div>
         </Container>
       </Section>
 
+      {/* ── 5. EARN + GROW — "One workspace. Two lenses." ───────────────────── */}
+      <Section className="relative border-t border-brand-border/55 pb-16 pt-16 sm:pb-20 sm:pt-20">
+        <Container>
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">TWO LENSES</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
+              One workspace. Two lenses.
+            </h2>
+          </div>
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2">
+            {/* Earn lens */}
+            <Card className="relative overflow-hidden border-brand-border/75 bg-[linear-gradient(165deg,rgba(17,34,69,0.92),rgba(11,24,50,0.86))] p-6 sm:p-7">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-brand-accent-blue/15 blur-2xl" />
+              <div className="relative flex items-center gap-3">
+                <span className="inline-flex rounded-full border border-brand-accent-blue/50 bg-brand-accent-blue/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-brand-accent-blue">
+                  Earn
+                </span>
+              </div>
+              <h3 className="relative mt-5 text-lg font-semibold tracking-tight text-white">Revenue health</h3>
+              <p className="relative mt-2 text-sm leading-relaxed text-brand-text-secondary">
+                Deep diagnostics on your subscription and revenue business — powered by real membership and earnings exports.
+              </p>
+              <ul className="relative mt-5 space-y-2.5">
+                {[
+                  "Revenue concentration and stability",
+                  "Churn risk by tier and timeline",
+                  "Monetization health score",
+                  "Tier migration flow analysis",
+                  "Platform dependence risk",
+                ].map((point) => (
+                  <li key={point} className="flex items-center gap-2.5 text-sm text-brand-text-secondary">
+                    <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-blue/80" aria-hidden="true" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+
+            {/* Grow lens */}
+            <Card className="relative overflow-hidden border-brand-border/75 bg-[linear-gradient(165deg,rgba(17,34,69,0.92),rgba(11,24,50,0.86))] p-6 sm:p-7">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-brand-accent-teal/12 blur-2xl" />
+              <div className="relative flex items-center gap-3">
+                <span className="inline-flex rounded-full border border-brand-accent-teal/50 bg-brand-accent-teal/12 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.15em] text-brand-accent-teal">
+                  Grow
+                </span>
+                <span className="inline-flex rounded-full border border-brand-border-strong/60 bg-brand-panel px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.11em] text-brand-text-muted">
+                  Early access
+                </span>
+              </div>
+              <h3 className="relative mt-5 text-lg font-semibold tracking-tight text-white">Audience health</h3>
+              <p className="relative mt-2 text-sm leading-relaxed text-brand-text-secondary">
+                Richer audience diagnostics as growth analytics expand — see revenue and audience health together in one workspace.
+              </p>
+              <ul className="relative mt-5 space-y-2.5">
+                {[
+                  "Audience momentum and growth signals",
+                  "Engagement and content performance",
+                  "Follower-to-subscriber conversion",
+                  "Available as supported analytics expand",
+                ].map((point) => (
+                  <li key={point} className="flex items-center gap-2.5 text-sm text-brand-text-secondary">
+                    <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal/70" aria-hidden="true" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+        </Container>
+      </Section>
+
+      {/* ── 6. SAMPLE OUTPUT — "What your private report actually shows" ──────── */}
       <Section className="relative border-t border-brand-border/55 pb-20 pt-16 sm:pb-24 sm:pt-20 lg:pb-28">
         <Container>
           <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-14">
             <div className="relative">
               <div className="pointer-events-none absolute -left-10 -top-2 h-36 w-36 rounded-full bg-brand-accent-blue/12 blur-3xl" />
-              <h2 className="relative text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
-                What Your Creator Optimization Report Reveals
+              <p className="relative text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">SAMPLE OUTPUT</p>
+              <h2 className="relative mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
+                What your private report actually shows
               </h2>
               <p className="relative mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
-                Generate a personalized creator revenue report revealing where your income is stable, where subscribers
-                churn, and where growth is hiding.
+                A private, multi-page diagnostic built from your data — not a generic dashboard.
               </p>
 
               <p className="mt-6 text-sm leading-relaxed text-brand-text-secondary">
-                Each report includes multiple pages of diagnostics and clear growth actions tailored to your creator
-                business.
+                Every report includes specific diagnostics and clear next-action guidance tailored to
+                your creator business.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-2.5">
@@ -463,7 +704,7 @@ export default function MarketingHomePage() {
                 <div className="rounded-xl border border-brand-border/70 bg-brand-panel/75 p-4 sm:p-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
-                      Creator Revenue Optimization Report
+                      Private Revenue Diagnostics Report
                     </p>
                     <span className="inline-flex rounded-full border border-brand-border-strong/60 bg-brand-panel px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-brand-text-secondary">
                       PDF - 12 pages
@@ -510,7 +751,7 @@ export default function MarketingHomePage() {
 
                     <div className="space-y-3">
                       <div className="rounded-lg border border-brand-border/65 bg-brand-panel-muted/35 p-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Risk Breakdown</p>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Churn &amp; Concentration Risk</p>
                         <div className="mt-3 space-y-2">
                           {[
                             { label: "Platform concentration", width: "71%" },
@@ -555,6 +796,104 @@ export default function MarketingHomePage() {
           </div>
         </Container>
       </Section>
+
+      {/* ── 7. WHO IT'S FOR ──────────────────────────────────────────────────── */}
+      <Section className="relative border-t border-brand-border/55 pb-20 pt-16 sm:pb-24 sm:pt-20">
+        <Container>
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">BUILT FOR</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
+              Built for creators who run a real business
+            </h2>
+          </div>
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                title: "Membership & subscription revenue",
+                body: "You earn from Patreon, memberships, or recurring multi-channel income — and you need to understand that business.",
+              },
+              {
+                title: "Private diagnostics from your data",
+                body: "You want insights from your own exports, not scraped public estimates or platform averages.",
+              },
+              {
+                title: "Decisions, not just dashboards",
+                body: "You need to know what to do next — not just what your numbers are.",
+              },
+              {
+                title: "Revenue and audience health together",
+                body: "You want to see your earnings business and your audience growth in one workspace.",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-2xl border border-brand-border/65 bg-brand-panel-muted/20 p-6"
+              >
+                <h3 className="text-sm font-semibold text-white">{item.title}</h3>
+                <p className="mt-2.5 text-sm leading-relaxed text-brand-text-secondary">{item.body}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 flex flex-wrap items-center gap-4">
+            <a
+              href={primaryCtaHref}
+              className={buttonClassName({
+                variant: "primary",
+                className:
+                  "rounded-xl border-brand-accent-emerald/50 bg-[linear-gradient(120deg,rgba(29,78,216,0.98),rgba(47,217,197,0.9))] px-6 py-3 text-sm font-semibold text-white shadow-brand-glow hover:border-brand-accent-emerald/70 hover:brightness-110 sm:px-7 sm:py-3.5",
+              })}
+            >
+              Generate My Private Report
+            </a>
+            <a
+              href={secondaryCtaHref}
+              className={buttonClassName({
+                variant: "secondary",
+                className:
+                  "rounded-xl border-brand-border-strong/70 bg-brand-panel/70 px-5 py-3 text-sm text-brand-text-secondary hover:bg-brand-panel hover:text-white sm:px-6",
+              })}
+            >
+              See Sample Diagnostics
+            </a>
+          </div>
+        </Container>
+      </Section>
+
     </MarketingShell>
+  );
+}
+
+function InsightCard({ insight }: { insight: DiscoverInsight }) {
+  return (
+    <Card className="relative flex h-full flex-col overflow-hidden border-brand-border/75 bg-[linear-gradient(165deg,rgba(17,34,69,0.92),rgba(11,24,50,0.86))] p-5 sm:p-6">
+      <div className="pointer-events-none absolute -right-9 -top-10 h-24 w-24 rounded-full bg-brand-accent-blue/14 blur-2xl" />
+      <div className="relative flex items-center justify-between gap-4">
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-brand-border-strong/65 bg-brand-panel text-brand-accent-blue">
+          <InsightGlyph icon={insight.icon} className="h-4 w-4" />
+        </span>
+        <span className="inline-flex rounded-full border border-brand-border-strong/60 bg-brand-panel px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.11em] text-brand-text-secondary">
+          {insight.indicator}
+        </span>
+      </div>
+      <h3 className="relative mt-5 text-lg font-semibold tracking-tight text-white">{insight.title}</h3>
+      <p className="relative mt-2.5 text-sm leading-relaxed text-brand-text-secondary">{insight.description}</p>
+
+      <div className="relative mt-5 rounded-lg border border-brand-border/65 bg-brand-panel/70 p-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-text-muted">{insight.signal}</p>
+        <div className="mt-3 flex h-9 items-end gap-1.5">
+          {insight.bars.map((height, index) => (
+            <span
+              // Index is stable for this static series that only controls bar visual state.
+              key={`${insight.title}-bar-${index}`}
+              className="w-full rounded-sm bg-brand-accent-blue/65"
+              style={{ height: `${height}%` }}
+              aria-hidden="true"
+            />
+          ))}
+        </div>
+      </div>
+    </Card>
   );
 }

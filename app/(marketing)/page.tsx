@@ -237,14 +237,14 @@ export default function MarketingHomePage() {
       <Section className="relative overflow-hidden pb-20 pt-16 sm:pb-24 sm:pt-20 lg:pb-28 lg:pt-24">
         {/* Ghosted Sigma brand mark — decorative background composition element */}
         <div
-          className="pointer-events-none absolute -left-14 -top-20 select-none font-light leading-none text-brand-accent-blue opacity-[0.052] blur-[5px]"
+          className="pointer-events-none absolute -left-8 -top-16 select-none font-light leading-none text-brand-accent-blue opacity-[0.082] blur-[3px]"
           style={{ fontSize: "clamp(20rem, 38vw, 50rem)" }}
           aria-hidden="true"
         >
           Σ
         </div>
         <div
-          className="pointer-events-none absolute -left-32 -top-28 h-[36rem] w-[36rem] rounded-full bg-brand-accent-blue/[0.06] blur-[8rem]"
+          className="pointer-events-none absolute -left-32 -top-28 h-[44rem] w-[44rem] rounded-full bg-brand-accent-blue/[0.09] blur-[8rem]"
           aria-hidden="true"
         />
         <Container>

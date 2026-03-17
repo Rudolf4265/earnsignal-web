@@ -5,17 +5,17 @@ import { notFound, usePathname, useRouter, useSearchParams } from "next/navigati
 import { useCallback, useMemo } from "react";
 import { ActionCardsSection } from "../../_components/dashboard/ActionCardsSection";
 import { CreatorHealthPanel } from "../../_components/dashboard/CreatorHealthPanel";
+import { DashboardContextTile } from "../../_components/dashboard/DashboardContextTile";
+import { DashboardMetricStrip } from "../../_components/dashboard/DashboardMetricStrip";
 import { DashboardOnboardingSection } from "../../_components/dashboard/DashboardOnboardingSection";
 import { DashboardTopShell } from "../../_components/dashboard/DashboardTopShell";
 import { DashboardUtilitySection } from "../../_components/dashboard/DashboardUtilitySection";
 import { DiagnosisSection } from "../../_components/dashboard/DiagnosisSection";
 import { GrowDashboardSection } from "../../_components/dashboard/GrowDashboardSection";
 import { InsightCardsSection } from "../../_components/dashboard/InsightCardsSection";
-import { RevenueSnapshotSection } from "../../_components/dashboard/RevenueSnapshotSection";
 import { RevenueTrendSection } from "../../_components/dashboard/RevenueTrendSection";
 import { PanelCard } from "@/src/components/ui/panel-card";
 import { buttonClassName } from "@/src/components/ui/button";
-import { DashboardModeSwitch } from "@/src/components/dashboard/mode-switch";
 import { DEBUG_DEMO_ROUTE } from "@/src/lib/debug/routes";
 import {
   buildDemoWorkspaceSearch,
@@ -252,7 +252,6 @@ export default function DemoDashboardPage() {
         onRefresh={handleRefresh}
         primaryCtaLabel={workspace.dashboard.primaryCtaLabel}
         primaryCtaHref={workspace.dashboard.primaryCtaHref}
-        modeSwitch={<DashboardModeSwitch mode={dashboardMode} onChange={handleModeChange} />}
       />
 
       {showDashboardOnboarding ? (
@@ -268,7 +267,14 @@ export default function DemoDashboardPage() {
 
       {dashboardMode === "earn" ? (
         <>
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr),minmax(0,0.95fr),minmax(0,0.95fr)]">
+          {/* Row 1: Context tile + Creator Health + Actions */}
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,5fr),minmax(0,4fr),minmax(0,3fr)]">
+            <DashboardContextTile
+              mode={dashboardMode}
+              onChange={handleModeChange}
+              workspaceStatusLabel="Ready"
+            />
+
             <CreatorHealthPanel
               creatorHealth={workspace.dashboard.earn.model.creatorHealth}
               loading={false}
@@ -278,15 +284,21 @@ export default function DemoDashboardPage() {
               latestReportStatusVariant={workspace.dashboard.utility.latestReportStatusVariant}
             />
 
-            <DiagnosisSection diagnosis={workspace.dashboard.earn.diagnosis} loading={false} presentation="hero" />
-
             <ActionCardsSection mode={actionCards.mode} cards={actionCards.cards} presentation="hero" />
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.86fr),minmax(0,1.14fr)]">
-            <RevenueSnapshotSection revenueSnapshot={workspace.dashboard.earn.model.revenueSnapshot} />
+          {/* Row 2: Signals (featured, large) + Diagnosis */}
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr),minmax(0,5fr)]">
             <InsightCardsSection insights={workspace.dashboard.earn.insights} />
+            <DiagnosisSection diagnosis={workspace.dashboard.earn.diagnosis} loading={false} presentation="hero" />
           </div>
+
+          {/* Row 3: Compact metric strip */}
+          <DashboardMetricStrip
+            revenueSnapshot={workspace.dashboard.earn.model.revenueSnapshot}
+            stabilityIndex={null}
+            coverageMonths={null}
+          />
 
           <RevenueTrendSection
             trend={workspace.dashboard.earn.revenueTrend}

@@ -5,15 +5,15 @@ import { useAppGate } from "../_components/app-gate-provider";
 import { useEntitlementState } from "../_components/use-entitlement-state";
 import { ActionCardsSection } from "./_components/dashboard/ActionCardsSection";
 import { CreatorHealthPanel } from "./_components/dashboard/CreatorHealthPanel";
+import { DashboardContextTile } from "./_components/dashboard/DashboardContextTile";
+import { DashboardMetricStrip } from "./_components/dashboard/DashboardMetricStrip";
 import { DashboardOnboardingSection } from "./_components/dashboard/DashboardOnboardingSection";
 import { DashboardTopShell } from "./_components/dashboard/DashboardTopShell";
 import { DashboardUtilitySection } from "./_components/dashboard/DashboardUtilitySection";
 import { DiagnosisSection } from "./_components/dashboard/DiagnosisSection";
 import { GrowDashboardSection } from "./_components/dashboard/GrowDashboardSection";
 import { InsightCardsSection } from "./_components/dashboard/InsightCardsSection";
-import { RevenueSnapshotSection } from "./_components/dashboard/RevenueSnapshotSection";
 import { RevenueTrendSection } from "./_components/dashboard/RevenueTrendSection";
-import { DashboardModeSwitch } from "@/src/components/dashboard/mode-switch";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
 import { fetchReportArtifactJson, fetchReportDetail, fetchReportsList, type ReportDetail, type ReportListResult } from "@/src/lib/api/reports";
@@ -481,6 +481,9 @@ export default function DashboardPage() {
       : state.hasReports === false
         ? "This workspace is still empty. Upload a supported CSV export to populate Earn."
         : "Checking workspace data availability.";
+  const workspaceStatusLabel = state.latestUpload
+    ? state.hasReports === true ? "Ready" : state.hasReports === false ? "Upload connected" : "Checking..."
+    : state.hasReports === true ? "Reports available" : state.hasReports === false ? "No data yet" : "Checking...";
   const handleModeChange = useCallback(
     (nextMode: "earn" | "grow") => {
       const query = buildDashboardModeSearch(searchParams, nextMode);
@@ -498,7 +501,6 @@ export default function DashboardPage() {
         onRefresh={refresh}
         primaryCtaLabel={primaryCta.label}
         primaryCtaHref={primaryCta.href}
-        modeSwitch={<DashboardModeSwitch mode={dashboardMode} onChange={handleModeChange} />}
       />
 
       {state.error || state.latestArtifactError ? (
@@ -521,7 +523,14 @@ export default function DashboardPage() {
 
       {dashboardMode === "earn" ? (
         <>
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr),minmax(0,0.95fr),minmax(0,0.95fr)]">
+          {/* Row 1: Context tile + Creator Health + Actions */}
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,5fr),minmax(0,4fr),minmax(0,3fr)]">
+            <DashboardContextTile
+              mode={dashboardMode}
+              onChange={handleModeChange}
+              workspaceStatusLabel={workspaceStatusLabel}
+            />
+
             <CreatorHealthPanel
               creatorHealth={earnDashboardModel.creatorHealth}
               loading={state.loading}
@@ -531,15 +540,21 @@ export default function DashboardPage() {
               latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
             />
 
-            <DiagnosisSection diagnosis={diagnosisViewModel} loading={state.loading} presentation="hero" />
-
             <ActionCardsSection mode={actionCardsSection.mode} cards={actionCardsSection.cards} presentation="hero" />
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,0.86fr),minmax(0,1.14fr)]">
-            <RevenueSnapshotSection revenueSnapshot={earnDashboardModel.revenueSnapshot} />
+          {/* Row 2: Signals (featured, large) + Diagnosis */}
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr),minmax(0,5fr)]">
             <InsightCardsSection insights={insightCards} />
+            <DiagnosisSection diagnosis={diagnosisViewModel} loading={state.loading} presentation="hero" />
           </div>
+
+          {/* Row 3: Compact metric strip */}
+          <DashboardMetricStrip
+            revenueSnapshot={earnDashboardModel.revenueSnapshot}
+            stabilityIndex={kpis.stabilityIndex}
+            coverageMonths={kpis.coverageMonths}
+          />
 
           <RevenueTrendSection
             trend={revenueTrend}

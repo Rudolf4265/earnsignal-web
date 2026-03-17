@@ -8,6 +8,48 @@ type InsightCardsSectionProps = {
   insights: DashboardInsightCard[];
 };
 
+type InsightArticleProps = {
+  insight: DashboardInsightCard;
+  featured?: boolean;
+};
+
+function InsightArticle({ insight, featured = false }: InsightArticleProps) {
+  const presentation = getInsightCardPresentation(insight.variant);
+  return (
+    <article
+      className={`relative overflow-hidden rounded-[1.2rem] border shadow-brand-card ${presentation.cardClassName} ${featured ? "p-6" : "p-5"}`}
+      data-testid={`dashboard-insight-card-${insight.variant}`}
+    >
+      <div className={`absolute inset-x-0 top-0 h-0.5 ${presentation.accentClassName}`} />
+      <div className="relative flex items-center justify-between gap-3">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Pattern</p>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {insight.stateLabel ? (
+            <Badge variant={insight.stateTone ?? "neutral"} className="px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]">
+              {insight.stateLabel}
+            </Badge>
+          ) : null}
+          <Badge
+            variant={presentation.badgeVariant}
+            className={`px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${presentation.badgeClassName}`}
+          >
+            {presentation.badgeLabel}
+          </Badge>
+        </div>
+      </div>
+      <h3 className={`mt-3 font-semibold leading-snug text-brand-text-primary break-words ${featured ? "text-xl" : "text-lg"}`}>
+        {insight.title}
+      </h3>
+      <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary break-words">{insight.body}</p>
+      {insight.stateDetail ? <p className="mt-3 text-xs leading-relaxed text-brand-text-muted break-words">{insight.stateDetail}</p> : null}
+      <div className={`mt-4 rounded-xl border p-3.5 ${presentation.implicationPanelClassName}`}>
+        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Why it matters</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-brand-text-primary break-words">{insight.implication}</p>
+      </div>
+    </article>
+  );
+}
+
 export function InsightCardsSection({ insights }: InsightCardsSectionProps) {
   return (
     <section className="space-y-3" data-testid="dashboard-section-what-we-see">
@@ -23,44 +65,18 @@ export function InsightCardsSection({ insights }: InsightCardsSectionProps) {
             </p>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {insights.map((insight) => {
-              const presentation = getInsightCardPresentation(insight.variant);
-              return (
-                <li key={insight.id}>
-                  <article
-                    className={`relative h-full overflow-hidden rounded-[1.2rem] border p-5 shadow-brand-card ${presentation.cardClassName}`}
-                    data-testid={`dashboard-insight-card-${insight.variant}`}
-                  >
-                    <div className={`absolute inset-x-0 top-0 h-0.5 ${presentation.accentClassName}`} />
-                    <div className="relative flex items-center justify-between gap-3">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Pattern</p>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {insight.stateLabel ? (
-                          <Badge variant={insight.stateTone ?? "neutral"} className="px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]">
-                            {insight.stateLabel}
-                          </Badge>
-                        ) : null}
-                        <Badge
-                          variant={presentation.badgeVariant}
-                          className={`px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${presentation.badgeClassName}`}
-                        >
-                          {presentation.badgeLabel}
-                        </Badge>
-                      </div>
-                    </div>
-                    <h3 className="mt-3 text-lg font-semibold leading-snug text-brand-text-primary break-words">{insight.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary break-words">{insight.body}</p>
-                    {insight.stateDetail ? <p className="mt-3 text-xs leading-relaxed text-brand-text-muted break-words">{insight.stateDetail}</p> : null}
-                    <div className={`mt-4 rounded-xl border p-3.5 ${presentation.implicationPanelClassName}`}>
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Why it matters</p>
-                      <p className="mt-1.5 text-sm leading-relaxed text-brand-text-primary break-words">{insight.implication}</p>
-                    </div>
-                  </article>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="space-y-3">
+            <InsightArticle insight={insights[0]} featured />
+            {insights.length > 1 ? (
+              <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {insights.slice(1).map((insight) => (
+                  <li key={insight.id}>
+                    <InsightArticle insight={insight} />
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         )}
       </PanelCard>
     </section>

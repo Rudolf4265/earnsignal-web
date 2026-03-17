@@ -272,6 +272,11 @@ export default function UploadStepper() {
   const [busy, setBusy] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<UploadUiStatus | null>(null);
   const [hasResumeCandidate, setHasResumeCandidate] = useState(false);
+  const [latestTerminalUpload, setLatestTerminalUpload] = useState<{
+    status: UploadUiStatus;
+    uploadId: string;
+    reportId: string | null;
+  } | null>(null);
 
   const activeStepIndex = stepOrder.indexOf(step);
   const progressPct = Math.round(((activeStepIndex + 1) / stepOrder.length) * 100);
@@ -421,6 +426,7 @@ export default function UploadStepper() {
     setBusy(false);
     setProcessingStatus(null);
     setHasResumeCandidate(false);
+    setLatestTerminalUpload(null);
     if (typeof window !== "undefined") {
       clearUploadResume(window.localStorage);
     }
@@ -529,11 +535,22 @@ export default function UploadStepper() {
         return false;
       }
 
+      // Only resume into the active upload stepper for genuinely in-progress uploads.
+      // Terminal statuses (ready, validated, failed) must not hijack the upload page
+      // as the default state on a fresh visit/login – the caller will call
+      // clearResumeCandidateState() when this returns false.
+      if (mapped.status !== "processing") {
+        // Capture compact info for the optional non-blocking summary banner shown
+        // in the platform step. Only surface for successful terminal states.
+        if (mapped.status === "ready" || mapped.status === "validated") {
+          setLatestTerminalUpload({ status: mapped.status, uploadId: activeUploadId, reportId: mapped.reportId });
+        }
+        return false;
+      }
+
       setHasResumeCandidate(false);
       updateProcessingFromEnvelope(statusEnvelope, activeUploadId);
-      if (mapped.status === "processing") {
-        await pollUntilTerminal(activeUploadId);
-      }
+      await pollUntilTerminal(activeUploadId);
       return true;
     },
     [pollUntilTerminal, updateProcessingFromEnvelope],
@@ -861,6 +878,44 @@ export default function UploadStepper() {
           {uploadId ? null : hasResumeCandidate ? (
             <InlineAlert variant="info" title="Found an in-progress upload" data-testid="upload-resume-banner">
               We found a recent upload and will automatically check its status.
+            </InlineAlert>
+          ) : latestTerminalUpload ? (
+            <InlineAlert
+              variant={latestTerminalUpload.status === "ready" ? "success" : "info"}
+              title={latestTerminalUpload.status === "ready" ? "Latest upload is ready" : "Latest upload validated"}
+              data-testid="upload-completed-summary"
+            >
+              <p className="text-xs text-current/80">
+                {latestTerminalUpload.status === "ready"
+                  ? "Report ready."
+                  : "Upload validated. Report generation may continue based on your plan."}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {latestTerminalUpload.status === "ready" ? (
+                  <Link
+                    href={buildReportDetailPathOrIndex(latestTerminalUpload.reportId)}
+                    data-testid="upload-completed-view-report"
+                    className="rounded-lg border border-emerald-200/60 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-300/10"
+                  >
+                    View report
+                  </Link>
+                ) : (
+                  <Link
+                    href="/app/billing"
+                    className="rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10"
+                  >
+                    Unlock report
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  data-testid="upload-completed-dismiss"
+                  onClick={() => setLatestTerminalUpload(null)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100"
+                >
+                  Upload another
+                </button>
+              </div>
             </InlineAlert>
           ) : null}
           <StepHeader title="Choose platform" subtitle="Select the data source for this upload." />

@@ -37,8 +37,8 @@ export const metadata: Metadata = {
     images: ["/brand/earnsigma-lockup.svg"],
   },
   icons: {
-    icon: "/brand/earnsigma-mark.svg",
-    apple: "/brand/earnsigma-mark.svg",
+    icon: "/brand/PNG/earnsigma-mark.png",
+    apple: "/brand/PNG/earnsigma-mark.png",
   },
 };
 

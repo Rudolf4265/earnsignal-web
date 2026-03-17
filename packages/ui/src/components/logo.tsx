@@ -37,8 +37,8 @@ export function Logo({
       <Image
         src={brandLogo.markPath}
         alt={BRAND_NAME}
-        width={36}
-        height={36}
+        width={732}
+        height={732}
         priority={priority}
         className={iconClassName ?? "h-9 w-9"}
       />

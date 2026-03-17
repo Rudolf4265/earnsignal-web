@@ -1,7 +1,9 @@
 export const brandLogo = {
   name: "EarnSigma",
   domain: "earnsigma.com",
-  markPath: "/brand/earnsigma-mark.svg",
+  // PNG used intentionally: the SVG is a 781×480 embedded-raster wrapper, not true vector.
+  // Replace markPath with a proper vector export when one becomes available.
+  markPath: "/brand/PNG/earnsigma-mark.png",
   lockupPath: "/brand/earnsigma-lockup.svg",
 } as const;
 

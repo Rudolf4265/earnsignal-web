@@ -33,11 +33,12 @@ export function BrandMark({
 
   return (
     <span className={className ?? "inline-flex items-center gap-2"}>
+      {/* PNG used intentionally: SVG is an embedded-raster wrapper, not true vector. */}
       <Image
-        src="/brand/earnsigma-mark.svg"
+        src="/brand/PNG/earnsigma-mark.png"
         alt={BRAND_NAME}
-        width={36}
-        height={36}
+        width={732}
+        height={732}
         priority={priority}
         className={iconClassName ?? "h-9 w-9"}
       />

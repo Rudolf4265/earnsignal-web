@@ -589,9 +589,12 @@ export default function ReportPage() {
           <section className="space-y-3">
             <DashboardSectionHeader title="Executive Summary" description="A concise narrative from your latest completed report." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.92),rgba(19,41,80,0.84),rgba(16,32,67,0.94))]">
-              <div className="space-y-3">
-                {presentation.executiveSummary.map((paragraph, index) => (
-                  <p key={`${index}-${paragraph.slice(0, 24)}`} className="text-sm leading-relaxed text-brand-text-secondary">
+              <div className="space-y-2">
+                {presentation.executiveSummary.slice(0, 3).map((paragraph, index) => (
+                  <p
+                    key={`${index}-${paragraph.slice(0, 24)}`}
+                    className={`text-sm leading-relaxed ${index === 0 ? "font-medium text-brand-text-primary" : "text-brand-text-secondary"}`}
+                  >
                     {paragraph}
                   </p>
                 ))}
@@ -638,7 +641,7 @@ export default function ReportPage() {
                   ) : null}
                   {insightCards.length > 1 ? (
                     <ul className="space-y-2">
-                      {insightCards.slice(1).map((insight) => {
+                      {insightCards.slice(1, 3).map((insight) => {
                         const tone = getInsightCardPresentation(insight.variant);
                         return (
                           <li key={insight.id}>
@@ -699,7 +702,7 @@ export default function ReportPage() {
                 ) : null}
                 {presentation.diagnosis.supportingMetrics.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {presentation.diagnosis.supportingMetrics.map((metric) => (
+                    {presentation.diagnosis.supportingMetrics.slice(0, 3).map((metric) => (
                       <article key={metric.id} className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
@@ -758,18 +761,18 @@ export default function ReportPage() {
             <DashboardSectionHeader title="Revenue Trend" description="Recent net revenue movement from your latest report timeline." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               {revenueTrend.hasRenderableChart ? (
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/70 px-4 py-4 shadow-brand-card">
-                    <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/70 px-4 py-3 shadow-brand-card">
+                    <div className="flex flex-wrap items-end justify-between gap-2">
                       <div>
                         <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Latest revenue</p>
-                        <p className="mt-1.5 text-3xl font-semibold tracking-tight text-brand-text-primary md:text-4xl">
+                        <p className="mt-1 text-2xl font-semibold tracking-tight text-brand-text-primary md:text-3xl">
                           {revenueTrend.latestValueDisplay ?? "$--"}
                         </p>
                       </div>
-                      <div className="space-y-1 text-right">
+                      <div className="space-y-0.5 text-right">
                         {revenueTrend.movementLabel ? (
-                          <p className="inline-flex rounded-full border border-brand-border-strong/75 bg-brand-panel/70 px-3 py-1 text-xs font-semibold tracking-[0.08em] text-brand-text-secondary">
+                          <p className="inline-flex rounded-full border border-brand-border-strong/75 bg-brand-panel/70 px-3 py-0.5 text-xs font-semibold tracking-[0.08em] text-brand-text-secondary">
                             {revenueTrend.movementLabel}
                           </p>
                         ) : null}
@@ -781,7 +784,7 @@ export default function ReportPage() {
                   </div>
                   <RevenueTrendChart points={revenueTrend.points} />
                   {presentation.revenueTrend.narrative ? (
-                    <p className="rounded-xl border border-brand-border/70 bg-brand-panel/72 px-4 py-3 text-sm leading-relaxed text-brand-text-secondary">
+                    <p className="rounded-xl border border-brand-border/70 bg-brand-panel/72 px-3 py-2.5 text-sm leading-relaxed text-brand-text-secondary">
                       {presentation.revenueTrend.narrative}
                     </p>
                   ) : null}
@@ -888,11 +891,14 @@ export default function ReportPage() {
                     </div>
                   )}
                   {presentation.subscriberHealth.highlights.length > 0 ? (
-                    <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
-                      {presentation.subscriberHealth.highlights.map((line) => (
-                        <li key={line}>{line}</li>
-                      ))}
-                    </ul>
+                    <div className="mt-3 rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Historical trend</p>
+                      <div className="mt-2 space-y-1.5">
+                        {presentation.subscriberHealth.highlights.map((line) => (
+                          <p key={line} className="text-xs leading-relaxed text-brand-text-secondary">{line}</p>
+                        ))}
+                      </div>
+                    </div>
                   ) : null}
                 </div>
               ) : proSectionGate.subscriberHealth === "pro-locked" ? (
@@ -948,7 +954,7 @@ export default function ReportPage() {
                     </article>
                   </div>
                   <p className="text-xs leading-relaxed text-brand-text-muted">
-                    Use concentration and connected platform count to monitor channel exposure at a glance.
+                    A concentration score above 70% signals meaningful single-platform dependency. Track alongside connected platform count to monitor diversification over time.
                   </p>
                 </div>
               ) : (
@@ -962,15 +968,13 @@ export default function ReportPage() {
                 {showPlatformRiskExplanationContent ? (
                   <div data-testid="report-platform-risk-explanation-unlocked">
                     {presentation.platformMix.highlights.length > 0 ? (
-                      <ul className="list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
+                      <div className="space-y-1.5">
                         {presentation.platformMix.highlights.map((line) => (
-                          <li key={line}>{line}</li>
+                          <p key={line} className="text-sm leading-relaxed text-brand-text-secondary">{line}</p>
                         ))}
-                      </ul>
-                    ) : (
-                      <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                        <p className="text-sm text-brand-text-secondary">Platform risk explanation is unavailable in this report.</p>
                       </div>
+                    ) : (
+                      <p className="text-sm text-brand-text-muted">Platform concentration analysis is not available for this report period.</p>
                     )}
                   </div>
                 ) : proSectionGate.platformRiskExplanation === "pro-locked" ? (
@@ -1001,7 +1005,7 @@ export default function ReportPage() {
                       {presentation.revenueOutlook.cards.map((card) => (
                         <article
                           key={card.id}
-                          className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+                          className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-3.5"
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{card.title}</p>
@@ -1017,11 +1021,11 @@ export default function ReportPage() {
                     </div>
                   )}
                   {presentation.revenueOutlook.highlights.length > 0 ? (
-                    <ul className="mt-4 list-disc space-y-1.5 pl-5 text-sm text-brand-text-secondary">
+                    <div className="mt-3 space-y-1">
                       {presentation.revenueOutlook.highlights.map((line) => (
-                        <li key={line}>{line}</li>
+                        <p key={line} className="text-xs leading-relaxed text-brand-text-muted">{line}</p>
                       ))}
-                    </ul>
+                    </div>
                   ) : null}
                 </div>
               ) : proSectionGate.revenueOutlook === "pro-locked" ? (

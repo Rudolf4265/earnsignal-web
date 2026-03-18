@@ -193,7 +193,7 @@ function PlatformCard({ label, subtitle, icon, available, selected, onClick, tes
       disabled={!available}
       onClick={onClick}
       className={[
-        "group relative flex h-full w-full flex-col rounded-2xl border p-4 text-left transition-all duration-200",
+        "group relative flex h-full w-full flex-col rounded-2xl border p-3.5 text-left transition-all duration-200",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
         available
           ? selected
@@ -207,23 +207,22 @@ function PlatformCard({ label, subtitle, icon, available, selected, onClick, tes
           Selected
         </span>
       ) : null}
-      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-[inset_0_1px_0_rgba(255,255,255,1),0_1px_4px_rgba(15,23,42,0.1),0_0_0_1px_rgba(15,23,42,0.06)]">
+      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-[inset_0_1px_0_rgba(255,255,255,1),0_1px_4px_rgba(15,23,42,0.1),0_0_0_1px_rgba(15,23,42,0.06)]">
         <Image
           src={icon}
           alt={`${label} logo`}
-          width={24}
-          height={24}
-          className="platform-icon block h-6 w-6 object-contain"
+          width={20}
+          height={20}
+          className="platform-icon block h-5 w-5 object-contain"
         />
       </span>
-      <p className="mt-3 text-sm font-semibold text-slate-900">{label}</p>
+      <p className="mt-2.5 text-sm font-semibold text-slate-900">{label}</p>
       <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
-      <span
-        className={`mt-auto pt-3 inline-flex w-fit rounded-full border px-1.5 py-px text-[9px] font-semibold uppercase tracking-[0.12em] ${
-          available ? "border-emerald-300/60 bg-emerald-50/80 text-emerald-600" : "border-slate-200 bg-slate-50 text-slate-400"
-        }`}
-      >
-        {available ? "Available" : "Coming soon"}
+      <span className="mt-auto flex items-center gap-1.5 pt-2.5">
+        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${available ? "bg-emerald-400" : "bg-slate-300"}`} />
+        <span className={`text-[9px] font-medium uppercase tracking-[0.1em] ${available ? "text-emerald-600" : "text-slate-400"}`}>
+          {available ? "Supported" : "Coming soon"}
+        </span>
       </span>
     </button>
   );
@@ -920,12 +919,13 @@ export default function UploadStepper() {
             </InlineAlert>
           ) : null}
           <StepHeader title="Choose platform" subtitle="Select the data source for this upload." />
-          <InlineAlert variant="info" title="Start with a supported CSV export" data-testid="upload-platform-guide">
-            <p>Upload accepts {supportedRevenueUploads}. Choose the platform that matches your export, then continue with a fresh CSV file.</p>
-            <Link href="/app/help#upload-guide" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
-              Open upload guide
+          <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-3.5 py-2.5" data-testid="upload-platform-guide">
+            <p className="text-xs font-semibold text-blue-100">Start with a supported CSV export</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-blue-100/75">Upload accepts {supportedRevenueUploads}. Choose the platform that matches your export, then continue with a fresh CSV file.</p>
+            <Link href="/app/help#upload-guide" className="mt-2 inline-flex text-[10px] font-medium text-blue-300/80 hover:text-blue-200">
+              Open upload guide →
             </Link>
-          </InlineAlert>
+          </div>
           <div className="space-y-4">
             {platformSections.map((section) => (
               <section key={section.category} className="space-y-2" data-testid={`platform-section-${section.category}`}>
@@ -954,35 +954,34 @@ export default function UploadStepper() {
             ))}
           </div>
 
-          <div className="space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">Coming soon</p>
-            <div className="flex flex-wrap gap-2" aria-label="Platforms coming soon">
-              {COMING_SOON_CHIP_PLATFORMS.map((item) => (
-                <span
-                  key={item.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 py-1 pl-1.5 pr-3 text-xs font-medium text-slate-400"
-                  aria-disabled="true"
-                >
-                  {item.icon ? (
-                    <Image
-                      src={item.icon}
-                      alt={`${item.label} logo`}
-                      width={16}
-                      height={16}
-                      className="block h-4 w-4 object-contain opacity-50"
-                    />
-                  ) : (
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[9px] font-bold text-slate-500">
-                      {item.label[0]}
-                    </span>
-                  )}
-                  {item.label}
-                </span>
-              ))}
+          <div className="flex flex-wrap items-end justify-between gap-4 border-t border-slate-100 pt-4">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Coming soon</p>
+              <div className="flex flex-wrap gap-1.5" aria-label="Platforms coming soon">
+                {COMING_SOON_CHIP_PLATFORMS.map((item) => (
+                  <span
+                    key={item.id}
+                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 py-0.5 pl-1 pr-2.5 text-[11px] font-medium text-slate-400"
+                    aria-disabled="true"
+                  >
+                    {item.icon ? (
+                      <Image
+                        src={item.icon}
+                        alt={`${item.label} logo`}
+                        width={14}
+                        height={14}
+                        className="block h-3.5 w-3.5 object-contain opacity-45"
+                      />
+                    ) : (
+                      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-slate-200 text-[8px] font-bold text-slate-500">
+                        {item.label[0]}
+                      </span>
+                    )}
+                    {item.label}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-
-          <div className="flex justify-end">
             <button
               type="button"
               disabled={!platform}

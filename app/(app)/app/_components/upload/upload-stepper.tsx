@@ -207,7 +207,7 @@ function PlatformCard({ label, subtitle, icon, available, selected, onClick, tes
           Selected
         </span>
       ) : null}
-      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_3px_rgba(15,23,42,0.08)]">
+      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-[inset_0_1px_0_rgba(255,255,255,1),0_1px_4px_rgba(15,23,42,0.1),0_0_0_1px_rgba(15,23,42,0.06)]">
         <Image
           src={icon}
           alt={`${label} logo`}
@@ -219,8 +219,8 @@ function PlatformCard({ label, subtitle, icon, available, selected, onClick, tes
       <p className="mt-3 text-sm font-semibold text-slate-900">{label}</p>
       <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
       <span
-        className={`mt-auto pt-3 inline-flex w-fit rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-          available ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-100 text-slate-400"
+        className={`mt-auto pt-3 inline-flex w-fit rounded-full border px-1.5 py-px text-[9px] font-semibold uppercase tracking-[0.12em] ${
+          available ? "border-emerald-300/60 bg-emerald-50/80 text-emerald-600" : "border-slate-200 bg-slate-50 text-slate-400"
         }`}
       >
         {available ? "Available" : "Coming soon"}

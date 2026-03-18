@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge } from "./Badge";
+import { DashboardSectionHeader } from "./DashboardSectionHeader";
 import { buttonClassName } from "@/src/components/ui/button";
 import { PanelCard } from "@/src/components/ui/panel-card";
 import type { DashboardViewModel } from "@/src/lib/dashboard/view-model";
@@ -89,49 +90,43 @@ export function CreatorHealthPanel({
   const trajectory = resolveScoreTrajectory(creatorHealth.score, creatorHealth.stateLabel);
 
   return (
-    <section data-testid="dashboard-section-creator-health">
+    <section className="space-y-3" data-testid="dashboard-section-creator-health">
+      <DashboardSectionHeader
+        title="Creator Health"
+        description="Your current revenue health score and the clearest stability read from the latest report."
+      />
       <PanelCard className="relative overflow-hidden border-brand-border-strong/80 bg-[linear-gradient(145deg,rgba(16,32,67,0.95),rgba(19,41,80,0.94),rgba(16,32,67,0.96))] p-0 shadow-brand-card">
         <div className="pointer-events-none absolute -left-24 top-[-5.5rem] h-72 w-72 rounded-full bg-brand-accent-blue/22 blur-3xl" />
         <div className="pointer-events-none absolute right-[-7rem] top-20 h-64 w-64 rounded-full bg-brand-accent-emerald/16 blur-3xl" />
 
         <div className="relative p-6 md:p-7" data-testid="creator-health-panel">
-          <div>
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-accent-teal">Primary health</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-brand-text-primary md:text-[2rem]">Creator Health</h2>
-                <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-brand-text-secondary">
-                  Your current revenue health score and the clearest stability read from the latest report.
-                </p>
-              </div>
+          <article className="rounded-[1.35rem] border border-brand-border-strong/80 bg-brand-panel/88 px-5 py-5 shadow-brand-glow md:px-6">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-brand-text-secondary">Creator Health Score</p>
               {creatorHealth.stateLabel ? <Badge variant={creatorHealth.stateTone ?? "neutral"}>{creatorHealth.stateLabel}</Badge> : null}
             </div>
-
-            <article className="mt-5 rounded-[1.35rem] border border-brand-border-strong/80 bg-brand-panel/88 px-5 py-5 shadow-brand-glow md:px-6">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-brand-text-secondary">Creator Health Score</p>
-              <div className="mt-2 flex items-end gap-2">
-                <p className="text-6xl font-semibold leading-none tracking-tight text-brand-text-primary md:text-7xl">
-                  {creatorHealth.score !== null ? creatorHealth.score : "--"}
-                </p>
-                {creatorHealth.score !== null ? <p className="pb-2 text-sm text-brand-text-muted md:text-base">/100</p> : null}
-              </div>
-              <p
-                className={`mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium tracking-[0.08em] ${trajectory.className}`}
-                data-testid="creator-health-trajectory"
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${trajectory.dotClassName}`} />
-                {trajectory.label}
+            <div className="mt-2 flex items-end gap-2">
+              <p className="text-6xl font-semibold leading-none tracking-tight text-brand-text-primary md:text-7xl">
+                {creatorHealth.score !== null ? creatorHealth.score : "--"}
               </p>
-              <h3 className="mt-4 text-lg font-semibold text-brand-text-primary">{creatorHealth.title}</h3>
-              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-brand-text-secondary">{creatorHealth.subtitle}</p>
-              {diagnosisNotice ? (
-                <p className="mt-2 text-xs leading-relaxed text-brand-text-muted/80" data-testid="creator-health-diagnosis-notice">
-                  <span className="font-medium text-amber-300/45">Confidence note:</span>{" "}
-                  {diagnosisNotice.body}
-                </p>
-              ) : null}
-            </article>
-          </div>
+              {creatorHealth.score !== null ? <p className="pb-2 text-sm text-brand-text-muted md:text-base">/100</p> : null}
+            </div>
+            <p
+              className={`mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium tracking-[0.08em] ${trajectory.className}`}
+              data-testid="creator-health-trajectory"
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${trajectory.dotClassName}`} />
+              {trajectory.label}
+            </p>
+            <h3 className="mt-4 text-lg font-semibold text-brand-text-primary">{creatorHealth.title}</h3>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-brand-text-secondary">{creatorHealth.subtitle}</p>
+            {diagnosisNotice ? (
+              <p className="mt-2 text-xs leading-relaxed text-brand-text-muted/80" data-testid="creator-health-diagnosis-notice">
+                <span className="font-medium text-amber-300/45">Confidence note:</span>{" "}
+                {diagnosisNotice.body}
+              </p>
+            ) : null}
+          </article>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr),auto]">
             <div className="rounded-[1.2rem] border border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.84),rgba(16,32,67,0.9))] p-4 shadow-brand-card">

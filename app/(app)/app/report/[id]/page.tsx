@@ -509,13 +509,6 @@ export default function ReportPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-brand-text-muted">
                     <span>Created {createdAtLabel}</span>
-                    <span className="hidden sm:inline" aria-hidden>
-                      |
-                    </span>
-                    <span>
-                      Report ID{" "}
-                      <span className="font-mono text-[11px] tracking-[0.03em] text-brand-text-secondary">{state.report.id}</span>
-                    </span>
                   </div>
                 </div>
 
@@ -606,14 +599,89 @@ export default function ReportPage() {
             </PanelCard>
           </section>
 
+          <section className="space-y-3">
+            <DashboardSectionHeader title="Key Insights" description="Key signals translated into clear implications for the next planning cycle." />
+            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              {insightCards.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-5">
+                  <p className="text-sm text-brand-text-secondary">Not enough signal data is available to generate narrative insight cards yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {insightCards[0] ? (
+                    (() => {
+                      const insight = insightCards[0];
+                      const tone = getInsightCardPresentation(insight.variant);
+                      return (
+                        <article className={`relative overflow-hidden rounded-[1.2rem] border p-5 shadow-brand-card ${tone.cardClassName}`}>
+                          <div className={`absolute inset-x-0 top-0 h-0.5 ${tone.accentClassName}`} />
+                          <div className="relative flex flex-wrap items-center gap-2">
+                            <Badge variant={tone.badgeVariant} className={`px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${tone.badgeClassName}`}>
+                              {tone.badgeLabel}
+                            </Badge>
+                            {insight.stateLabel ? (
+                              <Badge variant={insight.stateTone ?? "neutral"} className="px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                                {insight.stateLabel}
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <h3 className="mt-2.5 text-lg font-semibold leading-snug text-brand-text-primary break-words">{insight.title}</h3>
+                          <p className="mt-1.5 text-sm leading-relaxed text-brand-text-secondary break-words">{insight.body}</p>
+                          {insight.stateDetail ? <p className="mt-1.5 text-xs leading-relaxed text-brand-text-muted break-words">{insight.stateDetail}</p> : null}
+                          <p className="mt-2.5 text-xs leading-relaxed text-brand-text-muted/90 break-words">
+                            <span className="font-medium text-brand-text-secondary/60">Why it matters — </span>
+                            {insight.implication}
+                          </p>
+                        </article>
+                      );
+                    })()
+                  ) : null}
+                  {insightCards.length > 1 ? (
+                    <ul className="space-y-2">
+                      {insightCards.slice(1).map((insight) => {
+                        const tone = getInsightCardPresentation(insight.variant);
+                        return (
+                          <li key={insight.id}>
+                            <article className={`relative overflow-hidden rounded-[1.2rem] border p-4 shadow-brand-card ${tone.cardClassName}`}>
+                              <div className={`absolute inset-x-0 top-0 h-0.5 ${tone.accentClassName}`} />
+                              <div className="relative flex flex-wrap items-center gap-2">
+                                <Badge variant={tone.badgeVariant} className={`px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${tone.badgeClassName}`}>
+                                  {tone.badgeLabel}
+                                </Badge>
+                                {insight.stateLabel ? (
+                                  <Badge variant={insight.stateTone ?? "neutral"} className="px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]">
+                                    {insight.stateLabel}
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              <h3 className="mt-2 text-base font-semibold leading-snug text-brand-text-primary break-words">{insight.title}</h3>
+                              <p className="mt-1.5 text-sm leading-relaxed text-brand-text-secondary break-words">{insight.body}</p>
+                              {insight.stateDetail ? <p className="mt-1 text-xs leading-relaxed text-brand-text-muted break-words">{insight.stateDetail}</p> : null}
+                              <p className="mt-2 text-xs leading-relaxed text-brand-text-muted/90 break-words">
+                                <span className="font-medium text-brand-text-secondary/60">Why it matters — </span>
+                                {insight.implication}
+                              </p>
+                            </article>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                </div>
+              )}
+            </PanelCard>
+          </section>
+
           <section className="space-y-3" data-testid="report-diagnosis-section">
-            <DashboardSectionHeader
-              title="Diagnosis"
-              description="Typed growth-constraint diagnosis surfaced from backend evidence without strengthening the narrative."
-            />
+            <DashboardSectionHeader title="Diagnosis" description="Typed growth-constraint diagnosis surfaced from backend evidence." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               <div className="space-y-4">
-                {presentation.diagnosis.notice ? <TruthNotice notice={presentation.diagnosis.notice} testId="report-diagnosis-notice" /> : null}
+                {presentation.diagnosis.notice ? (
+                  <p className="text-xs leading-relaxed text-brand-text-muted/80">
+                    <span className="font-medium text-amber-300/55">Confidence note:</span>{" "}
+                    {presentation.diagnosis.notice.body}
+                  </p>
+                ) : null}
                 {presentation.diagnosis.diagnosisTypeLabel || presentation.diagnosis.summary || presentation.diagnosis.unavailableBody ? (
                   <article className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.78),rgba(16,32,67,0.9))] p-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -629,14 +697,10 @@ export default function ReportPage() {
                     </p>
                   </article>
                 ) : null}
-
                 {presentation.diagnosis.supportingMetrics.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     {presentation.diagnosis.supportingMetrics.map((metric) => (
-                      <article
-                        key={metric.id}
-                        className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-                      >
+                      <article key={metric.id} className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
                           {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
@@ -647,36 +711,19 @@ export default function ReportPage() {
                     ))}
                   </div>
                 ) : null}
-
-                {presentation.diagnosis.primitives.length > 0 ? (
-                  <div className="rounded-[1.15rem] border border-brand-border/70 bg-brand-panel/70 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Typed signals behind the diagnosis</p>
-                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {presentation.diagnosis.primitives.map((entry) => (
-                        <div key={entry.label} className="rounded-xl border border-brand-border/60 bg-brand-panel-muted/60 px-3 py-3">
-                          <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-muted">{entry.label}</p>
-                          <p className="mt-1.5 text-sm font-medium text-brand-text-primary">{entry.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
               </div>
             </PanelCard>
           </section>
 
-          <section className="space-y-3" data-testid="report-what-changed-section">
-            <DashboardSectionHeader
-              title="What Changed"
-              description="Typed report-over-report changes, shown only within the confidence and comparability the backend provides."
-            />
-            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              <div className="space-y-4">
-                {presentation.whatChanged.notice ? <TruthNotice notice={presentation.whatChanged.notice} testId="report-what-changed-notice" /> : null}
-                {presentation.whatChanged.priorPeriodLabel ? (
-                  <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">{presentation.whatChanged.priorPeriodLabel}</p>
-                ) : null}
-                {presentation.whatChanged.comparisonAvailable ? (
+          {presentation.whatChanged.comparisonAvailable ? (
+            <section className="space-y-3" data-testid="report-what-changed-section">
+              <DashboardSectionHeader title="What Changed" description="Typed report-over-report changes." />
+              <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+                <div className="space-y-4">
+                  {presentation.whatChanged.notice ? <TruthNotice notice={presentation.whatChanged.notice} testId="report-what-changed-notice" /> : null}
+                  {presentation.whatChanged.priorPeriodLabel ? (
+                    <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">{presentation.whatChanged.priorPeriodLabel}</p>
+                  ) : null}
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     <ComparisonBucket
                       title="Improved"
@@ -697,68 +744,21 @@ export default function ReportPage() {
                       testId="report-what-changed-watch-next"
                     />
                   </div>
-                ) : (
-                  <div
-                    className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/70 p-4"
-                    data-testid="report-what-changed-unavailable"
-                  >
-                    <p className="text-sm text-brand-text-secondary">
-                      {presentation.whatChanged.unavailableBody ?? "A prior comparable report is not available yet."}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </PanelCard>
-          </section>
-
-          <section className="space-y-3">
-            <DashboardSectionHeader title="Key Insights" description="Key Signals translated into clear implications for the next planning cycle." />
-            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              {insightCards.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-5">
-                  <p className="text-sm text-brand-text-secondary">Not enough signal data is available to generate narrative insight cards yet.</p>
                 </div>
-              ) : (
-                <ul className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {insightCards.map((insight) => {
-                    const tone = getInsightCardPresentation(insight.variant);
-                    return (
-                      <li key={insight.id}>
-                        <article className={`relative h-full overflow-hidden rounded-[1.2rem] border p-5 shadow-brand-card ${tone.cardClassName}`}>
-                          <div className={`absolute inset-x-0 top-0 h-0.5 ${tone.accentClassName}`} />
-                          <div className="relative flex items-center justify-between gap-3">
-                            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Signal</p>
-                            <div className="flex flex-wrap items-center justify-end gap-2">
-                              {insight.stateLabel ? <Badge variant={insight.stateTone ?? "neutral"}>{insight.stateLabel}</Badge> : null}
-                              <Badge
-                                variant={tone.badgeVariant}
-                                className={`px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${tone.badgeClassName}`}
-                              >
-                                {tone.badgeLabel}
-                              </Badge>
-                            </div>
-                          </div>
-                          <h3 className="mt-3 text-lg font-semibold leading-snug text-brand-text-primary break-words">{insight.title}</h3>
-                          <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary break-words">{insight.body}</p>
-                          {insight.stateDetail ? <p className="mt-3 text-xs leading-relaxed text-brand-text-muted break-words">{insight.stateDetail}</p> : null}
-                          <div className={`mt-4 rounded-xl border p-3.5 ${tone.implicationPanelClassName}`}>
-                            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Why it matters</p>
-                            <p className="mt-1.5 text-sm leading-relaxed text-brand-text-primary break-words">{insight.implication}</p>
-                          </div>
-                        </article>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </PanelCard>
-          </section>
+              </PanelCard>
+            </section>
+          ) : (
+            <p className="text-xs text-brand-text-muted/70" data-testid="report-what-changed-section">
+              <span className="font-medium text-brand-text-muted">Period comparison:</span>{" "}
+              {presentation.whatChanged.unavailableBody ?? "A prior comparable report is not available yet."}
+            </p>
+          )}
 
           <section className="space-y-3">
             <DashboardSectionHeader title="Revenue Trend" description="Recent net revenue movement from your latest report timeline." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               {revenueTrend.hasRenderableChart ? (
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <div className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/70 px-4 py-4 shadow-brand-card">
                     <div className="flex flex-wrap items-end justify-between gap-3">
                       <div>
@@ -798,6 +798,64 @@ export default function ReportPage() {
                     <p className="text-sm text-brand-text-secondary">Trend chart data is not available in this report artifact.</p>
                   </div>
                 </div>
+              )}
+            </PanelCard>
+          </section>
+
+          <section className="space-y-3">
+            <DashboardSectionHeader title="Growth Recommendations" description="Recommended actions already captured in the report." />
+            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              {showGrowthRecommendationsContent ? (
+                <div data-testid="report-growth-recommendations-unlocked">
+                  {presentation.recommendations.length > 0 ? (
+                    <div className="space-y-3">
+                      <article className="relative overflow-hidden rounded-[1.2rem] border border-brand-accent-teal/22 bg-[linear-gradient(155deg,rgba(18,40,82,0.92),rgba(14,30,60,0.94))] p-4 shadow-brand-glow">
+                        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-accent-teal/55 via-brand-accent-teal/22 to-transparent" />
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-brand-accent-teal/70">
+                          {presentation.recommendations[0].label || "Recommended action"}
+                        </p>
+                        <p className="mt-2 text-base font-semibold leading-snug text-brand-text-primary">{presentation.recommendations[0].body}</p>
+                        {presentation.recommendations[0].detail ? (
+                          <p className="mt-1.5 text-sm leading-relaxed text-brand-text-secondary">{presentation.recommendations[0].detail}</p>
+                        ) : null}
+                        {presentation.recommendations[0].stateLabel ? (
+                          <div className="mt-2.5">
+                            <Badge variant={presentation.recommendations[0].stateTone ?? "neutral"}>{presentation.recommendations[0].stateLabel}</Badge>
+                          </div>
+                        ) : null}
+                      </article>
+                      {presentation.recommendations.length > 1 ? (
+                        <ul className="space-y-1.5">
+                          {presentation.recommendations.slice(1).map((recommendation, index) => (
+                            <li key={recommendation.id} className="flex items-start gap-3 rounded-[0.9rem] border border-brand-border/45 bg-brand-panel/40 px-4 py-2.5">
+                              <span className="mt-px shrink-0 text-[11px] font-semibold tabular-nums text-brand-text-muted">{index + 2}.</span>
+                              <div className="min-w-0">
+                                <p className="text-sm leading-relaxed text-brand-text-secondary">{recommendation.body}</p>
+                                {recommendation.detail ? <p className="mt-1 text-xs leading-relaxed text-brand-text-muted">{recommendation.detail}</p> : null}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                      <p className="text-sm text-brand-text-secondary">No explicit recommendation list is available for this report.</p>
+                    </div>
+                  )}
+                </div>
+              ) : proSectionGate.growthRecommendations === "pro-locked" ? (
+                <ProSectionLockedCard
+                  testId="report-growth-recommendations-locked"
+                  title="Growth Recommendations"
+                  headline="Unlock growth recommendations"
+                  body="Get personalized actions based on your revenue and audience signals."
+                />
+              ) : (
+                <ProSectionLoadingCard
+                  testId="report-growth-recommendations-loading"
+                  message="Checking plan access for growth recommendations..."
+                />
               )}
             </PanelCard>
           </section>
@@ -933,49 +991,6 @@ export default function ReportPage() {
           </section>
 
           <section className="space-y-3">
-            <DashboardSectionHeader title="Growth Recommendations" description="Recommended Actions already captured in the report." />
-            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              {showGrowthRecommendationsContent ? (
-                <div data-testid="report-growth-recommendations-unlocked">
-                  {presentation.recommendations.length > 0 ? (
-                    <ul className="space-y-3">
-                      {presentation.recommendations.map((recommendation, index) => (
-                        <li
-                          key={recommendation.id}
-                          className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">{recommendation.label || `Recommendation ${index + 1}`}</p>
-                            {recommendation.stateLabel ? <Badge variant={recommendation.stateTone ?? "neutral"}>{recommendation.stateLabel}</Badge> : null}
-                          </div>
-                          <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{recommendation.body}</p>
-                          {recommendation.detail ? <p className="mt-3 text-xs leading-relaxed text-brand-text-muted">{recommendation.detail}</p> : null}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                      <p className="text-sm text-brand-text-secondary">No explicit recommendation list is available for this report.</p>
-                    </div>
-                  )}
-                </div>
-              ) : proSectionGate.growthRecommendations === "pro-locked" ? (
-                <ProSectionLockedCard
-                  testId="report-growth-recommendations-locked"
-                  title="Growth Recommendations"
-                  headline="Unlock growth recommendations"
-                  body="Get personalized actions based on your revenue and audience signals."
-                />
-              ) : (
-                <ProSectionLoadingCard
-                  testId="report-growth-recommendations-loading"
-                  message="Checking plan access for growth recommendations..."
-                />
-              )}
-            </PanelCard>
-          </section>
-
-          <section className="space-y-3">
             <DashboardSectionHeader title="Revenue Outlook" description="Outlook scenarios based on available projection signals." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               {showRevenueOutlookContent ? (
@@ -1024,68 +1039,75 @@ export default function ReportPage() {
 
           <section className="space-y-3">
             <DashboardSectionHeader title="Appendix" description="Technical and verbose details from the artifact payload." />
-            <PanelCard className="border-brand-border/65 bg-brand-panel/72">
-              {presentation.appendixSections.length > 0 ? (
-                <div className="space-y-4">
-                  {presentation.appendixSections.map((section) => (
-                    <article key={section.id} className="rounded-xl border border-brand-border/60 bg-brand-panel-muted/50 p-4">
-                      <h3 className="text-sm font-semibold text-brand-text-secondary">{section.title}</h3>
-                      {section.paragraphs.length > 0 ? (
-                        <div className="mt-2 space-y-2">
-                          {section.paragraphs.map((paragraph, index) => (
-                            <p key={`${section.id}-paragraph-${index}`} className="text-xs leading-relaxed text-brand-text-muted">
-                              {paragraph}
-                            </p>
-                          ))}
-                        </div>
-                      ) : null}
-                      {section.bullets.length > 0 ? (
-                        <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-brand-text-muted">
-                          {section.bullets.map((bullet, index) => (
-                            <li key={`${section.id}-bullet-${index}`}>{bullet}</li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-brand-text-secondary">No appendix sections were provided in this report artifact.</p>
-              )}
+            <details>
+              <summary className="cursor-pointer rounded-xl border border-brand-border/55 bg-brand-panel/55 px-4 py-2.5 text-sm text-brand-text-muted hover:text-brand-text-secondary [list-style:none] [&::-webkit-details-marker]:hidden">
+                Show appendix details
+              </summary>
+              <div className="mt-3">
+                <PanelCard className="border-brand-border/65 bg-brand-panel/72">
+                  {presentation.appendixSections.length > 0 ? (
+                    <div className="space-y-4">
+                      {presentation.appendixSections.map((section) => (
+                        <article key={section.id} className="rounded-xl border border-brand-border/60 bg-brand-panel-muted/50 p-4">
+                          <h3 className="text-sm font-semibold text-brand-text-secondary">{section.title}</h3>
+                          {section.paragraphs.length > 0 ? (
+                            <div className="mt-2 space-y-2">
+                              {section.paragraphs.map((paragraph, index) => (
+                                <p key={`${section.id}-paragraph-${index}`} className="text-xs leading-relaxed text-brand-text-muted">
+                                  {paragraph}
+                                </p>
+                              ))}
+                            </div>
+                          ) : null}
+                          {section.bullets.length > 0 ? (
+                            <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-brand-text-muted">
+                              {section.bullets.map((bullet, index) => (
+                                <li key={`${section.id}-bullet-${index}`}>{bullet}</li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-brand-text-secondary">No appendix sections were provided in this report artifact.</p>
+                  )}
 
-              {canAccessDebugPayload ? (
-                <details
-                  data-testid="report-debug-accordion"
-                  className="mt-4 rounded-2xl border border-brand-border/70 bg-brand-bg-elevated/72 p-4"
-                  onToggle={(event) => setDebugOpen(event.currentTarget.open)}
-                >
-                  <summary className="cursor-pointer text-sm font-semibold text-brand-text-primary">Debug + Raw JSON</summary>
-                  <div className="mt-3 space-y-3">
-                    {state.artifactWarnings.length > 0 ? (
-                      <div className="rounded-xl border border-amber-300/40 bg-amber-500/[0.08] p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-100">Normalization warnings</p>
-                        <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-amber-100">
-                          {state.artifactWarnings.map((warning) => (
-                            <li key={warning}>{warning}</li>
-                          ))}
-                        </ul>
+                  {canAccessDebugPayload ? (
+                    <details
+                      data-testid="report-debug-accordion"
+                      className="mt-4 rounded-2xl border border-brand-border/70 bg-brand-bg-elevated/72 p-4"
+                      onToggle={(event) => setDebugOpen(event.currentTarget.open)}
+                    >
+                      <summary className="cursor-pointer text-sm font-semibold text-brand-text-primary">Debug + Raw JSON</summary>
+                      <div className="mt-3 space-y-3">
+                        {state.artifactWarnings.length > 0 ? (
+                          <div className="rounded-xl border border-amber-300/40 bg-amber-500/[0.08] p-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-amber-100">Normalization warnings</p>
+                            <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-amber-100">
+                              {state.artifactWarnings.map((warning) => (
+                                <li key={warning}>{warning}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                        {state.artifactRaw && debugJson ? (
+                          <pre data-testid="report-debug-json" className="overflow-x-auto rounded-xl border border-brand-border bg-slate-950 p-3 text-xs text-slate-100">
+                            {debugJson}
+                          </pre>
+                        ) : state.artifactRaw ? (
+                          <p className="text-xs text-brand-text-muted">Expand Debug to render artifact JSON.</p>
+                        ) : (
+                          <p className="text-xs text-brand-text-muted">Artifact JSON is unavailable.</p>
+                        )}
                       </div>
-                    ) : null}
-                    {state.artifactRaw && debugJson ? (
-                      <pre data-testid="report-debug-json" className="overflow-x-auto rounded-xl border border-brand-border bg-slate-950 p-3 text-xs text-slate-100">
-                        {debugJson}
-                      </pre>
-                    ) : state.artifactRaw ? (
-                      <p className="text-xs text-brand-text-muted">Expand Debug to render artifact JSON.</p>
-                    ) : (
-                      <p className="text-xs text-brand-text-muted">Artifact JSON is unavailable.</p>
-                    )}
-                  </div>
-                </details>
-              ) : (
-                <p className="mt-4 text-xs text-brand-text-muted">Debug payload view is available with Pro access.</p>
-              )}
-            </PanelCard>
+                    </details>
+                  ) : (
+                    <p className="mt-4 text-xs text-brand-text-muted">Debug payload view is available with Pro access.</p>
+                  )}
+                </PanelCard>
+              </div>
+            </details>
           </section>
         </section>
       ) : null}

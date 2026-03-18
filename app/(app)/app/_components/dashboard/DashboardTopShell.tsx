@@ -23,12 +23,7 @@ export function DashboardTopShell({
 }: DashboardTopShellProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-0.5">
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-accent-teal">Creator Operating Dashboard</p>
-        <p className="text-base font-semibold tracking-tight text-brand-text-primary">
-          {mode === "earn" ? "Earn" : "Grow"}
-        </p>
-      </div>
+      <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-brand-accent-teal">Creator Operating Dashboard</p>
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="flex items-center rounded-full border border-brand-border-strong/60 bg-brand-panel/70 p-0.5">
           <button

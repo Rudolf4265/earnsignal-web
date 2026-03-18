@@ -193,21 +193,29 @@ function PlatformCard({ label, subtitle, icon, available, selected, onClick, tes
       disabled={!available}
       onClick={onClick}
       className={[
-        "group relative flex h-full w-full flex-col rounded-2xl border p-3.5 text-left transition-all duration-200",
+        "group relative flex h-full w-full flex-col rounded-2xl border p-3 text-left transition-all duration-200",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
         available
           ? selected
-            ? "cursor-pointer border-blue-500 bg-gradient-to-br from-blue-50 to-slate-50 shadow-[0_0_0_3px_rgba(59,130,246,0.18),0_8px_24px_-10px_rgba(37,99,235,0.25)]"
-            : "cursor-pointer border-slate-200 bg-white shadow-[0_2px_8px_-2px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 hover:border-blue-300/70 hover:bg-gradient-to-br hover:from-white hover:to-blue-50/40 hover:shadow-[0_8px_20px_-8px_rgba(37,99,235,0.18)]"
+            ? "cursor-pointer border-blue-400/60 bg-[#0b1628] shadow-[0_0_0_1px_rgba(59,130,246,0.35),0_0_20px_-6px_rgba(59,130,246,0.28)]"
+            : "cursor-pointer border-slate-200 bg-white shadow-[0_2px_8px_-2px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 hover:border-blue-300/60 hover:shadow-[0_8px_20px_-8px_rgba(37,99,235,0.16)]"
           : "cursor-not-allowed border-slate-200 bg-white opacity-55",
       ].join(" ")}
     >
       {selected ? (
-        <span className="absolute right-3 top-3 inline-flex items-center rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-300 ring-1 ring-inset ring-blue-400/25">
+          <span className="h-1 w-1 rounded-full bg-blue-400" />
           Selected
         </span>
       ) : null}
-      <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-[inset_0_1px_0_rgba(255,255,255,1),0_1px_4px_rgba(15,23,42,0.1),0_0_0_1px_rgba(15,23,42,0.06)]">
+      <span
+        className={[
+          "inline-flex h-9 w-9 items-center justify-center rounded-xl",
+          selected
+            ? "bg-[#0e1f3a] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_0_1px_rgba(59,130,246,0.18)]"
+            : "bg-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_4px_rgba(15,23,42,0.1),0_0_0_1px_rgba(15,23,42,0.07)]",
+        ].join(" ")}
+      >
         <Image
           src={icon}
           alt={`${label} logo`}
@@ -216,11 +224,11 @@ function PlatformCard({ label, subtitle, icon, available, selected, onClick, tes
           className="platform-icon block h-5 w-5 object-contain"
         />
       </span>
-      <p className="mt-2.5 text-sm font-semibold text-slate-900">{label}</p>
-      <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
-      <span className="mt-auto flex items-center gap-1.5 pt-2.5">
+      <p className={`mt-2 text-sm font-semibold ${selected ? "text-white" : "text-slate-900"}`}>{label}</p>
+      <p className={`mt-0.5 text-xs leading-snug ${selected ? "text-slate-300/80" : "text-slate-500"}`}>{subtitle}</p>
+      <span className="mt-auto flex items-center gap-1.5 pt-2">
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${available ? "bg-emerald-400" : "bg-slate-300"}`} />
-        <span className={`text-[9px] font-medium uppercase tracking-[0.1em] ${available ? "text-emerald-600" : "text-slate-400"}`}>
+        <span className={`text-[9px] font-medium uppercase tracking-[0.1em] ${available ? (selected ? "text-emerald-400" : "text-emerald-600") : "text-slate-400"}`}>
           {available ? "Supported" : "Coming soon"}
         </span>
       </span>
@@ -919,10 +927,10 @@ export default function UploadStepper() {
             </InlineAlert>
           ) : null}
           <StepHeader title="Choose platform" subtitle="Select the data source for this upload." />
-          <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.07] px-3.5 py-2.5" data-testid="upload-platform-guide">
+          <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.06] px-3 py-2" data-testid="upload-platform-guide">
             <p className="text-xs font-semibold text-blue-100">Start with a supported CSV export</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-blue-100/75">Upload accepts {supportedRevenueUploads}. Choose the platform that matches your export, then continue with a fresh CSV file.</p>
-            <Link href="/app/help#upload-guide" className="mt-2 inline-flex text-[10px] font-medium text-blue-300/80 hover:text-blue-200">
+            <p className="mt-0.5 text-[11px] leading-relaxed text-blue-100/70">Upload accepts {supportedRevenueUploads}. Choose the platform that matches your export, then continue with a fresh CSV file.</p>
+            <Link href="/app/help#upload-guide" className="mt-1.5 inline-flex text-[10px] font-medium text-blue-300/75 hover:text-blue-200">
               Open upload guide →
             </Link>
           </div>
@@ -954,26 +962,26 @@ export default function UploadStepper() {
             ))}
           </div>
 
-          <div className="flex flex-wrap items-end justify-between gap-4 border-t border-slate-100 pt-4">
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Coming soon</p>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] pt-3.5">
+            <div className="space-y-1">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500">Coming soon</p>
               <div className="flex flex-wrap gap-1.5" aria-label="Platforms coming soon">
                 {COMING_SOON_CHIP_PLATFORMS.map((item) => (
                   <span
                     key={item.id}
-                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 py-0.5 pl-1 pr-2.5 text-[11px] font-medium text-slate-400"
+                    className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] py-0.5 pl-1 pr-2 text-[10px] font-medium text-slate-500"
                     aria-disabled="true"
                   >
                     {item.icon ? (
                       <Image
                         src={item.icon}
                         alt={`${item.label} logo`}
-                        width={14}
-                        height={14}
-                        className="block h-3.5 w-3.5 object-contain opacity-45"
+                        width={13}
+                        height={13}
+                        className="block h-3 w-3 object-contain opacity-35"
                       />
                     ) : (
-                      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-slate-200 text-[8px] font-bold text-slate-500">
+                      <span className="flex h-3 w-3 items-center justify-center rounded-full bg-white/10 text-[8px] font-bold text-slate-500">
                         {item.label[0]}
                       </span>
                     )}

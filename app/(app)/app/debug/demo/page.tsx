@@ -266,7 +266,7 @@ export default function DemoDashboardPage() {
 
       {dashboardMode === "earn" ? (
         <>
-          {/* Row 1: Creator Health + Next Best Move */}
+          {/* Row 1: Primary Health (left) + Signals Worth Watching (right) */}
           <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,7fr),minmax(0,5fr)]">
             <CreatorHealthPanel
               creatorHealth={workspace.dashboard.earn.model.creatorHealth}
@@ -278,7 +278,7 @@ export default function DemoDashboardPage() {
               diagnosisNotice={workspace.dashboard.earn.diagnosis.notice}
             />
 
-            <ActionCardsSection mode={actionCards.mode} cards={actionCards.cards} presentation="hero" />
+            <InsightCardsSection insights={workspace.dashboard.earn.insights} diagnosis={workspace.dashboard.earn.diagnosis} loading={false} />
           </div>
 
           {/* Row 2: Compact metric strip */}
@@ -288,8 +288,8 @@ export default function DemoDashboardPage() {
             coverageMonths={null}
           />
 
-          {/* Row 3: Signals + Biggest Constraint embedded */}
-          <InsightCardsSection insights={workspace.dashboard.earn.insights} diagnosis={workspace.dashboard.earn.diagnosis} loading={false} />
+          {/* Row 3: Next Best Move */}
+          <ActionCardsSection mode={actionCards.mode} cards={actionCards.cards} presentation="hero" />
 
           <RevenueTrendSection
             trend={workspace.dashboard.earn.revenueTrend}

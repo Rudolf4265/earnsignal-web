@@ -523,7 +523,7 @@ export default function DashboardPage() {
 
       {dashboardMode === "earn" ? (
         <>
-          {/* Row 1: Creator Health + Next Best Move */}
+          {/* Row 1: Primary Health (left) + Signals Worth Watching (right) */}
           <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,7fr),minmax(0,5fr)]">
             <CreatorHealthPanel
               creatorHealth={earnDashboardModel.creatorHealth}
@@ -535,7 +535,7 @@ export default function DashboardPage() {
               diagnosisNotice={diagnosisViewModel.notice}
             />
 
-            <ActionCardsSection mode={actionCardsSection.mode} cards={actionCardsSection.cards} presentation="hero" />
+            <InsightCardsSection insights={insightCards} diagnosis={diagnosisViewModel} loading={state.loading} />
           </div>
 
           {/* Row 2: Compact metric strip */}
@@ -545,8 +545,8 @@ export default function DashboardPage() {
             coverageMonths={kpis.coverageMonths}
           />
 
-          {/* Row 3: Signals + Biggest Constraint embedded */}
-          <InsightCardsSection insights={insightCards} diagnosis={diagnosisViewModel} loading={state.loading} />
+          {/* Row 3: Next Best Move */}
+          <ActionCardsSection mode={actionCardsSection.mode} cards={actionCardsSection.cards} presentation="hero" />
 
           <RevenueTrendSection
             trend={revenueTrend}

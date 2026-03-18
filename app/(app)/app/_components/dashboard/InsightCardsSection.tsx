@@ -105,7 +105,7 @@ export function InsightCardsSection({ insights, diagnosis, loading }: InsightCar
           <div className="space-y-3">
             {insights.length > 0 ? <InsightArticle insight={insights[0]} featured /> : null}
             {hasConstraint || secondaryInsights.length > 0 ? (
-              <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <ul className="grid grid-cols-1 gap-3">
                 {hasConstraint ? (
                   <li>
                     <DiagnosisConstraintCard diagnosis={diagnosis} loading={loading} />

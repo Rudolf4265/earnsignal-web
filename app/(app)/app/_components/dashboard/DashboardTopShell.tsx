@@ -25,7 +25,7 @@ export function DashboardTopShell({
     <div className="flex flex-wrap items-center justify-between gap-3 px-0.5">
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-accent-teal">Creator Operating Dashboard</p>
-        <p className="mt-0.5 text-lg font-semibold tracking-tight text-brand-text-primary">
+        <p className="text-base font-semibold tracking-tight text-brand-text-primary">
           {mode === "earn" ? "Earn" : "Grow"}
         </p>
       </div>

@@ -24,17 +24,17 @@ export function ActionCardsSection({ mode, cards, presentation = "default" }: Ac
         {mode === "unlocked" ? (
           <div className="space-y-3" data-testid="dashboard-action-cards-unlocked">
             {featuredCard ? (
-              <article className="relative overflow-hidden rounded-[1.2rem] border border-brand-accent-teal/25 bg-[linear-gradient(155deg,rgba(18,40,82,0.94),rgba(14,30,60,0.96))] p-5 shadow-brand-glow">
-                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-accent-teal/65 via-brand-accent-teal/28 to-transparent" />
-                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-accent-teal/75">
+              <article className="relative overflow-hidden rounded-[1.2rem] border border-brand-accent-teal/22 bg-[linear-gradient(155deg,rgba(18,40,82,0.92),rgba(14,30,60,0.94))] p-4 shadow-brand-glow">
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-accent-teal/55 via-brand-accent-teal/22 to-transparent" />
+                <p className="text-[10px] uppercase tracking-[0.14em] text-brand-accent-teal/70">
                   {featuredCard.label || "Recommended action"}
                 </p>
-                <p className="mt-2.5 text-[1.05rem] font-semibold leading-snug text-brand-text-primary">{featuredCard.body}</p>
+                <p className="mt-2 text-base font-semibold leading-snug text-brand-text-primary">{featuredCard.body}</p>
                 {featuredCard.detail ? (
-                  <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{featuredCard.detail}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-brand-text-secondary">{featuredCard.detail}</p>
                 ) : null}
                 {featuredCard.stateLabel ? (
-                  <div className="mt-3">
+                  <div className="mt-2.5">
                     <Badge variant={featuredCard.stateTone ?? "neutral"}>{featuredCard.stateLabel}</Badge>
                   </div>
                 ) : null}
@@ -44,7 +44,7 @@ export function ActionCardsSection({ mode, cards, presentation = "default" }: Ac
             {supportingCards.length > 0 ? (
               <ul className="space-y-1.5">
                 {supportingCards.map((card, index) => (
-                  <li key={card.id} className="flex items-start gap-3 rounded-[0.9rem] border border-brand-border/50 bg-brand-panel/45 px-4 py-3">
+                  <li key={card.id} className="flex items-start gap-3 rounded-[0.9rem] border border-brand-border/45 bg-brand-panel/40 px-4 py-2.5">
                     <span className="mt-px shrink-0 text-[11px] font-semibold tabular-nums text-brand-text-muted">{index + 2}.</span>
                     <div className="min-w-0">
                       <p className="text-sm leading-relaxed text-brand-text-secondary">{card.body}</p>

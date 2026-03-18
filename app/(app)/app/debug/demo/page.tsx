@@ -161,7 +161,7 @@ export default function DemoDashboardPage() {
   }, [router]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <section
         className="rounded-[1.6rem] border border-brand-border-strong/80 bg-[linear-gradient(145deg,rgba(12,28,57,0.97),rgba(18,40,82,0.94),rgba(11,24,50,0.98))] p-6 shadow-brand-card"
         data-testid="demo-workspace-banner"
@@ -266,30 +266,33 @@ export default function DemoDashboardPage() {
 
       {dashboardMode === "earn" ? (
         <>
-          {/* Row 1: Primary Health (left) + Signals Worth Watching (right) */}
-          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-            <CreatorHealthPanel
-              creatorHealth={workspace.dashboard.earn.model.creatorHealth}
-              loading={false}
-              latestReportRow={workspace.dashboard.utility.latestReportRow}
-              latestReportHref={latestReportHref}
-              latestReportStatusLabel={workspace.dashboard.utility.latestReportStatusLabel}
-              latestReportStatusVariant={workspace.dashboard.utility.latestReportStatusVariant}
-              diagnosisNotice={workspace.dashboard.earn.diagnosis.notice}
+          {/* Top executive summary: rows 1–3 grouped tighter */}
+          <div className="space-y-4">
+            {/* Row 1: Primary Health (left) + Signals Worth Watching (right) */}
+            <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+              <CreatorHealthPanel
+                creatorHealth={workspace.dashboard.earn.model.creatorHealth}
+                loading={false}
+                latestReportRow={workspace.dashboard.utility.latestReportRow}
+                latestReportHref={latestReportHref}
+                latestReportStatusLabel={workspace.dashboard.utility.latestReportStatusLabel}
+                latestReportStatusVariant={workspace.dashboard.utility.latestReportStatusVariant}
+                diagnosisNotice={workspace.dashboard.earn.diagnosis.notice}
+              />
+
+              <InsightCardsSection insights={workspace.dashboard.earn.insights} diagnosis={workspace.dashboard.earn.diagnosis} loading={false} />
+            </div>
+
+            {/* Row 2: Compact metric strip */}
+            <DashboardMetricStrip
+              revenueSnapshot={workspace.dashboard.earn.model.revenueSnapshot}
+              churnVelocity={null}
+              coverageMonths={null}
             />
 
-            <InsightCardsSection insights={workspace.dashboard.earn.insights} diagnosis={workspace.dashboard.earn.diagnosis} loading={false} />
+            {/* Row 3: Next Best Move */}
+            <ActionCardsSection mode={actionCards.mode} cards={actionCards.cards} presentation="hero" />
           </div>
-
-          {/* Row 2: Compact metric strip */}
-          <DashboardMetricStrip
-            revenueSnapshot={workspace.dashboard.earn.model.revenueSnapshot}
-            churnVelocity={null}
-            coverageMonths={null}
-          />
-
-          {/* Row 3: Next Best Move */}
-          <ActionCardsSection mode={actionCards.mode} cards={actionCards.cards} presentation="hero" />
 
           <RevenueTrendSection
             trend={workspace.dashboard.earn.revenueTrend}

@@ -14,11 +14,11 @@ type CompactTileProps = {
 
 function CompactTile({ label, value, subtext }: CompactTileProps) {
   return (
-    <article className="rounded-[1.2rem] border border-brand-border/70 bg-[linear-gradient(155deg,rgba(16,32,67,0.92),rgba(19,41,80,0.78),rgba(16,32,67,0.92))] px-4 py-4 shadow-brand-card">
-      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{label}</p>
-      <p className="mt-2 text-3xl font-semibold tracking-tight text-brand-text-primary">{value}</p>
+    <article className="rounded-[1.1rem] border border-brand-border/50 bg-[linear-gradient(155deg,rgba(16,32,67,0.9),rgba(19,41,80,0.74),rgba(16,32,67,0.9))] px-4 py-3.5 shadow-brand-card">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-brand-text-muted">{label}</p>
+      <p className="mt-1.5 text-3xl font-semibold tracking-tight text-brand-text-primary">{value}</p>
       {subtext ? (
-        <p className="mt-1.5 text-xs leading-relaxed text-brand-text-muted">{subtext}</p>
+        <p className="mt-1 text-xs leading-relaxed text-brand-text-muted/80">{subtext}</p>
       ) : null}
     </article>
   );

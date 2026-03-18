@@ -98,35 +98,35 @@ export function CreatorHealthPanel({
           <div>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-accent-teal">Primary health</p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-tight text-brand-text-primary md:text-[2.1rem]">Creator Health</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-brand-text-secondary">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-accent-teal">Primary health</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-brand-text-primary md:text-[2rem]">Creator Health</h2>
+                <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-brand-text-secondary">
                   Your current revenue health score and the clearest stability read from the latest report.
                 </p>
               </div>
               {creatorHealth.stateLabel ? <Badge variant={creatorHealth.stateTone ?? "neutral"}>{creatorHealth.stateLabel}</Badge> : null}
             </div>
 
-            <article className="mt-7 rounded-[1.35rem] border border-brand-border-strong/80 bg-brand-panel/88 px-5 py-6 shadow-brand-glow md:px-6">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-brand-text-secondary">Creator Health Score</p>
-              <div className="mt-3 flex items-end gap-2">
+            <article className="mt-5 rounded-[1.35rem] border border-brand-border-strong/80 bg-brand-panel/88 px-5 py-5 shadow-brand-glow md:px-6">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-brand-text-secondary">Creator Health Score</p>
+              <div className="mt-2 flex items-end gap-2">
                 <p className="text-6xl font-semibold leading-none tracking-tight text-brand-text-primary md:text-7xl">
                   {creatorHealth.score !== null ? creatorHealth.score : "--"}
                 </p>
                 {creatorHealth.score !== null ? <p className="pb-2 text-sm text-brand-text-muted md:text-base">/100</p> : null}
               </div>
               <p
-                className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium tracking-[0.08em] ${trajectory.className}`}
+                className={`mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium tracking-[0.08em] ${trajectory.className}`}
                 data-testid="creator-health-trajectory"
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${trajectory.dotClassName}`} />
                 {trajectory.label}
               </p>
-              <h3 className="mt-5 text-xl font-semibold text-brand-text-primary">{creatorHealth.title}</h3>
-              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-brand-text-secondary">{creatorHealth.subtitle}</p>
+              <h3 className="mt-4 text-lg font-semibold text-brand-text-primary">{creatorHealth.title}</h3>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-brand-text-secondary">{creatorHealth.subtitle}</p>
               {diagnosisNotice ? (
-                <p className="mt-3 text-xs leading-relaxed text-brand-text-muted" data-testid="creator-health-diagnosis-notice">
-                  <span className="font-medium text-amber-300/65">Confidence note:</span>{" "}
+                <p className="mt-2 text-xs leading-relaxed text-brand-text-muted/80" data-testid="creator-health-diagnosis-notice">
+                  <span className="font-medium text-amber-300/45">Confidence note:</span>{" "}
                   {diagnosisNotice.body}
                 </p>
               ) : null}

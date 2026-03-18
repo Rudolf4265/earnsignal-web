@@ -524,7 +524,7 @@ export default function DashboardPage() {
       {dashboardMode === "earn" ? (
         <>
           {/* Row 1: Primary Health (left) + Signals Worth Watching (right) */}
-          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,7fr),minmax(0,5fr)]">
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
             <CreatorHealthPanel
               creatorHealth={earnDashboardModel.creatorHealth}
               loading={state.loading}

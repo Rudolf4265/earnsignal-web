@@ -175,6 +175,16 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
   }
 };
 
+// Extremely subtle brand-tinted dark chips — 9% opacity tint on both light and dark card surfaces.
+// On unselected (white) cards the tint reads as a soft warm/cool cast; on selected (dark navy) cards
+// the same value blends into the deep background. Both states benefit without being sticker-like.
+const PLATFORM_LOGO_BUBBLE: Record<string, { bg: string; ring: string }> = {
+  patreon:   { bg: "bg-[rgba(248,67,20,0.09)]",  ring: "ring-[rgba(248,67,20,0.18)]" },
+  substack:  { bg: "bg-[rgba(255,104,31,0.09)]", ring: "ring-[rgba(255,104,31,0.18)]" },
+  youtube:   { bg: "bg-[rgba(255,0,0,0.08)]",    ring: "ring-[rgba(255,0,0,0.16)]" },
+  instagram: { bg: "bg-[rgba(193,53,132,0.09)]", ring: "ring-[rgba(193,53,132,0.18)]" },
+};
+
 type PlatformCardProps = {
   label: string;
   subtitle: string;
@@ -183,9 +193,21 @@ type PlatformCardProps = {
   selected: boolean;
   onClick: () => void;
   testId?: string;
+  platformId?: string;
 };
 
-function PlatformCard({ label, subtitle, icon, available, selected, onClick, testId }: PlatformCardProps) {
+function PlatformCard({ label, subtitle, icon, available, selected, onClick, testId, platformId }: PlatformCardProps) {
+  const tint = PLATFORM_LOGO_BUBBLE[platformId ?? ""];
+  const bubbleClass = tint
+    ? [
+        tint.bg,
+        "ring-1",
+        selected ? "ring-blue-400/[0.22]" : tint.ring,
+      ].join(" ")
+    : selected
+    ? "bg-white/[0.06] ring-1 ring-blue-400/[0.2]"
+    : "bg-slate-100/70 ring-1 ring-black/[0.07]";
+
   return (
     <button
       type="button"
@@ -208,14 +230,7 @@ function PlatformCard({ label, subtitle, icon, available, selected, onClick, tes
           Selected
         </span>
       ) : null}
-      <span
-        className={[
-          "inline-flex h-9 w-9 items-center justify-center rounded-xl",
-          selected
-            ? "bg-[#0e1f3a] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_0_1px_rgba(59,130,246,0.18)]"
-            : "bg-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_4px_rgba(15,23,42,0.1),0_0_0_1px_rgba(15,23,42,0.07)]",
-        ].join(" ")}
-      >
+      <span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${bubbleClass}`}>
         <Image
           src={icon}
           alt={`${label} logo`}
@@ -954,6 +969,7 @@ export default function UploadStepper() {
                           setPlatform(item.id);
                         }}
                         testId={`platform-card-${item.id}`}
+                        platformId={item.id}
                       />
                     );
                   })}

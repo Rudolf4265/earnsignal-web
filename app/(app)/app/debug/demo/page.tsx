@@ -267,7 +267,7 @@ export default function DemoDashboardPage() {
       {dashboardMode === "earn" ? (
         <>
           {/* Row 1: Creator Health + Next Best Move */}
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,7fr),minmax(0,5fr)]">
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,7fr),minmax(0,5fr)]">
             <CreatorHealthPanel
               creatorHealth={workspace.dashboard.earn.model.creatorHealth}
               loading={false}

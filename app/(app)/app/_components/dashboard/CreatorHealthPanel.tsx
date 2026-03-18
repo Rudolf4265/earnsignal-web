@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Badge } from "./Badge";
-import { TruthNotice } from "./TruthNotice";
 import { buttonClassName } from "@/src/components/ui/button";
 import { PanelCard } from "@/src/components/ui/panel-card";
 import type { DashboardViewModel } from "@/src/lib/dashboard/view-model";
@@ -90,12 +89,12 @@ export function CreatorHealthPanel({
   const trajectory = resolveScoreTrajectory(creatorHealth.score, creatorHealth.stateLabel);
 
   return (
-    <section className="h-full" data-testid="dashboard-section-creator-health">
-      <PanelCard className="relative h-full overflow-hidden border-brand-border-strong/80 bg-[linear-gradient(145deg,rgba(16,32,67,0.95),rgba(19,41,80,0.94),rgba(16,32,67,0.96))] p-0 shadow-brand-card">
+    <section data-testid="dashboard-section-creator-health">
+      <PanelCard className="relative overflow-hidden border-brand-border-strong/80 bg-[linear-gradient(145deg,rgba(16,32,67,0.95),rgba(19,41,80,0.94),rgba(16,32,67,0.96))] p-0 shadow-brand-card">
         <div className="pointer-events-none absolute -left-24 top-[-5.5rem] h-72 w-72 rounded-full bg-brand-accent-blue/22 blur-3xl" />
         <div className="pointer-events-none absolute right-[-7rem] top-20 h-64 w-64 rounded-full bg-brand-accent-emerald/16 blur-3xl" />
 
-        <div className="relative flex h-full flex-col justify-between p-6 md:p-7" data-testid="creator-health-panel">
+        <div className="relative p-6 md:p-7" data-testid="creator-health-panel">
           <div>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -125,14 +124,16 @@ export function CreatorHealthPanel({
               </p>
               <h3 className="mt-5 text-xl font-semibold text-brand-text-primary">{creatorHealth.title}</h3>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-brand-text-secondary">{creatorHealth.subtitle}</p>
+              {diagnosisNotice ? (
+                <p className="mt-3 text-xs leading-relaxed text-brand-text-muted" data-testid="creator-health-diagnosis-notice">
+                  <span className="font-medium text-amber-300/65">Confidence note:</span>{" "}
+                  {diagnosisNotice.body}
+                </p>
+              ) : null}
             </article>
-
-            {diagnosisNotice ? (
-              <TruthNotice notice={diagnosisNotice} testId="creator-health-diagnosis-notice" />
-            ) : null}
           </div>
 
-          <div className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1fr),auto]">
+          <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr),auto]">
             <div className="rounded-[1.2rem] border border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.84),rgba(16,32,67,0.9))] p-4 shadow-brand-card">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Latest report</p>

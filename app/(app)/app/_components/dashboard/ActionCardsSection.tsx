@@ -22,38 +22,34 @@ export function ActionCardsSection({ mode, cards, presentation = "default" }: Ac
 
       <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(21,44,88,0.92),rgba(16,32,67,0.96))]">
         {mode === "unlocked" ? (
-          <div className="space-y-4" data-testid="dashboard-action-cards-unlocked">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-brand-text-secondary">Next best move</p>
-              <h3 className="mt-2 text-xl font-semibold tracking-tight text-brand-text-primary">
-                Start with the clearest action from the latest report.
-              </h3>
-            </div>
-
+          <div className="space-y-3" data-testid="dashboard-action-cards-unlocked">
             {featuredCard ? (
-              <article className="rounded-[1.2rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(21,46,90,0.9),rgba(14,30,58,0.92))] p-5 shadow-brand-card">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">{featuredCard.label || "Recommended action"}</p>
-                  {featuredCard.stateLabel ? <Badge variant={featuredCard.stateTone ?? "neutral"}>{featuredCard.stateLabel}</Badge> : null}
-                </div>
-                <p className="mt-3 text-base font-medium leading-relaxed text-brand-text-primary">{featuredCard.body}</p>
-                {featuredCard.detail ? <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">{featuredCard.detail}</p> : null}
+              <article className="relative overflow-hidden rounded-[1.2rem] border border-brand-accent-teal/25 bg-[linear-gradient(155deg,rgba(18,40,82,0.94),rgba(14,30,60,0.96))] p-5 shadow-brand-glow">
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-accent-teal/65 via-brand-accent-teal/28 to-transparent" />
+                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-accent-teal/75">
+                  {featuredCard.label || "Recommended action"}
+                </p>
+                <p className="mt-2.5 text-[1.05rem] font-semibold leading-snug text-brand-text-primary">{featuredCard.body}</p>
+                {featuredCard.detail ? (
+                  <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{featuredCard.detail}</p>
+                ) : null}
+                {featuredCard.stateLabel ? (
+                  <div className="mt-3">
+                    <Badge variant={featuredCard.stateTone ?? "neutral"}>{featuredCard.stateLabel}</Badge>
+                  </div>
+                ) : null}
               </article>
             ) : null}
 
             {supportingCards.length > 0 ? (
-              <ul className="space-y-3">
+              <ul className="space-y-1.5">
                 {supportingCards.map((card, index) => (
-                  <li
-                    key={card.id}
-                    className="rounded-[1rem] border border-brand-border/75 bg-[linear-gradient(155deg,rgba(19,41,80,0.78),rgba(16,32,67,0.88))] p-4 shadow-brand-card"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">{card.label || `Recommendation ${index + 2}`}</p>
-                      {card.stateLabel ? <Badge variant={card.stateTone ?? "neutral"}>{card.stateLabel}</Badge> : null}
+                  <li key={card.id} className="flex items-start gap-3 rounded-[0.9rem] border border-brand-border/50 bg-brand-panel/45 px-4 py-3">
+                    <span className="mt-px shrink-0 text-[11px] font-semibold tabular-nums text-brand-text-muted">{index + 2}.</span>
+                    <div className="min-w-0">
+                      <p className="text-sm leading-relaxed text-brand-text-secondary">{card.body}</p>
+                      {card.detail ? <p className="mt-1 text-xs leading-relaxed text-brand-text-muted">{card.detail}</p> : null}
                     </div>
-                    <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{card.body}</p>
-                    {card.detail ? <p className="mt-3 text-xs leading-relaxed text-brand-text-muted">{card.detail}</p> : null}
                   </li>
                 ))}
               </ul>

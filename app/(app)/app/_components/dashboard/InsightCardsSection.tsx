@@ -20,35 +20,34 @@ function InsightArticle({ insight, featured = false }: InsightArticleProps) {
   const presentation = getInsightCardPresentation(insight.variant);
   return (
     <article
-      className={`relative overflow-hidden rounded-[1.2rem] border shadow-brand-card ${presentation.cardClassName} ${featured ? "p-6" : "p-5"}`}
+      className={`relative overflow-hidden rounded-[1.2rem] border shadow-brand-card ${presentation.cardClassName} ${featured ? "p-5" : "p-4"}`}
       data-testid={`dashboard-insight-card-${insight.variant}`}
     >
       <div className={`absolute inset-x-0 top-0 h-0.5 ${presentation.accentClassName}`} />
       <div className="relative flex items-center justify-between gap-3">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Pattern</p>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {insight.stateLabel ? (
-            <Badge variant={insight.stateTone ?? "neutral"} className="px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]">
-              {insight.stateLabel}
-            </Badge>
-          ) : null}
+        <div className="flex flex-wrap items-center gap-2">
           <Badge
             variant={presentation.badgeVariant}
-            className={`px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] ${presentation.badgeClassName}`}
+            className={`px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${presentation.badgeClassName}`}
           >
             {presentation.badgeLabel}
           </Badge>
+          {insight.stateLabel ? (
+            <Badge variant={insight.stateTone ?? "neutral"} className="px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]">
+              {insight.stateLabel}
+            </Badge>
+          ) : null}
         </div>
       </div>
-      <h3 className={`mt-3 font-semibold leading-snug text-brand-text-primary break-words ${featured ? "text-xl" : "text-lg"}`}>
+      <h3 className={`mt-3 font-semibold leading-snug text-brand-text-primary break-words ${featured ? "text-xl" : "text-base"}`}>
         {insight.title}
       </h3>
-      <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary break-words">{insight.body}</p>
-      {insight.stateDetail ? <p className="mt-3 text-xs leading-relaxed text-brand-text-muted break-words">{insight.stateDetail}</p> : null}
-      <div className={`mt-4 rounded-xl border p-3.5 ${presentation.implicationPanelClassName}`}>
-        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Why it matters</p>
-        <p className="mt-1.5 text-sm leading-relaxed text-brand-text-primary break-words">{insight.implication}</p>
-      </div>
+      <p className={`mt-1.5 leading-relaxed text-brand-text-secondary break-words ${featured ? "text-sm" : "text-sm"}`}>{insight.body}</p>
+      {insight.stateDetail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted break-words">{insight.stateDetail}</p> : null}
+      <p className="mt-3 text-xs leading-relaxed text-brand-text-muted break-words">
+        <span className="font-medium text-brand-text-secondary/70">Why it matters — </span>
+        {insight.implication}
+      </p>
     </article>
   );
 }
@@ -56,27 +55,27 @@ function InsightArticle({ insight, featured = false }: InsightArticleProps) {
 function DiagnosisConstraintCard({ diagnosis, loading }: { diagnosis: DashboardDiagnosisViewModel; loading?: boolean }) {
   return (
     <article
-      className="relative overflow-hidden rounded-[1.2rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(20,43,86,0.9),rgba(14,30,60,0.92))] p-5 shadow-brand-card"
+      className="relative overflow-hidden rounded-[1.2rem] border border-brand-border-strong/65 bg-[linear-gradient(155deg,rgba(20,43,86,0.88),rgba(14,30,60,0.90))] p-4 shadow-brand-card"
       data-testid="dashboard-insight-biggest-constraint"
     >
-      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-amber-400/60 via-amber-300/40 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-amber-300/38 via-amber-200/18 to-transparent" />
       <div className="relative flex items-center justify-between gap-3">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Biggest constraint</p>
+        <p className="text-[10px] uppercase tracking-[0.14em] text-brand-text-muted">Biggest constraint</p>
         {diagnosis.hasTypedDiagnosis ? (
-          <span className="rounded-full border border-brand-border/75 bg-brand-panel/75 px-3 py-1 text-[11px] uppercase tracking-[0.12em] text-brand-text-muted">
+          <span className="rounded-full border border-brand-border/60 bg-brand-panel/60 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">
             From report
           </span>
         ) : null}
       </div>
       {loading && !diagnosis.hasTypedDiagnosis ? (
         <div className="mt-3 space-y-2">
-          <div className="h-2.5 w-full animate-pulse rounded-full bg-brand-border/70" />
-          <div className="h-2.5 w-4/5 animate-pulse rounded-full bg-brand-border/55" />
+          <div className="h-2 w-full animate-pulse rounded-full bg-brand-border/70" />
+          <div className="h-2 w-4/5 animate-pulse rounded-full bg-brand-border/55" />
         </div>
       ) : (
         <>
-          <h3 className="mt-3 text-lg font-semibold leading-snug text-brand-text-primary break-words">{diagnosis.heading}</h3>
-          <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary break-words">
+          <h3 className="mt-2.5 text-base font-semibold leading-snug text-brand-text-primary break-words">{diagnosis.heading}</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-brand-text-secondary break-words">
             {diagnosis.summary ?? diagnosis.unavailableBody ?? "Diagnosis details are limited for this dashboard snapshot."}
           </p>
         </>

@@ -29,9 +29,28 @@ test("upload platform file guidance stays truthful for normalized instagram and 
   assert.equal(source.includes("{supportedRevenueUploadFormats}"), true);
   assert.equal(source.includes("Start with a supported import"), true);
   assert.equal(source.includes("fresh supported import"), true);
+  assert.equal(
+    source.includes(
+      "Patreon, Substack, and YouTube stay CSV-only. Selected supported ZIP exports are available only for Instagram Performance and TikTok Performance. Not all ZIP files are supported.",
+    ),
+    true,
+  );
   assert.equal(source.includes('selectedPlatformCard?.importMode === "normalized_csv"'), true);
   assert.equal(source.includes("Upload the supported normalized CSV for this platform."), true);
-  assert.equal(source.includes("If validation fails, retry with the supported file format for this platform."), true);
+  assert.equal(source.includes("Upload the supported normalized CSV or a selected supported ZIP for this platform."), true);
+  assert.equal(
+    source.includes(
+      "Accepted file types: CSV. Selected supported ZIP exports are also accepted for this platform. Not all ZIP files are supported. If a ZIP is rejected, upload a supported CSV instead. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation.",
+    ),
+    true,
+  );
+  assert.equal(
+    source.includes(
+      "If validation fails, make sure you selected the matching platform and retry with the supported file format for this platform. If processing stalls, retry status before starting over.",
+    ),
+    true,
+  );
+  assert.equal(source.includes("Need help? Review the upload guide for the supported file type."), true);
   assert.equal(source.includes("full support for this export type is coming soon"), false);
   assert.equal(source.includes("selectedPlatformCard?.guidance"), true);
   assert.equal(source.includes('className="platform-icon block h-5 w-5 object-contain"'), true);

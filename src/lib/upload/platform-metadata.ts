@@ -75,7 +75,7 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
   {
     id: "instagram",
     label: "Instagram Performance",
-    subtitle: "Template-based CSV or selected ZIP import",
+    subtitle: "Template-based normalized CSV or selected supported ZIP",
     icon: "/platforms/instagram.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.instagram ?? false,
@@ -85,7 +85,7 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
   {
     id: "tiktok",
     label: "TikTok Performance",
-    subtitle: "Template-based CSV or selected ZIP import",
+    subtitle: "Template-based normalized CSV or selected supported ZIP",
     icon: "/platforms/tiktok.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.tiktok ?? false,

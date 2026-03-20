@@ -72,13 +72,16 @@ export default function DataUploadPage() {
               <p className="mt-2 text-sm leading-relaxed text-slate-700">
                 {supportedRevenueUploadFormatGuidance}
               </p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                Patreon, Substack, and YouTube stay CSV-only. Instagram Performance and TikTok Performance can also use selected supported ZIP exports. Not all ZIP files are supported, so use a supported CSV if a ZIP is rejected.
+              </p>
             </div>
           </UploadCard>
 
           <UploadCard>
             <h3 className="text-base font-semibold text-slate-900">Need help?</h3>
             <p className="mt-2 text-sm leading-relaxed text-slate-700">
-              Step-by-step export instructions and troubleshooting in the upload guide.
+              Step-by-step file prep, export guidance, and troubleshooting in the upload guide.
             </p>
             <Link href="/app/help#upload-guide" className={buttonClassName({ variant: "secondary", size: "sm", className: "mt-4" })}>
               Open upload guide

@@ -27,6 +27,13 @@ test("data upload page adds truthful upload, mode, and help guidance", async () 
   assert.equal(source.includes("supported CSV upload"), false);
   assert.equal(source.includes("Current public upload options: {supportedRevenueUploads}."), true);
   assert.equal(source.includes("{supportedRevenueUploadFormatGuidance}"), true);
+  assert.equal(
+    source.includes(
+      "Patreon, Substack, and YouTube stay CSV-only. Instagram Performance and TikTok Performance can also use selected supported ZIP exports. Not all ZIP files are supported, so use a supported CSV if a ZIP is rejected.",
+    ),
+    true,
+  );
+  assert.equal(source.includes("Step-by-step file prep, export guidance, and troubleshooting in the upload guide."), true);
   assert.equal(uploadStepperSource.includes("<TrustMicrocopy"), true);
   assert.equal(uploadStepperSource.includes('testId="upload-trust-strip"'), true);
   assert.equal(uploadStepperSource.includes("UPLOAD_TRUST_MICROCOPY_BODY"), true);

@@ -39,7 +39,7 @@ test("instagram and tiktok platform cards expose supported normalized-csv metada
       {
         id: "instagram",
         label: "Instagram Performance",
-        subtitle: "Template-based CSV or selected ZIP import",
+        subtitle: "Template-based normalized CSV or selected supported ZIP",
         importMode: "normalized_csv",
         available: true,
         guidance: "Upload a template-based normalized Instagram performance CSV or a selected supported Instagram ZIP export.",
@@ -47,7 +47,7 @@ test("instagram and tiktok platform cards expose supported normalized-csv metada
       {
         id: "tiktok",
         label: "TikTok Performance",
-        subtitle: "Template-based CSV or selected ZIP import",
+        subtitle: "Template-based normalized CSV or selected supported ZIP",
         importMode: "normalized_csv",
         available: true,
         guidance: "Upload a template-based normalized TikTok performance CSV or a selected supported TikTok ZIP export.",

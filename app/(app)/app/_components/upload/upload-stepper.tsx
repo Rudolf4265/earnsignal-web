@@ -1115,6 +1115,9 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
             <p className="text-xs font-semibold text-blue-100">Start with a supported import</p>
             <p className="mt-0.5 text-[11px] leading-relaxed text-blue-100/70">Upload accepts {supportedRevenueUploads}. Choose the platform that matches your supported file, then continue with a fresh supported import.</p>
             <p className="mt-1 text-[11px] leading-relaxed text-blue-100/70">{supportedRevenueUploadFormats}</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-blue-100/70">
+              Patreon, Substack, and YouTube stay CSV-only. Selected supported ZIP exports are available only for Instagram Performance and TikTok Performance. Not all ZIP files are supported.
+            </p>
             <Link href="/app/help#upload-guide" className="mt-1.5 inline-flex text-[10px] font-medium text-blue-300/75 hover:text-blue-200">
               Open upload guide →
             </Link>
@@ -1200,7 +1203,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
             title="Select file"
             subtitle={
               selectedPlatformCard?.id === "instagram" || selectedPlatformCard?.id === "tiktok"
-                ? "Upload the supported normalized CSV or a selected supported ZIP export."
+                ? "Upload the supported normalized CSV or a selected supported ZIP for this platform."
                 : selectedPlatformCard?.importMode === "normalized_csv"
                 ? "Upload the supported normalized CSV for this platform."
                 : "Upload the supported CSV for this platform."
@@ -1209,10 +1212,10 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           <InlineAlert variant="info" title="What happens after upload" data-testid="upload-file-guide">
             <p>
               {selectedPlatformCard?.id === "instagram" || selectedPlatformCard?.id === "tiktok"
-                ? "Accepted file types: CSV. Selected supported ZIP exports are also accepted. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."
+                ? "Accepted file types: CSV. Selected supported ZIP exports are also accepted for this platform. Not all ZIP files are supported. If a ZIP is rejected, upload a supported CSV instead. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."
                 : "Accepted file type: CSV. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."}
             </p>
-            <p className="mt-2">If validation fails, retry with the supported file format for this platform. If processing stalls, retry status before starting over.</p>
+            <p className="mt-2">If validation fails, make sure you selected the matching platform and retry with the supported file format for this platform. If processing stalls, retry status before starting over.</p>
             {selectedPlatformCard?.guidance ? <p className="mt-2">{selectedPlatformCard.guidance}</p> : null}
             <Link href="/app/help#after-upload" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
               Review upload help
@@ -1253,7 +1256,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           ) : null}
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">Need help? Review the upload guide for the supported format.</span>
+            <span className="text-xs text-slate-500">Need help? Review the upload guide for the supported file type.</span>
             <div className="flex gap-2">
               <button
                 type="button"

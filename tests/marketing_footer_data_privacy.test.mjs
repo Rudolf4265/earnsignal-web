@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url";
 const urlsModuleUrl = pathToFileURL(path.resolve("packages/config/src/urls.ts")).href;
 const footerModuleUrl = pathToFileURL(path.resolve("packages/config/src/footer.ts")).href;
 const dataPrivacyPagePath = path.resolve("app/(marketing)/data-privacy/page.tsx");
+const marketingPagePath = path.resolve("app/(marketing)/page.tsx");
 
 test("marketing footer includes Privacy, Terms, and Data Use & Privacy destinations", async () => {
   const { publicUrls } = await import(`${urlsModuleUrl}?t=${Date.now()}`);
@@ -36,4 +37,17 @@ test("data privacy page keeps the marketing shell and trust copy", async () => {
   assert.equal(source.includes("We do not sell your data"), true);
   assert.equal(source.includes("Storage is limited to product, reporting, and support needs."), true);
   assert.equal(source.includes("treated as confidential business information"), true);
+});
+
+test("marketing home page includes the trust strip and data privacy link", async () => {
+  const source = await readFile(marketingPagePath, "utf8");
+
+  assert.equal(source.includes('data-testid="marketing-trust-strip"'), true);
+  assert.equal(source.includes("Your data stays private"), true);
+  assert.equal(
+    source.includes("Used only to generate your reports and operate the service. Never sold. Never used to train public AI models."),
+    true,
+  );
+  assert.equal(source.includes("Learn how we handle your data"), true);
+  assert.equal(source.includes("href={publicUrls.dataPrivacy}"), true);
 });

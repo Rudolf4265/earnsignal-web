@@ -301,6 +301,23 @@ export default function MarketingHomePage() {
               <p className="mt-2.5 text-[11px] tracking-[0.06em] text-brand-text-muted/60">
                 Private workspace · Real exports · Actionable diagnostics
               </p>
+              <div
+                className="mt-5 max-w-2xl rounded-2xl border border-brand-border/65 bg-brand-panel/45 px-4 py-3 text-brand-text-secondary backdrop-blur-sm"
+                data-testid="marketing-trust-strip"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-primary">
+                  Your data stays private
+                </p>
+                <p className="mt-1.5 text-xs leading-6 text-brand-text-secondary sm:text-[0.82rem]">
+                  Used only to generate your reports and operate the service. Never sold. Never used to train public AI models.
+                </p>
+                <a
+                  href={publicUrls.dataPrivacy}
+                  className="mt-2 inline-flex text-[11px] font-medium tracking-[0.02em] text-brand-accent-teal transition hover:text-white"
+                >
+                  Learn how we handle your data
+                </a>
+              </div>
             </div>
 
             {/* Hero sample report card */}

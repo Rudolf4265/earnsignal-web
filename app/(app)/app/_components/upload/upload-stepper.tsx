@@ -24,6 +24,7 @@ import {
 import { getSupportedRevenueUploadFormatGuidanceFromCards } from "@/src/lib/upload/support-surface";
 import { detectPatreonExportType } from "@/src/lib/upload/patreon-csv-detector";
 import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detector";
+import { inspectZipUploadFile, isZipUploadCandidate, toZipUploadRejection } from "@/src/lib/upload/zip-intake";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
 import InlineAlert from "./InlineAlert";
@@ -112,6 +113,27 @@ async function buildInstagramClientContext(file: File): Promise<string | undefin
 }
 
 const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?: UploadPlatform | null }) => {
+  if (
+    reasonCode === "zip_not_importable" ||
+    reasonCode === "candidate_zip_not_yet_supported" ||
+    reasonCode === "unsupported_archive_shape" ||
+    reasonCode === "ambiguous_archive_shape"
+  ) {
+    return "This ZIP format is not yet importable. Upload a supported CSV instead.";
+  }
+
+  if (
+    reasonCode === "not_zip" ||
+    reasonCode === "corrupt_archive" ||
+    reasonCode === "encrypted_or_unreadable_archive"
+  ) {
+    return "We couldn’t read that ZIP file. Upload a supported CSV instead.";
+  }
+
+  if (reasonCode === "unsafe_archive_path" || reasonCode === "too_many_entries" || reasonCode === "archive_too_large") {
+    return "This ZIP file can’t be imported. Upload a supported CSV instead.";
+  }
+
   switch (reasonCode) {
     case "validation_failed":
       if (context?.platform === "patreon") {
@@ -166,6 +188,24 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
         return "We recognised your TikTok file, but this upload path supports normalized TikTok performance CSVs only.";
       }
       return "We recognised your file but full support for this export type is coming soon.";
+    case "candidate_zip_not_yet_supported":
+      return "This ZIP format is not yet importable. Upload a supported CSV instead.";
+    case "not_zip":
+      return "We couldn’t read that ZIP file. Upload a supported CSV instead.";
+    case "corrupt_archive":
+      return "We couldn’t read that ZIP archive. Use a valid ZIP file or continue with a supported CSV upload.";
+    case "encrypted_or_unreadable_archive":
+      return "Encrypted or unreadable ZIP archives are rejected by the bounded ZIP intake layer.";
+    case "unsafe_archive_path":
+      return "This ZIP archive contains unsafe paths and was rejected before upload.";
+    case "unsupported_archive_shape":
+      return "This ZIP archive does not match a bounded allowlisted import shape.";
+    case "too_many_entries":
+      return "This ZIP archive exceeds the bounded entry-count limit and was rejected.";
+    case "archive_too_large":
+      return "This ZIP archive exceeds the bounded size limit and was rejected.";
+    case "ambiguous_archive_shape":
+      return "This ZIP archive matches multiple bounded shapes, so it was rejected as ambiguous.";
     case "ingest_failed":
       return "We couldn’t ingest the file right now. Please retry in a moment.";
     case "report_failed":
@@ -371,8 +411,9 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
       updatedAt?: string | null;
       requestId?: string | null;
       operation?: string | null;
+      nextStep?: Step;
     }) => {
-      setStep("processing");
+      setStep(params.nextStep ?? "processing");
       setProcessingStatus("failed");
       setError(friendlyFailureMessage(params.reasonCode, { platform }));
       setReasonCode(params.reasonCode);
@@ -628,6 +669,25 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     setWarnings([]);
 
     try {
+      if (isZipUploadCandidate(file)) {
+        setStatusMsg("Inspecting ZIP archive…");
+        const zipInspection = await inspectZipUploadFile(file);
+        const zipRejection = toZipUploadRejection(zipInspection) ?? {
+          reasonCode: "unsupported_archive_shape",
+          message: "ZIP archive could not be accepted by the bounded intake layer.",
+        };
+
+        setFailureState({
+          uploadId: null,
+          rawStatus: null,
+          reasonCode: zipRejection.reasonCode,
+          message: zipRejection.message,
+          operation: "uploads.zip_intake",
+          nextStep: "file",
+        });
+        return;
+      }
+
       setStep("uploading");
       setStatusMsg("Preparing file…");
       // Compute checksum and detect export type concurrently to save time.
@@ -1096,7 +1156,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
 
           {unsupportedCsvWarning ? (
             <InlineAlert variant="warn" title="This file may not be CSV">
-              We recommend uploading a .csv file. You can still continue and let backend validation confirm.
+              We recommend uploading a .csv file. Non-CSV files may be rejected during bounded preflight before upload.
             </InlineAlert>
           ) : null}
 

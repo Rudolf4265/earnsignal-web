@@ -54,7 +54,10 @@ test("dashboard onboarding section explains the product, modes, and next-step gu
   assert.equal(source.includes("Quick start"), true);
   assert.equal(source.includes("EarnSigma in one minute"), true);
   assert.equal(source.includes("getSupportedRevenueUploadFormatGuidance"), true);
-  assert.equal(source.includes("Start with a supported CSV upload."), true);
+  assert.equal(source.includes("Start with a supported upload."), true);
+  assert.equal(source.includes("Upload a supported file from your creator revenue workflow."), true);
+  assert.equal(source.includes("latest supported uploads"), true);
+  assert.equal(source.includes("supported CSV upload"), false);
   assert.equal(source.includes("Earn tracks revenue, subscriptions, and monetization health from the latest report."), true);
   assert.equal(source.includes("Grow is the audience and engagement side. Richer scorecards appear when supported analytics are available."), true);
   assert.equal(source.includes("Currently supported uploads are ${supportedRevenueUploads}."), true);
@@ -62,6 +65,14 @@ test("dashboard onboarding section explains the product, modes, and next-step gu
   assert.equal(source.includes("Instagram uploads"), false);
   assert.equal(source.includes("TikTok uploads"), false);
   assert.equal(source.includes("/app/help#upload-guide"), true);
+});
+
+test("dashboard page empty-state readiness copy stays aligned with supported upload wording", async () => {
+  const source = await readFile(dashboardPagePath, "utf8");
+
+  assert.equal(source.includes("Add a fresh supported upload when you want to refresh the workspace."), true);
+  assert.equal(source.includes("Upload a supported file to populate Earn."), true);
+  assert.equal(source.includes("fresh supported CSV"), false);
 });
 
 test("grow dashboard section uses truthful empty and partial states", async () => {

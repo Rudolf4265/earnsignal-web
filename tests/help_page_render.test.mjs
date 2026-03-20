@@ -21,6 +21,10 @@ test("help page renders onboarding, upload guidance, and troubleshooting entry p
   assert.equal(source.includes("Need help uploading?"), true);
   assert.equal(source.includes("Currently supported uploads are {supportedRevenueUploads}."), true);
   assert.equal(source.includes("{supportedRevenueUploadFormatGuidance}"), true);
+  assert.equal(source.includes("Upload a supported file, let EarnSigma validate it, then review the dashboard and latest report once the workspace is ready."), true);
+  assert.equal(source.includes("After upload, validation runs first."), true);
+  assert.equal(source.includes("Retry with the supported file format for the platform you selected."), true);
+  assert.equal(source.includes("Upload a supported CSV"), false);
   assert.equal(source.includes("Richer scorecards appear when supported analytics are available."), true);
   assert.equal(source.includes("Instagram uploads"), false);
   assert.equal(source.includes("TikTok uploads"), false);

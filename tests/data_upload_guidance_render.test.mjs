@@ -21,6 +21,9 @@ test("data upload page adds truthful upload, mode, and help guidance", async () 
   assert.equal(source.includes("Files are used only to generate your reports and operate the service. Never sold. Never used to train public AI models."), true);
   assert.equal(source.includes("Learn how we handle your data"), true);
   assert.equal(source.includes("publicUrls.dataPrivacy"), true);
+  assert.equal(source.includes("Upload a supported file to validate your workspace and unlock EarnSigma guidance."), true);
+  assert.equal(source.includes("Validated uploads appear here once you complete a supported upload."), true);
+  assert.equal(source.includes("supported CSV upload"), false);
   assert.equal(source.includes("Current public upload options: {supportedRevenueUploads}."), true);
   assert.equal(source.includes("{supportedRevenueUploadFormatGuidance}"), true);
 });

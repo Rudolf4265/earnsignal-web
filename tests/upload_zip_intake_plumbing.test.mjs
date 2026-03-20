@@ -27,7 +27,8 @@ test("upload stepper inspects zip candidates before presign and only continues f
   assert.equal(source.includes('accept={fileInputAccept}'), true);
   assert.equal(source.includes('selectedPlatformCard?.id === "instagram" || selectedPlatformCard?.id === "tiktok"'), true);
   assert.equal(source.includes("Selected supported ZIP exports are also accepted."), true);
-  assert.equal(source.includes("This ZIP format is not yet importable. Upload a supported CSV instead."), true);
+  assert.equal(source.includes("const resolvedMessage = friendlyFailureMessage(params.reasonCode, { platform });"), true);
+  assert.equal(source.includes("This ZIP format does not match the platform you selected. Upload a supported CSV instead."), true);
   assert.equal(source.includes("ZIP candidate matched"), false);
   assert.equal(source.includes("Instagram ZIP candidate"), false);
   assert.equal(source.includes("TikTok ZIP candidate"), false);

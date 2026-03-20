@@ -54,7 +54,7 @@ export default function DataUploadPage() {
       <div className="space-y-1">
         <h1 className="text-3xl font-semibold text-slate-900">Upload data</h1>
         <p className="text-slate-600">
-          Upload a supported CSV to validate your workspace and unlock EarnSigma guidance.
+          Upload a supported file to validate your workspace and unlock EarnSigma guidance.
         </p>
       </div>
 
@@ -103,7 +103,7 @@ export default function DataUploadPage() {
           <UploadCard>
             <h3 className="text-base font-semibold text-slate-900">Recent uploads</h3>
             <p className="mt-2 text-sm text-slate-600">No uploads yet</p>
-            <p className="mt-1 text-xs text-slate-500">Validated uploads appear here once you complete a supported CSV upload.</p>
+            <p className="mt-1 text-xs text-slate-500">Validated uploads appear here once you complete a supported upload.</p>
           </UploadCard>
         </div>
       </div>

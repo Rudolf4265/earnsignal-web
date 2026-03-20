@@ -207,7 +207,7 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
       if (context?.platform === "tiktok") {
         return "We recognised your TikTok file, but this upload path supports normalized TikTok performance CSVs only.";
       }
-      return "We recognised your file but full support for this export type is coming soon.";
+      return "We recognised your file, but this upload path does not support that format yet.";
     case "candidate_zip_not_yet_supported":
       return "This ZIP format is not yet importable. Upload a supported CSV instead.";
     case "not_zip":
@@ -437,11 +437,12 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
       operation?: string | null;
       nextStep?: Step;
     }) => {
+      const resolvedMessage = friendlyFailureMessage(params.reasonCode, { platform });
       setStep(params.nextStep ?? "processing");
       setProcessingStatus("failed");
-      setError(friendlyFailureMessage(params.reasonCode, { platform }));
+      setError(resolvedMessage);
       setReasonCode(params.reasonCode);
-      setStatusMsg(params.message);
+      setStatusMsg(resolvedMessage);
       setErrorRequestId(params.requestId ?? null);
       setErrorOperation(params.operation ?? null);
       setErrorDetails(
@@ -745,7 +746,13 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
             lastModified: file.lastModified,
           });
         } else {
-          const zipRejection = toZipUploadRejection(zipInspection) ?? {
+          const zipRejection =
+            zipInspection.candidatePlatform && zipInspection.candidatePlatform !== platform
+              ? {
+                  reasonCode: "zip_not_importable",
+                  message: "This ZIP format does not match the platform you selected. Upload a supported CSV instead.",
+                }
+              : toZipUploadRejection(zipInspection) ?? {
             reasonCode: "unsupported_archive_shape",
             message: "ZIP archive could not be accepted by the bounded intake layer.",
           };
@@ -1100,8 +1107,8 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           ) : null}
           <StepHeader title="Choose platform" subtitle="Select the data source for this upload." />
           <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.06] px-3 py-2" data-testid="upload-platform-guide">
-            <p className="text-xs font-semibold text-blue-100">Start with a supported CSV</p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-blue-100/70">Upload accepts {supportedRevenueUploads}. Choose the platform that matches your supported file, then continue with a fresh CSV.</p>
+            <p className="text-xs font-semibold text-blue-100">Start with a supported import</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-blue-100/70">Upload accepts {supportedRevenueUploads}. Choose the platform that matches your supported file, then continue with a fresh supported import.</p>
             <p className="mt-1 text-[11px] leading-relaxed text-blue-100/70">{supportedRevenueUploadFormats}</p>
             <Link href="/app/help#upload-guide" className="mt-1.5 inline-flex text-[10px] font-medium text-blue-300/75 hover:text-blue-200">
               Open upload guide →
@@ -1200,7 +1207,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
                 ? "Accepted file types: CSV. Selected supported ZIP exports are also accepted. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."
                 : "Accepted file type: CSV. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."}
             </p>
-            <p className="mt-2">If validation fails, retry with the supported CSV format for this platform. If processing stalls, retry status before starting over.</p>
+            <p className="mt-2">If validation fails, retry with the supported file format for this platform. If processing stalls, retry status before starting over.</p>
             {selectedPlatformCard?.guidance ? <p className="mt-2">{selectedPlatformCard.guidance}</p> : null}
             <Link href="/app/help#after-upload" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
               Review upload help

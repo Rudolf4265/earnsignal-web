@@ -29,6 +29,8 @@ test("upload platform file guidance stays truthful for normalized instagram and 
   const source = await readFile(uploadStepperPath, "utf8");
 
   assert.equal(source.includes("Supported platforms: {supportedRevenueUploads}."), true);
+  assert.equal(source.includes('bg-[linear-gradient(145deg,rgba(10,24,50,0.96),rgba(14,30,63,0.96),rgba(12,27,53,0.98))]'), true);
+  assert.equal(source.includes('border-white/10 bg-white/[0.05]'), true);
   assert.equal(source.includes("Patreon, Substack, YouTube"), true);
   assert.equal(source.includes("Instagram Performance, TikTok Performance"), true);
   assert.equal(source.includes("CSV only"), true);

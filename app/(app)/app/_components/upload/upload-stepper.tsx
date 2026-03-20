@@ -1122,24 +1122,27 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
             </InlineAlert>
           ) : null}
           <StepHeader title="Choose platform" subtitle="Select one supported platform to begin." />
-          <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50/90 p-3" data-testid="upload-platform-guide">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700">Supported imports</p>
-            <p className="mt-2 text-xs leading-relaxed text-slate-600">Supported platforms: {supportedRevenueUploads}.</p>
+          <div
+            className="rounded-[1.35rem] border border-slate-800/80 bg-[linear-gradient(145deg,rgba(10,24,50,0.96),rgba(14,30,63,0.96),rgba(12,27,53,0.98))] p-3 shadow-[0_18px_40px_-26px_rgba(15,23,42,0.75)]"
+            data-testid="upload-platform-guide"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-accent-teal">Supported imports</p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-300">Supported platforms: {supportedRevenueUploads}.</p>
             <div className="mt-3 grid gap-2 md:grid-cols-3">
-              <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                <p className="text-xs font-semibold text-slate-900">Patreon, Substack, YouTube</p>
-                <p className="mt-1 text-sm text-slate-600">CSV only</p>
+              <div className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-3">
+                <p className="text-xs font-semibold text-white">Patreon, Substack, YouTube</p>
+                <p className="mt-1 text-sm text-slate-300">CSV only</p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                <p className="text-xs font-semibold text-slate-900">Instagram Performance, TikTok Performance</p>
-                <p className="mt-1 text-sm text-slate-600">CSV or selected ZIP</p>
+              <div className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-3">
+                <p className="text-xs font-semibold text-white">Instagram Performance, TikTok Performance</p>
+                <p className="mt-1 text-sm text-slate-300">CSV or selected ZIP</p>
               </div>
-              <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-                <p className="text-xs font-semibold text-slate-900">ZIP reminder</p>
-                <p className="mt-1 text-sm text-slate-600">Not all ZIP files are supported.</p>
+              <div className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-3">
+                <p className="text-xs font-semibold text-white">ZIP reminder</p>
+                <p className="mt-1 text-sm text-slate-300">Not all ZIP files are supported.</p>
               </div>
             </div>
-            <Link href="/app/help#upload-guide" className="mt-3 inline-flex text-[11px] font-medium text-slate-700 underline underline-offset-4 hover:text-slate-900">
+            <Link href="/app/help#upload-guide" className="mt-3 inline-flex text-[11px] font-medium text-blue-200 underline underline-offset-4 hover:text-white">
               Open upload guide
             </Link>
           </div>

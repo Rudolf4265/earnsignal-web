@@ -128,6 +128,41 @@ test("support-matrix truth derives only supported-now visible public upload plat
   assert.deepEqual(visiblePlatformIds, ["patreon", "substack", "youtube", "instagram", "tiktok"]);
 });
 
+test("partial support-matrix responses still preserve the full public upload grid", async () => {
+  const { buildVisibleUploadPlatformIdsFromSupportMatrix } = await import(`${supportSurfaceModuleUrl}?t=${Date.now() + 21}`);
+
+  const visiblePlatformIds = buildVisibleUploadPlatformIdsFromSupportMatrix({
+    families: [
+      {
+        family: "patreon_members_export",
+        label: "Patreon Members Export",
+        family_class: "native_report_driving",
+        is_user_visible_supported: true,
+        is_report_driving: true,
+        support_status: "supported_now",
+      },
+      {
+        family: "substack_subscribers_export",
+        label: "Substack Subscribers Export",
+        family_class: "native_report_driving",
+        is_user_visible_supported: true,
+        is_report_driving: true,
+        support_status: "supported_now",
+      },
+      {
+        family: "youtube_channel_analytics_export",
+        label: "YouTube Channel Analytics Export",
+        family_class: "native_report_driving",
+        is_user_visible_supported: true,
+        is_report_driving: true,
+        support_status: "supported_now",
+      },
+    ],
+  });
+
+  assert.deepEqual(visiblePlatformIds, ["patreon", "substack", "youtube", "instagram", "tiktok"]);
+});
+
 test("guidance helpers introduce zip language only for the bounded instagram and tiktok support surfaces", async () => {
   const { getFallbackVisibleUploadPlatformCards, getSupportedRevenueUploadFormatGuidanceFromCards } = await import(
     `${supportSurfaceModuleUrl}?t=${Date.now() + 3}`,

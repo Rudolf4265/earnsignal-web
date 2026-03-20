@@ -112,6 +112,14 @@ function formatVerbForLabels(labels: string[]): "use" | "uses" {
   return labels.length === 1 ? "uses" : "use";
 }
 
+function mergeVisiblePlatformIdsWithFallback(ids: Iterable<UploadPlatform>): UploadPlatform[] {
+  const visiblePlatformIds = new Set<UploadPlatform>(FALLBACK_VISIBLE_UPLOAD_PLATFORM_IDS);
+  for (const platformId of ids) {
+    visiblePlatformIds.add(platformId);
+  }
+  return FALLBACK_VISIBLE_UPLOAD_PLATFORM_IDS.filter((platformId) => visiblePlatformIds.has(platformId));
+}
+
 export function buildVisibleUploadPlatformIdsFromSupportMatrix(
   matrix: UploadSupportMatrixResponse | null | undefined,
 ): UploadPlatform[] | null {
@@ -133,7 +141,7 @@ export function buildVisibleUploadPlatformIdsFromSupportMatrix(
     }
   }
 
-  return FALLBACK_VISIBLE_UPLOAD_PLATFORM_IDS.filter((platformId) => visiblePlatformIds.has(platformId));
+  return mergeVisiblePlatformIdsWithFallback(visiblePlatformIds);
 }
 
 export function buildVisibleUploadPlatformCardsFromSupportMatrix(

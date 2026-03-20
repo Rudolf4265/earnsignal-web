@@ -108,6 +108,10 @@ function getPlatformLabelsByImportMode(cards: UploadPlatformCardMetadata[], impo
   return cards.filter((card) => card.importMode === importMode).map((card) => card.label);
 }
 
+function formatVerbForLabels(labels: string[]): "use" | "uses" {
+  return labels.length === 1 ? "uses" : "use";
+}
+
 export function buildVisibleUploadPlatformIdsFromSupportMatrix(
   matrix: UploadSupportMatrixResponse | null | undefined,
 ): UploadPlatform[] | null {
@@ -146,19 +150,27 @@ export function getSupportedRevenueUploadSummaryFromCards(cards: UploadPlatformC
 
 export function getSupportedRevenueUploadFormatGuidanceFromCards(cards: UploadPlatformCardMetadata[]): string {
   const directCsvLabels = getPlatformLabelsByImportMode(cards, "direct_csv");
-  const normalizedCsvLabels = getPlatformLabelsByImportMode(cards, "normalized_csv");
+  const instagramZipLabels = cards
+    .filter((card) => card.id === "instagram")
+    .map((card) => card.label);
+  const normalizedCsvLabels = cards
+    .filter((card) => card.importMode === "normalized_csv" && card.id !== "instagram")
+    .map((card) => card.label);
+  const guidanceSegments: string[] = [];
 
-  if (directCsvLabels.length > 0 && normalizedCsvLabels.length > 0) {
-    return `${formatGuidanceLabelList(directCsvLabels)} use supported CSV exports. ${formatGuidanceLabelList(normalizedCsvLabels)} use template-based normalized CSV imports only.`;
+  if (directCsvLabels.length > 0) {
+    guidanceSegments.push(`${formatGuidanceLabelList(directCsvLabels)} ${formatVerbForLabels(directCsvLabels)} supported CSV exports.`);
+  }
+
+  if (instagramZipLabels.length > 0) {
+    guidanceSegments.push(
+      `${formatGuidanceLabelList(instagramZipLabels)} ${formatVerbForLabels(instagramZipLabels)} template-based normalized CSV imports and selected supported ZIP exports.`,
+    );
   }
 
   if (normalizedCsvLabels.length > 0) {
-    return `${formatGuidanceLabelList(normalizedCsvLabels)} use template-based normalized CSV imports only.`;
+    guidanceSegments.push(`${formatGuidanceLabelList(normalizedCsvLabels)} ${formatVerbForLabels(normalizedCsvLabels)} template-based normalized CSV imports only.`);
   }
 
-  if (directCsvLabels.length > 0) {
-    return `${formatGuidanceLabelList(directCsvLabels)} use supported CSV exports.`;
-  }
-
-  return "Use the supported CSV format for the platform you selected.";
+  return guidanceSegments.length > 0 ? guidanceSegments.join(" ") : "Use the supported CSV format for the platform you selected.";
 }

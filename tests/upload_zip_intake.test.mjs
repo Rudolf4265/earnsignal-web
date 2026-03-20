@@ -180,6 +180,15 @@ test("inspectZipArchiveBuffer classifies bounded instagram candidate shapes", ()
   );
 });
 
+test("inspectZipArchiveBuffer also classifies allowlisted instagram csv-in-zip shapes", () => {
+  const archive = createSyntheticZip([{ name: "content/instagram_content_export.csv" }]);
+  const result = inspectZipArchiveBuffer(archive, { name: "instagram.zip", size: archive.byteLength });
+
+  assert.equal(result.kind, "supported_shape_instagram_candidate");
+  assert.equal(result.candidatePlatform, "instagram");
+  assert.equal(result.matchedPatterns.includes("file:content/instagram_content_export.csv"), true);
+});
+
 test("inspectZipArchiveBuffer classifies bounded tiktok candidate shapes", () => {
   const archive = createSyntheticZip([
     { name: "tiktok data/profile/User Info.txt" },

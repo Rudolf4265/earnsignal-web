@@ -22,6 +22,7 @@ export type ZipCandidatePlatform = "instagram" | "tiktok" | null;
 export type ZipArchiveEntry = {
   rawName: string;
   normalizedPath: string;
+  localHeaderOffset: number;
   compressedSize: number;
   uncompressedSize: number;
   compressionMethod: number;
@@ -70,6 +71,11 @@ const EMPTY_ARCHIVE_SIGNATURE = 0x06054b50;
 const SPANNED_ARCHIVE_SIGNATURE = 0x08074b50;
 const ZIP_MAGIC_SIGNATURES = new Set([LOCAL_FILE_HEADER_SIGNATURE, EMPTY_ARCHIVE_SIGNATURE, SPANNED_ARCHIVE_SIGNATURE]);
 const ENCRYPTED_ENTRY_FLAG = 0x0001;
+
+export const ALLOWLISTED_INSTAGRAM_CONTENT_ZIP_ENTRY_PATHS = [
+  "instagram_content_export.csv",
+  "content/instagram_content_export.csv",
+] as const;
 
 const INSTAGRAM_PATH_PREFIX_MARKERS = [
   "content/",
@@ -203,11 +209,17 @@ function collectMatchingPatterns(paths: readonly string[], prefixes: readonly st
   return [...pathMatches, ...basenameMatches];
 }
 
+function collectExactPathMatches(paths: readonly string[], allowlistedPaths: readonly string[]): string[] {
+  return allowlistedPaths.filter((candidatePath) => paths.includes(candidatePath)).map((candidatePath) => `file:${candidatePath}`);
+}
+
 function classifyArchiveShape(entries: ZipArchiveEntry[]): ZipArchiveInspectionResult {
   const filePaths = entries.filter((entry) => !entry.isDirectory).map((entry) => entry.normalizedPath.toLowerCase());
 
   const instagramMatches = collectMatchingPatterns(filePaths, INSTAGRAM_PATH_PREFIX_MARKERS, INSTAGRAM_FILE_MARKERS);
+  const instagramCsvMatches = collectExactPathMatches(filePaths, ALLOWLISTED_INSTAGRAM_CONTENT_ZIP_ENTRY_PATHS);
   const instagramCandidate =
+    instagramCsvMatches.length > 0 ||
     INSTAGRAM_PATH_PREFIX_MARKERS.filter((prefix) => filePaths.some((path) => path.startsWith(prefix))).length >= 2 &&
     INSTAGRAM_FILE_MARKERS.some((basename) => filePaths.some((path) => path.endsWith(`/${basename}`) || path === basename));
 
@@ -221,7 +233,7 @@ function classifyArchiveShape(entries: ZipArchiveEntry[]): ZipArchiveInspectionR
       "ambiguous_archive",
       "ambiguous_archive_shape",
       "ZIP archive matches multiple allowlisted candidate shapes.",
-      { entryCount: entries.length, matchedPatterns: [...instagramMatches, ...tiktokMatches], entries },
+      { entryCount: entries.length, matchedPatterns: [...instagramMatches, ...instagramCsvMatches, ...tiktokMatches], entries },
     );
   }
 
@@ -230,7 +242,7 @@ function classifyArchiveShape(entries: ZipArchiveEntry[]): ZipArchiveInspectionR
       "supported_shape_instagram_candidate",
       null,
       "ZIP archive matches the bounded Instagram candidate shape.",
-      { candidatePlatform: "instagram", entryCount: entries.length, matchedPatterns: instagramMatches, entries },
+      { candidatePlatform: "instagram", entryCount: entries.length, matchedPatterns: [...instagramMatches, ...instagramCsvMatches], entries },
     );
   }
 
@@ -340,6 +352,7 @@ export function inspectZipArchiveBuffer(
     entries.push({
       rawName,
       normalizedPath: normalizedPathResult.normalizedPath,
+      localHeaderOffset: readUint32(view, offset + 42),
       compressedSize,
       uncompressedSize,
       compressionMethod,
@@ -369,6 +382,51 @@ export async function inspectZipUploadFile(
 
   const buffer = await file.arrayBuffer();
   return inspectZipArchiveBuffer(buffer, file, options);
+}
+
+function assertReadableLocalFileHeader(bytes: Uint8Array, view: DataView, entry: ZipArchiveEntry): { dataOffset: number } {
+  if (!hasRange(bytes, entry.localHeaderOffset, 30) || readUint32(view, entry.localHeaderOffset) !== LOCAL_FILE_HEADER_SIGNATURE) {
+    throw new Error("ZIP archive local file header is malformed.");
+  }
+
+  const fileNameLength = readUint16(view, entry.localHeaderOffset + 26);
+  const extraLength = readUint16(view, entry.localHeaderOffset + 28);
+  const dataOffset = entry.localHeaderOffset + 30 + fileNameLength + extraLength;
+
+  if (!hasRange(bytes, dataOffset, entry.compressedSize)) {
+    throw new Error("ZIP archive entry data is malformed.");
+  }
+
+  return { dataOffset };
+}
+
+async function inflateDeflateRaw(bytes: Uint8Array): Promise<Uint8Array> {
+  const blobBytes = Uint8Array.from(bytes);
+  const stream = new Blob([blobBytes.buffer]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  const buffer = await new Response(stream).arrayBuffer();
+  return new Uint8Array(buffer);
+}
+
+export async function extractZipArchiveEntryBytes(buffer: ArrayBuffer, entry: ZipArchiveEntry): Promise<Uint8Array> {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const { dataOffset } = assertReadableLocalFileHeader(bytes, view, entry);
+  const compressedBytes = bytes.slice(dataOffset, dataOffset + entry.compressedSize);
+
+  if (entry.compressionMethod === 0) {
+    return compressedBytes;
+  }
+
+  if (entry.compressionMethod === 8) {
+    return inflateDeflateRaw(compressedBytes);
+  }
+
+  throw new Error(`Unsupported ZIP compression method: ${entry.compressionMethod}`);
+}
+
+export async function extractZipArchiveEntryText(buffer: ArrayBuffer, entry: ZipArchiveEntry): Promise<string> {
+  const entryBytes = await extractZipArchiveEntryBytes(buffer, entry);
+  return textDecoder.decode(entryBytes);
 }
 
 export function toZipUploadRejection(result: ZipArchiveInspectionResult): ZipUploadRejection | null {

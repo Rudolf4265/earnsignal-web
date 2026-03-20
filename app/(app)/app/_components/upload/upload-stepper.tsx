@@ -24,7 +24,8 @@ import {
 import { getSupportedRevenueUploadFormatGuidanceFromCards } from "@/src/lib/upload/support-surface";
 import { detectPatreonExportType } from "@/src/lib/upload/patreon-csv-detector";
 import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detector";
-import { inspectZipUploadFile, isZipUploadCandidate, toZipUploadRejection } from "@/src/lib/upload/zip-intake";
+import { extractInstagramZipBufferToUploadArtifact } from "@/src/lib/upload/instagram-zip-extractor";
+import { inspectZipArchiveBuffer, isZipUploadCandidate, toZipUploadRejection } from "@/src/lib/upload/zip-intake";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
 import InlineAlert from "./InlineAlert";
@@ -113,6 +114,15 @@ async function buildInstagramClientContext(file: File): Promise<string | undefin
 }
 
 const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?: UploadPlatform | null }) => {
+  if (
+    reasonCode === "instagram_required_file_missing" ||
+    reasonCode === "instagram_required_content_invalid" ||
+    reasonCode === "instagram_supported_shape_but_unparseable" ||
+    reasonCode === "instagram_normalization_failed"
+  ) {
+    return "This Instagram ZIP format couldn’t be imported. Upload a supported CSV instead.";
+  }
+
   if (
     reasonCode === "zip_not_importable" ||
     reasonCode === "candidate_zip_not_yet_supported" ||
@@ -385,8 +395,12 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     entitlementState.canUpload &&
     entitlementState.canValidateUpload;
   const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
-
-  const unsupportedCsvWarning = file && !file.name.toLowerCase().endsWith(".csv");
+  const supportsSelectedInstagramZip = platform === "instagram";
+  const fileInputAccept = supportsSelectedInstagramZip
+    ? ".csv,.zip,text/csv,application/zip"
+    : ".csv,text/csv";
+  const selectedInstagramZip = Boolean(file && supportsSelectedInstagramZip && isZipUploadCandidate(file));
+  const unsupportedCsvWarning = Boolean(file && !file.name.toLowerCase().endsWith(".csv") && !selectedInstagramZip);
 
   const stopPolling = useCallback(() => {
     pollAbortRef.current?.abort();
@@ -669,39 +683,66 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     setWarnings([]);
 
     try {
+      let uploadFile = file;
       if (isZipUploadCandidate(file)) {
         setStatusMsg("Inspecting ZIP archive…");
-        const zipInspection = await inspectZipUploadFile(file);
-        const zipRejection = toZipUploadRejection(zipInspection) ?? {
-          reasonCode: "unsupported_archive_shape",
-          message: "ZIP archive could not be accepted by the bounded intake layer.",
-        };
+        const zipBuffer = await file.arrayBuffer();
+        const zipInspection = inspectZipArchiveBuffer(zipBuffer, file);
+        if (platform === "instagram" && zipInspection.kind === "supported_shape_instagram_candidate") {
+          setStatusMsg("Preparing Instagram ZIP…");
+          const instagramZipArtifact = await extractInstagramZipBufferToUploadArtifact(zipBuffer, {
+            inspection: zipInspection,
+            fileName: file.name,
+          });
 
-        setFailureState({
-          uploadId: null,
-          rawStatus: null,
-          reasonCode: zipRejection.reasonCode,
-          message: zipRejection.message,
-          operation: "uploads.zip_intake",
-          nextStep: "file",
-        });
-        return;
+          if (!instagramZipArtifact.ok) {
+            setFailureState({
+              uploadId: null,
+              rawStatus: null,
+              reasonCode: instagramZipArtifact.reasonCode,
+              message: instagramZipArtifact.message,
+              operation: "uploads.instagram_zip_extract",
+              nextStep: "file",
+            });
+            return;
+          }
+
+          uploadFile = new File([instagramZipArtifact.normalizedCsvText], instagramZipArtifact.normalizedFilename, {
+            type: "text/csv",
+            lastModified: file.lastModified,
+          });
+        } else {
+          const zipRejection = toZipUploadRejection(zipInspection) ?? {
+            reasonCode: "unsupported_archive_shape",
+            message: "ZIP archive could not be accepted by the bounded intake layer.",
+          };
+
+          setFailureState({
+            uploadId: null,
+            rawStatus: null,
+            reasonCode: zipRejection.reasonCode,
+            message: zipRejection.message,
+            operation: "uploads.zip_intake",
+            nextStep: "file",
+          });
+          return;
+        }
       }
 
       setStep("uploading");
       setStatusMsg("Preparing file…");
       // Compute checksum and detect export type concurrently to save time.
       const [checksum, clientContext] = await Promise.all([
-        computeSHA256Hex(file),
+        computeSHA256Hex(uploadFile),
         platform === "patreon"
-          ? buildPatreonClientContext(file)
+          ? buildPatreonClientContext(uploadFile)
           : platform === "instagram"
-            ? buildInstagramClientContext(file)
+            ? buildInstagramClientContext(uploadFile)
             : Promise.resolve(undefined),
       ]);
       console.debug("Presign checksum computed", {
-        fileName: file.name,
-        size: file.size,
+        fileName: uploadFile.name,
+        size: uploadFile.size,
         hasChecksum: true,
         ...(clientContext ? { detectedExportType: JSON.parse(clientContext).detected_export_type } : {}),
       });
@@ -709,9 +750,9 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
       setStatusMsg("Requesting secure upload URL…");
       const presign = await createUploadPresign({
         platform,
-        filename: file.name,
-        content_type: file.type || "text/csv",
-        size: file.size,
+        filename: uploadFile.name,
+        content_type: uploadFile.type || "text/csv",
+        size: uploadFile.size,
         checksum,
         ...(clientContext ? { client_context: clientContext } : {}),
       });
@@ -729,7 +770,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
         setStatusMsg("Uploading file…");
         await uploadFileToPresignedUrl({
           presignedUrl: presign.presigned_url,
-          file,
+          file: uploadFile,
           headers: presign.headers,
         });
       } catch (storageUploadError) {
@@ -737,12 +778,12 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           {
             upload_id: presign.upload_id,
             success: false,
-            size_bytes: file.size,
+            size_bytes: uploadFile.size,
             callback_proof: presign.callback_proof,
             platform,
             object_key: presign.object_key,
-            filename: file.name,
-            content_type: file.type || "text/csv",
+            filename: uploadFile.name,
+            content_type: uploadFile.type || "text/csv",
           },
           presign.callback_url,
         );
@@ -754,12 +795,12 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
         {
           upload_id: presign.upload_id,
           success: true,
-          size_bytes: file.size,
+          size_bytes: uploadFile.size,
           callback_proof: presign.callback_proof,
           platform,
           object_key: presign.object_key,
-          filename: file.name,
-          content_type: file.type || "text/csv",
+          filename: uploadFile.name,
+          content_type: uploadFile.type || "text/csv",
         },
         presign.callback_url,
       );
@@ -1113,13 +1154,19 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           <StepHeader
             title="Select file"
             subtitle={
-              selectedPlatformCard?.importMode === "normalized_csv"
+              selectedPlatformCard?.id === "instagram"
+                ? "Upload the supported normalized CSV or a selected supported Instagram ZIP export."
+                : selectedPlatformCard?.importMode === "normalized_csv"
                 ? "Upload the supported normalized CSV for this platform."
                 : "Upload the supported CSV for this platform."
             }
           />
           <InlineAlert variant="info" title="What happens after upload" data-testid="upload-file-guide">
-            <p>Accepted file type: CSV. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation.</p>
+            <p>
+              {selectedPlatformCard?.id === "instagram"
+                ? "Accepted file types: CSV. Selected supported Instagram ZIP exports are also accepted. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."
+                : "Accepted file type: CSV. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."}
+            </p>
             <p className="mt-2">If validation fails, retry with the supported CSV format for this platform. If processing stalls, retry status before starting over.</p>
             {selectedPlatformCard?.guidance ? <p className="mt-2">{selectedPlatformCard.guidance}</p> : null}
             <Link href="/app/help#after-upload" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
@@ -1138,7 +1185,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           <input
             ref={inputRef}
             type="file"
-            accept=".csv,text/csv"
+            accept={fileInputAccept}
             className="hidden"
             onChange={(event) => {
               const selectedFile = event.target.files?.[0] ?? null;

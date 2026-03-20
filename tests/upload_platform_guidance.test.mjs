@@ -32,7 +32,7 @@ test("fallback upload guidance exposes the public platform list in stable order"
   );
   assert.equal(
     getSupportedRevenueUploadFormatGuidanceFromCards(fallbackCards),
-    "Patreon, Substack, and YouTube use supported CSV exports. Instagram Performance uses template-based normalized CSV imports and selected supported ZIP exports. TikTok Performance uses template-based normalized CSV imports only.",
+    "Patreon, Substack, and YouTube use supported CSV exports. Instagram Performance and TikTok Performance use template-based normalized CSV imports and selected supported ZIP exports.",
   );
 });
 
@@ -49,7 +49,7 @@ test("platform guidance summary mirrors the upload-page visible support truth", 
   assert.equal(getSupportedRevenueUploadSummary(), "Patreon, Substack, YouTube, Instagram Performance, and TikTok Performance");
   assert.equal(
     getSupportedRevenueUploadFormatGuidance(),
-    "Patreon, Substack, and YouTube use supported CSV exports. Instagram Performance uses template-based normalized CSV imports and selected supported ZIP exports. TikTok Performance uses template-based normalized CSV imports only.",
+    "Patreon, Substack, and YouTube use supported CSV exports. Instagram Performance and TikTok Performance use template-based normalized CSV imports and selected supported ZIP exports.",
   );
 });
 
@@ -128,15 +128,17 @@ test("support-matrix truth derives only supported-now visible public upload plat
   assert.deepEqual(visiblePlatformIds, ["patreon", "substack", "youtube", "instagram", "tiktok"]);
 });
 
-test("guidance helpers introduce zip language only for bounded instagram support", async () => {
+test("guidance helpers introduce zip language only for the bounded instagram and tiktok support surfaces", async () => {
   const { getFallbackVisibleUploadPlatformCards, getSupportedRevenueUploadFormatGuidanceFromCards } = await import(
     `${supportSurfaceModuleUrl}?t=${Date.now() + 3}`,
   );
 
   const guidance = getSupportedRevenueUploadFormatGuidanceFromCards(getFallbackVisibleUploadPlatformCards());
 
-  assert.equal(guidance.includes("Instagram Performance uses template-based normalized CSV imports and selected supported ZIP exports."), true);
-  assert.equal(guidance.includes("TikTok Performance uses template-based normalized CSV imports and selected supported ZIP exports."), false);
+  assert.equal(
+    guidance.includes("Instagram Performance and TikTok Performance use template-based normalized CSV imports and selected supported ZIP exports."),
+    true,
+  );
   assert.equal(guidance.includes("generic ZIP"), false);
 });
 

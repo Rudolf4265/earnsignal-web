@@ -25,6 +25,7 @@ import { getSupportedRevenueUploadFormatGuidanceFromCards } from "@/src/lib/uplo
 import { detectPatreonExportType } from "@/src/lib/upload/patreon-csv-detector";
 import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detector";
 import { extractInstagramZipBufferToUploadArtifact } from "@/src/lib/upload/instagram-zip-extractor";
+import { extractTiktokZipBufferToUploadArtifact } from "@/src/lib/upload/tiktok-zip-extractor";
 import { inspectZipArchiveBuffer, isZipUploadCandidate, toZipUploadRejection } from "@/src/lib/upload/zip-intake";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
@@ -121,6 +122,15 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
     reasonCode === "instagram_normalization_failed"
   ) {
     return "This Instagram ZIP format couldn’t be imported. Upload a supported CSV instead.";
+  }
+
+  if (
+    reasonCode === "tiktok_required_file_missing" ||
+    reasonCode === "tiktok_required_content_invalid" ||
+    reasonCode === "tiktok_supported_shape_but_unparseable" ||
+    reasonCode === "tiktok_normalization_failed"
+  ) {
+    return "This TikTok ZIP format couldn’t be imported. Upload a supported CSV instead.";
   }
 
   if (
@@ -395,12 +405,12 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     entitlementState.canUpload &&
     entitlementState.canValidateUpload;
   const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
-  const supportsSelectedInstagramZip = platform === "instagram";
-  const fileInputAccept = supportsSelectedInstagramZip
+  const supportsSelectedZipImport = platform === "instagram" || platform === "tiktok";
+  const fileInputAccept = supportsSelectedZipImport
     ? ".csv,.zip,text/csv,application/zip"
     : ".csv,text/csv";
-  const selectedInstagramZip = Boolean(file && supportsSelectedInstagramZip && isZipUploadCandidate(file));
-  const unsupportedCsvWarning = Boolean(file && !file.name.toLowerCase().endsWith(".csv") && !selectedInstagramZip);
+  const selectedSupportedZip = Boolean(file && supportsSelectedZipImport && isZipUploadCandidate(file));
+  const unsupportedCsvWarning = Boolean(file && !file.name.toLowerCase().endsWith(".csv") && !selectedSupportedZip);
 
   const stopPolling = useCallback(() => {
     pollAbortRef.current?.abort();
@@ -708,6 +718,29 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           }
 
           uploadFile = new File([instagramZipArtifact.normalizedCsvText], instagramZipArtifact.normalizedFilename, {
+            type: "text/csv",
+            lastModified: file.lastModified,
+          });
+        } else if (platform === "tiktok" && zipInspection.kind === "supported_shape_tiktok_candidate") {
+          setStatusMsg("Preparing TikTok ZIP…");
+          const tiktokZipArtifact = await extractTiktokZipBufferToUploadArtifact(zipBuffer, {
+            inspection: zipInspection,
+            fileName: file.name,
+          });
+
+          if (!tiktokZipArtifact.ok) {
+            setFailureState({
+              uploadId: null,
+              rawStatus: null,
+              reasonCode: tiktokZipArtifact.reasonCode,
+              message: tiktokZipArtifact.message,
+              operation: "uploads.tiktok_zip_extract",
+              nextStep: "file",
+            });
+            return;
+          }
+
+          uploadFile = new File([tiktokZipArtifact.normalizedCsvText], tiktokZipArtifact.normalizedFilename, {
             type: "text/csv",
             lastModified: file.lastModified,
           });
@@ -1154,8 +1187,8 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           <StepHeader
             title="Select file"
             subtitle={
-              selectedPlatformCard?.id === "instagram"
-                ? "Upload the supported normalized CSV or a selected supported Instagram ZIP export."
+              selectedPlatformCard?.id === "instagram" || selectedPlatformCard?.id === "tiktok"
+                ? "Upload the supported normalized CSV or a selected supported ZIP export."
                 : selectedPlatformCard?.importMode === "normalized_csv"
                 ? "Upload the supported normalized CSV for this platform."
                 : "Upload the supported CSV for this platform."
@@ -1163,8 +1196,8 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           />
           <InlineAlert variant="info" title="What happens after upload" data-testid="upload-file-guide">
             <p>
-              {selectedPlatformCard?.id === "instagram"
-                ? "Accepted file types: CSV. Selected supported Instagram ZIP exports are also accepted. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."
+              {selectedPlatformCard?.id === "instagram" || selectedPlatformCard?.id === "tiktok"
+                ? "Accepted file types: CSV. Selected supported ZIP exports are also accepted. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."
                 : "Accepted file type: CSV. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."}
             </p>
             <p className="mt-2">If validation fails, retry with the supported CSV format for this platform. If processing stalls, retry status before starting over.</p>

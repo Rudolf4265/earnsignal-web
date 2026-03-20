@@ -201,6 +201,15 @@ test("inspectZipArchiveBuffer classifies bounded tiktok candidate shapes", () =>
   assert.equal(result.reasonCode, null);
 });
 
+test("inspectZipArchiveBuffer also classifies allowlisted tiktok csv-in-zip shapes", () => {
+  const archive = createSyntheticZip([{ name: "tiktok data/tiktok_performance_export.csv" }]);
+  const result = inspectZipArchiveBuffer(archive, { name: "tiktok.zip", size: archive.byteLength });
+
+  assert.equal(result.kind, "supported_shape_tiktok_candidate");
+  assert.equal(result.candidatePlatform, "tiktok");
+  assert.equal(result.matchedPatterns.includes("file:tiktok data/tiktok_performance_export.csv"), true);
+});
+
 test("inspectZipArchiveBuffer rejects unsupported and ambiguous archive shapes deterministically", () => {
   const unsupportedArchive = createSyntheticZip([{ name: "notes/readme.txt" }]);
   const ambiguousArchive = createSyntheticZip([

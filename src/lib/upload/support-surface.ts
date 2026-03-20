@@ -150,11 +150,11 @@ export function getSupportedRevenueUploadSummaryFromCards(cards: UploadPlatformC
 
 export function getSupportedRevenueUploadFormatGuidanceFromCards(cards: UploadPlatformCardMetadata[]): string {
   const directCsvLabels = getPlatformLabelsByImportMode(cards, "direct_csv");
-  const instagramZipLabels = cards
-    .filter((card) => card.id === "instagram")
+  const selectedZipLabels = cards
+    .filter((card) => card.id === "instagram" || card.id === "tiktok")
     .map((card) => card.label);
   const normalizedCsvLabels = cards
-    .filter((card) => card.importMode === "normalized_csv" && card.id !== "instagram")
+    .filter((card) => card.importMode === "normalized_csv" && card.id !== "instagram" && card.id !== "tiktok")
     .map((card) => card.label);
   const guidanceSegments: string[] = [];
 
@@ -162,9 +162,9 @@ export function getSupportedRevenueUploadFormatGuidanceFromCards(cards: UploadPl
     guidanceSegments.push(`${formatGuidanceLabelList(directCsvLabels)} ${formatVerbForLabels(directCsvLabels)} supported CSV exports.`);
   }
 
-  if (instagramZipLabels.length > 0) {
+  if (selectedZipLabels.length > 0) {
     guidanceSegments.push(
-      `${formatGuidanceLabelList(instagramZipLabels)} ${formatVerbForLabels(instagramZipLabels)} template-based normalized CSV imports and selected supported ZIP exports.`,
+      `${formatGuidanceLabelList(selectedZipLabels)} ${formatVerbForLabels(selectedZipLabels)} template-based normalized CSV imports and selected supported ZIP exports.`,
     );
   }
 

@@ -77,6 +77,11 @@ export const ALLOWLISTED_INSTAGRAM_CONTENT_ZIP_ENTRY_PATHS = [
   "content/instagram_content_export.csv",
 ] as const;
 
+export const ALLOWLISTED_TIKTOK_PERFORMANCE_ZIP_ENTRY_PATHS = [
+  "tiktok_performance_export.csv",
+  "tiktok data/tiktok_performance_export.csv",
+] as const;
+
 const INSTAGRAM_PATH_PREFIX_MARKERS = [
   "content/",
   "connections/",
@@ -224,7 +229,9 @@ function classifyArchiveShape(entries: ZipArchiveEntry[]): ZipArchiveInspectionR
     INSTAGRAM_FILE_MARKERS.some((basename) => filePaths.some((path) => path.endsWith(`/${basename}`) || path === basename));
 
   const tiktokMatches = collectMatchingPatterns(filePaths, TIKTOK_PATH_PREFIX_MARKERS, TIKTOK_FILE_MARKERS);
+  const tiktokCsvMatches = collectExactPathMatches(filePaths, ALLOWLISTED_TIKTOK_PERFORMANCE_ZIP_ENTRY_PATHS);
   const tiktokCandidate =
+    tiktokCsvMatches.length > 0 ||
     TIKTOK_PATH_PREFIX_MARKERS.filter((prefix) => filePaths.some((path) => path.startsWith(prefix))).length >= 2 &&
     TIKTOK_FILE_MARKERS.filter((basename) => filePaths.some((path) => path.endsWith(`/${basename}`) || path === basename)).length >= 2;
 
@@ -233,7 +240,7 @@ function classifyArchiveShape(entries: ZipArchiveEntry[]): ZipArchiveInspectionR
       "ambiguous_archive",
       "ambiguous_archive_shape",
       "ZIP archive matches multiple allowlisted candidate shapes.",
-      { entryCount: entries.length, matchedPatterns: [...instagramMatches, ...instagramCsvMatches, ...tiktokMatches], entries },
+      { entryCount: entries.length, matchedPatterns: [...instagramMatches, ...instagramCsvMatches, ...tiktokMatches, ...tiktokCsvMatches], entries },
     );
   }
 
@@ -251,7 +258,7 @@ function classifyArchiveShape(entries: ZipArchiveEntry[]): ZipArchiveInspectionR
       "supported_shape_tiktok_candidate",
       null,
       "ZIP archive matches the bounded TikTok candidate shape.",
-      { candidatePlatform: "tiktok", entryCount: entries.length, matchedPatterns: tiktokMatches, entries },
+      { candidatePlatform: "tiktok", entryCount: entries.length, matchedPatterns: [...tiktokMatches, ...tiktokCsvMatches], entries },
     );
   }
 

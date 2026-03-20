@@ -1,6 +1,6 @@
 import type { UploadPlatform, UploadSupportMatrixFamily, UploadSupportMatrixResponse } from "@/src/lib/api/upload";
 import { getUploadPlatformCardsByIds, type UploadPlatformCardMetadata } from "./platform-metadata";
-import { formatGuidanceLabelList } from "./platform-guidance";
+import { formatGuidanceLabelList } from "./guidance-labels";
 
 const REQUIRED_FAMILY_CLASS = "native_report_driving";
 const SUPPORTED_NOW_STATUS = "supported_now";
@@ -92,6 +92,10 @@ function mapSupportFamilyToVisiblePlatform(family: NormalizedSupportFamily): Upl
 
 export function getFallbackVisibleUploadPlatformCards(): UploadPlatformCardMetadata[] {
   return getUploadPlatformCardsByIds(FALLBACK_VISIBLE_UPLOAD_PLATFORM_IDS);
+}
+
+export function getFallbackVisibleUploadPlatformLabels(): string[] {
+  return getFallbackVisibleUploadPlatformCards().map((card) => card.label);
 }
 
 export function buildVisibleUploadPlatformIdsFromSupportMatrix(

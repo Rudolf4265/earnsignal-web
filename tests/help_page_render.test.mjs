@@ -18,7 +18,10 @@ test("help page renders onboarding, upload guidance, and troubleshooting entry p
   assert.equal(source.includes("Quick orientation"), true);
   assert.equal(source.includes("Upload guide"), true);
   assert.equal(source.includes("Need help uploading?"), true);
+  assert.equal(source.includes("Currently supported uploads are {supportedRevenueUploads}."), true);
   assert.equal(source.includes("Richer scorecards appear when supported analytics are available."), true);
+  assert.equal(source.includes("Instagram uploads"), false);
+  assert.equal(source.includes("TikTok uploads"), false);
   assert.equal(source.includes('href="/app/data"'), true);
   assert.equal(source.includes('href="/app"'), true);
 });

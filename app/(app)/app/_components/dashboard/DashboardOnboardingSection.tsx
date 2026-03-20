@@ -28,7 +28,7 @@ function resolveNextStep({
   if (!hasUpload) {
     return {
       title: "Start with a supported revenue export.",
-      body: `Today, the guided upload flow accepts ${supportedRevenueUploads}. Upload your latest revenue and subscriber data to unlock Earn first.`,
+      body: `Currently supported uploads are ${supportedRevenueUploads}. Upload your latest revenue and subscriber data to unlock Earn first.`,
     };
   }
 

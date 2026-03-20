@@ -84,7 +84,7 @@ export default function HelpPage() {
         >
           <div id="upload-guide" data-testid="help-page-upload-guide">
             <p className="text-sm leading-relaxed text-brand-text-secondary">
-              Today, the guided upload flow accepts {supportedRevenueUploads}. Start with the export that best reflects your latest revenue and subscriber data.
+              Currently supported uploads are {supportedRevenueUploads}. Start with the export that best reflects your latest revenue and subscriber data.
             </p>
             <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
               If you are looking for Grow depth, keep expectations light until supported audience and engagement analytics are available.

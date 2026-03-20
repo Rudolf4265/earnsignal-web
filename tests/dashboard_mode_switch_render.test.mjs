@@ -53,6 +53,12 @@ test("dashboard onboarding section explains the product, modes, and next-step gu
   assert.equal(source.includes("EarnSigma in one minute"), true);
   assert.equal(source.includes("Earn tracks revenue, subscriptions, and monetization health from the latest report."), true);
   assert.equal(source.includes("Grow is the audience and engagement side. Richer scorecards appear when supported analytics are available."), true);
+  assert.equal(
+    source.includes("Currently supported uploads are ${supportedRevenueUploads}. Upload your latest revenue and subscriber data to unlock Earn first."),
+    true,
+  );
+  assert.equal(source.includes("Instagram uploads"), false);
+  assert.equal(source.includes("TikTok uploads"), false);
   assert.equal(source.includes("/app/help#upload-guide"), true);
 });
 

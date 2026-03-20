@@ -34,6 +34,7 @@ import StepHeader from "./StepHeader";
 import Stepper from "./Stepper";
 import UploadCard from "./UploadCard";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
+import { TrustMicrocopy, UPLOAD_TRUST_MICROCOPY_BODY } from "@/src/components/ui/trust-microcopy";
 
 type Step = "platform" | "file" | "uploading" | "processing" | "done";
 
@@ -975,6 +976,10 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
   return (
     <UploadCard className="space-y-6">
       <Stepper steps={steps} activeIndex={activeStepIndex} />
+
+      {step === "platform" || step === "file" ? (
+        <TrustMicrocopy body={UPLOAD_TRUST_MICROCOPY_BODY} testId="upload-trust-strip" variant="app" />
+      ) : null}
 
       {error ? (
         <ErrorBanner data-testid="upload-terminal-error"

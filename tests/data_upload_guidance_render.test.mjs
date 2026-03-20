@@ -4,12 +4,17 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 
 const dataUploadPagePath = path.resolve("app/(app)/app/_components/upload/data-upload-page.tsx");
+const trustMicrocopyPath = path.resolve("src/components/ui/trust-microcopy.tsx");
+const uploadStepperPath = path.resolve("app/(app)/app/_components/upload/upload-stepper.tsx");
 
 test("data upload page adds truthful upload, mode, and help guidance", async () => {
-  const source = await readFile(dataUploadPagePath, "utf8");
+  const [source, trustSource, uploadStepperSource] = await Promise.all([
+    readFile(dataUploadPagePath, "utf8"),
+    readFile(trustMicrocopyPath, "utf8"),
+    readFile(uploadStepperPath, "utf8"),
+  ]);
 
   assert.equal(source.includes('data-testid="data-upload-guide"'), true);
-  assert.equal(source.includes('data-testid="upload-trust-strip"'), true);
   assert.equal(source.includes("const FALLBACK_VISIBLE_UPLOAD_PLATFORM_CARDS = getFallbackVisibleUploadPlatformCards();"), true);
   assert.equal(source.includes("getUploadSupportMatrix()"), true);
   assert.equal(source.includes("buildVisibleUploadPlatformCardsFromSupportMatrix(supportMatrix)"), true);
@@ -17,13 +22,20 @@ test("data upload page adds truthful upload, mode, and help guidance", async () 
   assert.equal(source.includes("Keep the current safe fallback support surface."), true);
   assert.equal(source.includes("<UploadStepper visiblePlatformCards={visiblePlatformCards} supportedRevenueUploads={supportedRevenueUploads} />"), true);
   assert.equal(source.includes("/app/help#upload-guide"), true);
-  assert.equal(source.includes("Your data stays private"), true);
-  assert.equal(source.includes("Files are used only to generate your reports and operate the service. Never sold. Never used to train public AI models."), true);
-  assert.equal(source.includes("Learn how we handle your data"), true);
-  assert.equal(source.includes("publicUrls.dataPrivacy"), true);
   assert.equal(source.includes("Upload a supported file to validate your workspace and unlock EarnSigma guidance."), true);
   assert.equal(source.includes("Validated uploads appear here once you complete a supported upload."), true);
   assert.equal(source.includes("supported CSV upload"), false);
   assert.equal(source.includes("Current public upload options: {supportedRevenueUploads}."), true);
   assert.equal(source.includes("{supportedRevenueUploadFormatGuidance}"), true);
+  assert.equal(uploadStepperSource.includes("<TrustMicrocopy"), true);
+  assert.equal(uploadStepperSource.includes('testId="upload-trust-strip"'), true);
+  assert.equal(uploadStepperSource.includes("UPLOAD_TRUST_MICROCOPY_BODY"), true);
+  assert.equal(
+    trustSource.includes(
+      'UPLOAD_TRUST_MICROCOPY_BODY =\n  "Files are used only to generate your reports and operate the service. Never sold. Never used to train public AI models."',
+    ),
+    true,
+  );
+  assert.equal(trustSource.includes('TRUST_MICROCOPY_LINK_TEXT = "Learn how we handle your data"'), true);
+  assert.equal(trustSource.includes("href={publicUrls.dataPrivacy}"), true);
 });

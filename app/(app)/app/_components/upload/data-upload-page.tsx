@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { publicUrls } from "@earnsigma/config";
 import UploadCard from "./UploadCard";
 import UploadStepper from "./upload-stepper";
 import { buttonClassName } from "@/src/components/ui/button";
@@ -60,20 +59,6 @@ export default function DataUploadPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <UploadCard className="mb-4 p-4">
-            <div data-testid="upload-trust-strip">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-900">Your data stays private</p>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-700">
-                Files are used only to generate your reports and operate the service. Never sold. Never used to train public AI models.
-              </p>
-              <Link
-                href={publicUrls.dataPrivacy}
-                className="mt-2 inline-flex text-xs font-medium text-slate-700 underline underline-offset-4 transition hover:text-slate-900"
-              >
-                Learn how we handle your data
-              </Link>
-            </div>
-          </UploadCard>
           <UploadStepper visiblePlatformCards={visiblePlatformCards} supportedRevenueUploads={supportedRevenueUploads} />
         </div>
 

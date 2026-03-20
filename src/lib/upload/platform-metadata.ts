@@ -76,6 +76,13 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
   },
 ];
 
+export function getUploadPlatformCardsByIds(ids: readonly UploadPlatform[]): UploadPlatformCardMetadata[] {
+  const visibleIds = new Set(ids);
+  return UPLOAD_PLATFORM_CARDS.filter((card): card is UploadPlatformCardMetadata & { id: UploadPlatform } =>
+    visibleIds.has(card.id as UploadPlatform),
+  );
+}
+
 export const DIRECT_FAN_PLATFORMS: DirectFanPlatformMetadata[] = [
   {
     id: "onlyfans",

@@ -24,6 +24,25 @@ export type GenerateReportResponse = Omit<ReportGenerateResponseSchema, "report_
   report_id: string;
 };
 export type UploadStatusResponse = UploadStatusResponseSchema;
+export type UploadSupportMatrixFamily = {
+  family?: string;
+  label?: string;
+  family_class?: string;
+  familyClass?: string;
+  is_user_visible_supported?: boolean;
+  isUserVisibleSupported?: boolean;
+  is_report_driving?: boolean;
+  isReportDriving?: boolean;
+  support_status?: string;
+  supportStatus?: string;
+  data_domains?: string[];
+  dataDomains?: string[];
+  known_limitations?: string[];
+  knownLimitations?: string[];
+};
+export type UploadSupportMatrixResponse = {
+  families?: UploadSupportMatrixFamily[] | null;
+};
 const LATEST_UPLOAD_STATUS_TTL_MS = 5_000;
 let latestUploadStatusCache: { value: UploadStatusResponse; fetchedAt: number } | null = null;
 let latestUploadStatusInFlight: Promise<UploadStatusResponse> | null = null;
@@ -113,6 +132,12 @@ export async function generateReport(payload: GenerateReportRequest): Promise<Ge
 
 export async function getUploadStatus(uploadId: string): Promise<UploadStatusResponse> {
   return apiFetchJson<UploadStatusResponse>("uploads.status", `/v1/uploads/${encodeURIComponent(uploadId)}/status`, {
+    method: "GET",
+  });
+}
+
+export async function getUploadSupportMatrix(): Promise<UploadSupportMatrixResponse> {
+  return apiFetchJson<UploadSupportMatrixResponse>("uploads.supportMatrix", "/v1/uploads/support-matrix", {
     method: "GET",
   });
 }

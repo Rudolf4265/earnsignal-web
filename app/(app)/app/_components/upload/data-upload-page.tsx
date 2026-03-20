@@ -1,14 +1,48 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import UploadCard from "./UploadCard";
 import UploadStepper from "./upload-stepper";
 import { buttonClassName } from "@/src/components/ui/button";
-import { getSupportedRevenueUploadSummary } from "@/src/lib/upload/platform-guidance";
+import { getUploadSupportMatrix } from "@/src/lib/api/upload";
+import {
+  buildVisibleUploadPlatformCardsFromSupportMatrix,
+  getFallbackVisibleUploadPlatformCards,
+  getSupportedRevenueUploadSummaryFromCards,
+} from "@/src/lib/upload/support-surface";
 
-const supportedRevenueUploads = getSupportedRevenueUploadSummary();
+const FALLBACK_VISIBLE_UPLOAD_PLATFORM_CARDS = getFallbackVisibleUploadPlatformCards();
 
 export default function DataUploadPage() {
+  const [visiblePlatformCards, setVisiblePlatformCards] = useState(FALLBACK_VISIBLE_UPLOAD_PLATFORM_CARDS);
+  const supportedRevenueUploads = useMemo(
+    () => getSupportedRevenueUploadSummaryFromCards(visiblePlatformCards),
+    [visiblePlatformCards],
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    const syncSupportSurface = async () => {
+      try {
+        const supportMatrix = await getUploadSupportMatrix();
+        const nextVisiblePlatformCards = buildVisibleUploadPlatformCardsFromSupportMatrix(supportMatrix);
+        if (active && nextVisiblePlatformCards) {
+          setVisiblePlatformCards(nextVisiblePlatformCards);
+        }
+      } catch {
+        // Keep the current safe fallback support surface.
+      }
+    };
+
+    void syncSupportSurface();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <div className="space-y-1">
@@ -20,7 +54,7 @@ export default function DataUploadPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <UploadStepper />
+          <UploadStepper visiblePlatformCards={visiblePlatformCards} supportedRevenueUploads={supportedRevenueUploads} />
         </div>
 
         <div className="space-y-4">

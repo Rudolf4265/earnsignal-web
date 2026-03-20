@@ -19,9 +19,8 @@ import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import {
   COMING_SOON_CHIP_PLATFORMS,
   groupPlatformCards,
-  UPLOAD_PLATFORM_CARDS,
+  type UploadPlatformCardMetadata,
 } from "@/src/lib/upload/platform-metadata";
-import { getSupportedRevenueUploadSummary } from "@/src/lib/upload/platform-guidance";
 import { detectPatreonExportType } from "@/src/lib/upload/patreon-csv-detector";
 import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detector";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
@@ -36,8 +35,6 @@ type Step = "platform" | "file" | "uploading" | "processing" | "done";
 
 const stepOrder: Step[] = ["platform", "file", "uploading", "processing", "done"];
 const RESUME_STATUS_TIMEOUT_MS = 2_500;
-const platformSections = groupPlatformCards(UPLOAD_PLATFORM_CARDS);
-const supportedRevenueUploads = getSupportedRevenueUploadSummary();
 
 const readableFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -277,7 +274,12 @@ async function awaitWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Prom
   return { timedOut: false, value: outcome.value };
 }
 
-export default function UploadStepper() {
+type UploadStepperProps = {
+  visiblePlatformCards: UploadPlatformCardMetadata[];
+  supportedRevenueUploads: string;
+};
+
+export default function UploadStepper({ visiblePlatformCards, supportedRevenueUploads }: UploadStepperProps) {
   const entitlementState = useEntitlementState();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const pollAbortRef = useRef<AbortController | null>(null);
@@ -315,6 +317,7 @@ export default function UploadStepper() {
     ],
     [],
   );
+  const platformSections = useMemo(() => groupPlatformCards(visiblePlatformCards), [visiblePlatformCards]);
   const uploadReady =
     Boolean(platform && file) &&
     !busy &&

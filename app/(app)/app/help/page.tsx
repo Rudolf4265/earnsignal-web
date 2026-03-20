@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { buttonClassName } from "@/src/components/ui/button";
 import { PanelCard } from "@/src/components/ui/panel-card";
-import { getSupportedRevenueUploadSummary } from "@/src/lib/upload/platform-guidance";
+import { getSupportedRevenueUploadFormatGuidance, getSupportedRevenueUploadSummary } from "@/src/lib/upload/platform-guidance";
 
 const supportedRevenueUploads = getSupportedRevenueUploadSummary();
+const supportedRevenueUploadFormatGuidance = getSupportedRevenueUploadFormatGuidance();
 
 export default function HelpPage() {
   return (
@@ -49,10 +50,10 @@ export default function HelpPage() {
         >
           <div className="space-y-3" data-testid="help-page-how-it-works">
             <p className="text-sm leading-relaxed text-brand-text-secondary">
-              Upload a supported CSV export, let EarnSigma validate it, then review the dashboard and latest report once the workspace is ready.
+              Upload a supported CSV, let EarnSigma validate it, then review the dashboard and latest report once the workspace is ready.
             </p>
             <ol className="space-y-2 text-sm leading-relaxed text-brand-text-secondary">
-              <li>1. Upload a supported revenue export.</li>
+              <li>1. Upload a supported CSV.</li>
               <li>2. Validation runs first, then processing continues when report generation is available for your plan.</li>
               <li>3. The dashboard and latest report update when processing completes.</li>
             </ol>
@@ -84,7 +85,13 @@ export default function HelpPage() {
         >
           <div id="upload-guide" data-testid="help-page-upload-guide">
             <p className="text-sm leading-relaxed text-brand-text-secondary">
-              Currently supported uploads are {supportedRevenueUploads}. Start with the export that best reflects your latest revenue and subscriber data.
+              Currently supported uploads are {supportedRevenueUploads}.
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
+              {supportedRevenueUploadFormatGuidance}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
+              Start with the supported CSV that best reflects your latest revenue and subscriber data.
             </p>
             <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
               If you are looking for Grow depth, keep expectations light until supported audience and engagement analytics are available.
@@ -108,7 +115,7 @@ export default function HelpPage() {
       >
         <div data-testid="help-page-troubleshooting">
           <ul className="space-y-2 text-sm leading-relaxed text-brand-text-secondary">
-            <li>Export a fresh CSV directly from the platform you selected.</li>
+            <li>Retry with the supported CSV format for the platform you selected.</li>
             <li>Retry the upload status check if processing takes longer than expected.</li>
             <li>Use the upload screen diagnostics tools before starting over if you need a failure record.</li>
           </ul>

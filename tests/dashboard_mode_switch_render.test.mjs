@@ -12,10 +12,12 @@ test("dashboard page wires additive Earn and Grow mode branching without disturb
   const source = await readFile(dashboardPagePath, "utf8");
 
   assert.equal(source.includes("const dashboardMode = parseDashboardMode(searchParams.get(\"mode\"));"), true);
-  assert.equal(source.includes("<DashboardModeSwitch mode={dashboardMode} onChange={handleModeChange} />"), true);
+  assert.equal(source.includes("<DashboardTopShell"), true);
+  assert.equal(source.includes("mode={dashboardMode}"), true);
   assert.equal(source.includes("buildDashboardModeSearch(searchParams, nextMode)"), true);
   assert.equal(source.includes("{dashboardMode === \"earn\" ? ("), true);
-  assert.equal(source.includes("<RevenueSnapshotSection revenueSnapshot={earnDashboardModel.revenueSnapshot} />"), true);
+  assert.equal(source.includes("<DashboardMetricStrip"), true);
+  assert.equal(source.includes("revenueSnapshot={earnDashboardModel.revenueSnapshot}"), true);
   assert.equal(source.includes("<GrowDashboardSection"), true);
   assert.equal(source.includes("const primaryCta = useMemo("), true);
   assert.equal(source.includes("const latestReportHref = useMemo(() => buildReportDetailPathOrIndex(state.latestReportRow?.id), [state.latestReportRow?.id]);"), true);
@@ -51,12 +53,12 @@ test("dashboard onboarding section explains the product, modes, and next-step gu
   assert.equal(source.includes('data-testid="dashboard-onboarding-help-link"'), true);
   assert.equal(source.includes("Quick start"), true);
   assert.equal(source.includes("EarnSigma in one minute"), true);
+  assert.equal(source.includes("getSupportedRevenueUploadFormatGuidance"), true);
+  assert.equal(source.includes("Start with a supported CSV upload."), true);
   assert.equal(source.includes("Earn tracks revenue, subscriptions, and monetization health from the latest report."), true);
   assert.equal(source.includes("Grow is the audience and engagement side. Richer scorecards appear when supported analytics are available."), true);
-  assert.equal(
-    source.includes("Currently supported uploads are ${supportedRevenueUploads}. Upload your latest revenue and subscriber data to unlock Earn first."),
-    true,
-  );
+  assert.equal(source.includes("Currently supported uploads are ${supportedRevenueUploads}."), true);
+  assert.equal(source.includes("${supportedRevenueUploadFormatGuidance}"), true);
   assert.equal(source.includes("Instagram uploads"), false);
   assert.equal(source.includes("TikTok uploads"), false);
   assert.equal(source.includes("/app/help#upload-guide"), true);

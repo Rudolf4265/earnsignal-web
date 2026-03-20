@@ -3,6 +3,7 @@ import type { UploadPlatform } from "@/src/lib/api/upload";
 export type PlatformCategory = "supported" | "creator" | "additional";
 export type PlatformCardId = UploadPlatform | "direct-fan-platforms";
 export type DirectFanPlatformId = "onlyfans" | "fansly" | "fanfix";
+export type UploadPlatformImportMode = "direct_csv" | "normalized_csv";
 
 export type UploadPlatformCardMetadata = {
   id: PlatformCardId;
@@ -11,6 +12,8 @@ export type UploadPlatformCardMetadata = {
   icon: string;
   category: PlatformCategory;
   available: boolean;
+  importMode: UploadPlatformImportMode;
+  guidance?: string;
 };
 
 export type DirectFanPlatformMetadata = {
@@ -37,7 +40,7 @@ const AVAILABLE_PLATFORMS: Partial<Record<UploadPlatform, boolean>> = {
   substack: true,
   youtube: true,
   instagram: true,
-  tiktok: false,
+  tiktok: true,
   onlyfans: false,
 };
 
@@ -49,6 +52,7 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
     icon: "/platforms/patreon.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.patreon ?? false,
+    importMode: "direct_csv",
   },
   {
     id: "substack",
@@ -57,6 +61,7 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
     icon: "/platforms/substack.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.substack ?? false,
+    importMode: "direct_csv",
   },
   {
     id: "youtube",
@@ -65,14 +70,27 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
     icon: "/platforms/youtube.png",
     category: "supported",
     available: AVAILABLE_PLATFORMS.youtube ?? false,
+    importMode: "direct_csv",
   },
   {
     id: "instagram",
-    label: "Instagram",
-    subtitle: "Content & insights exports",
+    label: "Instagram Performance",
+    subtitle: "Template-based normalized CSV import",
     icon: "/platforms/instagram.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.instagram ?? false,
+    importMode: "normalized_csv",
+    guidance: "Upload a template-based normalized Instagram performance CSV.",
+  },
+  {
+    id: "tiktok",
+    label: "TikTok Performance",
+    subtitle: "Template-based normalized CSV import",
+    icon: "/platforms/tiktok.svg",
+    category: "supported",
+    available: AVAILABLE_PLATFORMS.tiktok ?? false,
+    importMode: "normalized_csv",
+    guidance: "Upload a template-based normalized TikTok performance CSV.",
   },
 ];
 
@@ -128,7 +146,6 @@ export function resolveDirectFanBackendId(id: DirectFanPlatformId): UploadPlatfo
 }
 
 export const COMING_SOON_CHIP_PLATFORMS: { id: string; label: string; icon: string | null }[] = [
-  { id: "tiktok", label: "TikTok", icon: "/platforms/tiktok.svg" },
   { id: "twitch", label: "Twitch", icon: "/platforms/twitch.svg" },
   { id: "snapchat", label: "Snapchat", icon: "/platforms/snapchat.svg" },
 ];

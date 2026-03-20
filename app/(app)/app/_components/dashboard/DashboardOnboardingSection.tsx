@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PanelCard } from "@/src/components/ui/panel-card";
 import type { DashboardMode } from "@/src/lib/dashboard/mode";
-import { getSupportedRevenueUploadSummary } from "@/src/lib/upload/platform-guidance";
+import { getSupportedRevenueUploadFormatGuidance, getSupportedRevenueUploadSummary } from "@/src/lib/upload/platform-guidance";
 
 type DashboardOnboardingSectionProps = {
   mode: DashboardMode;
@@ -18,6 +18,7 @@ type NextStepContent = {
 };
 
 const supportedRevenueUploads = getSupportedRevenueUploadSummary();
+const supportedRevenueUploadFormatGuidance = getSupportedRevenueUploadFormatGuidance();
 
 function resolveNextStep({
   hasUpload,
@@ -27,8 +28,8 @@ function resolveNextStep({
 }: Pick<DashboardOnboardingSectionProps, "hasUpload" | "hasReports" | "growGuidanceLimited" | "mode">): NextStepContent {
   if (!hasUpload) {
     return {
-      title: "Start with a supported revenue export.",
-      body: `Currently supported uploads are ${supportedRevenueUploads}. Upload your latest revenue and subscriber data to unlock Earn first.`,
+      title: "Start with a supported CSV upload.",
+      body: `Currently supported uploads are ${supportedRevenueUploads}. ${supportedRevenueUploadFormatGuidance} Upload your latest revenue and subscriber data to unlock Earn first.`,
     };
   }
 
@@ -48,7 +49,7 @@ function resolveNextStep({
 
   return {
     title: "Keep the workspace current with fresh exports.",
-    body: "Update the workspace with your latest supported CSV exports whenever you want the dashboard and reports to reflect the newest revenue evidence.",
+    body: "Update the workspace with your latest supported CSVs whenever you want the dashboard and reports to reflect the newest revenue evidence.",
   };
 }
 
@@ -77,7 +78,7 @@ export function DashboardOnboardingSection({
           <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">EarnSigma in one minute</p>
           <h3 className="mt-2 text-lg font-semibold tracking-tight text-brand-text-primary">Upload, validate, then review the latest workspace evidence.</h3>
           <ol className="mt-3 space-y-2 text-sm leading-relaxed text-brand-text-secondary">
-            <li>Upload a supported CSV export from your creator revenue workflow.</li>
+            <li>Upload a supported CSV from your creator revenue workflow.</li>
             <li>EarnSigma validates the file first, then continues processing when report generation is available.</li>
             <li>Your dashboard and latest report update as soon as the workspace is ready.</li>
           </ol>

@@ -10,6 +10,7 @@ import { getUploadSupportMatrix } from "@/src/lib/api/upload";
 import {
   buildVisibleUploadPlatformCardsFromSupportMatrix,
   getFallbackVisibleUploadPlatformCards,
+  getSupportedRevenueUploadFormatGuidanceFromCards,
   getSupportedRevenueUploadSummaryFromCards,
 } from "@/src/lib/upload/support-surface";
 
@@ -19,6 +20,10 @@ export default function DataUploadPage() {
   const [visiblePlatformCards, setVisiblePlatformCards] = useState(FALLBACK_VISIBLE_UPLOAD_PLATFORM_CARDS);
   const supportedRevenueUploads = useMemo(
     () => getSupportedRevenueUploadSummaryFromCards(visiblePlatformCards),
+    [visiblePlatformCards],
+  );
+  const supportedRevenueUploadFormatGuidance = useMemo(
+    () => getSupportedRevenueUploadFormatGuidanceFromCards(visiblePlatformCards),
     [visiblePlatformCards],
   );
 
@@ -49,7 +54,7 @@ export default function DataUploadPage() {
       <div className="space-y-1">
         <h1 className="text-3xl font-semibold text-slate-900">Upload data</h1>
         <p className="text-slate-600">
-          Upload a supported CSV export to validate your workspace and unlock EarnSigma guidance.
+          Upload a supported CSV to validate your workspace and unlock EarnSigma guidance.
         </p>
       </div>
 
@@ -77,7 +82,10 @@ export default function DataUploadPage() {
             <div id="upload-guide" data-testid="data-upload-guide">
               <h3 className="text-base font-semibold text-slate-900">What to upload</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                Upload a fresh {supportedRevenueUploads} — the most recent export available from your platform.
+                Current public upload options: {supportedRevenueUploads}.
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-700">
+                {supportedRevenueUploadFormatGuidance}
               </p>
             </div>
           </UploadCard>

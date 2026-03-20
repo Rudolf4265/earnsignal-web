@@ -21,6 +21,7 @@ import {
   groupPlatformCards,
   type UploadPlatformCardMetadata,
 } from "@/src/lib/upload/platform-metadata";
+import { getSupportedRevenueUploadFormatGuidanceFromCards } from "@/src/lib/upload/support-surface";
 import { detectPatreonExportType } from "@/src/lib/upload/patreon-csv-detector";
 import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detector";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
@@ -122,12 +123,17 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
       }
       if (context?.platform === "instagram") {
         return (
-          "We couldn’t validate that Instagram CSV. Please upload a native Content export from " +
-          "Meta Business Suite › Content › Export, which should include columns like " +
-          "Permalink, Publish time, Reach, Impressions, Likes, and Saves."
+          "We couldn’t validate that Instagram CSV. Please upload a normalized Instagram performance CSV " +
+          "in the supported format and try again."
         );
       }
-      return "We couldn’t validate that CSV. Please export a fresh file and try again.";
+      if (context?.platform === "tiktok") {
+        return (
+          "We couldn’t validate that TikTok CSV. Please upload a normalized TikTok performance CSV " +
+          "in the supported format and try again."
+        );
+      }
+      return "We couldn’t validate that CSV. Please upload the supported CSV format and try again.";
     case "schema_mismatch_or_missing_columns":
       if (context?.platform === "patreon") {
         return (
@@ -138,21 +144,26 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
       }
       if (context?.platform === "instagram") {
         return (
-          "The CSV columns don’t match the expected Instagram Content export format. " +
-          "Please export a Content CSV directly from Meta Business Suite › Content › Export. " +
-          "The file should include columns like Permalink, Publish time, Reach, and Saves."
+          "The CSV columns don’t match the supported Instagram performance format. " +
+          "Please upload a normalized Instagram performance CSV."
+        );
+      }
+      if (context?.platform === "tiktok") {
+        return (
+          "The CSV columns don’t match the supported TikTok performance format. " +
+          "Please upload a normalized TikTok performance CSV."
         );
       }
       return (
-        "The CSV columns don’t match the expected format for this platform. " +
-        "Please export a fresh file directly from the platform and try again."
+        "The CSV columns don’t match the supported format for this platform. " +
+        "Please upload the supported CSV format and try again."
       );
     case "recognized_not_implemented":
       if (context?.platform === "instagram") {
-        return (
-          "We recognised your Instagram export but full support for this export type is coming soon. " +
-          "Instagram Content exports (with Permalink, Reach, Saves, etc.) are fully supported today."
-        );
+        return "We recognised your Instagram file, but this upload path supports normalized Instagram performance CSVs only.";
+      }
+      if (context?.platform === "tiktok") {
+        return "We recognised your TikTok file, but this upload path supports normalized TikTok performance CSVs only.";
       }
       return "We recognised your file but full support for this export type is coming soon.";
     case "ingest_failed":
@@ -180,6 +191,7 @@ const PLATFORM_LOGO_BUBBLE: Record<string, { bg: string; ring: string }> = {
   substack:  { bg: "bg-[rgba(255,104,31,0.09)]", ring: "ring-[rgba(255,104,31,0.18)]" },
   youtube:   { bg: "bg-[rgba(255,0,0,0.08)]",    ring: "ring-[rgba(255,0,0,0.16)]" },
   instagram: { bg: "bg-[rgba(193,53,132,0.09)]", ring: "ring-[rgba(193,53,132,0.18)]" },
+  tiktok:    { bg: "bg-[rgba(37,244,238,0.10)]", ring: "ring-[rgba(37,244,238,0.18)]" },
 };
 
 type PlatformCardProps = {
@@ -318,6 +330,14 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     [],
   );
   const platformSections = useMemo(() => groupPlatformCards(visiblePlatformCards), [visiblePlatformCards]);
+  const selectedPlatformCard = useMemo(
+    () => visiblePlatformCards.find((card) => card.id === platform) ?? null,
+    [platform, visiblePlatformCards],
+  );
+  const supportedRevenueUploadFormats = useMemo(
+    () => getSupportedRevenueUploadFormatGuidanceFromCards(visiblePlatformCards),
+    [visiblePlatformCards],
+  );
   const uploadReady =
     Boolean(platform && file) &&
     !busy &&
@@ -946,8 +966,9 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           ) : null}
           <StepHeader title="Choose platform" subtitle="Select the data source for this upload." />
           <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.06] px-3 py-2" data-testid="upload-platform-guide">
-            <p className="text-xs font-semibold text-blue-100">Start with a supported CSV export</p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-blue-100/70">Upload accepts {supportedRevenueUploads}. Choose the platform that matches your export, then continue with a fresh CSV file.</p>
+            <p className="text-xs font-semibold text-blue-100">Start with a supported CSV</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-blue-100/70">Upload accepts {supportedRevenueUploads}. Choose the platform that matches your supported file, then continue with a fresh CSV.</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-blue-100/70">{supportedRevenueUploadFormats}</p>
             <Link href="/app/help#upload-guide" className="mt-1.5 inline-flex text-[10px] font-medium text-blue-300/75 hover:text-blue-200">
               Open upload guide →
             </Link>
@@ -1029,10 +1050,18 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
 
       {step === "file" ? (
         <div className="space-y-5">
-          <StepHeader title="Select file" subtitle="Upload a CSV export from your platform." />
+          <StepHeader
+            title="Select file"
+            subtitle={
+              selectedPlatformCard?.importMode === "normalized_csv"
+                ? "Upload the supported normalized CSV for this platform."
+                : "Upload the supported CSV for this platform."
+            }
+          />
           <InlineAlert variant="info" title="What happens after upload" data-testid="upload-file-guide">
             <p>Accepted file type: CSV. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation.</p>
-            <p className="mt-2">If validation fails, export a fresh CSV from your platform and retry. If processing stalls, retry status before starting over.</p>
+            <p className="mt-2">If validation fails, retry with the supported CSV format for this platform. If processing stalls, retry status before starting over.</p>
+            {selectedPlatformCard?.guidance ? <p className="mt-2">{selectedPlatformCard.guidance}</p> : null}
             <Link href="/app/help#after-upload" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
               Review upload help
             </Link>
@@ -1072,7 +1101,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           ) : null}
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">Need help? Ask your platform for a CSV export.</span>
+            <span className="text-xs text-slate-500">Need help? Review the upload guide for the supported format.</span>
             <div className="flex gap-2">
               <button
                 type="button"

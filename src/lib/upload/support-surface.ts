@@ -6,13 +6,11 @@ const REQUIRED_FAMILY_CLASS = "native_report_driving";
 const SUPPORTED_NOW_STATUS = "supported_now";
 const INTERNAL_ONLY_MARKERS = [
   "brandconnect",
-  "instagram_performance",
   "sponsorship_rollup",
   "stripe",
-  "tiktok_performance",
 ] as const;
 
-export const FALLBACK_VISIBLE_UPLOAD_PLATFORM_IDS: UploadPlatform[] = ["patreon", "substack", "youtube"];
+export const FALLBACK_VISIBLE_UPLOAD_PLATFORM_IDS: UploadPlatform[] = ["patreon", "substack", "youtube", "instagram", "tiktok"];
 
 type NormalizedSupportFamily = {
   family: string;
@@ -87,6 +85,14 @@ function mapSupportFamilyToVisiblePlatform(family: NormalizedSupportFamily): Upl
     return "youtube";
   }
 
+  if (combined.includes("instagram_performance") || family.label.includes("instagram performance")) {
+    return "instagram";
+  }
+
+  if (combined.includes("tiktok_performance") || family.label.includes("tiktok performance")) {
+    return "tiktok";
+  }
+
   return null;
 }
 
@@ -96,6 +102,10 @@ export function getFallbackVisibleUploadPlatformCards(): UploadPlatformCardMetad
 
 export function getFallbackVisibleUploadPlatformLabels(): string[] {
   return getFallbackVisibleUploadPlatformCards().map((card) => card.label);
+}
+
+function getPlatformLabelsByImportMode(cards: UploadPlatformCardMetadata[], importMode: UploadPlatformCardMetadata["importMode"]): string[] {
+  return cards.filter((card) => card.importMode === importMode).map((card) => card.label);
 }
 
 export function buildVisibleUploadPlatformIdsFromSupportMatrix(
@@ -131,5 +141,24 @@ export function buildVisibleUploadPlatformCardsFromSupportMatrix(
 
 export function getSupportedRevenueUploadSummaryFromCards(cards: UploadPlatformCardMetadata[]): string {
   const labels = cards.map((card) => card.label);
-  return labels.length > 0 ? `${formatGuidanceLabelList(labels)} CSV exports` : "supported CSV exports";
+  return labels.length > 0 ? formatGuidanceLabelList(labels) : "supported uploads";
+}
+
+export function getSupportedRevenueUploadFormatGuidanceFromCards(cards: UploadPlatformCardMetadata[]): string {
+  const directCsvLabels = getPlatformLabelsByImportMode(cards, "direct_csv");
+  const normalizedCsvLabels = getPlatformLabelsByImportMode(cards, "normalized_csv");
+
+  if (directCsvLabels.length > 0 && normalizedCsvLabels.length > 0) {
+    return `${formatGuidanceLabelList(directCsvLabels)} use supported CSV exports. ${formatGuidanceLabelList(normalizedCsvLabels)} use template-based normalized CSV imports only.`;
+  }
+
+  if (normalizedCsvLabels.length > 0) {
+    return `${formatGuidanceLabelList(normalizedCsvLabels)} use template-based normalized CSV imports only.`;
+  }
+
+  if (directCsvLabels.length > 0) {
+    return `${formatGuidanceLabelList(directCsvLabels)} use supported CSV exports.`;
+  }
+
+  return "Use the supported CSV format for the platform you selected.";
 }

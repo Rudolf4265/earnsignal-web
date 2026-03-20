@@ -476,9 +476,9 @@ export default function DashboardPage() {
         ? "Your upload is connected. Generate the first report to unlock measured dashboard detail."
         : "Your upload is connected. Checking the latest report availability."
     : state.hasReports === true
-      ? "Reports are available from earlier uploads. Add a fresh export when you want to refresh the workspace."
+      ? "Reports are available from earlier uploads. Add a fresh supported CSV when you want to refresh the workspace."
       : state.hasReports === false
-        ? "This workspace is still empty. Upload a supported CSV export to populate Earn."
+        ? "This workspace is still empty. Upload a supported CSV to populate Earn."
         : "Checking workspace data availability.";
   const workspaceStatusLabel = state.latestUpload
     ? state.hasReports === true ? "Ready" : state.hasReports === false ? "Upload connected" : "Checking..."

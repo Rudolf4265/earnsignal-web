@@ -9,6 +9,7 @@ export type UploadPlatformCardMetadata = {
   id: PlatformCardId;
   label: string;
   subtitle: string;
+  fileTypeLabel?: string;
   icon: string;
   category: PlatformCategory;
   available: boolean;
@@ -48,7 +49,8 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
   {
     id: "patreon",
     label: "Patreon",
-    subtitle: "Membership platform",
+    subtitle: "Membership revenue",
+    fileTypeLabel: "CSV only",
     icon: "/platforms/patreon.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.patreon ?? false,
@@ -57,7 +59,8 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
   {
     id: "substack",
     label: "Substack",
-    subtitle: "Newsletter subscriptions",
+    subtitle: "Subscription revenue",
+    fileTypeLabel: "CSV only",
     icon: "/platforms/substack.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.substack ?? false,
@@ -66,7 +69,8 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
   {
     id: "youtube",
     label: "YouTube",
-    subtitle: "Video creator earnings",
+    subtitle: "Creator earnings",
+    fileTypeLabel: "CSV only",
     icon: "/platforms/youtube.png",
     category: "supported",
     available: AVAILABLE_PLATFORMS.youtube ?? false,
@@ -75,7 +79,8 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
   {
     id: "instagram",
     label: "Instagram Performance",
-    subtitle: "Template-based normalized CSV or selected supported ZIP",
+    subtitle: "Social performance",
+    fileTypeLabel: "CSV or selected ZIP",
     icon: "/platforms/instagram.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.instagram ?? false,
@@ -85,7 +90,8 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
   {
     id: "tiktok",
     label: "TikTok Performance",
-    subtitle: "Template-based normalized CSV or selected supported ZIP",
+    subtitle: "Social performance",
+    fileTypeLabel: "CSV or selected ZIP",
     icon: "/platforms/tiktok.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.tiktok ?? false,
@@ -144,9 +150,4 @@ export function resolveDirectFanBackendId(id: DirectFanPlatformId): UploadPlatfo
   const match = DIRECT_FAN_PLATFORMS.find((item) => item.id === id);
   return match?.backendId ?? null;
 }
-
-export const COMING_SOON_CHIP_PLATFORMS: { id: string; label: string; icon: string | null }[] = [
-  { id: "twitch", label: "Twitch", icon: "/platforms/twitch.svg" },
-  { id: "snapchat", label: "Snapchat", icon: "/platforms/snapchat.svg" },
-];
 

@@ -31,6 +31,7 @@ test("instagram and tiktok platform cards expose supported normalized-csv metada
       id: item.id,
       label: item.label,
       subtitle: item.subtitle,
+      fileTypeLabel: item.fileTypeLabel,
       importMode: item.importMode,
       available: item.available,
       guidance: item.guidance,
@@ -39,7 +40,8 @@ test("instagram and tiktok platform cards expose supported normalized-csv metada
       {
         id: "instagram",
         label: "Instagram Performance",
-        subtitle: "Template-based normalized CSV or selected supported ZIP",
+        subtitle: "Social performance",
+        fileTypeLabel: "CSV or selected ZIP",
         importMode: "normalized_csv",
         available: true,
         guidance: "Upload a template-based normalized Instagram performance CSV or a selected supported Instagram ZIP export.",
@@ -47,11 +49,29 @@ test("instagram and tiktok platform cards expose supported normalized-csv metada
       {
         id: "tiktok",
         label: "TikTok Performance",
-        subtitle: "Template-based normalized CSV or selected supported ZIP",
+        subtitle: "Social performance",
+        fileTypeLabel: "CSV or selected ZIP",
         importMode: "normalized_csv",
         available: true,
         guidance: "Upload a template-based normalized TikTok performance CSV or a selected supported TikTok ZIP export.",
       },
+    ],
+  );
+});
+
+test("csv-first platform cards expose decision-first descriptions and file type labels", () => {
+  const visibleCards = getUploadPlatformCardsByIds(["patreon", "substack", "youtube"]);
+
+  assert.deepEqual(
+    visibleCards.map((item) => ({
+      label: item.label,
+      subtitle: item.subtitle,
+      fileTypeLabel: item.fileTypeLabel,
+    })),
+    [
+      { label: "Patreon", subtitle: "Membership revenue", fileTypeLabel: "CSV only" },
+      { label: "Substack", subtitle: "Subscription revenue", fileTypeLabel: "CSV only" },
+      { label: "YouTube", subtitle: "Creator earnings", fileTypeLabel: "CSV only" },
     ],
   );
 });

@@ -17,11 +17,9 @@ import { buildUploadDiagnostics, mapUploadStatus, type UploadStatusEnvelope, typ
 import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/lib/upload/resume";
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import {
-  COMING_SOON_CHIP_PLATFORMS,
   groupPlatformCards,
   type UploadPlatformCardMetadata,
 } from "@/src/lib/upload/platform-metadata";
-import { getSupportedRevenueUploadFormatGuidanceFromCards } from "@/src/lib/upload/support-surface";
 import { detectPatreonExportType } from "@/src/lib/upload/patreon-csv-detector";
 import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detector";
 import { extractInstagramZipBufferToUploadArtifact } from "@/src/lib/upload/instagram-zip-extractor";
@@ -257,7 +255,8 @@ const PLATFORM_LOGO_BUBBLE: Record<string, { bg: string; ring: string }> = {
 
 type PlatformCardProps = {
   label: string;
-  subtitle: string;
+  description: string;
+  fileTypeLabel?: string;
   icon: string;
   available: boolean;
   selected: boolean;
@@ -266,7 +265,7 @@ type PlatformCardProps = {
   platformId?: string;
 };
 
-function PlatformCard({ label, subtitle, icon, available, selected, onClick, testId, platformId }: PlatformCardProps) {
+function PlatformCard({ label, description, fileTypeLabel, icon, available, selected, onClick, testId, platformId }: PlatformCardProps) {
   const tint = PLATFORM_LOGO_BUBBLE[platformId ?? ""];
   const bubbleClass = tint
     ? [
@@ -285,38 +284,48 @@ function PlatformCard({ label, subtitle, icon, available, selected, onClick, tes
       disabled={!available}
       onClick={onClick}
       className={[
-        "group relative flex h-full w-full flex-col rounded-2xl border p-3 text-left transition-all duration-200",
+        "group flex h-full w-full flex-col rounded-[1.35rem] border p-4 text-left transition-all duration-200",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
         available
           ? selected
-            ? "cursor-pointer border-blue-400/60 bg-[#0b1628] shadow-[0_0_0_1px_rgba(59,130,246,0.35),0_0_20px_-6px_rgba(59,130,246,0.28)]"
-            : "cursor-pointer border-slate-200 bg-white shadow-[0_2px_8px_-2px_rgba(15,23,42,0.08)] hover:-translate-y-0.5 hover:border-blue-300/60 hover:shadow-[0_8px_20px_-8px_rgba(37,99,235,0.16)]"
+            ? "cursor-pointer border-blue-400/70 bg-[#0b1628] shadow-[0_0_0_1px_rgba(59,130,246,0.35),0_0_20px_-6px_rgba(59,130,246,0.28)]"
+            : "cursor-pointer border-slate-200 bg-white shadow-[0_8px_20px_-14px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 hover:border-blue-300/60 hover:shadow-[0_16px_28px_-18px_rgba(37,99,235,0.28)]"
           : "cursor-not-allowed border-slate-200 bg-white opacity-55",
       ].join(" ")}
     >
+      <div className="flex items-start justify-between gap-3">
+        <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${bubbleClass}`}>
+          <Image
+            src={icon}
+            alt={`${label} logo`}
+            width={20}
+            height={20}
+            className="platform-icon block h-5 w-5 object-contain"
+          />
+        </span>
+        <span
+          className={[
+            "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
+            selected ? "bg-emerald-400/18 text-emerald-300 ring-1 ring-inset ring-emerald-400/30" : "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200",
+          ].join(" ")}
+        >
+          Supported
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-1.5">
+        <p className={`text-sm font-semibold ${selected ? "text-white" : "text-slate-900"}`}>{label}</p>
+        <p className={`text-xs leading-snug ${selected ? "text-slate-300/85" : "text-slate-600"}`}>{description}</p>
+      </div>
+
+      <div className="mt-auto pt-4">
+        <p className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${selected ? "text-slate-400" : "text-slate-500"}`}>File type</p>
+        <p className={`mt-1 text-sm font-medium ${selected ? "text-white" : "text-slate-900"}`}>{fileTypeLabel ?? "Supported file required"}</p>
+      </div>
+
       {selected ? (
-        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-300 ring-1 ring-inset ring-blue-400/25">
-          <span className="h-1 w-1 rounded-full bg-blue-400" />
-          Selected
-        </span>
+        <p className="mt-3 text-[11px] font-medium text-blue-200">Selected. Continue to file upload.</p>
       ) : null}
-      <span className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${bubbleClass}`}>
-        <Image
-          src={icon}
-          alt={`${label} logo`}
-          width={20}
-          height={20}
-          className="platform-icon block h-5 w-5 object-contain"
-        />
-      </span>
-      <p className={`mt-2 text-sm font-semibold ${selected ? "text-white" : "text-slate-900"}`}>{label}</p>
-      <p className={`mt-0.5 text-xs leading-snug ${selected ? "text-slate-300/80" : "text-slate-500"}`}>{subtitle}</p>
-      <span className="mt-auto flex items-center gap-1.5 pt-2">
-        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${available ? "bg-emerald-400" : "bg-slate-300"}`} />
-        <span className={`text-[9px] font-medium uppercase tracking-[0.1em] ${available ? (selected ? "text-emerald-400" : "text-emerald-600") : "text-slate-400"}`}>
-          {available ? "Supported" : "Coming soon"}
-        </span>
-      </span>
     </button>
   );
 }
@@ -391,13 +400,10 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     [],
   );
   const platformSections = useMemo(() => groupPlatformCards(visiblePlatformCards), [visiblePlatformCards]);
+  const showPlatformSectionHeading = platformSections.length > 1;
   const selectedPlatformCard = useMemo(
     () => visiblePlatformCards.find((card) => card.id === platform) ?? null,
     [platform, visiblePlatformCards],
-  );
-  const supportedRevenueUploadFormats = useMemo(
-    () => getSupportedRevenueUploadFormatGuidanceFromCards(visiblePlatformCards),
-    [visiblePlatformCards],
   );
   const uploadReady =
     Boolean(platform && file) &&
@@ -978,7 +984,12 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
       <Stepper steps={steps} activeIndex={activeStepIndex} />
 
       {step === "platform" || step === "file" ? (
-        <TrustMicrocopy body={UPLOAD_TRUST_MICROCOPY_BODY} testId="upload-trust-strip" variant="app" />
+        <TrustMicrocopy
+          body={UPLOAD_TRUST_MICROCOPY_BODY}
+          className="border-slate-300/90 bg-white"
+          testId="upload-trust-strip"
+          variant="app"
+        />
       ) : null}
 
       {error ? (
@@ -1110,30 +1121,41 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
               </div>
             </InlineAlert>
           ) : null}
-          <StepHeader title="Choose platform" subtitle="Select the data source for this upload." />
-          <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.06] px-3 py-2" data-testid="upload-platform-guide">
-            <p className="text-xs font-semibold text-blue-100">Start with a supported import</p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-blue-100/70">Upload accepts {supportedRevenueUploads}. Choose the platform that matches your supported file, then continue with a fresh supported import.</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-blue-100/70">{supportedRevenueUploadFormats}</p>
-            <p className="mt-1 text-[11px] leading-relaxed text-blue-100/70">
-              Patreon, Substack, and YouTube stay CSV-only. Selected supported ZIP exports are available only for Instagram Performance and TikTok Performance. Not all ZIP files are supported.
-            </p>
-            <Link href="/app/help#upload-guide" className="mt-1.5 inline-flex text-[10px] font-medium text-blue-300/75 hover:text-blue-200">
-              Open upload guide →
+          <StepHeader title="Choose platform" subtitle="Select one supported platform to begin." />
+          <div className="rounded-[1.35rem] border border-slate-200 bg-slate-50/90 p-3" data-testid="upload-platform-guide">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-700">Supported imports</p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-600">Supported platforms: {supportedRevenueUploads}.</p>
+            <div className="mt-3 grid gap-2 md:grid-cols-3">
+              <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                <p className="text-xs font-semibold text-slate-900">Patreon, Substack, YouTube</p>
+                <p className="mt-1 text-sm text-slate-600">CSV only</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                <p className="text-xs font-semibold text-slate-900">Instagram Performance, TikTok Performance</p>
+                <p className="mt-1 text-sm text-slate-600">CSV or selected ZIP</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                <p className="text-xs font-semibold text-slate-900">ZIP reminder</p>
+                <p className="mt-1 text-sm text-slate-600">Not all ZIP files are supported.</p>
+              </div>
+            </div>
+            <Link href="/app/help#upload-guide" className="mt-3 inline-flex text-[11px] font-medium text-slate-700 underline underline-offset-4 hover:text-slate-900">
+              Open upload guide
             </Link>
           </div>
           <div className="space-y-4">
             {platformSections.map((section) => (
               <section key={section.category} className="space-y-2" data-testid={`platform-section-${section.category}`}>
-                <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{section.label}</h3>
-                <div className="grid gap-3 sm:grid-cols-2">
+                {showPlatformSectionHeading ? <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{section.label}</h3> : null}
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {section.items.map((item) => {
                     const selected = platform === item.id;
                     return (
                       <PlatformCard
                         key={item.id}
                         label={item.label}
-                        subtitle={item.subtitle}
+                        description={item.subtitle}
+                        fileTypeLabel={item.fileTypeLabel}
                         icon={item.icon}
                         available={item.available}
                         selected={selected}
@@ -1151,34 +1173,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] pt-3.5">
-            <div className="space-y-1">
-              <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500">Coming soon</p>
-              <div className="flex flex-wrap gap-1.5" aria-label="Platforms coming soon">
-                {COMING_SOON_CHIP_PLATFORMS.map((item) => (
-                  <span
-                    key={item.id}
-                    className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] py-0.5 pl-1 pr-2 text-[10px] font-medium text-slate-500"
-                    aria-disabled="true"
-                  >
-                    {item.icon ? (
-                      <Image
-                        src={item.icon}
-                        alt={`${item.label} logo`}
-                        width={13}
-                        height={13}
-                        className="block h-3 w-3 object-contain opacity-35"
-                      />
-                    ) : (
-                      <span className="flex h-3 w-3 items-center justify-center rounded-full bg-white/10 text-[8px] font-bold text-slate-500">
-                        {item.label[0]}
-                      </span>
-                    )}
-                    {item.label}
-                  </span>
-                ))}
-              </div>
-            </div>
+          <div className="flex justify-end border-t border-slate-200 pt-3.5">
             <button
               type="button"
               disabled={!platform}
@@ -1191,7 +1186,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
               }}
               className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Continue
+              {platform ? "Continue to file upload" : "Select platform to continue"}
             </button>
           </div>
         </div>
@@ -1203,9 +1198,9 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
             title="Select file"
             subtitle={
               selectedPlatformCard?.id === "instagram" || selectedPlatformCard?.id === "tiktok"
-                ? "Upload the supported normalized CSV or a selected supported ZIP for this platform."
+                ? "Upload the template-based normalized CSV or a selected supported ZIP for this platform."
                 : selectedPlatformCard?.importMode === "normalized_csv"
-                ? "Upload the supported normalized CSV for this platform."
+                ? "Upload the template-based normalized CSV for this platform."
                 : "Upload the supported CSV for this platform."
             }
           />

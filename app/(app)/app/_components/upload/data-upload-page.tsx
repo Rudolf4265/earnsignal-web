@@ -51,14 +51,14 @@ export default function DataUploadPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <div className="space-y-1">
-        <h1 className="text-3xl font-semibold text-slate-900">Upload data</h1>
+        <h1 className="text-3xl font-semibold text-slate-900">Upload your data</h1>
         <p className="text-slate-600">
-          Upload a supported file to validate your workspace and unlock EarnSigma guidance.
+          Choose your platform and upload a supported file to generate your report.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.55fr),minmax(20rem,0.95fr)]">
+        <div>
           <UploadStepper visiblePlatformCards={visiblePlatformCards} supportedRevenueUploads={supportedRevenueUploads} />
         </div>
 
@@ -66,22 +66,20 @@ export default function DataUploadPage() {
           <UploadCard>
             <div id="upload-guide" data-testid="data-upload-guide">
               <h3 className="text-base font-semibold text-slate-900">What to upload</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                Current public upload options: {supportedRevenueUploads}.
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                {supportedRevenueUploadFormatGuidance}
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-700">
-                Patreon, Substack, and YouTube stay CSV-only. Instagram Performance and TikTok Performance can also use selected supported ZIP exports. Not all ZIP files are supported, so use a supported CSV if a ZIP is rejected.
-              </p>
+              <ul className="mt-3 space-y-3 text-sm leading-relaxed text-slate-700">
+                <li>Supported platforms: {supportedRevenueUploads}.</li>
+                <li>Patreon, Substack, and YouTube are CSV only.</li>
+                <li>Instagram Performance and TikTok Performance use template-based normalized CSV or selected supported ZIP.</li>
+                <li>If a ZIP is rejected, upload a supported CSV instead.</li>
+              </ul>
+              <p className="mt-3 text-xs leading-relaxed text-slate-500">{supportedRevenueUploadFormatGuidance}</p>
             </div>
           </UploadCard>
 
           <UploadCard>
             <h3 className="text-base font-semibold text-slate-900">Need help?</h3>
             <p className="mt-2 text-sm leading-relaxed text-slate-700">
-              Step-by-step file prep, export guidance, and troubleshooting in the upload guide.
+              Step-by-step file prep, supported file guidance, and troubleshooting live in the upload guide.
             </p>
             <Link href="/app/help#upload-guide" className={buttonClassName({ variant: "secondary", size: "sm", className: "mt-4" })}>
               Open upload guide

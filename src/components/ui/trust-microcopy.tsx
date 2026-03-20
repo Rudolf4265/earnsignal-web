@@ -25,7 +25,7 @@ export function TrustMicrocopy({ body, className, testId, variant }: TrustMicroc
         "rounded-xl border px-4 py-3",
         isMarketing
           ? "border-brand-border/65 bg-brand-panel/45 text-brand-text-secondary backdrop-blur-sm"
-          : "border-slate-200 bg-slate-50/90 text-slate-700",
+          : "border-slate-300 bg-white text-slate-800 shadow-sm",
         className,
       )}
       data-testid={testId}
@@ -33,7 +33,7 @@ export function TrustMicrocopy({ body, className, testId, variant }: TrustMicroc
       <p
         className={cn(
           "text-[11px] font-semibold uppercase tracking-[0.14em]",
-          isMarketing ? "text-brand-text-primary" : "text-slate-900",
+          isMarketing ? "text-brand-text-primary" : "text-slate-950",
         )}
       >
         {TRUST_MICROCOPY_HEADING}
@@ -41,7 +41,7 @@ export function TrustMicrocopy({ body, className, testId, variant }: TrustMicroc
       <p
         className={cn(
           "mt-1.5 text-xs",
-          isMarketing ? "leading-6 text-brand-text-secondary sm:text-[0.82rem]" : "leading-5 text-slate-600 sm:text-[0.82rem]",
+          isMarketing ? "leading-6 text-brand-text-secondary sm:text-[0.82rem]" : "leading-5 text-slate-700 sm:text-[0.82rem]",
         )}
       >
         {body}
@@ -52,7 +52,7 @@ export function TrustMicrocopy({ body, className, testId, variant }: TrustMicroc
           "mt-2 inline-flex text-[11px] font-medium transition",
           isMarketing
             ? "tracking-[0.02em] text-brand-accent-teal hover:text-white"
-            : "text-slate-700 underline underline-offset-4 hover:text-slate-900",
+            : "text-slate-800 underline underline-offset-4 hover:text-slate-950",
         )}
       >
         {TRUST_MICROCOPY_LINK_TEXT}

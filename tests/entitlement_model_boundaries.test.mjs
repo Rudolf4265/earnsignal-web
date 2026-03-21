@@ -48,13 +48,12 @@ test("report snapshot unlocks owned report access without collapsing into Pro", 
     can_generate_paid_report: false,
     can_view_owned_report: true,
     can_download_owned_report: true,
-    can_view_report_history: true,
-    can_access_dashboard_intelligence: true,
   });
 
   assert.equal(canGenerateReportFromEntitlement(value), false);
   assert.equal(resolveCapability(value, "canViewOwnedReport"), true);
-  assert.equal(resolveCapability(value, "canViewReportHistory"), true);
+  assert.equal(resolveCapability(value, "canViewReportHistory"), false);
+  assert.equal(resolveCapability(value, "canAccessDashboardIntelligence"), false);
   assert.equal(canDownloadPdfFromEntitlement(value), true);
   assert.equal(hasProEquivalentEntitlement(value), false);
 });

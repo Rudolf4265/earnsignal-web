@@ -1087,13 +1087,13 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
                   : "Upload validated. Report generation may continue based on your plan."}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {latestTerminalUpload.status === "ready" ? (
+                {latestTerminalUpload.status === "ready" || latestTerminalUpload.reportId ? (
                   <Link
                     href={buildReportDetailPathOrIndex(latestTerminalUpload.reportId)}
                     data-testid="upload-completed-view-report"
                     className="rounded-lg border border-emerald-200/60 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-300/10"
                   >
-                    View report
+                    {latestTerminalUpload.status === "ready" ? "View report" : "View report preview"}
                   </Link>
                 ) : (
                   <Link
@@ -1315,12 +1315,24 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           {processingStatus === "validated" ? (
             <>
               <InlineAlert variant="info" title="Upload validated" data-testid="upload-terminal-validated">
-                Your file passed validation. Upgrade to Report or Pro to generate a paid report from this upload.
+                {reportId
+                  ? "Your data is ready. View your teaser preview and unlock the full report when ready."
+                  : "Your file passed validation. Upgrade to Report or Pro to generate a paid report from this upload."}
               </InlineAlert>
               <div className="flex flex-wrap gap-2">
-                <Link href="/app/billing" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
-                  Unlock report
-                </Link>
+                {reportId ? (
+                  <Link
+                    href={buildReportDetailPathOrIndex(reportId)}
+                    data-testid="upload-view-report"
+                    className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90"
+                  >
+                    View report preview
+                  </Link>
+                ) : (
+                  <Link href="/app/billing" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
+                    Unlock report
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={resetFlow}

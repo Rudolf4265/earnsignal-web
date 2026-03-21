@@ -20,7 +20,12 @@ export function decideFeatureGuardOutcome({ gateState, pathname }) {
     case "entitlements_error":
       return { kind: "render_entitlements_error" };
     case "authed_unentitled":
-      if (pathname.startsWith("/app/billing") || pathname.startsWith("/app/settings") || pathname.startsWith("/app/data")) {
+      if (
+        pathname.startsWith("/app/billing") ||
+        pathname.startsWith("/app/settings") ||
+        pathname.startsWith("/app/data") ||
+        pathname.startsWith("/app/report")
+      ) {
         return { kind: "render_children" };
       }
 

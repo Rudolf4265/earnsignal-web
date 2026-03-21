@@ -2,11 +2,21 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { decideFeatureGuardOutcome } from "../src/lib/gating/feature-guard-decision.mjs";
 
-test("authed_unentitled + /app/report redirects to billing (no loading)", () => {
+test("authed_unentitled + /app/report renders children (free users reach report page for teaser)", () => {
   const outcome = decideFeatureGuardOutcome({ gateState: "authed_unentitled", pathname: "/app/report", feature: "report" });
+  assert.deepEqual(outcome, { kind: "render_children" });
+});
+
+test("authed_unentitled + /app/report/[id] renders children (free users reach report detail for teaser)", () => {
+  const outcome = decideFeatureGuardOutcome({ gateState: "authed_unentitled", pathname: "/app/report/abc123", feature: "report" });
+  assert.deepEqual(outcome, { kind: "render_children" });
+});
+
+test("authed_unentitled + non-report non-billing path redirects to billing", () => {
+  const outcome = decideFeatureGuardOutcome({ gateState: "authed_unentitled", pathname: "/app/dashboard", feature: "report" });
   assert.deepEqual(outcome, {
     kind: "redirect",
-    href: "/app/billing?reason=upgrade_required&from=%2Fapp%2Freport",
+    href: "/app/billing?reason=upgrade_required&from=%2Fapp%2Fdashboard",
   });
   assert.notEqual(outcome.kind, "render_loading");
 });

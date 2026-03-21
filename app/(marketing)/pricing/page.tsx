@@ -60,7 +60,7 @@ const pricingCardCopy: Record<PricingPlanKey, PricingCardCopy> = {
   },
 };
 
-const workflowSteps = ["Upload Exports", "Validate for Free", "Buy Report", "Get Full Diagnosis"] as const;
+const workflowSteps = ["Upload Exports", "Analyze Your Data", "Get Your Report"] as const;
 
 const comparisonRows: Array<{ feature: string; availability: ComparisonAvailability }> = [
   { feature: "Upload data", availability: { free: true, report: true, pro: true } },

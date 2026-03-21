@@ -105,6 +105,22 @@ test("pricing page comparison table rows reflect actual entitlement boundaries",
   assert.equal(source.includes("Pro-only comparisons"), false);
 });
 
+test("pricing page workflow is a 3-step flow matching the landing page", async () => {
+  const source = await readFile(marketingPricingPagePath, "utf8");
+
+  assert.equal(source.includes("Upload Exports"), true);
+  assert.equal(source.includes("Analyze Your Data"), true);
+  assert.equal(source.includes("Get Your Report"), true);
+
+  // workflowSteps array must not contain the old 4-step labels
+  const stepsStart = source.indexOf("const workflowSteps = [");
+  const stepsEnd = source.indexOf("] as const;", stepsStart);
+  const stepsBlock = source.slice(stepsStart, stepsEnd);
+  assert.equal(stepsBlock.includes("Validate for Free"), false);
+  assert.equal(stepsBlock.includes("Buy Report"), false);
+  assert.equal(stepsBlock.includes("Get Full Diagnosis"), false);
+});
+
 // ── Marketing page copy ─────────────────────────────────────────────────────
 
 test("marketing how-it-works is a 3-step flow, not 4", async () => {

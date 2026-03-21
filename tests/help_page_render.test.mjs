@@ -40,6 +40,11 @@ test("help page renders self-service onboarding guidance with explicit support l
   assert.equal(source.includes("Sponsorship or brand-deal automation."), true);
   assert.equal(source.includes("Upload a supported CSV"), false);
   assert.equal(source.includes("upload any ZIP"), false);
+  assert.equal(source.includes("Use a supported CSV for the platform you selected."), false);
+  assert.equal(source.includes("If a ZIP keeps failing, use a supported CSV."), false);
+  assert.equal(source.includes("Instagram Performance and TikTok Performance accept only the specific allowlisted ZIP"), true);
+  assert.equal(source.includes("there is no CSV fallback for these platforms"), true);
+  assert.equal(source.includes("For YouTube, a native analytics CSV is an alternative to the Takeout ZIP"), true);
   assert.equal(source.includes("supports all major creator platforms"), false);
   assert.equal(source.includes("Richer scorecards appear when supported analytics are available."), true);
   assert.equal(source.includes("Instagram uploads"), false);

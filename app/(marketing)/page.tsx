@@ -259,18 +259,16 @@ export default function MarketingHomePage() {
                 PRIVATE CREATOR BUSINESS INTELLIGENCE
               </Badge>
 
-              <h1 className="relative mt-7 max-w-[17ch] text-4xl font-semibold leading-[1.06] tracking-[-0.025em] text-white sm:mt-8 sm:text-5xl lg:max-w-[16ch] lg:text-[3.45rem] xl:text-[3.85rem]">
-                <span className="block">See what public</span>
-                <span className="block">creator stats miss.</span>
+              <h1 className="relative mt-7 max-w-[22ch] text-4xl font-semibold leading-[1.06] tracking-[-0.025em] text-white sm:mt-8 sm:text-5xl lg:max-w-[20ch] lg:text-[3.45rem] xl:text-[3.85rem]">
+                <span className="block">Turn your creator exports</span>
+                <span className="block">into one clear business report.</span>
               </h1>
 
               <p className="mt-7 max-w-2xl text-base leading-7 text-brand-text-secondary sm:text-lg sm:leading-8">
-                EarnSigma turns your{" "}
-                <strong className="font-semibold text-white">real business data</strong> into{" "}
-                <strong className="font-semibold text-white">private diagnostics</strong> &mdash; revealing{" "}
-                <strong className="font-semibold text-white">revenue concentration</strong>,{" "}
-                <strong className="font-semibold text-white">churn risk</strong>, monetization health, and{" "}
-                <strong className="font-semibold text-white">next best actions</strong>.
+                Upload supported exports from{" "}
+                <strong className="font-semibold text-white">Patreon, Substack, YouTube, Instagram, and TikTok</strong>.{" "}
+                EarnSigma combines them into{" "}
+                <strong className="font-semibold text-white">one report</strong> covering revenue, subscriber growth, platform mix, risk, and growth opportunities.
               </p>
 
               <div className="mt-11 flex flex-wrap items-center gap-3.5 sm:gap-4">
@@ -300,7 +298,7 @@ export default function MarketingHomePage() {
                 Free validation • $79 Report • $59/month Pro
               </p>
               <p className="mt-2.5 text-[11px] tracking-[0.06em] text-brand-text-muted/60">
-                Private workspace · Real exports · Actionable diagnostics
+                No spreadsheet stitching · Upload real exports · One combined report
               </p>
               <TrustMicrocopy
                 body={MARKETING_TRUST_MICROCOPY_BODY}
@@ -410,7 +408,63 @@ export default function MarketingHomePage() {
         </Container>
       </Section>
 
-      {/* ── 2. CATEGORY CONTRAST BAND ───────────────────────────────────────── */}
+      {/* ── 2. SUPPORTED TODAY ──────────────────────────────────────────────── */}
+      <Section id="supported-today" className="relative border-t border-brand-border/60 pb-16 pt-16 sm:pb-20 sm:pt-20" data-testid="marketing-supported-today">
+        <Container>
+          <div className="max-w-2xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">SUPPORTED TODAY</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
+              Upload your real platform exports
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
+              No templates. No reformatting. Upload the exports your platforms already generate.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { platform: "Patreon", format: "CSV", label: "Membership revenue export", mode: "CSV only" },
+              { platform: "Substack", format: "CSV", label: "Native subscriber CSV", mode: "CSV only" },
+              { platform: "YouTube", format: "CSV / ZIP", label: "Analytics CSV or Takeout ZIP", mode: "CSV or Takeout ZIP" },
+              { platform: "Instagram", format: "ZIP", label: "Performance export ZIP", mode: "Allowlisted ZIP" },
+              { platform: "TikTok", format: "ZIP", label: "Performance export ZIP", mode: "Allowlisted ZIP" },
+            ].map((item) => (
+              <div
+                key={item.platform}
+                className="rounded-2xl border border-brand-border/65 bg-[linear-gradient(165deg,rgba(17,34,69,0.92),rgba(11,24,50,0.86))] p-5"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-base font-semibold text-white">{item.platform}</p>
+                  <span className="inline-flex rounded-full border border-brand-border-strong/60 bg-brand-panel px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.11em] text-brand-text-secondary">
+                    {item.format}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{item.label}</p>
+                <p className="mt-1.5 text-[11px] uppercase tracking-[0.12em] text-brand-text-muted">{item.mode}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-5 text-xs text-brand-text-muted">
+            Support is limited to specific export formats for each platform.
+          </p>
+
+          <div className="mt-10 grid gap-4 sm:grid-cols-3">
+            {[
+              "Upload real exports from the platforms you already use",
+              "See revenue, subscriber trends, and platform mix in one report",
+              "Spot concentration risk and growth opportunities faster",
+            ].map((bullet) => (
+              <div key={bullet} className="flex items-start gap-3">
+                <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
+                <p className="text-sm leading-relaxed text-brand-text-secondary">{bullet}</p>
+              </div>
+            ))}
+          </div>
+        </Container>
+      </Section>
+
+      {/* ── 3. CATEGORY CONTRAST BAND ───────────────────────────────────────── */}
       <Section className="relative border-t border-brand-border/60 pb-16 pt-16 sm:pb-20 sm:pt-20">
         <div
           className="pointer-events-none absolute inset-x-0 -top-px h-24 bg-[linear-gradient(to_bottom,rgba(25,72,171,0.15),rgba(10,22,44,0))]"
@@ -564,7 +618,7 @@ export default function MarketingHomePage() {
             {[
               {
                 title: "Upload your exports",
-                body: <>Patreon, Instagram, and other creator exports. <strong className="font-medium text-brand-text-primary">Your actual data</strong> — not third-party estimates.</>,
+                body: <>Upload real exports from Patreon, Substack, YouTube, Instagram, and TikTok — <strong className="font-medium text-brand-text-primary">your actual data</strong>, not third-party estimates.</>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

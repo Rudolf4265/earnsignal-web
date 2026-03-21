@@ -146,7 +146,7 @@ const faqSections: Array<{
     items: [
       {
         question: "What should I do if my upload fails?",
-        answer: "Confirm that you selected the matching platform, then retry with the supported file type for that platform. If a ZIP keeps failing, use a supported CSV.",
+        answer: "Confirm that you selected the matching platform, then retry with the supported file type for that platform. For YouTube, a native analytics CSV is an alternative to the Takeout ZIP. For Instagram Performance and TikTok Performance, only the specific allowlisted ZIP is supported.",
       },
       {
         question: "What if I selected the wrong platform?",
@@ -158,7 +158,7 @@ const faqSections: Array<{
       },
       {
         question: "What should I use if my ZIP is not supported?",
-        answer: "Use a supported CSV for the platform you selected.",
+        answer: "For YouTube, a native analytics CSV is an alternative to the Takeout ZIP. For Patreon and Substack, native CSV is the supported format. Instagram Performance and TikTok Performance accept only the specific allowlisted ZIP — there is no CSV fallback for these platforms.",
       },
     ],
   },

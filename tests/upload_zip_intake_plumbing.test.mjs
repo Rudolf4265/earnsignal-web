@@ -25,10 +25,12 @@ test("upload stepper inspects zip candidates before presign and only continues f
   assert.equal(zipCheckIndex < presignIndex, true);
   assert.equal(source.includes("Accepted file type: CSV."), true);
   assert.equal(source.includes('accept={fileInputAccept}'), true);
-  assert.equal(source.includes('selectedPlatformCard?.id === "instagram" || selectedPlatformCard?.id === "tiktok"'), true);
-  assert.equal(source.includes("Selected supported ZIP exports are also accepted."), true);
+  // supportsSelectedZipImport is now importMode-based (not hard-coded platform ids)
+  assert.equal(source.includes('selectedPlatformCard?.importMode === "csv_or_zip" || selectedPlatformCard?.importMode === "allowlisted_zip"'), true);
+  // YouTube Takeout ZIP passes through to backend without client-side extraction
+  assert.equal(source.includes('platform === "youtube" && zipInspection.kind === "unsupported_archive"'), true);
   assert.equal(source.includes("const resolvedMessage = friendlyFailureMessage(params.reasonCode, { platform });"), true);
-  assert.equal(source.includes("This ZIP format does not match the platform you selected. Upload a supported CSV instead."), true);
+  assert.equal(source.includes("This ZIP format does not match the platform you selected. Check the platform and try again."), true);
   assert.equal(source.includes("ZIP candidate matched"), false);
   assert.equal(source.includes("Instagram ZIP candidate"), false);
   assert.equal(source.includes("TikTok ZIP candidate"), false);

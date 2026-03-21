@@ -68,9 +68,9 @@ export default function DataUploadPage() {
               <h3 className="text-base font-semibold text-slate-900">What to upload</h3>
               <ul className="mt-3 space-y-3 text-sm leading-relaxed text-slate-700">
                 <li>Supported platforms: {supportedRevenueUploads}.</li>
-                <li>Patreon, Substack, and YouTube are CSV only.</li>
-                <li>Instagram Performance and TikTok Performance use template-based normalized CSV or selected supported ZIP.</li>
-                <li>If a ZIP is rejected, upload a supported CSV instead.</li>
+                <li>Patreon and Substack: native CSV export.</li>
+                <li>YouTube: native analytics CSV or supported Takeout ZIP.</li>
+                <li>Instagram and TikTok: allowlisted ZIP export only.</li>
               </ul>
               <p className="mt-3 text-xs leading-relaxed text-slate-500">{supportedRevenueUploadFormatGuidance}</p>
             </div>

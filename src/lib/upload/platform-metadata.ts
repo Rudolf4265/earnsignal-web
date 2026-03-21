@@ -3,7 +3,7 @@ import type { UploadPlatform } from "@/src/lib/api/upload";
 export type PlatformCategory = "supported" | "creator" | "additional";
 export type PlatformCardId = UploadPlatform | "direct-fan-platforms";
 export type DirectFanPlatformId = "onlyfans" | "fansly" | "fanfix";
-export type UploadPlatformImportMode = "direct_csv" | "normalized_csv";
+export type UploadPlatformImportMode = "direct_csv" | "csv_or_zip" | "allowlisted_zip";
 
 export type UploadPlatformCardMetadata = {
   id: PlatformCardId;
@@ -55,6 +55,7 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
     category: "supported",
     available: AVAILABLE_PLATFORMS.patreon ?? false,
     importMode: "direct_csv",
+    guidance: "Upload the supported Patreon CSV for this platform.",
   },
   {
     id: "substack",
@@ -65,38 +66,40 @@ export const UPLOAD_PLATFORM_CARDS: UploadPlatformCardMetadata[] = [
     category: "supported",
     available: AVAILABLE_PLATFORMS.substack ?? false,
     importMode: "direct_csv",
+    guidance: "Upload your Substack subscriber export CSV.",
   },
   {
     id: "youtube",
     label: "YouTube",
     subtitle: "Creator earnings",
-    fileTypeLabel: "CSV only",
+    fileTypeLabel: "CSV or ZIP",
     icon: "/platforms/youtube.png",
     category: "supported",
     available: AVAILABLE_PLATFORMS.youtube ?? false,
-    importMode: "direct_csv",
+    importMode: "csv_or_zip",
+    guidance: "Upload your YouTube analytics CSV or supported YouTube Takeout ZIP.",
   },
   {
     id: "instagram",
     label: "Instagram Performance",
     subtitle: "Social performance",
-    fileTypeLabel: "CSV or selected ZIP",
+    fileTypeLabel: "Allowlisted ZIP",
     icon: "/platforms/instagram.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.instagram ?? false,
-    importMode: "normalized_csv",
-    guidance: "Upload a template-based normalized Instagram performance CSV or a selected supported Instagram ZIP export.",
+    importMode: "allowlisted_zip",
+    guidance: "Upload the supported Instagram export ZIP in the exact allowed format.",
   },
   {
     id: "tiktok",
     label: "TikTok Performance",
     subtitle: "Social performance",
-    fileTypeLabel: "CSV or selected ZIP",
+    fileTypeLabel: "Allowlisted ZIP",
     icon: "/platforms/tiktok.svg",
     category: "supported",
     available: AVAILABLE_PLATFORMS.tiktok ?? false,
-    importMode: "normalized_csv",
-    guidance: "Upload a template-based normalized TikTok performance CSV or a selected supported TikTok ZIP export.",
+    importMode: "allowlisted_zip",
+    guidance: "Upload the supported TikTok export ZIP in the exact allowed format.",
   },
 ];
 

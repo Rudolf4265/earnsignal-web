@@ -29,8 +29,8 @@ test("help page renders self-service onboarding guidance with explicit support l
   assert.equal(source.includes("{supportedRevenueUploadFormatGuidance}"), true);
   assert.equal(source.includes("Upload a supported file, let EarnSigma validate it, then review the dashboard and latest report once the workspace is ready."), true);
   assert.equal(source.includes("After upload, validation runs first."), true);
-  assert.equal(source.includes("Selected supported ZIP exports are accepted only for Instagram Performance and TikTok Performance."), true);
-  assert.equal(source.includes("Not all ZIP files are supported. Unsupported ZIP files will be rejected. If a ZIP is rejected, use a supported CSV instead."), true);
+  assert.equal(source.includes("EarnSigma accepts only specific allowlisted ZIP formats. Not every ZIP from a platform will work."), true);
+  assert.equal(source.includes("If a ZIP is rejected, confirm it is the exact supported export shape for the platform you selected."), true);
   assert.equal(source.includes('question: "How do I upload Instagram Performance data?"'), true);
   assert.equal(source.includes('question: "How do I upload TikTok Performance data?"'), true);
   assert.equal(source.includes('question: "Does EarnSigma support Stripe uploads?"'), true);

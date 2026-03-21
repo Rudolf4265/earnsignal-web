@@ -23,7 +23,7 @@ test("filtered upload platform cards preserve the public visible label order", (
   );
 });
 
-test("instagram and tiktok platform cards expose supported normalized-csv metadata", () => {
+test("instagram and tiktok platform cards expose allowlisted-zip metadata", () => {
   const visibleCards = getUploadPlatformCardsByIds(["instagram", "tiktok"]);
 
   assert.deepEqual(
@@ -41,25 +41,25 @@ test("instagram and tiktok platform cards expose supported normalized-csv metada
         id: "instagram",
         label: "Instagram Performance",
         subtitle: "Social performance",
-        fileTypeLabel: "CSV or selected ZIP",
-        importMode: "normalized_csv",
+        fileTypeLabel: "Allowlisted ZIP",
+        importMode: "allowlisted_zip",
         available: true,
-        guidance: "Upload a template-based normalized Instagram performance CSV or a selected supported Instagram ZIP export.",
+        guidance: "Upload the supported Instagram export ZIP in the exact allowed format.",
       },
       {
         id: "tiktok",
         label: "TikTok Performance",
         subtitle: "Social performance",
-        fileTypeLabel: "CSV or selected ZIP",
-        importMode: "normalized_csv",
+        fileTypeLabel: "Allowlisted ZIP",
+        importMode: "allowlisted_zip",
         available: true,
-        guidance: "Upload a template-based normalized TikTok performance CSV or a selected supported TikTok ZIP export.",
+        guidance: "Upload the supported TikTok export ZIP in the exact allowed format.",
       },
     ],
   );
 });
 
-test("csv-first platform cards expose decision-first descriptions and file type labels", () => {
+test("csv and csv-or-zip platform cards expose correct file type labels and guidance", () => {
   const visibleCards = getUploadPlatformCardsByIds(["patreon", "substack", "youtube"]);
 
   assert.deepEqual(
@@ -67,11 +67,13 @@ test("csv-first platform cards expose decision-first descriptions and file type 
       label: item.label,
       subtitle: item.subtitle,
       fileTypeLabel: item.fileTypeLabel,
+      importMode: item.importMode,
+      guidance: item.guidance,
     })),
     [
-      { label: "Patreon", subtitle: "Membership revenue", fileTypeLabel: "CSV only" },
-      { label: "Substack", subtitle: "Subscription revenue", fileTypeLabel: "CSV only" },
-      { label: "YouTube", subtitle: "Creator earnings", fileTypeLabel: "CSV only" },
+      { label: "Patreon", subtitle: "Membership revenue", fileTypeLabel: "CSV only", importMode: "direct_csv", guidance: "Upload the supported Patreon CSV for this platform." },
+      { label: "Substack", subtitle: "Subscription revenue", fileTypeLabel: "CSV only", importMode: "direct_csv", guidance: "Upload your Substack subscriber export CSV." },
+      { label: "YouTube", subtitle: "Creator earnings", fileTypeLabel: "CSV or ZIP", importMode: "csv_or_zip", guidance: "Upload your YouTube analytics CSV or supported YouTube Takeout ZIP." },
     ],
   );
 });

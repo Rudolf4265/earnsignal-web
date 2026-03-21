@@ -120,7 +120,7 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
     reasonCode === "instagram_supported_shape_but_unparseable" ||
     reasonCode === "instagram_normalization_failed"
   ) {
-    return "This Instagram ZIP format couldn’t be imported. Upload a supported CSV instead.";
+    return "This Instagram ZIP format couldn’t be imported. Check that it matches the exact supported export shape.";
   }
 
   if (
@@ -129,16 +129,15 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
     reasonCode === "tiktok_supported_shape_but_unparseable" ||
     reasonCode === "tiktok_normalization_failed"
   ) {
-    return "This TikTok ZIP format couldn’t be imported. Upload a supported CSV instead.";
+    return "This TikTok ZIP format couldn’t be imported. Check that it matches the exact supported export shape.";
   }
 
   if (
     reasonCode === "zip_not_importable" ||
     reasonCode === "candidate_zip_not_yet_supported" ||
-    reasonCode === "unsupported_archive_shape" ||
     reasonCode === "ambiguous_archive_shape"
   ) {
-    return "This ZIP format is not yet importable. Upload a supported CSV instead.";
+    return "This ZIP export isn’t in one of the currently supported formats for this platform.";
   }
 
   if (
@@ -146,11 +145,34 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
     reasonCode === "corrupt_archive" ||
     reasonCode === "encrypted_or_unreadable_archive"
   ) {
-    return "We couldn’t read that ZIP file. Upload a supported CSV instead.";
+    return "We couldn’t read that ZIP file. Retry with the original unmodified export.";
   }
 
   if (reasonCode === "unsafe_archive_path" || reasonCode === "too_many_entries" || reasonCode === "archive_too_large") {
-    return "This ZIP file can’t be imported. Upload a supported CSV instead.";
+    return "This ZIP file was rejected by the bounded security check. Retry with the original platform export.";
+  }
+
+  // Backend validation reason codes (normalized to lowercase)
+  const normalizedCode = reasonCode?.toLowerCase() ?? null;
+
+  if (normalizedCode === "invalid_upload_platform") {
+    return "This file looks like a valid export, but not for the platform you selected. Choose the matching platform and try again.";
+  }
+
+  if (normalizedCode === "schema_mismatch") {
+    return "This file doesn't match one of the supported import formats for this platform.";
+  }
+
+  if (normalizedCode === "recognized_not_implemented") {
+    return "We recognized this export type, but it isn't supported yet in EarnSigma.";
+  }
+
+  if (normalizedCode === "unsupported_archive_shape") {
+    return "This ZIP export isn’t in one of the currently supported formats for this platform.";
+  }
+
+  if (normalizedCode === "csv_validation_failed") {
+    return "This file was recognized, but one or more required fields are missing or invalid.";
   }
 
   switch (reasonCode) {
@@ -162,19 +184,7 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
           "Pledge Amount, and Patronage Since Date."
         );
       }
-      if (context?.platform === "instagram") {
-        return (
-          "We couldn’t validate that Instagram CSV. Please upload a normalized Instagram performance CSV " +
-          "in the supported format and try again."
-        );
-      }
-      if (context?.platform === "tiktok") {
-        return (
-          "We couldn’t validate that TikTok CSV. Please upload a normalized TikTok performance CSV " +
-          "in the supported format and try again."
-        );
-      }
-      return "We couldn’t validate that CSV. Please upload the supported CSV format and try again.";
+      return "This file was recognized, but one or more required fields are missing or invalid.";
     case "schema_mismatch_or_missing_columns":
       if (context?.platform === "patreon") {
         return (
@@ -183,48 +193,27 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
           "This file should include columns like Patron Status, Pledge Amount, and Patronage Since Date."
         );
       }
-      if (context?.platform === "instagram") {
-        return (
-          "The CSV columns don’t match the supported Instagram performance format. " +
-          "Please upload a normalized Instagram performance CSV."
-        );
-      }
-      if (context?.platform === "tiktok") {
-        return (
-          "The CSV columns don’t match the supported TikTok performance format. " +
-          "Please upload a normalized TikTok performance CSV."
-        );
-      }
-      return (
-        "The CSV columns don’t match the supported format for this platform. " +
-        "Please upload the supported CSV format and try again."
-      );
+      return "This file doesn't match one of the supported import formats for this platform.";
     case "recognized_not_implemented":
-      if (context?.platform === "instagram") {
-        return "We recognised your Instagram file, but this upload path supports normalized Instagram performance CSVs only.";
-      }
-      if (context?.platform === "tiktok") {
-        return "We recognised your TikTok file, but this upload path supports normalized TikTok performance CSVs only.";
-      }
-      return "We recognised your file, but this upload path does not support that format yet.";
+      return "We recognized this export type, but it isn't supported yet in EarnSigma.";
     case "candidate_zip_not_yet_supported":
-      return "This ZIP format is not yet importable. Upload a supported CSV instead.";
+      return "This ZIP export isn’t in one of the currently supported formats for this platform.";
     case "not_zip":
-      return "We couldn’t read that ZIP file. Upload a supported CSV instead.";
+      return "We couldn’t read that ZIP file. Retry with the original unmodified export.";
     case "corrupt_archive":
-      return "We couldn’t read that ZIP archive. Use a valid ZIP file or continue with a supported CSV upload.";
+      return "We couldn’t read that ZIP archive. Retry with the original unmodified export.";
     case "encrypted_or_unreadable_archive":
-      return "Encrypted or unreadable ZIP archives are rejected by the bounded ZIP intake layer.";
+      return "Encrypted ZIP archives are not accepted. Retry with the original unencrypted platform export.";
     case "unsafe_archive_path":
       return "This ZIP archive contains unsafe paths and was rejected before upload.";
     case "unsupported_archive_shape":
-      return "This ZIP archive does not match a bounded allowlisted import shape.";
+      return "This ZIP export isn’t in one of the currently supported formats for this platform.";
     case "too_many_entries":
-      return "This ZIP archive exceeds the bounded entry-count limit and was rejected.";
+      return "This ZIP archive exceeds the entry-count limit and was rejected.";
     case "archive_too_large":
-      return "This ZIP archive exceeds the bounded size limit and was rejected.";
+      return "This ZIP archive exceeds the size limit and was rejected.";
     case "ambiguous_archive_shape":
-      return "This ZIP archive matches multiple bounded shapes, so it was rejected as ambiguous.";
+      return "This ZIP export isn’t in one of the currently supported formats for this platform.";
     case "ingest_failed":
       return "We couldn’t ingest the file right now. Please retry in a moment.";
     case "report_failed":
@@ -412,7 +401,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     entitlementState.canUpload &&
     entitlementState.canValidateUpload;
   const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
-  const supportsSelectedZipImport = platform === "instagram" || platform === "tiktok";
+  const supportsSelectedZipImport = selectedPlatformCard?.importMode === "csv_or_zip" || selectedPlatformCard?.importMode === "allowlisted_zip";
   const fileInputAccept = supportsSelectedZipImport
     ? ".csv,.zip,text/csv,application/zip"
     : ".csv,text/csv";
@@ -752,16 +741,20 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
             type: "text/csv",
             lastModified: file.lastModified,
           });
+        } else if (platform === "youtube" && zipInspection.kind === "unsupported_archive") {
+          // YouTube Takeout ZIP — passes through directly to the backend without client-side extraction.
+          // The backend validates the YouTube Takeout archive shape.
+          uploadFile = file;
         } else {
           const zipRejection =
             zipInspection.candidatePlatform && zipInspection.candidatePlatform !== platform
               ? {
                   reasonCode: "zip_not_importable",
-                  message: "This ZIP format does not match the platform you selected. Upload a supported CSV instead.",
+                  message: "This ZIP format does not match the platform you selected. Check the platform and try again.",
                 }
               : toZipUploadRejection(zipInspection) ?? {
             reasonCode: "unsupported_archive_shape",
-            message: "ZIP archive could not be accepted by the bounded intake layer.",
+            message: "This ZIP export isn't in one of the currently supported formats for this platform.",
           };
 
           setFailureState({
@@ -1130,16 +1123,16 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
             <p className="mt-2 text-xs leading-relaxed text-slate-300">Supported platforms: {supportedRevenueUploads}.</p>
             <div className="mt-3 grid gap-2 md:grid-cols-3">
               <div className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-3">
-                <p className="text-xs font-semibold text-white">Patreon, Substack, YouTube</p>
-                <p className="mt-1 text-sm text-slate-300">CSV only</p>
+                <p className="text-xs font-semibold text-white">Patreon, Substack</p>
+                <p className="mt-1 text-sm text-slate-300">Native CSV</p>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-3">
-                <p className="text-xs font-semibold text-white">Instagram Performance, TikTok Performance</p>
-                <p className="mt-1 text-sm text-slate-300">CSV or selected ZIP</p>
+                <p className="text-xs font-semibold text-white">YouTube</p>
+                <p className="mt-1 text-sm text-slate-300">Analytics CSV or Takeout ZIP</p>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-3">
-                <p className="text-xs font-semibold text-white">ZIP reminder</p>
-                <p className="mt-1 text-sm text-slate-300">Not all ZIP files are supported.</p>
+                <p className="text-xs font-semibold text-white">Instagram, TikTok</p>
+                <p className="mt-1 text-sm text-slate-300">Allowlisted ZIP only</p>
               </div>
             </div>
             <Link href="/app/help#upload-guide" className="mt-3 inline-flex text-[11px] font-medium text-blue-200 underline underline-offset-4 hover:text-white">
@@ -1199,22 +1192,17 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
         <div className="space-y-5">
           <StepHeader
             title="Select file"
-            subtitle={
-              selectedPlatformCard?.id === "instagram" || selectedPlatformCard?.id === "tiktok"
-                ? "Upload the template-based normalized CSV or a selected supported ZIP for this platform."
-                : selectedPlatformCard?.importMode === "normalized_csv"
-                ? "Upload the template-based normalized CSV for this platform."
-                : "Upload the supported CSV for this platform."
-            }
+            subtitle={selectedPlatformCard?.guidance ?? "Upload a supported file for this platform."}
           />
           <InlineAlert variant="info" title="What happens after upload" data-testid="upload-file-guide">
             <p>
-              {selectedPlatformCard?.id === "instagram" || selectedPlatformCard?.id === "tiktok"
-                ? "Accepted file types: CSV. Selected supported ZIP exports are also accepted for this platform. Not all ZIP files are supported. If a ZIP is rejected, upload a supported CSV instead. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."
+              {selectedPlatformCard?.importMode === "allowlisted_zip"
+                ? "Accepted file type: Allowlisted ZIP only. EarnSigma validates that the ZIP matches the exact supported export shape. Not every ZIP from this platform will work."
+                : selectedPlatformCard?.importMode === "csv_or_zip"
+                ? "Accepted file types: CSV or supported Takeout ZIP. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."
                 : "Accepted file type: CSV. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."}
             </p>
             <p className="mt-2">If validation fails, make sure you selected the matching platform and retry with the supported file format for this platform. If processing stalls, retry status before starting over.</p>
-            {selectedPlatformCard?.guidance ? <p className="mt-2">{selectedPlatformCard.guidance}</p> : null}
             <Link href="/app/help#after-upload" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
               Review upload help
             </Link>

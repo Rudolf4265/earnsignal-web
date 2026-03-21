@@ -112,6 +112,31 @@ function formatVerbForLabels(labels: string[]): "use" | "uses" {
   return labels.length === 1 ? "uses" : "use";
 }
 
+function buildFormatGuidanceSegments(cards: UploadPlatformCardMetadata[]): string[] {
+  const csvLabels = getPlatformLabelsByImportMode(cards, "direct_csv");
+  const csvOrZipLabels = getPlatformLabelsByImportMode(cards, "csv_or_zip");
+  const zipOnlyLabels = getPlatformLabelsByImportMode(cards, "allowlisted_zip");
+  const segments: string[] = [];
+
+  if (csvLabels.length > 0) {
+    segments.push(`${formatGuidanceLabelList(csvLabels)} ${formatVerbForLabels(csvLabels)} native CSV exports.`);
+  }
+
+  if (csvOrZipLabels.length > 0) {
+    segments.push(
+      `${formatGuidanceLabelList(csvOrZipLabels)} ${formatVerbForLabels(csvOrZipLabels)} a native CSV or supported Takeout ZIP.`,
+    );
+  }
+
+  if (zipOnlyLabels.length > 0) {
+    segments.push(
+      `${formatGuidanceLabelList(zipOnlyLabels)} ${formatVerbForLabels(zipOnlyLabels)} allowlisted ZIP exports only.`,
+    );
+  }
+
+  return segments;
+}
+
 function mergeVisiblePlatformIdsWithFallback(ids: Iterable<UploadPlatform>): UploadPlatform[] {
   const visiblePlatformIds = new Set<UploadPlatform>(FALLBACK_VISIBLE_UPLOAD_PLATFORM_IDS);
   for (const platformId of ids) {
@@ -157,28 +182,7 @@ export function getSupportedRevenueUploadSummaryFromCards(cards: UploadPlatformC
 }
 
 export function getSupportedRevenueUploadFormatGuidanceFromCards(cards: UploadPlatformCardMetadata[]): string {
-  const directCsvLabels = getPlatformLabelsByImportMode(cards, "direct_csv");
-  const selectedZipLabels = cards
-    .filter((card) => card.id === "instagram" || card.id === "tiktok")
-    .map((card) => card.label);
-  const normalizedCsvLabels = cards
-    .filter((card) => card.importMode === "normalized_csv" && card.id !== "instagram" && card.id !== "tiktok")
-    .map((card) => card.label);
-  const guidanceSegments: string[] = [];
-
-  if (directCsvLabels.length > 0) {
-    guidanceSegments.push(`${formatGuidanceLabelList(directCsvLabels)} ${formatVerbForLabels(directCsvLabels)} supported CSV exports.`);
-  }
-
-  if (selectedZipLabels.length > 0) {
-    guidanceSegments.push(
-      `${formatGuidanceLabelList(selectedZipLabels)} ${formatVerbForLabels(selectedZipLabels)} template-based normalized CSV imports and selected supported ZIP exports.`,
-    );
-  }
-
-  if (normalizedCsvLabels.length > 0) {
-    guidanceSegments.push(`${formatGuidanceLabelList(normalizedCsvLabels)} ${formatVerbForLabels(normalizedCsvLabels)} template-based normalized CSV imports only.`);
-  }
-
-  return guidanceSegments.length > 0 ? guidanceSegments.join(" ") : "Use the supported CSV format for the platform you selected.";
+  const segments = buildFormatGuidanceSegments(cards);
+  const base = segments.length > 0 ? segments.join(" ") : "Upload a supported file for the platform you selected.";
+  return `${base} Not every CSV or ZIP from a platform will work.`;
 }

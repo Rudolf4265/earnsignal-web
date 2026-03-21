@@ -32,7 +32,7 @@ test("fallback upload guidance exposes the public platform list in stable order"
   );
   assert.equal(
     getSupportedRevenueUploadFormatGuidanceFromCards(fallbackCards),
-    "Patreon, Substack, and YouTube use supported CSV exports. Instagram Performance and TikTok Performance use template-based normalized CSV imports and selected supported ZIP exports.",
+    "Patreon and Substack use native CSV exports. YouTube uses a native CSV or supported Takeout ZIP. Instagram Performance and TikTok Performance use allowlisted ZIP exports only. Not every CSV or ZIP from a platform will work.",
   );
 });
 
@@ -49,7 +49,7 @@ test("platform guidance summary mirrors the upload-page visible support truth", 
   assert.equal(getSupportedRevenueUploadSummary(), "Patreon, Substack, YouTube, Instagram Performance, and TikTok Performance");
   assert.equal(
     getSupportedRevenueUploadFormatGuidance(),
-    "Patreon, Substack, and YouTube use supported CSV exports. Instagram Performance and TikTok Performance use template-based normalized CSV imports and selected supported ZIP exports.",
+    "Patreon and Substack use native CSV exports. YouTube uses a native CSV or supported Takeout ZIP. Instagram Performance and TikTok Performance use allowlisted ZIP exports only. Not every CSV or ZIP from a platform will work.",
   );
 });
 
@@ -171,10 +171,12 @@ test("guidance helpers introduce zip language only for the bounded instagram and
   const guidance = getSupportedRevenueUploadFormatGuidanceFromCards(getFallbackVisibleUploadPlatformCards());
 
   assert.equal(
-    guidance.includes("Instagram Performance and TikTok Performance use template-based normalized CSV imports and selected supported ZIP exports."),
+    guidance.includes("Instagram Performance and TikTok Performance use allowlisted ZIP exports only."),
     true,
   );
   assert.equal(guidance.includes("generic ZIP"), false);
+  assert.equal(guidance.includes("template-based normalized CSV"), false);
+  assert.equal(guidance.includes("Not every CSV or ZIP from a platform will work."), true);
 });
 
 test("malformed support-matrix responses trigger the explicit fallback path", async () => {

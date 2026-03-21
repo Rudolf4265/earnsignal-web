@@ -30,19 +30,24 @@ test("launch support surfaces keep supported upload wording aligned across dashb
   assert.equal(dashboardOnboarding.includes("Upload a supported file from your creator revenue workflow."), true);
   assert.equal(creatorHealthPanel.includes("Upload a supported file and run a report to unlock a measured health baseline."), true);
   assert.equal(dataUploadPage.includes("Supported platforms: {supportedRevenueUploads}."), true);
-  assert.equal(dataUploadPage.includes("Patreon, Substack, and YouTube are CSV only."), true);
-  assert.equal(dataUploadPage.includes("Instagram Performance and TikTok Performance use template-based normalized CSV or selected supported ZIP."), true);
-  assert.equal(dataUploadPage.includes("If a ZIP is rejected, upload a supported CSV instead."), true);
-  assert.equal(uploadStepper.includes("Patreon, Substack, YouTube"), true);
-  assert.equal(uploadStepper.includes("Instagram Performance, TikTok Performance"), true);
-  assert.equal(uploadStepper.includes("CSV only"), true);
-  assert.equal(uploadStepper.includes("CSV or selected ZIP"), true);
-  assert.equal(uploadStepper.includes("Not all ZIP files are supported."), true);
+  assert.equal(dataUploadPage.includes("Patreon and Substack: native CSV export."), true);
+  assert.equal(dataUploadPage.includes("YouTube: native analytics CSV or supported Takeout ZIP."), true);
+  assert.equal(dataUploadPage.includes("Instagram and TikTok: allowlisted ZIP export only."), true);
+  assert.equal(uploadStepper.includes("Patreon, Substack"), true);
+  assert.equal(uploadStepper.includes("YouTube"), true);
+  assert.equal(uploadStepper.includes("Instagram, TikTok"), true);
+  assert.equal(uploadStepper.includes("Native CSV"), true);
+  assert.equal(uploadStepper.includes("Analytics CSV or Takeout ZIP"), true);
+  assert.equal(uploadStepper.includes("Allowlisted ZIP only"), true);
   assert.equal(uploadStepper.includes("Coming soon"), false);
-  assert.equal(helpPage.includes("Selected supported ZIP exports are accepted only for Instagram Performance and TikTok Performance."), true);
+  assert.equal(helpPage.includes("EarnSigma accepts only specific allowlisted ZIP formats. Not every ZIP from a platform will work."), true);
   assert.equal(helpPage.includes("Generic ZIP uploads and arbitrary archive parsing."), true);
   assert.equal(
-    supportSurface.includes("template-based normalized CSV imports and selected supported ZIP exports."),
+    supportSurface.includes("allowlisted ZIP exports only."),
+    true,
+  );
+  assert.equal(
+    supportSurface.includes("Not every CSV or ZIP from a platform will work."),
     true,
   );
   assert.equal(helpPage.includes("Upload a supported CSV"), false);

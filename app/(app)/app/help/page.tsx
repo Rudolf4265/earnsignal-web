@@ -8,15 +8,16 @@ const supportedRevenueUploads = getSupportedRevenueUploadSummary();
 const supportedRevenueUploadFormatGuidance = getSupportedRevenueUploadFormatGuidance();
 const supportedRevenueUploadCards = getFallbackVisibleUploadPlatformCards();
 const csvOnlyUploadCards = supportedRevenueUploadCards.filter((card) => card.importMode === "direct_csv");
-const selectedZipUploadCards = supportedRevenueUploadCards.filter((card) => card.id === "instagram" || card.id === "tiktok");
+const csvOrZipUploadCards = supportedRevenueUploadCards.filter((card) => card.importMode === "csv_or_zip");
+const allowlistedZipUploadCards = supportedRevenueUploadCards.filter((card) => card.importMode === "allowlisted_zip");
 
 const filePreparationItems = [
   "Upload the correct file under the matching platform before you start validation.",
-  "Use supported CSVs for Patreon, Substack, and YouTube.",
-  "Use template-based normalized CSVs for Instagram Performance and TikTok Performance when needed.",
-  "Selected supported ZIP exports exist only for Instagram Performance and TikTok Performance.",
+  "Patreon and Substack use native CSV exports.",
+  "YouTube uses a native analytics CSV or supported Takeout ZIP.",
+  "Instagram and TikTok require the allowlisted ZIP export — not every ZIP from these platforms will work.",
   "Include at least 3 months of data where possible for a more useful report.",
-  "Keep file contents clean and consistent, and do not rename required headers unless the template explicitly allows it.",
+  "Keep file contents clean and consistent, and do not rename required columns.",
 ];
 
 const commonUploadProblems = [
@@ -26,15 +27,15 @@ const commonUploadProblems = [
   },
   {
     title: "Unsupported ZIP format",
-    body: "Only selected supported ZIP exports are accepted for Instagram Performance and TikTok Performance. Use a supported CSV if the ZIP is rejected.",
+    body: "EarnSigma accepts only specific allowlisted ZIP exports for each platform. Ensure the ZIP matches the exact supported export shape for the platform you selected.",
   },
   {
     title: "Unreadable ZIP file",
-    body: "Retry with the original ZIP file if it is a selected supported ZIP. If it still fails, continue with a supported CSV instead.",
+    body: "Retry with the original unmodified ZIP export. If it still fails, check that the ZIP is the exact platform export and not a renamed or repackaged file.",
   },
   {
     title: "Malformed CSV",
-    body: "Re-export the CSV or use the expected template-based normalized CSV without changing required headers.",
+    body: "Re-export the CSV without renaming required columns. Use the native platform CSV export without modification.",
   },
   {
     title: "Missing required data",
@@ -64,12 +65,12 @@ const faqSections: Array<{
       {
         question: "What file types can I upload?",
         answer:
-          "Patreon, Substack, and YouTube use supported CSVs. Instagram Performance and TikTok Performance use template-based normalized CSVs or selected supported ZIPs.",
+          "Patreon and Substack use native CSV exports. YouTube uses a native analytics CSV or supported Takeout ZIP. Instagram Performance and TikTok Performance use allowlisted ZIP exports only. Not every CSV or ZIP from a platform will work.",
       },
       {
         question: "Do I need a CSV or a ZIP?",
         answer:
-          "Use a CSV unless you have one of the selected supported ZIP formats for Instagram Performance or TikTok Performance. Not all ZIP files are supported.",
+          "It depends on the platform. Patreon and Substack are CSV only. YouTube accepts a CSV or Takeout ZIP. Instagram and TikTok require the specific allowlisted ZIP export format.",
       },
       {
         question: "How much data should I upload?",
@@ -104,17 +105,17 @@ const faqSections: Array<{
       },
       {
         question: "How do I upload YouTube data?",
-        answer: "Choose YouTube in the upload flow, then upload the supported YouTube CSV.",
+        answer: "Choose YouTube in the upload flow, then upload the native YouTube analytics CSV or a supported YouTube Takeout ZIP.",
       },
       {
         question: "How do I upload Instagram Performance data?",
         answer:
-          "Choose Instagram Performance, then upload a template-based normalized CSV or a selected supported ZIP. If the ZIP is rejected, switch to a supported CSV.",
+          "Choose Instagram Performance, then upload the supported Instagram export ZIP in the exact allowed format. Only the specific allowlisted ZIP shape is accepted.",
       },
       {
         question: "How do I upload TikTok Performance data?",
         answer:
-          "Choose TikTok Performance, then upload a template-based normalized CSV or a selected supported ZIP. If the ZIP is rejected, switch to a supported CSV.",
+          "Choose TikTok Performance, then upload the supported TikTok export ZIP in the exact allowed format. Only the specific allowlisted ZIP shape is accepted.",
       },
     ],
   },
@@ -123,11 +124,11 @@ const faqSections: Array<{
     items: [
       {
         question: "Can I upload any Instagram ZIP export?",
-        answer: "No. Only selected supported ZIP exports are accepted for Instagram Performance.",
+        answer: "No. Only the specific allowlisted ZIP export shape is accepted for Instagram Performance. Not every ZIP from Instagram will work.",
       },
       {
         question: "Can I upload any TikTok ZIP export?",
-        answer: "No. Only selected supported ZIP exports are accepted for TikTok Performance.",
+        answer: "No. Only the specific allowlisted ZIP export shape is accepted for TikTok Performance. Not every ZIP from TikTok will work.",
       },
       {
         question: "Why was my ZIP file rejected?",
@@ -153,7 +154,7 @@ const faqSections: Array<{
       },
       {
         question: "What if my file is missing required columns or content?",
-        answer: "Use the supported CSV or template-based normalized CSV with the expected headers and required content. Do not rename required headers unless the template explicitly allows it.",
+        answer: "Use the native platform export without renaming or removing required columns. EarnSigma validates the specific export format for each platform.",
       },
       {
         question: "What should I use if my ZIP is not supported?",
@@ -228,7 +229,7 @@ export default function HelpPage() {
             </p>
             <ol className="space-y-2 text-sm leading-relaxed text-brand-text-secondary">
               <li>1. Choose the platform that matches your file.</li>
-              <li>2. Upload the supported CSV or, for Instagram Performance and TikTok Performance only, a selected supported ZIP.</li>
+              <li>2. Upload the supported file: CSV for Patreon and Substack, CSV or Takeout ZIP for YouTube, or allowlisted ZIP for Instagram and TikTok.</li>
               <li>3. Validation runs first, then processing continues when report generation is available for your plan.</li>
               <li>4. The dashboard and latest report update when processing completes.</li>
             </ol>
@@ -266,24 +267,35 @@ export default function HelpPage() {
               {supportedRevenueUploadFormatGuidance}
             </p>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-3">
               <article className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">CSV-only</p>
+                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">CSV only</p>
                 <ul className="mt-3 space-y-2 text-sm leading-relaxed text-brand-text-secondary">
                   {csvOnlyUploadCards.map((card) => (
                     <li key={card.id}>
-                      <span className="font-medium text-brand-text-primary">{card.label}:</span> supported CSV
+                      <span className="font-medium text-brand-text-primary">{card.label}:</span> native CSV
                     </li>
                   ))}
                 </ul>
               </article>
 
               <article className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">CSV or selected ZIP</p>
+                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">CSV or ZIP</p>
                 <ul className="mt-3 space-y-2 text-sm leading-relaxed text-brand-text-secondary">
-                  {selectedZipUploadCards.map((card) => (
+                  {csvOrZipUploadCards.map((card) => (
                     <li key={card.id}>
-                      <span className="font-medium text-brand-text-primary">{card.label}:</span> template-based normalized CSV or selected supported ZIP
+                      <span className="font-medium text-brand-text-primary">{card.label}:</span> analytics CSV or Takeout ZIP
+                    </li>
+                  ))}
+                </ul>
+              </article>
+
+              <article className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Allowlisted ZIP</p>
+                <ul className="mt-3 space-y-2 text-sm leading-relaxed text-brand-text-secondary">
+                  {allowlistedZipUploadCards.map((card) => (
+                    <li key={card.id}>
+                      <span className="font-medium text-brand-text-primary">{card.label}:</span> allowlisted ZIP export
                     </li>
                   ))}
                 </ul>
@@ -291,12 +303,12 @@ export default function HelpPage() {
             </div>
 
             <div className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Important ZIP limit</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Important ZIP note</p>
               <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                Selected supported ZIP exports are accepted only for Instagram Performance and TikTok Performance.
+                EarnSigma accepts only specific allowlisted ZIP formats. Not every ZIP from a platform will work.
               </p>
               <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                Not all ZIP files are supported. Unsupported ZIP files will be rejected. If a ZIP is rejected, use a supported CSV instead.
+                If a ZIP is rejected, confirm it is the exact supported export shape for the platform you selected.
               </p>
             </div>
           </div>

@@ -56,7 +56,12 @@ export type EntitlementCapabilityKey =
   | "canViewReportHistory"
   | "canAccessDashboardIntelligence"
   | "canAccessRecurringMonitoring"
-  | "canAccessProComparisonsOrFutureProFeatures";
+  | "canAccessProComparisonsOrFutureProFeatures"
+  | "canViewWowSummary"
+  | "canViewOpportunity"
+  | "canViewStrengthsRisks"
+  | "canViewNextActions"
+  | "canViewTeaserPreview";
 
 type CommercialCapabilityMatrix = Record<CommercialTier, Record<EntitlementCapabilityKey, boolean>>;
 
@@ -90,6 +95,11 @@ const COMMERCIAL_CAPABILITY_MATRIX: CommercialCapabilityMatrix = {
     canAccessDashboardIntelligence: false,
     canAccessRecurringMonitoring: false,
     canAccessProComparisonsOrFutureProFeatures: false,
+    canViewWowSummary: false,
+    canViewOpportunity: false,
+    canViewStrengthsRisks: false,
+    canViewNextActions: false,
+    canViewTeaserPreview: true,
   },
   report: {
     canUpload: true,
@@ -101,6 +111,11 @@ const COMMERCIAL_CAPABILITY_MATRIX: CommercialCapabilityMatrix = {
     canAccessDashboardIntelligence: true,
     canAccessRecurringMonitoring: false,
     canAccessProComparisonsOrFutureProFeatures: false,
+    canViewWowSummary: true,
+    canViewOpportunity: true,
+    canViewStrengthsRisks: true,
+    canViewNextActions: true,
+    canViewTeaserPreview: false,
   },
   pro: {
     canUpload: true,
@@ -112,6 +127,11 @@ const COMMERCIAL_CAPABILITY_MATRIX: CommercialCapabilityMatrix = {
     canAccessDashboardIntelligence: true,
     canAccessRecurringMonitoring: true,
     canAccessProComparisonsOrFutureProFeatures: true,
+    canViewWowSummary: true,
+    canViewOpportunity: true,
+    canViewStrengthsRisks: true,
+    canViewNextActions: true,
+    canViewTeaserPreview: false,
   },
 };
 
@@ -310,4 +330,12 @@ export function hasProEquivalentEntitlement(entitlements: EntitlementSnapshotLik
 
 export function isProEquivalentPlanTier(planTier: string | null | undefined): boolean {
   return normalizePlanTierAlias(planTier) === "pro";
+}
+
+export function canViewWowSummaryFromEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
+  return resolveCapability(entitlements, "canViewWowSummary");
+}
+
+export function canViewTeaserPreviewFromEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
+  return resolveCapability(entitlements, "canViewTeaserPreview");
 }

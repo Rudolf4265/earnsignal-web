@@ -21,52 +21,55 @@ const orderedPlanKeys: PricingPlanKey[] = ["free", "report", "pro"];
 const pricingCardCopy: Record<PricingPlanKey, PricingCardCopy> = {
   free: {
     title: "Free",
-    description: "Validate data before you buy",
+    description: "See your data before you commit",
+    helperText: "Free validation shows signal presence and upload health. The full report requires a paid plan.",
     features: [
       "Upload creator earnings data",
       "CSV validation and ingestion checks",
-      "Teaser dashboard preview",
-      "No recurring monitoring access",
+      "Signal teaser — platform count and data health",
+      "Full report access not included",
     ],
     ctaLabel: "Start Free",
   },
   report: {
     title: "Report",
-    description: "One-time access for one owned report",
-    helperText: "Best when you need a single creator revenue report without a subscription.",
+    description: "Your complete creator business breakdown",
+    helperText: "One purchase for one upload. Get the full diagnosis — biggest opportunity, platform risks, and next actions. PDF included.",
     badge: "One-time",
     features: [
-      "One purchased report for one upload",
-      "View and download the owned PDF",
-      "Report detail context tied to that purchase",
-      "Not equivalent to Pro monitoring access",
+      "Executive summary and biggest opportunity",
+      "Platform mix and concentration analysis",
+      "Subscriber momentum and churn signals",
+      "Strengths, risks, and 3 prioritized next actions",
+      "Downloadable PDF",
     ],
     ctaLabel: "Buy Report",
   },
   pro: {
     title: "Pro",
-    description: "Recurring access for ongoing analysis",
+    description: "Ongoing monitoring and period comparisons",
     badge: "Most popular",
     features: [
-      "Recurring report history",
-      "Dashboard intelligence access",
-      "Recurring monitoring-oriented surfaces",
-      "Pro-only comparisons as they ship",
+      "Everything in Report",
+      "Recurring report history across uploads",
+      "Period-over-period comparisons",
+      "Dashboard intelligence and risk monitoring",
+      "Pro-only analysis as it ships",
     ],
     ctaLabel: "Start Pro",
   },
 };
 
-const workflowSteps = ["Upload Data", "Validate for Free", "Buy Report or Start Pro", "Review Signals"] as const;
+const workflowSteps = ["Upload Exports", "Validate for Free", "Buy Report", "Get Full Diagnosis"] as const;
 
 const comparisonRows: Array<{ feature: string; availability: ComparisonAvailability }> = [
   { feature: "Upload data", availability: { free: true, report: true, pro: true } },
   { feature: "Validate upload", availability: { free: true, report: true, pro: true } },
-  { feature: "Teaser dashboard preview", availability: { free: true, report: true, pro: true } },
-  { feature: "View purchased report", availability: { free: false, report: true, pro: true } },
-  { feature: "Download purchased PDF", availability: { free: false, report: true, pro: true } },
-  { feature: "Recurring monitoring access", availability: { free: false, report: false, pro: true } },
-  { feature: "Pro-only comparisons", availability: { free: false, report: false, pro: true } },
+  { feature: "Signal teaser preview", availability: { free: true, report: true, pro: true } },
+  { feature: "Full report and diagnosis", availability: { free: false, report: true, pro: true } },
+  { feature: "Download PDF", availability: { free: false, report: true, pro: true } },
+  { feature: "Report history and comparisons", availability: { free: false, report: false, pro: true } },
+  { feature: "Dashboard intelligence", availability: { free: false, report: false, pro: true } },
 ];
 
 function cadenceSuffix(planKey: PricingPlanKey): string {

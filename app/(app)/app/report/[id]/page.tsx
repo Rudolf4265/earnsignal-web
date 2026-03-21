@@ -30,6 +30,7 @@ import {
   buildReportDetailSectionGatingModel,
   canAccessFullReportPdf,
   canRenderReportDetailProContent,
+  canRenderReportDetailReportContent,
   resolveReportDetailPdfAccessMode,
 } from "@/src/lib/report/detail-gating";
 import { hasProEquivalentEntitlement } from "@/src/lib/entitlements/model";
@@ -40,6 +41,9 @@ import { formatReportCreatedAt, toReportStatusLabel, toReportStatusVariant } fro
 import { readReportRouteParamId } from "@/src/lib/report/route-id";
 import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/report/normalize-artifact-to-report-model";
 import { formatReportArtifactContractErrors, validateReportArtifactContract } from "@/src/lib/report/artifact-contract";
+import { buildReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
+import { ReportWowSummary } from "./_components/ReportWowSummary";
+import { buildReportFreeTeaserViewModel, ReportFreeTeaser } from "./_components/ReportFreeTeaser";
 
 type ReportPageState = {
   view: ReportViewState | "invalid_route";
@@ -463,6 +467,19 @@ export default function ReportPage() {
   const canAccessFullPdf = canAccessFullReportPdf(pdfAccessMode);
   const canAccessDebugPayload = useMemo(() => hasProEquivalentEntitlement(entitlements), [entitlements]);
 
+  const wowSummary = useMemo(
+    () =>
+      presentation
+        ? buildReportWowSummaryViewModel(presentation, state.artifactModel)
+        : null,
+    [presentation, state.artifactModel],
+  );
+  const freeTeaserModel = useMemo(
+    () => (presentation ? buildReportFreeTeaserViewModel(presentation) : null),
+    [presentation],
+  );
+  const showFullReportContent = canRenderReportDetailReportContent(proSectionGate.wowSummary);
+
   const createdAtLabel = formatReportCreatedAt(state.report?.createdAt ?? state.artifactModel?.createdAt ?? null);
   const status = state.report?.status ?? "unknown";
   const statusLabel = toReportStatusLabel(status);
@@ -549,27 +566,35 @@ export default function ReportPage() {
 
               {presentation.heroNotice ? <TruthNotice notice={presentation.heroNotice} testId="report-hero-truth-notice" /> : null}
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                {presentation.heroMetrics.map((metric) => (
-                  <article
-                    key={metric.id}
-                    className="rounded-[1.1rem] border border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(19,41,80,0.9),rgba(16,32,67,0.95))] p-4 shadow-brand-card"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
-                      {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
-                    </div>
-                    <p className="mt-2 text-3xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
-                    {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
-                  </article>
-                ))}
-              </div>
+              {showFullReportContent ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {presentation.heroMetrics.map((metric) => (
+                    <article
+                      key={metric.id}
+                      className="rounded-[1.1rem] border border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(19,41,80,0.9),rgba(16,32,67,0.95))] p-4 shadow-brand-card"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
+                        {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
+                      </div>
+                      <p className="mt-2 text-3xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
+                      {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
+                    </article>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </PanelCard>
 
           {pdfError ? <ErrorBanner title="PDF unavailable" message={pdfError} /> : null}
 
-          {state.artifactJsonMissing ? (
+          {showFullReportContent && wowSummary ? (
+            <ReportWowSummary model={wowSummary} />
+          ) : proSectionGate.wowSummary === "report-locked" && freeTeaserModel ? (
+            <ReportFreeTeaser model={freeTeaserModel} />
+          ) : null}
+
+          {showFullReportContent && state.artifactJsonMissing ? (
             <Panel title="Artifact JSON Unavailable" description="This report does not include a JSON artifact yet.">
               <div className="space-y-3">
                 <p className="text-sm text-slate-600">Try refreshing to load updated report metadata.</p>
@@ -584,7 +609,7 @@ export default function ReportPage() {
             </Panel>
           ) : null}
 
-          {state.artifactError ? <ErrorBanner title="Artifact JSON unavailable" message={state.artifactError} /> : null}
+          {showFullReportContent ? <> {state.artifactError ? <ErrorBanner title="Artifact JSON unavailable" message={state.artifactError} /> : null}
 
           <section className="space-y-3">
             <DashboardSectionHeader title="Executive Summary" description="A concise narrative from your latest completed report." />
@@ -1113,6 +1138,7 @@ export default function ReportPage() {
               </div>
             </details>
           </section>
+          </> : null}
         </section>
       ) : null}
 

@@ -23,15 +23,15 @@ const plans: Array<{ id: CheckoutPlan; label: string; priceLabel: string; summar
     id: "report",
     label: "Report",
     priceLabel: "$79 one-time",
-    summary: "One purchased report for one upload, with owned report view and PDF download access.",
-    highlights: ["Generate one paid report", "View and download the owned report", "Not equivalent to Pro monitoring access"],
+    summary: "One complete creator business report for one upload. Biggest opportunity, platform risks, and next actions — plus PDF download.",
+    highlights: ["Full diagnosis for one upload", "Biggest opportunity and platform risks", "Strengths, risks, and next 3 actions", "Downloadable PDF report"],
   },
   {
     id: "pro",
     label: "Pro",
     priceLabel: "$59 / month",
-    summary: "Recurring access for report history, dashboard intelligence, and monitoring-oriented surfaces.",
-    highlights: ["Recurring report history", "Dashboard intelligence access", "Monitoring-oriented Pro surfaces"],
+    summary: "Everything in Report, plus ongoing tracking across uploads, period comparisons, and dashboard intelligence.",
+    highlights: ["All Report features included", "Recurring report history and comparisons", "Dashboard intelligence and monitoring"],
   },
 ];
 

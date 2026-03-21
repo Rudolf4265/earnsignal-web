@@ -124,12 +124,12 @@ const discoverInsights: DiscoverInsight[] = [
 ];
 
 const reportSectionPillars = [
-  "Churn Risk Map",
-  "Revenue Concentration",
-  "Tier Migration Flow",
-  "Revenue Stability Score",
-  "Platform Risk",
-  "Next Best Move",
+  "Executive Summary",
+  "Biggest Opportunity",
+  "Platform Mix",
+  "Subscriber Momentum",
+  "Strengths & Risks",
+  "Next 3 Actions",
 ];
 
 const primaryCtaHref = `${appBaseUrl}${marketingCtas.startTrial.appPath}?plan=report`;
@@ -614,11 +614,11 @@ export default function MarketingHomePage() {
             </h2>
           </div>
 
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-10 grid gap-5 sm:grid-cols-3">
             {[
               {
-                title: "Upload your exports",
-                body: <>Upload real exports from Patreon, Substack, YouTube, Instagram, and TikTok — <strong className="font-medium text-brand-text-primary">your actual data</strong>, not third-party estimates.</>,
+                title: "Upload your real exports",
+                body: <>Upload CSV or ZIP exports from Patreon, Substack, YouTube, Instagram, and TikTok — <strong className="font-medium text-brand-text-primary">your actual data</strong>, not third-party estimates.</>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -628,8 +628,8 @@ export default function MarketingHomePage() {
                 ),
               },
               {
-                title: "Get private diagnostics",
-                body: <><strong className="font-medium text-brand-text-primary">Concentration risk, churn maps, and monetization health</strong> — not estimated vanity metrics.</>,
+                title: "Validate free, then buy a report",
+                body: <>Free validation confirms your data is readable. When you&apos;re ready, buy a <strong className="font-medium text-brand-text-primary">$79 one-time Report</strong> or start Pro for ongoing access.</>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <circle cx="11" cy="11" r="8" />
@@ -640,22 +640,12 @@ export default function MarketingHomePage() {
                 ),
               },
               {
-                title: "Receive recommendations",
-                body: <>Every report surfaces <strong className="font-medium text-brand-text-primary">specific next actions</strong> tailored to your data — not generic creator advice.</>,
+                title: "Get your full diagnosis",
+                body: <>Your report covers <strong className="font-medium text-brand-text-primary">biggest opportunity, platform risk, subscriber momentum, strengths, risks, and 3 next actions</strong> — private to your workspace.</>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <path d="M9 11l3 3L22 4" />
                     <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                  </svg>
-                ),
-              },
-              {
-                title: "Data stays yours",
-                body: <>Private, workspace-specific, never shared or made public. <strong className="font-medium text-brand-text-primary">Your business intelligence stays yours.</strong></>,
-                icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                 ),
               },

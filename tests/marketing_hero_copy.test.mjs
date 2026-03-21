@@ -32,10 +32,10 @@ test("marketing hero sub-badge reflects no-stitching positioning", async () => {
   assert.equal(source.includes("Private workspace · Real exports · Actionable diagnostics"), false);
 });
 
-test("marketing 'Upload your exports' step mentions all five platforms", async () => {
+test("marketing how-it-works upload step mentions all five platforms", async () => {
   const source = await readFile(marketingPagePath, "utf8");
 
-  assert.equal(source.includes("Upload real exports from Patreon, Substack, YouTube, Instagram, and TikTok"), true);
+  assert.equal(source.includes("Patreon, Substack, YouTube, Instagram, and TikTok"), true);
   assert.equal(source.includes("Patreon, Instagram, and other creator exports"), false);
 });
 

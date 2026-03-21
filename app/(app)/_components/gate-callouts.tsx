@@ -24,7 +24,7 @@ export function NotEntitledCallout() {
   return (
     <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-blue-300/30 bg-blue-500/10 p-6" data-testid="gate-not-entitled">
       <h2 className="text-lg font-semibold text-blue-100">Upgrade required</h2>
-      <p className="mt-2 text-sm text-blue-100/90">Your current plan does not include this feature. Continue in Billing to activate report access.</p>
+      <p className="mt-2 text-sm text-blue-100/90">Your current plan does not include access to this report. Buy a one-time Report or start Pro to unlock the full diagnosis, biggest opportunity, and next actions.</p>
       <Link href="/app/billing" className="mt-4 inline-flex rounded-lg border border-blue-200/50 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
         Go to Billing
       </Link>

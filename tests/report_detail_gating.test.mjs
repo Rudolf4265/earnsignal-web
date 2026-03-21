@@ -40,7 +40,9 @@ function createEntitlements(overrides = {}) {
 test("report detail keeps Pro section gating centralized through canonical helper", async () => {
   const source = await readFile(reportDetailGatingPath, "utf8");
 
-  assert.equal(source.includes('import { canDownloadPdfFromEntitlement, hasProEquivalentEntitlement } from "../entitlements/model";'), true);
+  assert.equal(source.includes('from "../entitlements/model"'), true);
+  assert.equal(source.includes("canDownloadPdfFromEntitlement"), true);
+  assert.equal(source.includes("hasProEquivalentEntitlement"), true);
   assert.equal(source.includes('return hasProEquivalentEntitlement(entitlements) ? "pro-unlocked" : "pro-locked";'), true);
 });
 

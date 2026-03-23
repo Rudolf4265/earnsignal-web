@@ -526,6 +526,17 @@ export default function ReportPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-brand-text-muted">
                     <span>Created {createdAtLabel}</span>
+                    <span aria-hidden="true" className="text-brand-text-muted/35">·</span>
+                    <span data-testid="report-combined-framing">Your combined cross-platform report — built from your creator data sources</span>
+                    {presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected > 0 ? (
+                      <>
+                        <span aria-hidden="true" className="text-brand-text-muted/35">·</span>
+                        <span data-testid="report-source-count">
+                          {presentation.platformMix.platformsConnected}{" "}
+                          {presentation.platformMix.platformsConnected === 1 ? "source" : "sources"} included
+                        </span>
+                      </>
+                    ) : null}
                   </div>
                 </div>
 
@@ -701,7 +712,7 @@ export default function ReportPage() {
           </section>
 
           <section className="space-y-3" data-testid="report-diagnosis-section">
-            <DashboardSectionHeader title="Diagnosis" description="Typed growth-constraint diagnosis surfaced from backend evidence." />
+            <DashboardSectionHeader title="Diagnosis" description="What the data says about your creator business health and growth constraints." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               <div className="space-y-4">
                 {presentation.diagnosis.notice ? (
@@ -971,16 +982,26 @@ export default function ReportPage() {
                     </article>
 
                     <article className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Platforms Connected</p>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Sources Included</p>
                       <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">
                         {presentation.platformMix.platformsConnected !== null ? presentation.platformMix.platformsConnected : "--"}
                       </p>
-                      <p className="mt-2 text-xs text-brand-text-muted">Platform count available from report metadata.</p>
+                      <p className="mt-2 text-xs text-brand-text-muted">
+                        {presentation.platformMix.platformsConnected === 1
+                          ? "Built from a single source. Add another to strengthen cross-platform analysis."
+                          : "Data contributing to this report."}
+                      </p>
                     </article>
                   </div>
                   <p className="text-xs leading-relaxed text-brand-text-muted">
                     A concentration score above 70% signals meaningful single-platform dependency. Track alongside connected platform count to monitor diversification over time.
                   </p>
+                  {presentation.platformMix.platformsConnected === 1 ? (
+                    <p className="text-xs leading-relaxed text-brand-text-muted" data-testid="report-thin-source-notice">
+                      <span className="font-medium text-brand-text-secondary">This is a single-source report.</span>{" "}
+                      Add another data source to your workspace for a fuller cross-platform picture and stronger recommendations.
+                    </p>
+                  ) : null}
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
@@ -1064,6 +1085,42 @@ export default function ReportPage() {
                 <ProSectionLoadingCard testId="report-revenue-outlook-loading" message="Checking plan access for revenue forecasts..." />
               )}
             </PanelCard>
+          </section>
+
+          <section className="space-y-3" data-testid="report-next-steps">
+            <DashboardSectionHeader title="What to do next" description="Suggested actions based on your current report. These recommendations are based on your current data." />
+            <div className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-1.5">
+                  {presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1 ? (
+                    <>
+                      <p className="text-sm font-medium text-brand-text-primary" data-testid="report-next-steps-single-source">
+                        Add another source to deepen your analysis.
+                      </p>
+                      <p className="text-xs leading-relaxed text-brand-text-secondary">
+                        This report was built from a single source. Adding a second report-driving source unlocks richer cross-platform comparisons and sharper recommendations.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-brand-text-primary" data-testid="report-next-steps-multi-source">
+                        Keep your workspace up to date to maintain accurate insights.
+                      </p>
+                      <p className="text-xs leading-relaxed text-brand-text-secondary">
+                        Upload updated data to your workspace to refresh your combined report with your latest numbers.
+                      </p>
+                    </>
+                  )}
+                </div>
+                <Link
+                  href="/app/data"
+                  data-testid="report-return-to-workspace"
+                  className="inline-flex shrink-0 rounded-xl border border-brand-border/60 bg-brand-panel/50 px-3 py-2 text-sm font-medium text-brand-text-secondary transition hover:bg-brand-panel/80 hover:text-brand-text-primary"
+                >
+                  Return to workspace
+                </Link>
+              </div>
+            </div>
           </section>
 
           <section className="space-y-3">

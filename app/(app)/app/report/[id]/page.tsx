@@ -41,6 +41,7 @@ import { formatReportCreatedAt, toReportStatusLabel, toReportStatusVariant } fro
 import { readReportRouteParamId } from "@/src/lib/report/route-id";
 import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/report/normalize-artifact-to-report-model";
 import { formatReportArtifactContractErrors, validateReportArtifactContract } from "@/src/lib/report/artifact-contract";
+import { buildReportFraming, formatIncludedSourceCountLabel } from "@/src/lib/report/source-labeling";
 import { buildReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
 import { ReportWowSummary } from "./_components/ReportWowSummary";
 import { buildReportFreeTeaserViewModel, ReportFreeTeaser } from "./_components/ReportFreeTeaser";
@@ -484,6 +485,23 @@ export default function ReportPage() {
   const status = state.report?.status ?? "unknown";
   const statusLabel = toReportStatusLabel(status);
   const statusVariant = toReportStatusVariant(status);
+  const reportFraming = useMemo(
+    () =>
+      buildReportFraming({
+        platformsIncluded: state.report?.platformsIncluded,
+        sourceCount: state.report?.sourceCount ?? state.report?.metrics.platformsConnected ?? null,
+      }),
+    [state.report],
+  );
+  const sourceCountLabel = useMemo(
+    () => formatIncludedSourceCountLabel(state.report?.sourceCount ?? state.report?.metrics.platformsConnected ?? null),
+    [state.report],
+  );
+  const legacyPlatformCount = presentation?.platformMix.platformsConnected ?? null;
+  const legacyPlatformCountLabel =
+    typeof legacyPlatformCount === "number" && legacyPlatformCount > 0
+      ? `${legacyPlatformCount} ${legacyPlatformCount === 1 ? "source" : "sources"} included`
+      : null;
   const debugJson = useMemo(() => {
     if (!debugOpen || !state.artifactRaw) {
       return null;
@@ -518,7 +536,7 @@ export default function ReportPage() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-3">
                   <p className="inline-flex rounded-full border border-brand-border-strong/80 bg-brand-panel/75 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
-                    Creator Report
+                    {reportFraming.badgeLabel}
                   </p>
                   <div>
                     <h1 className="text-3xl font-semibold tracking-tight text-brand-text-primary md:text-[2rem]">{presentation.heroTitle}</h1>
@@ -526,18 +544,38 @@ export default function ReportPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-brand-text-muted">
                     <span>Created {createdAtLabel}</span>
+                    {sourceCountLabel ? <span aria-hidden="true" className="text-brand-text-muted/35">|</span> : null}
+                    {sourceCountLabel ? <span data-testid="report-source-count">{sourceCountLabel}</span> : null}
+                    {reportFraming.helperText ? <span aria-hidden="true" className="text-brand-text-muted/35">|</span> : null}
+                    {reportFraming.helperText ? (
+                      <span
+                        data-testid={state.report.reportKind === "single-source" ? "report-single-source-framing" : "report-combined-framing"}
+                      >
+                        {reportFraming.helperText}
+                      </span>
+                    ) : null}
+                    {false ? (
+                      <>
                     <span aria-hidden="true" className="text-brand-text-muted/35">·</span>
                     <span data-testid="report-combined-framing">Your combined cross-platform report — built from your creator data sources</span>
-                    {presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected > 0 ? (
+                    {legacyPlatformCountLabel ? (
                       <>
                         <span aria-hidden="true" className="text-brand-text-muted/35">·</span>
-                        <span data-testid="report-source-count">
-                          {presentation.platformMix.platformsConnected}{" "}
-                          {presentation.platformMix.platformsConnected === 1 ? "source" : "sources"} included
-                        </span>
+                        <span data-testid="report-source-count">{legacyPlatformCountLabel}</span>
+                      </>
+                    ) : null}
                       </>
                     ) : null}
                   </div>
+                  {state.report.platformsIncluded.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-2" data-testid="report-platform-chips">
+                      {state.report.platformsIncluded.map((platform) => (
+                        <Badge key={platform} variant="neutral">
+                          {platform}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">

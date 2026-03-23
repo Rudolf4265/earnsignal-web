@@ -1,6 +1,7 @@
 import type { DashboardRevenueTrendPoint } from "../dashboard/artifact-hydration";
 import type { ReportDetail } from "../api/reports";
 import { prioritizeRecommendations } from "./recommendation-prioritization";
+import { buildCanonicalReportTitle } from "./source-labeling";
 import {
   buildDiagnosisPresentation,
   buildPresentationTruthNotice as buildNotice,
@@ -262,16 +263,17 @@ function readFriendlyReportTitle(report: ReportDetail): { title: string; subtitl
   const rawTitle = report.title.trim();
   const normalizedTitle = rawTitle.toLowerCase();
   const normalizedFallback = `report ${report.id}`.toLowerCase();
-  const titleLooksGeneric = normalizedTitle === normalizedFallback || /^report\s+[a-z0-9_-]{8,}$/i.test(rawTitle);
-  if (titleLooksGeneric) {
-    return {
-      title: "Creator Earnings Report",
-      subtitle: null,
-    };
-  }
+  const titleLooksGeneric = !rawTitle || normalizedTitle === normalizedFallback || /^report\s+[a-z0-9_-]{8,}$/i.test(rawTitle);
 
   return {
-    title: rawTitle,
+    title: titleLooksGeneric
+      ? buildCanonicalReportTitle({
+          createdAt: report.createdAt,
+          platformsIncluded: report.platformsIncluded,
+          sourceCount: report.sourceCount ?? report.metrics.platformsConnected,
+          updatedAt: report.updatedAt,
+        })
+      : rawTitle,
     subtitle: null,
   };
 }

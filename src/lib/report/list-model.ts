@@ -1,6 +1,15 @@
 import { normalizeReportId } from "./id";
 import { buildReportDetailPath } from "./path";
 import { hasUsableReportArtifact } from "./artifact-availability";
+import {
+  buildCanonicalReportTitle,
+  formatIncludedSourceCountLabel,
+  formatPlatformsSummaryLabel,
+  normalizePlatformsIncluded,
+  resolveReportKind,
+  resolveReportSourceCount,
+  type ReportKind,
+} from "./source-labeling";
 
 export type ReportListItem = {
   reportId: string | null;
@@ -12,8 +21,10 @@ export type ReportListItem = {
   uploadId: string | null;
   jobId: string | null;
   schemaVersion: string | null;
-  title: string | null;
-  platforms: string[] | null;
+  title: string;
+  platformsIncluded: string[];
+  sourceCount: number | null;
+  reportKind: ReportKind;
   coverageStart: string | null;
   coverageEnd: string | null;
 };
@@ -36,6 +47,11 @@ export type ReportListRow = {
   canView: boolean;
   canDownload: boolean;
   artifactUrl: string | null;
+  platformsIncluded: string[];
+  sourceCount: number | null;
+  sourceCountLabel: string | null;
+  platformSummary: string | null;
+  reportKind: ReportKind;
 };
 
 function readString(value: unknown): string | null {
@@ -68,6 +84,11 @@ function readBoolean(value: unknown): boolean | null {
   }
 
   return null;
+}
+
+function readPositiveCount(value: unknown): number | null {
+  const numeric = readNumber(value);
+  return numeric !== null && numeric > 0 ? numeric : null;
 }
 
 function readStringArray(value: unknown): string[] | null {
@@ -125,21 +146,42 @@ function normalizeItem(raw: unknown): ReportListItem | null {
 
   const record = raw as Record<string, unknown>;
   const reportId = normalizeReportId(record.report_id) ?? normalizeReportId(record.reportId);
+  const createdAt = readString(record.created_at) ?? readString(record.createdAt);
+  const coverageStart = readString(record.coverage_start) ?? readString(record.coverageStart);
+  const coverageEnd = readString(record.coverage_end) ?? readString(record.coverageEnd);
+  const platformsIncluded = normalizePlatformsIncluded(
+    readStringArray(record.platforms_included) ??
+      readStringArray(record.platformsIncluded) ??
+      readStringArray(record.platforms),
+  );
+  const sourceCount = resolveReportSourceCount({
+    platformsIncluded,
+    sourceCount: readPositiveCount(record.source_count) ?? readPositiveCount(record.sourceCount),
+  });
+  const title = buildCanonicalReportTitle({
+    createdAt,
+    coverageEnd,
+    coverageStart,
+    platformsIncluded,
+    sourceCount,
+  });
 
   return {
     reportId,
     status: readString(record.status) ?? "unknown",
-    createdAt: readString(record.created_at) ?? readString(record.createdAt),
+    createdAt,
     finishedAt: readString(record.finished_at) ?? readString(record.finishedAt),
     artifactUrl: readString(record.artifact_url) ?? readString(record.artifactUrl),
     artifactJsonUrl: readString(record.artifact_json_url) ?? readString(record.artifactJsonUrl),
     uploadId: readString(record.upload_id) ?? readString(record.uploadId),
     jobId: readString(record.job_id) ?? readString(record.jobId),
     schemaVersion: readString(record.schema_version) ?? readString(record.schemaVersion),
-    title: readString(record.title),
-    platforms: readStringArray(record.platforms),
-    coverageStart: readString(record.coverage_start) ?? readString(record.coverageStart),
-    coverageEnd: readString(record.coverage_end) ?? readString(record.coverageEnd),
+    title,
+    platformsIncluded,
+    sourceCount,
+    reportKind: resolveReportKind({ platformsIncluded, sourceCount }),
+    coverageStart,
+    coverageEnd,
   };
 }
 
@@ -251,7 +293,7 @@ export function toReportListRows(items: ReportListItem[]): ReportListRow[] {
     return {
       id: rowId,
       reportId: item.reportId,
-      title: item.title ?? "Report",
+      title: item.title,
       status: normalizedStatus,
       statusLabel: toReportStatusLabel(normalizedStatus),
       statusVariant: toReportStatusVariant(normalizedStatus),
@@ -260,6 +302,11 @@ export function toReportListRows(items: ReportListItem[]): ReportListRow[] {
       canView,
       canDownload: canView && canDownload,
       artifactUrl: item.artifactUrl,
+      platformsIncluded: item.platformsIncluded,
+      sourceCount: item.sourceCount,
+      sourceCountLabel: formatIncludedSourceCountLabel(item.sourceCount),
+      platformSummary: formatPlatformsSummaryLabel(item.platformsIncluded),
+      reportKind: item.reportKind,
     };
   });
 }

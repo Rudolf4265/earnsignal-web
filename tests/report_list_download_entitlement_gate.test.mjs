@@ -19,3 +19,12 @@ test("report list blocks download handler when canonical PDF entitlement is fals
   assert.equal(source.includes("if (!row.canDownload || !entitlementState.canDownloadPdf || !row.reportId || !row.artifactUrl || downloadingReportId)"), true);
   assert.equal(source.includes('const downloadTooltip = row.canDownload ? "Report or Pro access is required to download this PDF" : "PDF not available yet";'), true);
 });
+
+test("report list renders source summary metadata when normalized source fields exist", async () => {
+  const source = await readFile(reportListPagePath, "utf8");
+
+  assert.equal(source.includes("row.sourceCountLabel || row.platformSummary"), true);
+  assert.equal(source.includes('data-testid="report-list-source-summary"'), true);
+  assert.equal(source.includes("row.sourceCountLabel ? <span>{row.sourceCountLabel}</span> : null"), true);
+  assert.equal(source.includes("row.platformSummary ? <span>{row.platformSummary}</span> : null"), true);
+});

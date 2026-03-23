@@ -74,7 +74,7 @@ test("report list falls back to legacy reports when items key is present but inv
   assert.equal(page.items[0].reportId, "rep_legacy_fallback");
 });
 
-test("report list row mapping formats created_at, status badge, and title fallback", async () => {
+test("report list row mapping formats created_at, status badge, and source summaries", async () => {
   const { normalizeReportsListResponse, toReportListRows } = await loadListModel(Date.now() + 3);
 
   const page = normalizeReportsListResponse({
@@ -84,12 +84,13 @@ test("report list row mapping formats created_at, status badge, and title fallba
         status: "ready",
         created_at: "2026-03-01T18:00:00Z",
         artifact_url: "/v1/reports/rep_ready/artifact",
-        title: null,
+        platforms: ["substack", "patreon"],
       },
       {
         report_id: "rep_failed",
         status: "validation_failed",
         created_at: "2026-03-02T18:00:00Z",
+        platforms: ["youtube"],
       },
     ],
     has_more: false,
@@ -98,17 +99,22 @@ test("report list row mapping formats created_at, status badge, and title fallba
   const rows = toReportListRows(page.items);
   assert.equal(rows.length, 2);
 
-  assert.equal(rows[0].title, "Report");
+  assert.equal(rows[0].title, "Combined Report — Patreon + Substack");
   assert.equal(rows[0].statusLabel, "Ready");
   assert.equal(rows[0].statusVariant, "good");
   assert.equal(rows[0].createdAtLabel, "Mar 01, 2026");
   assert.equal(rows[0].canDownload, true);
+  assert.equal(rows[0].sourceCountLabel, "2 sources included");
+  assert.equal(rows[0].platformSummary, "Patreon / Substack");
 
+  assert.equal(rows[1].title, "YouTube Report — Mar 2026");
   assert.equal(rows[1].statusLabel, "Validation Failed");
   assert.equal(rows[1].statusVariant, "warn");
   assert.equal(rows[1].canDownload, false);
   assert.equal(rows[1].viewHref, "/app/report/rep_failed");
   assert.equal(rows[1].canView, true);
+  assert.equal(rows[1].sourceCountLabel, "1 source included");
+  assert.equal(rows[1].platformSummary, "YouTube");
 });
 
 test("report list does not treat legacy id as canonical report_id", async () => {
@@ -231,4 +237,34 @@ test("report list row download action requires canonical artifact endpoint linka
   assert.equal(rows[0].canDownload, true);
   assert.equal(rows[1].canDownload, false);
   assert.equal(rows[2].canDownload, false);
+});
+
+test("report list normalization produces deterministic titles and source metadata from mixed platform ordering", async () => {
+  const { normalizeReportsListResponse } = await loadListModel(Date.now() + 11);
+
+  const page = normalizeReportsListResponse({
+    items: [
+      {
+        report_id: "rep_ordered",
+        status: "ready",
+        created_at: "2026-03-05T18:00:00Z",
+        platforms_included: ["youtube", "patreon", "substack"],
+      },
+      {
+        report_id: "rep_count_only",
+        status: "ready",
+        created_at: "2026-03-05T18:00:00Z",
+        source_count: 4,
+      },
+    ],
+    has_more: false,
+  });
+
+  assert.equal(page.items[0].title, "Combined Report — Patreon + Substack + YouTube");
+  assert.deepEqual(page.items[0].platformsIncluded, ["Patreon", "Substack", "YouTube"]);
+  assert.equal(page.items[0].sourceCount, 3);
+
+  assert.equal(page.items[1].title, "Combined Report — 4 Sources");
+  assert.deepEqual(page.items[1].platformsIncluded, []);
+  assert.equal(page.items[1].sourceCount, 4);
 });

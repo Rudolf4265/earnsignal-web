@@ -4,6 +4,13 @@ import {
   type ReportDiagnosisViewModel,
   type ReportWhatChangedViewModel,
 } from "./normalize-artifact-to-report-model";
+import {
+  buildCanonicalReportTitle,
+  normalizePlatformsIncluded,
+  resolveReportKind,
+  resolveReportSourceCount,
+  type ReportKind,
+} from "./source-labeling";
 
 export type ReportDetail = {
   id: string;
@@ -19,6 +26,9 @@ export type ReportDetail = {
   recommendedActions: string[];
   diagnosis: ReportDiagnosisViewModel | null;
   whatChanged: ReportWhatChangedViewModel | null;
+  platformsIncluded: string[];
+  sourceCount: number | null;
+  reportKind: ReportKind;
   metrics: {
     netRevenue: number | null;
     subscribers: number | null;
@@ -70,6 +80,11 @@ function readNumber(record: Record<string, unknown>, keys: string[]): number | n
   }
 
   return null;
+}
+
+function readPositiveCount(record: Record<string, unknown>, keys: string[]): number | null {
+  const value = readNumber(record, keys);
+  return value !== null && value > 0 ? Math.trunc(value) : null;
 }
 
 function toStringArray(value: unknown): string[] {
@@ -173,16 +188,81 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
   const normalizedReportId =
     normalizeReportId(readString(payload, ["id", "report_id", "reportId"], "")) ?? fallbackReportId;
   const typedReportModel = normalizeArtifactToReportModel(payload).model;
-  const platforms = readStringArray(payload, [
-    "platforms",
-    "sources",
-    "report_body.platforms",
-    "report.platforms",
-    "report.sources",
-    "report.report_body.platforms",
-    "report.trend_preview.platforms",
-    "report.trend_preview.sources",
+  const createdAt = readString(payload, ["created_at", "createdAt"]) || undefined;
+  const updatedAt = readString(payload, ["updated_at", "updatedAt"]) || undefined;
+  const coverageStart = readString(payload, [
+    "coverage_start",
+    "coverageStart",
+    "report.coverage_start",
+    "report.coverageStart",
+    "report.trend_preview.coverage_start",
+    "report.trend_preview.coverageStart",
   ]);
+  const coverageEnd = readString(payload, [
+    "coverage_end",
+    "coverageEnd",
+    "report.coverage_end",
+    "report.coverageEnd",
+    "report.trend_preview.coverage_end",
+    "report.trend_preview.coverageEnd",
+  ]);
+  const platformsIncluded = normalizePlatformsIncluded(
+    readStringArray(payload, [
+      "platforms_included",
+      "platformsIncluded",
+      "platforms",
+      "sources",
+      "report_body.platforms_included",
+      "report_body.platformsIncluded",
+      "report_body.platforms",
+      "report.platforms_included",
+      "report.platformsIncluded",
+      "report.platforms",
+      "report.sources",
+      "report.report_body.platforms_included",
+      "report.report_body.platformsIncluded",
+      "report.report_body.platforms",
+      "report.trend_preview.platforms_included",
+      "report.trend_preview.platformsIncluded",
+      "report.trend_preview.platforms",
+      "report.trend_preview.sources",
+    ]),
+  );
+  const sourceCount = resolveReportSourceCount({
+    platformsIncluded,
+    sourceCount: readPositiveCount(payload, [
+      "source_count",
+      "sourceCount",
+      "included_source_count",
+      "includedSourceCount",
+      "platforms_connected",
+      "metrics.platforms_connected",
+      "report.source_count",
+      "report.sourceCount",
+      "report.included_source_count",
+      "report.includedSourceCount",
+      "report.platforms_connected",
+      "report.metrics.platforms_connected",
+      "report.trend_preview.source_count",
+      "report.trend_preview.sourceCount",
+      "report.trend_preview.included_source_count",
+      "report.trend_preview.includedSourceCount",
+      "report.trend_preview.platforms_connected",
+      "report.trend_preview.metrics.platforms_connected",
+      "report.trend_preview.inputs.source_count",
+      "report.trend_preview.inputs.sourceCount",
+      "report.trend_preview.inputs.platforms_connected",
+    ]),
+  });
+  const reportKind = resolveReportKind({ platformsIncluded, sourceCount });
+  const title = buildCanonicalReportTitle({
+    createdAt,
+    coverageEnd,
+    coverageStart,
+    platformsIncluded,
+    sourceCount,
+    updatedAt,
+  });
   const keySignals = readStringArray(payload, [
     "key_signals",
     "keySignals",
@@ -228,7 +308,7 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
 
   return {
     id: normalizedReportId,
-    title: readString(payload, ["title", "name", "report_body.title"], `Report ${normalizedReportId}`),
+    title,
     status: readString(payload, ["status"], "unknown"),
     summary: readString(
       payload,
@@ -255,8 +335,8 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
       ],
       "No summary available.",
     ),
-    createdAt: readString(payload, ["created_at", "createdAt"]) || undefined,
-    updatedAt: readString(payload, ["updated_at", "updatedAt"]) || undefined,
+    createdAt,
+    updatedAt,
     artifactUrl,
     pdfUrl: artifactUrl,
     artifactJsonUrl: readString(payload, ["artifact_json_url", "artifactJsonUrl"], "") || null,
@@ -264,6 +344,9 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
     recommendedActions,
     diagnosis: typedReportModel.diagnosis,
     whatChanged: typedReportModel.whatChanged,
+    platformsIncluded,
+    sourceCount,
+    reportKind,
     metrics: {
       netRevenue: readNumber(payload, [
         "net_revenue",
@@ -334,18 +417,7 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
         "report.trend_preview.coverage.months",
         "report.trend_preview.inputs.coverage_months",
       ]),
-      platformsConnected:
-        platforms.length > 0
-          ? platforms.length
-          : readNumber(payload, [
-              "platforms_connected",
-              "metrics.platforms_connected",
-              "report.platforms_connected",
-              "report.metrics.platforms_connected",
-              "report.trend_preview.platforms_connected",
-              "report.trend_preview.metrics.platforms_connected",
-              "report.trend_preview.inputs.platforms_connected",
-            ]),
+      platformsConnected: sourceCount,
     },
   };
 }

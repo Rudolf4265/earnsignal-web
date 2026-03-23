@@ -28,7 +28,7 @@ test("report detail success normalization", async () => {
   });
 
   assert.equal(result.id, "rep_123");
-  assert.equal(result.title, "Revenue Trends");
+  assert.equal(result.title, "Creator Report — Feb 2026");
   assert.equal(result.status, "ready");
   assert.equal(result.summary, "MRR is up 12% month-over-month.");
   assert.equal(result.createdAt, "2026-02-10T12:00:00Z");
@@ -36,6 +36,9 @@ test("report detail success normalization", async () => {
   assert.equal(result.pdfUrl, null);
   assert.deepEqual(result.keySignals, []);
   assert.deepEqual(result.recommendedActions, []);
+  assert.deepEqual(result.platformsIncluded, []);
+  assert.equal(result.sourceCount, null);
+  assert.equal(result.reportKind, "unknown");
   assert.deepEqual(result.metrics, {
     netRevenue: null,
     subscribers: null,
@@ -68,10 +71,14 @@ test("report detail normalization supports nested payloads and pdf artifacts", a
   });
 
   assert.equal(result.summary, "Creator revenue briefing");
+  assert.equal(result.title, "Combined Report — Patreon + Shopify");
   assert.equal(result.artifactUrl, "https://cdn.example.test/reports/rep_nested.pdf");
   assert.equal(result.pdfUrl, "https://cdn.example.test/reports/rep_nested.pdf");
   assert.deepEqual(result.keySignals, ["Upward trend detected", "High platform dependence"]);
   assert.deepEqual(result.recommendedActions, ["Diversify acquisition channels"]);
+  assert.deepEqual(result.platformsIncluded, ["Patreon", "Shopify"]);
+  assert.equal(result.sourceCount, 2);
+  assert.equal(result.reportKind, "combined");
   assert.deepEqual(result.metrics, {
     netRevenue: 1550,
     subscribers: 240,
@@ -104,8 +111,12 @@ test("report detail normalization supports report wrapper aliases", async () => 
 
   assert.equal(result.id, "rep_wrapped");
   assert.equal(result.summary, "Wrapped summary from report payload.");
+  assert.equal(result.title, "Combined Report — 3 Sources");
   assert.deepEqual(result.keySignals, ["Revenue momentum remains positive"]);
   assert.deepEqual(result.recommendedActions, ["Rebalance channel spend toward retained cohorts"]);
+  assert.deepEqual(result.platformsIncluded, []);
+  assert.equal(result.sourceCount, 3);
+  assert.equal(result.reportKind, "combined");
   assert.deepEqual(result.metrics, {
     netRevenue: 4800,
     subscribers: 530,
@@ -139,8 +150,12 @@ test("report detail normalization supports report trend preview aliases", async 
   });
 
   assert.equal(result.summary, "Trend preview summary from wrapped payload.");
+  assert.equal(result.title, "Combined Report — Patreon + Substack");
   assert.deepEqual(result.keySignals, ["Subscriber growth is stabilizing"]);
   assert.deepEqual(result.recommendedActions, ["Test annual plan discount sensitivity"]);
+  assert.deepEqual(result.platformsIncluded, ["Patreon", "Substack"]);
+  assert.equal(result.sourceCount, 2);
+  assert.equal(result.reportKind, "combined");
   assert.deepEqual(result.metrics, {
     netRevenue: 3200,
     subscribers: 410,
@@ -194,7 +209,22 @@ test("report detail normalization keeps canonical route id when payload id is a 
   });
 
   assert.equal(result.id, "rep_route_123");
-  assert.equal(result.title, "Route ID should win");
+  assert.equal(result.title, "Creator Report");
+});
+
+test("report detail normalization keeps deterministic source ordering from mixed platform inputs", async () => {
+  const { normalizeReportDetail } = await loadModules(Date.now() + 16);
+  const result = normalizeReportDetail("rep_single_source", {
+    id: "rep_single_source",
+    created_at: "2026-03-08T12:00:00Z",
+    source_count: 1,
+    platforms_included: ["youtube", "patreon", "youtube"],
+  });
+
+  assert.equal(result.title, "Combined Report — Patreon + YouTube");
+  assert.deepEqual(result.platformsIncluded, ["Patreon", "YouTube"]);
+  assert.equal(result.sourceCount, 2);
+  assert.equal(result.reportKind, "combined");
 });
 
 test("report detail maps 404 to not_found", async () => {

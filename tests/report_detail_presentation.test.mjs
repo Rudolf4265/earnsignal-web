@@ -23,6 +23,9 @@ function makeReport(overrides = {}) {
     artifactJsonUrl: "/v1/reports/rep_test_001/artifact.json",
     keySignals: [],
     recommendedActions: [],
+    platformsIncluded: [],
+    sourceCount: null,
+    reportKind: "unknown",
     metrics: {
       netRevenue: null,
       subscribers: null,
@@ -121,7 +124,7 @@ test("buildReportDetailPresentationModel maps production sections into structure
     },
   });
 
-  assert.equal(model.heroTitle, "Creator Earnings Report");
+  assert.equal(model.heroTitle, "Combined Report — 2 Sources");
   assert.equal(model.executiveSummary[0], "Revenue quality improved while volatility eased.");
   assert.equal(model.heroMetrics.some((metric) => metric.label === "Net Revenue"), true);
   assert.equal(model.heroMetrics.some((metric) => metric.label === "Creator Health"), true);

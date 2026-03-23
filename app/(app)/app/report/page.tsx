@@ -278,6 +278,12 @@ export default function ReportsPage() {
                     >
                       <div className="min-w-[12rem] pr-4">
                         <p className="text-sm font-semibold text-brand-text-primary">{row.title}</p>
+                        {row.sourceCountLabel || row.platformSummary ? (
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-brand-text-muted" data-testid="report-list-source-summary">
+                            {row.sourceCountLabel ? <span>{row.sourceCountLabel}</span> : null}
+                            {row.platformSummary ? <span>{row.platformSummary}</span> : null}
+                          </div>
+                        ) : null}
                         <p className="mt-1 text-xs text-brand-text-muted">{row.createdAtLabel}</p>
                       </div>
 

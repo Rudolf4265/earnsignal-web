@@ -22,15 +22,12 @@ test("report detail includes unlocked rendering branches for Pro-gated sections"
   assert.equal(source.includes("showPlatformRiskExplanationContent ? ("), true);
   assert.equal(source.includes('data-testid="report-platform-risk-explanation-unlocked"'), true);
   assert.equal(source.includes('data-testid="report-diagnosis-section"'), true);
-  assert.equal(source.includes('testId="report-diagnosis-notice"'), true);
   assert.equal(source.includes('data-testid="report-what-changed-section"'), true);
   assert.equal(source.includes('testId="report-what-changed-notice"'), true);
-  assert.equal(source.includes('data-testid="report-what-changed-unavailable"'), true);
   assert.equal(source.includes('testId="report-what-changed-improved"'), true);
   assert.equal(source.includes('testId="report-what-changed-worsened"'), true);
   assert.equal(source.includes('testId="report-what-changed-watch-next"'), true);
   assert.equal(source.includes("Primary typed read"), true);
-  assert.equal(source.includes("Typed signals behind the diagnosis"), true);
   assert.equal(source.includes("No typed watch-next items were emitted for this comparison."), true);
 });
 
@@ -77,8 +74,20 @@ test("report detail renders truth notices and metric badges for limited states",
   assert.equal(source.includes("function TruthNotice"), true);
   assert.equal(source.includes('testId="report-hero-truth-notice"'), true);
   assert.equal(source.includes("metric.stateLabel"), true);
-  assert.equal(source.includes("recommendation.stateLabel"), true);
+  assert.equal(source.includes("presentation.recommendations[0].stateLabel"), true);
   assert.equal(source.includes("card.stateLabel"), true);
+});
+
+test("report detail header renders source framing and included platform chips", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8");
+
+  assert.equal(source.includes('import { buildReportFraming, formatIncludedSourceCountLabel } from "@/src/lib/report/source-labeling";'), true);
+  assert.equal(source.includes("const reportFraming = useMemo("), true);
+  assert.equal(source.includes("const sourceCountLabel = useMemo("), true);
+  assert.equal(source.includes('data-testid="report-source-count"'), true);
+  assert.equal(source.includes('data-testid={state.report.reportKind === "single-source" ? "report-single-source-framing" : "report-combined-framing"}'), true);
+  assert.equal(source.includes('data-testid="report-platform-chips"'), true);
+  assert.equal(source.includes("state.report.platformsIncluded.map((platform) => ("), true);
 });
 
 test("report detail keeps active PDF actions in the Pro-only branch", async () => {

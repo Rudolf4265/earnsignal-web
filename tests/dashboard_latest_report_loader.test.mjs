@@ -39,7 +39,6 @@ test("dashboard latest report loader fetches detail from first completed report 
   let listCalls = 0;
 
   const result = await loadLatestDashboardReport({
-    latestUploadReportId: null,
     fetchReportDetail: async (reportId) => {
       detailCalls.push(reportId);
       if (reportId === "rep_second_2") {
@@ -67,12 +66,11 @@ test("dashboard latest report loader fetches detail from first completed report 
   assert.deepEqual(detailCalls, ["rep_second_2"]);
 });
 
-test("dashboard latest report loader prefers list-based hydration over upload report_id optimization", async () => {
+test("dashboard latest report loader only relies on reports list hydration when choosing the latest report", async () => {
   const { loadLatestDashboardReport } = await loadModules();
   const detailCalls = [];
 
   const result = await loadLatestDashboardReport({
-    latestUploadReportId: "rep_upload_optimized",
     fetchReportDetail: async (reportId) => {
       detailCalls.push(reportId);
       if (reportId === "rep_list_primary") {
@@ -92,32 +90,7 @@ test("dashboard latest report loader prefers list-based hydration over upload re
   assert.deepEqual(detailCalls, ["rep_list_primary"]);
 });
 
-test("dashboard latest report loader falls back to upload report_id when list has no canonical report_id", async () => {
-  const { loadLatestDashboardReport } = await loadModules();
-  const detailCalls = [];
-
-  const result = await loadLatestDashboardReport({
-    latestUploadReportId: "rep_upload_fallback",
-    fetchReportDetail: async (reportId) => {
-      detailCalls.push(reportId);
-      if (reportId === "rep_upload_fallback") {
-        return makeReportDetail("rep_upload_fallback", "ready");
-      }
-
-      throw new Error(`Unexpected report id ${reportId}`);
-    },
-    fetchReportsList: async () => ({
-      items: [{ reportId: null, status: "ready", artifactUrl: "/v1/reports/rep_upload_fallback/artifact" }],
-      nextOffset: null,
-      hasMore: false,
-    }),
-  });
-
-  assert.equal(result?.id, "rep_upload_fallback");
-  assert.deepEqual(detailCalls, ["rep_upload_fallback"]);
-});
-
-test("dashboard latest report loader triggers detail fetch from /v1/reports payload report_id values", async () => {
+test("dashboard latest report loader triggers detail fetch from canonical /v1/reports payload report_id values", async () => {
   const { loadLatestDashboardReport, normalizeReportsListResponse } = await loadModules();
   const detailCalls = [];
 
@@ -141,7 +114,6 @@ test("dashboard latest report loader triggers detail fetch from /v1/reports payl
   };
 
   const result = await loadLatestDashboardReport({
-    latestUploadReportId: null,
     fetchReportDetail: async (reportId) => {
       detailCalls.push(reportId);
       return makeReportDetail(reportId, "ready");
@@ -158,7 +130,6 @@ test("dashboard latest report loader deterministically picks newest completed re
   const detailCalls = [];
 
   const result = await loadLatestDashboardReport({
-    latestUploadReportId: "rep_upload_stale",
     fetchReportDetail: async (reportId) => {
       detailCalls.push(reportId);
       return makeReportDetail(reportId, "ready");
@@ -185,29 +156,4 @@ test("dashboard latest report loader deterministically picks newest completed re
 
   assert.equal(result?.id, "rep_new_002");
   assert.deepEqual(detailCalls, ["rep_new_002"]);
-});
-
-test("dashboard latest report loader ignores completed rows with missing artifact_url and falls back to canonical upload report_id", async () => {
-  const { loadLatestDashboardReport } = await loadModules();
-  const detailCalls = [];
-
-  const result = await loadLatestDashboardReport({
-    latestUploadReportId: "rep_upload_usable",
-    fetchReportDetail: async (reportId) => {
-      detailCalls.push(reportId);
-      if (reportId === "rep_upload_usable") {
-        return makeReportDetail("rep_upload_usable", "ready");
-      }
-
-      throw new Error(`Unexpected report id ${reportId}`);
-    },
-    fetchReportsList: async () => ({
-      items: [{ reportId: "rep_missing_artifact", status: "ready", artifactUrl: null }],
-      nextOffset: null,
-      hasMore: false,
-    }),
-  });
-
-  assert.equal(result?.id, "rep_upload_usable");
-  assert.deepEqual(detailCalls, ["rep_upload_usable"]);
 });

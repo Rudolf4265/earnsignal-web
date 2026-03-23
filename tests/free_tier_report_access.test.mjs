@@ -148,25 +148,24 @@ test("report page gates PDF download behind pdfAccessMode", async () => {
 
 // ── Part 4: Upload flow alignment ────────────────────────────────────────────
 
-test("upload stepper routes to report page when reportId is present on validated status", async () => {
+test("upload stepper no longer derives View report from upload status state", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
-  // In the "done" step, when validated AND reportId exists, link to report
-  assert.equal(source.includes("View report preview"), true);
-  assert.equal(source.includes('buildReportDetailPathOrIndex(reportId)'), true);
+  assert.equal(source.includes("View report preview"), false);
+  assert.equal(source.includes('data-testid="upload-run-report"'), true);
+  assert.equal(source.includes("latestTerminalUpload.reportId"), false);
 });
 
-test("upload stepper summary banner routes to report when validated and reportId available", async () => {
+test("upload stepper summary banner exposes Run Report from workspace staged-source truth", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
-  // Summary banner: "ready" OR validated with reportId → link to report
-  assert.equal(source.includes("latestTerminalUpload.status === \"ready\" || latestTerminalUpload.reportId"), true);
+  assert.equal(source.includes('data-testid="upload-completed-run-report"'), true);
+  assert.equal(source.includes("workspaceReportState.canRunReport"), true);
 });
 
-test("upload stepper still shows billing link when validated but no reportId", async () => {
+test("upload stepper still shows billing link when validated and report generation is locked", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
-  // When reportId is absent, billing link remains as fallback
   assert.equal(source.includes("Unlock report"), true);
   assert.equal(source.includes('href="/app/billing"'), true);
 });

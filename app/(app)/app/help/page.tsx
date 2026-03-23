@@ -83,12 +83,12 @@ const faqSections: Array<{
       {
         question: "What happens after I upload my files?",
         answer:
-          "EarnSigma validates the file first. If the file passes and report generation is available for your plan, processing continues until the dashboard and latest report update.",
+          "EarnSigma validates and stages each supported source first. Upload completion does not create a report. When you are ready, click Run Report to combine your staged sources into one report.",
       },
       {
-        question: "What kind of report will I get after upload?",
+        question: "What kind of report will I get after I click Run Report?",
         answer:
-          "When report generation is available for your plan, EarnSigma produces a latest report focused on supported revenue, subscriptions, and other measured business signals from the uploaded data.",
+          "After you click Run Report, EarnSigma generates one combined report from all eligible staged READY sources in your workspace, focused on supported revenue, subscriptions, and other measured business signals.",
       },
     ],
   },
@@ -225,13 +225,13 @@ export default function HelpPage() {
         >
           <div className="space-y-3" data-testid="help-page-how-it-works">
             <p className="text-sm leading-relaxed text-brand-text-secondary">
-              Upload a supported file, let EarnSigma validate it, then review the dashboard and latest report once the workspace is ready.
+              Upload supported files, let EarnSigma validate and stage them, then run one combined report when your workspace is ready.
             </p>
             <ol className="space-y-2 text-sm leading-relaxed text-brand-text-secondary">
               <li>1. Choose the platform that matches your file.</li>
               <li>2. Upload the supported file: CSV for Patreon and Substack, CSV or Takeout ZIP for YouTube, or allowlisted ZIP for Instagram and TikTok.</li>
-              <li>3. Validation runs first, then processing continues when report generation is available for your plan.</li>
-              <li>4. The dashboard and latest report update when processing completes.</li>
+              <li>3. Validation and ingestion run first so the source becomes staged in your workspace.</li>
+              <li>4. Click Run Report when you want to generate the latest combined report and refresh the dashboard.</li>
             </ol>
           </div>
 
@@ -338,12 +338,12 @@ export default function HelpPage() {
           contentClassName="space-y-3"
         >
           <div id="after-upload" className="space-y-2" data-testid="help-page-after-upload">
-            <p className="text-sm leading-relaxed text-brand-text-secondary">After upload, validation runs first.</p>
+            <p className="text-sm leading-relaxed text-brand-text-secondary">After upload, validation and ingestion run first.</p>
             <p className="text-sm leading-relaxed text-brand-text-secondary">
-              If the file passes and report generation is available for your plan, processing continues until the dashboard refreshes and the latest report is ready.
+              If the file passes, EarnSigma stages that source in your workspace. Upload completion does not create a report.
             </p>
             <p className="text-sm leading-relaxed text-brand-text-secondary">
-              Expect a latest report focused on supported revenue, subscriptions, and other measured business signals from the data you uploaded.
+              When you click Run Report, EarnSigma generates one combined report from all eligible staged READY sources in the workspace.
             </p>
             <p className="text-sm leading-relaxed text-brand-text-secondary">
               If you are looking for Grow depth, keep expectations light until supported audience and engagement analytics are available.

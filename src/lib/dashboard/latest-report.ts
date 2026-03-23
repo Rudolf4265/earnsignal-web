@@ -1,6 +1,5 @@
 import { isApiError } from "../api/client";
 import type { ReportDetail, ReportListItem, ReportListResult } from "../api/reports";
-import { normalizeReportId } from "../report/id";
 import { hasUsableReportArtifact } from "../report/artifact-availability";
 
 type CompletedReportCandidate = Pick<ReportListItem, "reportId" | "status" | "createdAt" | "artifactUrl">;
@@ -84,7 +83,6 @@ async function fetchReportDetailOrNull(
 }
 
 type LoadLatestDashboardReportInput = {
-  latestUploadReportId: string | null | undefined;
   fetchReportDetail: (reportId: string) => Promise<ReportDetail>;
   fetchReportsList: () => Promise<ReportListResult>;
   reportsList?: ReportListResult | null;
@@ -108,12 +106,6 @@ export async function loadLatestDashboardReport(input: LoadLatestDashboardReport
   const latestCompletedFromReports = await fetchReportDetailOrNull(firstCompletedReport?.reportId ?? null, input.fetchReportDetail);
   if (latestCompletedFromReports) {
     return latestCompletedFromReports;
-  }
-
-  const canonicalUploadReportId = normalizeReportId(input.latestUploadReportId);
-  const latestFromUpload = await fetchReportDetailOrNull(canonicalUploadReportId, input.fetchReportDetail);
-  if (latestFromUpload) {
-    return latestFromUpload;
   }
 
   const firstReport = reports ? findFirstReportWithId(reports.items) : null;

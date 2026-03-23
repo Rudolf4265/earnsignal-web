@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createUploadPresign,
@@ -25,7 +26,9 @@ import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detect
 import { extractInstagramZipBufferToUploadArtifact } from "@/src/lib/upload/instagram-zip-extractor";
 import { extractTiktokZipBufferToUploadArtifact } from "@/src/lib/upload/tiktok-zip-extractor";
 import { inspectZipArchiveBuffer, isZipUploadCandidate, toZipUploadRejection } from "@/src/lib/upload/zip-intake";
+import { createReportRun, getReportErrorMessage } from "@/src/lib/api/reports";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
+import type { WorkspaceReportState } from "@/src/lib/workspace/report-run-state";
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
 import InlineAlert from "./InlineAlert";
 import StepHeader from "./StepHeader";
@@ -217,7 +220,7 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
     case "ingest_failed":
       return "We couldn’t ingest the file right now. Please retry in a moment.";
     case "report_failed":
-      return "The upload succeeded, but report generation failed. Please retry.";
+      return "A report run failed. Retry from the workspace when your staged sources are ready.";
     case "session_expired":
       return "Your session expired while checking upload status. Please log in again.";
     case "upload_not_found":
@@ -387,9 +390,21 @@ async function awaitWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Prom
 type UploadStepperProps = {
   visiblePlatformCards: UploadPlatformCardMetadata[];
   supportedRevenueUploads: string;
+  workspaceReportState: WorkspaceReportState;
+  refreshWorkspaceDataSources: () => Promise<void>;
+  clearCurrentReport: () => void;
+  onReportCreated: (reportId: string) => void;
 };
 
-export default function UploadStepper({ visiblePlatformCards, supportedRevenueUploads }: UploadStepperProps) {
+export default function UploadStepper({
+  visiblePlatformCards,
+  supportedRevenueUploads,
+  workspaceReportState,
+  refreshWorkspaceDataSources,
+  clearCurrentReport,
+  onReportCreated,
+}: UploadStepperProps) {
+  const router = useRouter();
   const entitlementState = useEntitlementState();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const pollAbortRef = useRef<AbortController | null>(null);
@@ -398,7 +413,6 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
   const [platform, setPlatform] = useState<UploadPlatform | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [uploadId, setUploadId] = useState<string | null>(null);
-  const [reportId, setReportId] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reasonCode, setReasonCode] = useState<string | null>(null);
@@ -412,8 +426,9 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
   const [latestTerminalUpload, setLatestTerminalUpload] = useState<{
     status: UploadUiStatus;
     uploadId: string;
-    reportId: string | null;
   } | null>(null);
+  const [runReportBusy, setRunReportBusy] = useState(false);
+  const [runReportError, setRunReportError] = useState<string | null>(null);
 
   const activeStepIndex = stepOrder.indexOf(step);
   const progressPct = Math.round(((activeStepIndex + 1) / stepOrder.length) * 100);
@@ -440,12 +455,46 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     entitlementState.canUpload &&
     entitlementState.canValidateUpload;
   const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
+  const showWorkspaceLoadingGuard = workspaceReportState.isLoading;
+  const showWorkspaceViewReport =
+    !showWorkspaceLoadingGuard &&
+    workspaceReportState.hasExistingReport &&
+    Boolean(workspaceReportState.currentReportId);
+  const showWorkspaceRunReport =
+    !showWorkspaceLoadingGuard &&
+    !showWorkspaceViewReport &&
+    workspaceReportState.canRunReport &&
+    !reportAccessBlocked;
+  const showWorkspaceNeedsReportDrivingSource =
+    !showWorkspaceLoadingGuard &&
+    !showWorkspaceViewReport &&
+    workspaceReportState.stagedSourcesReadyCount > 0 &&
+    !workspaceReportState.canRunReport &&
+    workspaceReportState.reportDrivingSourcesReadyCount === 0;
+  const workspaceCurrentReportHref = workspaceReportState.currentReportId
+    ? buildReportDetailPathOrIndex(workspaceReportState.currentReportId)
+    : "/app/report";
   const supportsSelectedZipImport = selectedPlatformCard?.importMode === "csv_or_zip" || selectedPlatformCard?.importMode === "allowlisted_zip";
   const fileInputAccept = supportsSelectedZipImport
     ? ".csv,.zip,text/csv,application/zip"
     : ".csv,text/csv";
   const selectedSupportedZip = Boolean(file && supportsSelectedZipImport && isZipUploadCandidate(file));
   const unsupportedCsvWarning = Boolean(file && !file.name.toLowerCase().endsWith(".csv") && !selectedSupportedZip);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") {
+      return;
+    }
+
+    console.info("[upload.stepper.workspaceReportState]", {
+      step,
+      processingStatus,
+      latestTerminalUploadStatus: latestTerminalUpload?.status ?? null,
+      workspaceReportState,
+      canRunReport: workspaceReportState.canRunReport,
+      hasExistingReport: workspaceReportState.hasExistingReport,
+    });
+  }, [latestTerminalUpload?.status, processingStatus, step, workspaceReportState]);
 
   const stopPolling = useCallback(() => {
     pollAbortRef.current?.abort();
@@ -459,6 +508,25 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
 
     console.info("[upload]", { event, ...details });
   }, []);
+
+  const runReport = useCallback(async () => {
+    if (runReportBusy) {
+      return;
+    }
+
+    setRunReportBusy(true);
+    setRunReportError(null);
+
+    try {
+      const result = await createReportRun();
+      onReportCreated(result.reportId);
+      router.push(buildReportDetailPathOrIndex(result.reportId));
+    } catch (error) {
+      setRunReportError(getReportErrorMessage(error));
+    } finally {
+      setRunReportBusy(false);
+    }
+  }, [onReportCreated, router, runReportBusy]);
 
 
   const setFailureState = useCallback(
@@ -508,10 +576,6 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
 
       setProcessingStatus(mapped.status);
       setUploadId(resolvedUploadId ?? null);
-      if (mapped.reportId) {
-        setReportId(mapped.reportId);
-      }
-
       if (mapped.status === "processing") {
         setStatusMsg("Processing upload…");
         setStep("processing");
@@ -524,7 +588,8 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
       }
 
       if (mapped.status === "validated") {
-        setStatusMsg(mapped.message ?? "Upload validated. Upgrade to Report or Pro to generate a paid report.");
+        clearCurrentReport();
+        setStatusMsg(mapped.message ?? "Upload validated. Keep staging sources, then run a combined report from the workspace.");
         setStep("done");
         setError(null);
         setReasonCode(null);
@@ -535,7 +600,8 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
       }
 
       if (mapped.status === "ready") {
-        setStatusMsg("Report ready");
+        clearCurrentReport();
+        setStatusMsg(mapped.message ?? "This source is staged and ready for your next report.");
         setStep("done");
         setError(null);
         setReasonCode(null);
@@ -553,7 +619,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
         updatedAt: mapped.updatedAt,
       });
     },
-    [setFailureState, uploadId],
+    [clearCurrentReport, setFailureState, uploadId],
   );
 
   const resetFlow = useCallback(() => {
@@ -562,7 +628,6 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     setPlatform(null);
     setFile(null);
     setUploadId(null);
-    setReportId(null);
     setStatusMsg(null);
     setError(null);
     setReasonCode(null);
@@ -574,6 +639,8 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     setProcessingStatus(null);
     setHasResumeCandidate(false);
     setLatestTerminalUpload(null);
+    setRunReportBusy(false);
+    setRunReportError(null);
     if (typeof window !== "undefined") {
       clearUploadResume(window.localStorage);
     }
@@ -590,12 +657,13 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     setStatusMsg(null);
     setProcessingStatus(null);
     setUploadId(null);
-    setReportId(null);
     setError(null);
     setReasonCode(null);
     setErrorDetails(null);
     setErrorRequestId(null);
     setErrorOperation(null);
+    setRunReportBusy(false);
+    setRunReportError(null);
     setStep("platform");
   }, []);
 
@@ -619,7 +687,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
       pollAbortRef.current = controller;
 
       try {
-        await pollUploadStatus({
+        const terminalStatus = await pollUploadStatus({
           signal: controller.signal,
           getStatus: async () => mapUploadStatus(await getUploadStatus(currentUploadId)),
           onUpdate: (status) => {
@@ -629,13 +697,15 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
                 status: status.rawStatus ?? status.status,
                 reason_code: status.reasonCode ?? undefined,
                 message: status.message ?? undefined,
-                report_id: status.reportId ?? undefined,
                 updated_at: status.updatedAt ?? undefined,
               },
               currentUploadId,
             );
           },
         });
+        if (terminalStatus.status === "ready" || terminalStatus.status === "validated" || terminalStatus.status === "failed") {
+          await refreshWorkspaceDataSources();
+        }
       } catch (pollError) {
         if (pollError instanceof UploadPollingCancelledError) {
           return;
@@ -670,7 +740,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
         }
       }
     },
-    [setFailureState, stopPolling, updateProcessingFromEnvelope],
+    [refreshWorkspaceDataSources, setFailureState, stopPolling, updateProcessingFromEnvelope],
   );
 
   const resumeIfBackendActive = useCallback(
@@ -690,17 +760,19 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
         // Capture compact info for the optional non-blocking summary banner shown
         // in the platform step. Only surface for successful terminal states.
         if (mapped.status === "ready" || mapped.status === "validated") {
-          setLatestTerminalUpload({ status: mapped.status, uploadId: activeUploadId, reportId: mapped.reportId });
+          clearCurrentReport();
+          setLatestTerminalUpload({ status: mapped.status, uploadId: activeUploadId });
         }
         return false;
       }
 
+      clearCurrentReport();
       setHasResumeCandidate(false);
       updateProcessingFromEnvelope(statusEnvelope, activeUploadId);
       await pollUntilTerminal(activeUploadId);
       return true;
     },
-    [pollUntilTerminal, updateProcessingFromEnvelope],
+    [clearCurrentReport, pollUntilTerminal, updateProcessingFromEnvelope],
   );
 
   const runUpload = async () => {
@@ -719,6 +791,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
       return;
     }
 
+    clearCurrentReport();
     stopPolling();
     setBusy(true);
     setError(null);
@@ -727,6 +800,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
     setErrorRequestId(null);
     setErrorOperation(null);
     setWarnings([]);
+    setRunReportError(null);
 
     try {
       let uploadFile = file;
@@ -900,6 +974,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           },
           presign.upload_id,
         );
+        await refreshWorkspaceDataSources();
         return;
       }
 
@@ -1117,24 +1192,42 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           ) : latestTerminalUpload ? (
             <InlineAlert
               variant={latestTerminalUpload.status === "ready" ? "success" : "info"}
-              title={latestTerminalUpload.status === "ready" ? "Latest upload is ready" : "Latest upload validated"}
+              title={
+                latestTerminalUpload.status === "ready"
+                  ? "Latest upload is staged"
+                  : "Latest upload validated"
+              }
               data-testid="upload-completed-summary"
             >
               <p className="text-xs text-current/80">
                 {latestTerminalUpload.status === "ready"
-                  ? "Report ready."
-                  : "Upload validated. Report generation may continue based on your plan."}
+                  ? "This source is staged and ready for your next report."
+                  : "Upload validated. Workspace actions below reflect your currently staged sources."}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {latestTerminalUpload.status === "ready" || latestTerminalUpload.reportId ? (
+                {showWorkspaceLoadingGuard ? (
+                  <span className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-300" data-testid="upload-completed-workspace-loading">
+                    Checking workspace...
+                  </span>
+                ) : showWorkspaceViewReport ? (
                   <Link
-                    href={buildReportDetailPathOrIndex(latestTerminalUpload.reportId)}
+                    href={workspaceCurrentReportHref}
                     data-testid="upload-completed-view-report"
                     className="rounded-lg border border-emerald-200/60 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-300/10"
                   >
-                    {latestTerminalUpload.status === "ready" ? "View report" : "View report preview"}
+                    View Report
                   </Link>
-                ) : (
+                ) : showWorkspaceRunReport ? (
+                  <button
+                    type="button"
+                    data-testid="upload-completed-run-report"
+                    onClick={() => void runReport()}
+                    disabled={runReportBusy}
+                    className="rounded-lg border border-emerald-200/60 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {runReportBusy ? "Running..." : "Run Report"}
+                  </button>
+                ) : latestTerminalUpload.status === "validated" || reportAccessBlocked ? (
                   <Link
                     href="/app/billing"
                     className="rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10"
@@ -1145,12 +1238,25 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
                 <button
                   type="button"
                   data-testid="upload-completed-dismiss"
-                  onClick={() => setLatestTerminalUpload(null)}
+                  onClick={() => {
+                    setRunReportError(null);
+                    setLatestTerminalUpload(null);
+                  }}
                   className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100"
                 >
-                  Upload another
+                  Add another source
                 </button>
               </div>
+              {showWorkspaceRunReport && runReportError ? (
+                <p className="mt-2 text-xs text-rose-200" data-testid="upload-completed-run-report-error">
+                  {runReportError}
+                </p>
+              ) : null}
+              {showWorkspaceNeedsReportDrivingSource ? (
+                <p className="mt-2 text-xs text-current/75">
+                  Add a report-driving source before running a combined report.
+                </p>
+              ) : null}
             </InlineAlert>
           ) : null}
           <StepHeader title="Choose platform" subtitle="Select one supported platform to begin." />
@@ -1361,24 +1467,32 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
           {processingStatus === "validated" ? (
             <>
               <InlineAlert variant="info" title={`${selectedPlatformCard?.label ?? "Source"} staged`} data-testid="upload-terminal-validated">
-                {reportId
-                  ? "This source has been validated and staged. View your teaser preview, or add more sources before running your full report."
-                  : "This source is staged and ready. Upgrade to Report or Pro to run a report from your staged sources."}
+                This upload validated successfully. The workspace actions below reflect your currently staged sources.
               </InlineAlert>
               <div className="flex flex-wrap gap-2">
-                {reportId ? (
-                  <Link
-                    href={buildReportDetailPathOrIndex(reportId)}
-                    data-testid="upload-view-report"
-                    className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90"
-                  >
-                    View report preview
+                {showWorkspaceLoadingGuard ? (
+                  <span className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-500" data-testid="upload-workspace-loading">
+                    Checking workspace...
+                  </span>
+                ) : showWorkspaceViewReport ? (
+                  <Link href={workspaceCurrentReportHref} className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
+                    View Report
                   </Link>
-                ) : (
+                ) : showWorkspaceRunReport ? (
+                  <button
+                    type="button"
+                    data-testid="upload-run-report"
+                    onClick={() => void runReport()}
+                    disabled={runReportBusy}
+                    className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {runReportBusy ? "Running..." : "Run Report"}
+                  </button>
+                ) : reportAccessBlocked ? (
                   <Link href="/app/billing" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
                     Unlock report
                   </Link>
-                )}
+                ) : null}
                 <button
                   type="button"
                   onClick={resetFlow}
@@ -1387,21 +1501,49 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
                   Add another source
                 </button>
               </div>
+              {showWorkspaceRunReport && runReportError ? (
+                <p className="text-xs text-rose-600" data-testid="upload-run-report-error">
+                  {runReportError}
+                </p>
+              ) : null}
+              {showWorkspaceNeedsReportDrivingSource ? (
+                <p className="text-xs text-slate-500">
+                  Add a report-driving source before running a combined report.
+                </p>
+              ) : null}
             </>
           ) : (
             <>
               <InlineAlert variant="success" title={`${selectedPlatformCard?.label ?? "Source"} added successfully`} data-testid="upload-terminal-success">
                 <p>This source is ready for your next report.</p>
-                <p className="mt-1 text-current/75">Add more sources to enrich your report, or view your report now.</p>
+                <p className="mt-1 text-current/75">
+                  Add more sources to enrich your report, or use the workspace action below.
+                </p>
               </InlineAlert>
               <div className="flex flex-wrap gap-2">
-                <Link
-                  href={buildReportDetailPathOrIndex(reportId)}
-                  data-testid="upload-view-report"
-                  className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90"
-                >
-                  View report
-                </Link>
+                {showWorkspaceLoadingGuard ? (
+                  <span className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-500" data-testid="upload-workspace-loading">
+                    Checking workspace...
+                  </span>
+                ) : showWorkspaceViewReport ? (
+                  <Link href={workspaceCurrentReportHref} className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
+                    View Report
+                  </Link>
+                ) : showWorkspaceRunReport ? (
+                  <button
+                    type="button"
+                    data-testid="upload-run-report"
+                    onClick={() => void runReport()}
+                    disabled={runReportBusy}
+                    className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {runReportBusy ? "Running..." : "Run Report"}
+                  </button>
+                ) : reportAccessBlocked ? (
+                  <Link href="/app/billing" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
+                    Unlock report
+                  </Link>
+                ) : null}
                 <button
                   type="button"
                   onClick={resetFlow}
@@ -1410,6 +1552,16 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
                   Add another source
                 </button>
               </div>
+              {showWorkspaceRunReport && runReportError ? (
+                <p className="text-xs text-rose-600" data-testid="upload-run-report-error">
+                  {runReportError}
+                </p>
+              ) : null}
+              {showWorkspaceNeedsReportDrivingSource ? (
+                <p className="text-xs text-slate-500">
+                  Add a report-driving source before running a combined report.
+                </p>
+              ) : null}
             </>
           )}
           <p className="text-xs text-slate-500">Upload ID: {uploadId ?? "n/a"}</p>

@@ -52,7 +52,6 @@ test("mixed-platform launch path keeps the newest report and preserves four-plat
   };
 
   const result = await loadLatestDashboardReport({
-    latestUploadReportId: "rep_stale_001",
     fetchReportDetail: async (reportId) => createNormalizedReportDetail(reportId, reportPayloads[reportId]),
     fetchReportsList: async () => ({
       items: [

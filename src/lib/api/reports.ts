@@ -1,4 +1,4 @@
-import { ApiError, apiFetchBlobWithMeta, apiFetchJson, getApiBaseOrigin, getApiBaseUrl, isEntitlementRequiredError } from "./client";
+import { apiFetchBlobWithMeta, apiFetchJson, getApiBaseOrigin, getApiBaseUrl, isEntitlementRequiredError } from "./client";
 import { normalizeReportDetail, type ReportDetail } from "../report/normalize-report-detail";
 import { normalizeReportsListResponse, type ReportListItem, type ReportListResult } from "../report/list-model";
 import { normalizeReportId } from "../report/id";
@@ -9,6 +9,10 @@ const REPORT_LIST_TTL_MS = 5_000;
 const REPORT_LIST_DEFAULT_OFFSET_KEY = -1;
 const reportListCache = new Map<number, { value: ReportListResult; fetchedAt: number }>();
 const reportListInFlight = new Map<number, Promise<ReportListResult>>();
+
+export type CreateReportRunResponse = {
+  reportId: string;
+};
 
 function requireReportId(reportId: unknown, context: string): string {
   const normalized = normalizeReportId(reportId);
@@ -33,6 +37,19 @@ export async function fetchReportDetail(reportId: string): Promise<ReportDetail>
   });
 
   return normalizeReportDetail(canonicalReportId, data as Record<string, unknown>);
+}
+
+export async function createReportRun(): Promise<CreateReportRunResponse> {
+  const data = await apiFetchJson<Record<string, unknown>>("reports.run", "/v1/reports/run", {
+    method: "POST",
+  });
+
+  const reportId = normalizeReportId(data.report_id ?? data.reportId ?? data.id);
+  if (!reportId) {
+    throw new Error("Report run finished without returning a report ID.");
+  }
+
+  return { reportId };
 }
 
 export async function fetchReportArtifactJson(artifactJsonUrl: string): Promise<unknown> {

@@ -1,7 +1,5 @@
 import { ApiError, apiFetchJson, getApiBaseOrigin } from "./client";
 import type {
-  ReportGenerateRequestSchema,
-  ReportGenerateResponseSchema,
   UploadCallbackRequestSchema,
   UploadCallbackResponseSchema,
   UploadPresignRequestSchema,
@@ -18,10 +16,6 @@ export type PresignResponse = Omit<UploadPresignResponseSchema, "upload_id" | "p
 export type UploadCallbackRequest = UploadCallbackRequestSchema;
 export type UploadCallbackResponse = Omit<UploadCallbackResponseSchema, "upload_id"> & {
   upload_id: string;
-};
-export type GenerateReportRequest = ReportGenerateRequestSchema;
-export type GenerateReportResponse = Omit<ReportGenerateResponseSchema, "report_id"> & {
-  report_id: string;
 };
 export type UploadStatusResponse = UploadStatusResponseSchema;
 export type UploadSupportMatrixFamily = {
@@ -114,18 +108,6 @@ export async function finalizeUploadCallback(
   return {
     upload_id: (data.upload_id as string) ?? (data.uploadId as string) ?? payload.upload_id,
     status: (data.status as string) ?? undefined,
-    warnings: (data.warnings as string[]) ?? undefined,
-  };
-}
-
-export async function generateReport(payload: GenerateReportRequest): Promise<GenerateReportResponse> {
-  const data = await apiFetchJson<Partial<ReportGenerateResponseSchema> & Record<string, unknown>>("reports.generate", "/v1/reports", {
-    method: "POST",
-    body: JSON.stringify({ upload_ids: [payload.upload_id] }),
-  });
-
-  return {
-    report_id: (data.report_id as string) ?? (data.reportId as string),
     warnings: (data.warnings as string[]) ?? undefined,
   };
 }

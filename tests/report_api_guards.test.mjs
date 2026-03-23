@@ -88,3 +88,58 @@ test("getReportErrorMessage maps canonical ENTITLEMENT_REQUIRED to upgrade guida
     "This action requires Report or Pro access. Continue in Billing to upgrade or restore access.",
   );
 });
+
+test("createReportRun uses only the staged workspace run path and returns a canonical report id", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  const requests = [];
+
+  global.fetch = async (url, init = {}) => {
+    requests.push({ url: String(url), method: init.method ?? "GET" });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: (key) => (key === "content-type" ? "application/json" : null) },
+      text: async () => JSON.stringify({ report_id: "rep_run_123" }),
+    };
+  };
+
+  try {
+    const { createReportRun } = await loadReportsModule(Date.now() + 4);
+    const result = await createReportRun();
+
+    assert.deepEqual(requests, [{ url: "https://api.example.test/v1/reports/run", method: "POST" }]);
+    assert.equal(result.reportId, "rep_run_123");
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("createReportRun fails explicitly when /v1/reports/run is unavailable instead of falling back to /v1/reports", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  const requests = [];
+
+  global.fetch = async (url, init = {}) => {
+    requests.push({ url: String(url), method: init.method ?? "GET" });
+    return {
+      ok: false,
+      status: 404,
+      headers: {
+        get: (key) => {
+          if (key === "content-type") return "application/json";
+          return null;
+        },
+      },
+      text: async () => JSON.stringify({ message: "missing", code: "NOT_FOUND" }),
+    };
+  };
+
+  try {
+    const { createReportRun } = await loadReportsModule(Date.now() + 5);
+    await assert.rejects(() => createReportRun(), /missing/i);
+    assert.deepEqual(requests, [{ url: "https://api.example.test/v1/reports/run", method: "POST" }]);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});

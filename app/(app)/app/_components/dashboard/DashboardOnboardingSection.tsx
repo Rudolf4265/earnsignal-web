@@ -76,11 +76,11 @@ export function DashboardOnboardingSection({
           data-testid="dashboard-onboarding-how-it-works"
         >
           <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">EarnSigma in one minute</p>
-          <h3 className="mt-2 text-lg font-semibold tracking-tight text-brand-text-primary">Upload, validate, then review the latest workspace evidence.</h3>
+          <h3 className="mt-2 text-lg font-semibold tracking-tight text-brand-text-primary">Upload, stage sources, then run a combined report when you are ready.</h3>
           <ol className="mt-3 space-y-2 text-sm leading-relaxed text-brand-text-secondary">
             <li>Upload a supported file from your creator revenue workflow.</li>
-            <li>EarnSigma validates the file first, then continues processing when report generation is available.</li>
-            <li>Your dashboard and latest report update as soon as the workspace is ready.</li>
+            <li>EarnSigma validates and stages that source in your workspace.</li>
+            <li>Run a combined report explicitly when you want to generate the latest report and dashboard detail.</li>
           </ol>
         </article>
 

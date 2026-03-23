@@ -138,7 +138,6 @@ async function loadDashboardData(options?: { forceRefresh?: boolean }): Promise<
     }
 
     const latestReport = await loadLatestDashboardReport({
-      latestUploadReportId: latestUpload?.reportId ?? null,
       fetchReportDetail,
       fetchReportsList: () => fetchReportsList(null, { forceRefresh }),
       reportsList: reports,

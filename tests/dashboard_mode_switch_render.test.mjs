@@ -56,7 +56,7 @@ test("dashboard onboarding section explains the product, modes, and next-step gu
   assert.equal(source.includes("getSupportedRevenueUploadFormatGuidance"), true);
   assert.equal(source.includes("Start with a supported upload."), true);
   assert.equal(source.includes("Upload a supported file from your creator revenue workflow."), true);
-  assert.equal(source.includes("latest supported uploads"), true);
+  assert.equal(source.includes("run a combined report when you are ready"), true);
   assert.equal(source.includes("supported CSV upload"), false);
   assert.equal(source.includes("Earn tracks revenue, subscriptions, and monetization health from the latest report."), true);
   assert.equal(source.includes("Grow is the audience and engagement side. Richer scorecards appear when supported analytics are available."), true);

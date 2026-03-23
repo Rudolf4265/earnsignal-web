@@ -6,6 +6,7 @@ import {
   canAccessDashboardFromEntitlement,
   canDownloadPdfFromEntitlement,
   canGenerateReportFromEntitlement,
+  isFounderFromEntitlement,
   canViewOwnedReportFromEntitlement,
   canViewReportHistoryFromEntitlement,
   hasProEquivalentEntitlement,
@@ -34,6 +35,7 @@ export type EntitlementStateSnapshot = {
   canDownloadPdf: boolean;
   canAccessDashboard: boolean;
   hasProAccess: boolean;
+  isFounder: boolean;
   refresh: () => Promise<void>;
 };
 
@@ -59,6 +61,7 @@ export function useEntitlementState(): EntitlementStateSnapshot {
       canDownloadPdf: canDownloadPdfFromEntitlement(snapshot),
       canAccessDashboard: canAccessDashboardFromEntitlement(snapshot),
       hasProAccess: hasProEquivalentEntitlement(snapshot),
+      isFounder: isFounderFromEntitlement(snapshot),
       refresh: async () => {
         await gate.actions.refreshEntitlements({ forceRefresh: true });
       },

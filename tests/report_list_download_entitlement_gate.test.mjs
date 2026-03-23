@@ -10,14 +10,21 @@ test("report list page derives PDF action state from entitlement snapshot", asyn
 
   assert.equal(source.includes('import { useEntitlementState } from "../../_components/use-entitlement-state";'), true);
   assert.equal(source.includes("const entitlementState = useEntitlementState();"), true);
-  assert.equal(source.includes("const canOfferPdfDownload = row.canDownload && entitlementState.canDownloadPdf;"), true);
+  assert.equal(source.includes("const canOfferPdfDownload = row.canDownload && (entitlementState.canDownloadPdf || entitlementState.isFounder);"), true);
 });
 
 test("report list blocks download handler when canonical PDF entitlement is false", async () => {
   const source = await readFile(reportListPagePath, "utf8");
 
-  assert.equal(source.includes("if (!row.canDownload || !entitlementState.canDownloadPdf || !row.reportId || !row.artifactUrl || downloadingReportId)"), true);
+  assert.equal(source.includes("(!entitlementState.canDownloadPdf && !entitlementState.isFounder)"), true);
   assert.equal(source.includes('const downloadTooltip = row.canDownload ? "Report or Pro access is required to download this PDF" : "PDF not available yet";'), true);
+});
+
+test("report list suppresses billing CTA when founder override is active", async () => {
+  const source = await readFile(reportListPagePath, "utf8");
+
+  assert.equal(source.includes("state.entitlementRequired && !entitlementState.isFounder"), true);
+  assert.equal(source.includes("downloadEntitlementRequired && !entitlementState.isFounder"), true);
 });
 
 test("report list renders source summary metadata when normalized source fields exist", async () => {

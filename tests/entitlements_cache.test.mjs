@@ -30,7 +30,7 @@ async function buildEntitlementsTestModule(tag) {
   const mockSpecifier = `./mocks/api-client-${tag}.mjs`;
   const patched = source
     .replace('from "./client";', `from "${mockSpecifier}";`)
-    .replace('from "../entitlements/model";', 'from "../src/lib/entitlements/model.ts";');
+    .replace('from "../entitlements/model";', `from "../src/lib/entitlements/model.ts?t=${tag}";`);
   const outDir = path.resolve(".tmp-tests");
   await mkdir(path.join(outDir, "mocks"), { recursive: true });
 
@@ -169,6 +169,50 @@ test("fetchEntitlements defaults to free upload validation when backend omits pl
   resetEntitlementsCache();
   delete global.window;
   delete global.fetch;
+});
+
+test("fetchEntitlements applies founder email override before returning normalized entitlements", async () => {
+  const previousFounderEmails = process.env.NEXT_PUBLIC_FOUNDER_EMAILS;
+  process.env.NEXT_PUBLIC_FOUNDER_EMAILS = "founder@example.com";
+  global.window = createWindow();
+  global.fetch = async () =>
+    jsonResponse({
+      effective_plan_tier: "free",
+      entitlement_source: "none",
+      access_granted: false,
+      access_reason_code: "ENTITLEMENT_REQUIRED",
+      billing_required: true,
+      can_download_pdf: false,
+      can_access_dashboard: false,
+    });
+
+  const moduleUrl = await buildEntitlementsTestModule(`founder-${Date.now()}`);
+  const { fetchEntitlements, resetEntitlementsCache } = await import(moduleUrl);
+
+  try {
+    const value = await fetchEntitlements({ forceRefresh: true, resolvedEmail: "founder@example.com" });
+
+    assert.equal(value.isFounder, true);
+    assert.equal(value.is_founder, true);
+    assert.equal(value.accessGranted, true);
+    assert.equal(value.billingRequired, false);
+    assert.equal(value.canDownloadPdf, true);
+    assert.equal(value.canAccessDashboardIntelligence, true);
+    assert.equal(value.canViewWowSummary, true);
+    assert.equal(value.canViewOpportunity, true);
+    assert.equal(value.canViewStrengthsRisks, true);
+    assert.equal(value.canViewNextActions, true);
+    assert.equal(value.canViewTeaserPreview, false);
+  } finally {
+    resetEntitlementsCache();
+    if (typeof previousFounderEmails === "string") {
+      process.env.NEXT_PUBLIC_FOUNDER_EMAILS = previousFounderEmails;
+    } else {
+      delete process.env.NEXT_PUBLIC_FOUNDER_EMAILS;
+    }
+    delete global.window;
+    delete global.fetch;
+  }
 });
 
 test("fetchEntitlements force refresh bypasses cache", async () => {

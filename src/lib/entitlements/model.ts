@@ -6,6 +6,8 @@ export type EntitlementSnapshotLike = {
   planTier?: string | null;
   plan_tier?: string | null;
   plan?: string | null;
+  isFounder?: boolean | null;
+  is_founder?: boolean | null;
   entitlementSource?: string | null;
   entitlement_source?: string | null;
   source?: string | null;
@@ -40,6 +42,16 @@ export type EntitlementSnapshotLike = {
   can_access_recurring_monitoring?: boolean | null;
   canAccessProComparisonsOrFutureProFeatures?: boolean | null;
   can_access_pro_comparisons_or_future_pro_features?: boolean | null;
+  canViewWowSummary?: boolean | null;
+  can_view_wow_summary?: boolean | null;
+  canViewOpportunity?: boolean | null;
+  can_view_opportunity?: boolean | null;
+  canViewStrengthsRisks?: boolean | null;
+  can_view_strengths_risks?: boolean | null;
+  canViewNextActions?: boolean | null;
+  can_view_next_actions?: boolean | null;
+  canViewTeaserPreview?: boolean | null;
+  can_view_teaser_preview?: boolean | null;
   accessReasonCode?: string | null;
   access_reason_code?: string | null;
   reason_code?: string | null;
@@ -136,6 +148,11 @@ const COMMERCIAL_CAPABILITY_MATRIX: CommercialCapabilityMatrix = {
 };
 
 const BILLING_REQUIRED_REASON_CODES = new Set(["ENTITLEMENT_REQUIRED", "BILLING_REQUIRED", "PLAN_REQUIRED", "UPGRADE_REQUIRED"]);
+export const FOUNDER_ACCESS_REASON_CODE = "FOUNDER_PROTECTED";
+const FOUNDER_EMAIL_ALLOWLIST = (process.env.NEXT_PUBLIC_FOUNDER_EMAILS ?? process.env.FOUNDER_EMAILS ?? "")
+  .split(",")
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean);
 
 function asBoolean(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
@@ -152,6 +169,11 @@ function normalizeString(value: string | null | undefined): string | null {
   }
 
   return trimmed;
+}
+
+function normalizeEmail(value: string | null | undefined): string | null {
+  const normalized = normalizeString(value);
+  return normalized ? normalized.toLowerCase() : null;
 }
 
 export function normalizePlanTierAlias(value: string | null | undefined): CommercialTier {
@@ -198,9 +220,105 @@ export function resolveAccessReasonCode(entitlements: EntitlementSnapshotLike | 
   return candidate ? candidate.toUpperCase() : null;
 }
 
+export function isFounderEmail(email: string | null | undefined): boolean {
+  const normalizedEmail = normalizeEmail(email);
+  return normalizedEmail ? FOUNDER_EMAIL_ALLOWLIST.includes(normalizedEmail) : false;
+}
+
+export function isFounderFromEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
+  if (!entitlements) {
+    return false;
+  }
+
+  const explicit = asBoolean(entitlements.isFounder) ?? asBoolean(entitlements.is_founder);
+  if (explicit === true) {
+    return true;
+  }
+
+  return resolveAccessReasonCode(entitlements) === FOUNDER_ACCESS_REASON_CODE;
+}
+
+export function applyFounderOverride<T extends EntitlementSnapshotLike>(
+  entitlements: T | null | undefined,
+  resolvedEmail?: string | null,
+): T | null | undefined {
+  if (!entitlements) {
+    return entitlements;
+  }
+
+  const detectedFounderOverride = isFounderFromEntitlement(entitlements) || isFounderEmail(resolvedEmail);
+  if (!detectedFounderOverride) {
+    return entitlements;
+  }
+
+  const founderSource = isFounderFromEntitlement(entitlements) ? resolveEntitlementSource(entitlements) ?? "admin_override" : "admin_override";
+  const founderReasonCode = isFounderFromEntitlement(entitlements)
+    ? resolveAccessReasonCode(entitlements) ?? FOUNDER_ACCESS_REASON_CODE
+    : FOUNDER_ACCESS_REASON_CODE;
+
+  return {
+    ...entitlements,
+    isFounder: true,
+    is_founder: true,
+    entitlementSource: founderSource,
+    entitlement_source: founderSource,
+    source: founderSource,
+    accessGranted: true,
+    access_granted: true,
+    isActive: true,
+    is_active: true,
+    entitled: true,
+    billingRequired: false,
+    billing_required: false,
+    accessReasonCode: founderReasonCode,
+    access_reason_code: founderReasonCode,
+    reason_code: founderReasonCode,
+    canUpload: true,
+    can_upload: true,
+    canValidateUpload: true,
+    can_validate_upload: true,
+    canGeneratePaidReport: true,
+    can_generate_paid_report: true,
+    canGenerateReport: true,
+    can_generate_report: true,
+    canViewOwnedReport: true,
+    can_view_owned_report: true,
+    canViewReports: true,
+    can_view_reports: true,
+    canDownloadOwnedReport: true,
+    can_download_owned_report: true,
+    canDownloadPdf: true,
+    can_download_pdf: true,
+    canAccessDashboardIntelligence: true,
+    can_access_dashboard_intelligence: true,
+    canAccessDashboard: true,
+    can_access_dashboard: true,
+    canViewReportHistory: true,
+    can_view_report_history: true,
+    canAccessRecurringMonitoring: true,
+    can_access_recurring_monitoring: true,
+    canAccessProComparisonsOrFutureProFeatures: true,
+    can_access_pro_comparisons_or_future_pro_features: true,
+    canViewWowSummary: true,
+    can_view_wow_summary: true,
+    canViewOpportunity: true,
+    can_view_opportunity: true,
+    canViewStrengthsRisks: true,
+    can_view_strengths_risks: true,
+    canViewNextActions: true,
+    can_view_next_actions: true,
+    canViewTeaserPreview: false,
+    can_view_teaser_preview: false,
+  } as T;
+}
+
 export function resolveAccessGranted(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
   if (!entitlements) {
     return false;
+  }
+
+  if (isFounderFromEntitlement(entitlements)) {
+    return true;
   }
 
   const explicit =
@@ -215,6 +333,10 @@ export function resolveAccessGranted(entitlements: EntitlementSnapshotLike | nul
 
 export function resolveBillingRequired(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
   if (!entitlements) {
+    return false;
+  }
+
+  if (isFounderFromEntitlement(entitlements)) {
     return false;
   }
 
@@ -278,6 +400,16 @@ function resolveExplicitCapability(
         asBoolean(entitlements.canAccessProComparisonsOrFutureProFeatures) ??
         asBoolean(entitlements.can_access_pro_comparisons_or_future_pro_features)
       );
+    case "canViewWowSummary":
+      return asBoolean(entitlements.canViewWowSummary) ?? asBoolean(entitlements.can_view_wow_summary);
+    case "canViewOpportunity":
+      return asBoolean(entitlements.canViewOpportunity) ?? asBoolean(entitlements.can_view_opportunity);
+    case "canViewStrengthsRisks":
+      return asBoolean(entitlements.canViewStrengthsRisks) ?? asBoolean(entitlements.can_view_strengths_risks);
+    case "canViewNextActions":
+      return asBoolean(entitlements.canViewNextActions) ?? asBoolean(entitlements.can_view_next_actions);
+    case "canViewTeaserPreview":
+      return asBoolean(entitlements.canViewTeaserPreview) ?? asBoolean(entitlements.can_view_teaser_preview);
     default:
       return undefined;
   }
@@ -289,6 +421,10 @@ export function resolveCapability(
 ): boolean {
   if (!entitlements) {
     return false;
+  }
+
+  if (isFounderFromEntitlement(entitlements)) {
+    return capability === "canViewTeaserPreview" ? false : true;
   }
 
   const tier = resolveEffectivePlanTier(entitlements);

@@ -43,6 +43,7 @@ test("report detail keeps Pro section gating centralized through canonical helpe
   assert.equal(source.includes('from "../entitlements/model"'), true);
   assert.equal(source.includes("canDownloadPdfFromEntitlement"), true);
   assert.equal(source.includes("hasProEquivalentEntitlement"), true);
+  assert.equal(source.includes("isFounderFromEntitlement"), true);
   assert.equal(source.includes('return hasProEquivalentEntitlement(entitlements) ? "pro-unlocked" : "pro-locked";'), true);
 });
 
@@ -51,6 +52,15 @@ test("report detail PDF gating uses owned-report download capability instead of 
 
   assert.equal(source.includes('return canDownloadPdfFromEntitlement(entitlements) ? "pdf-unlocked" : "pdf-locked";'), true);
   assert.equal(source.includes('return mode === "pdf-unlocked";'), true);
+});
+
+test("report detail gating short-circuits founder override before paid-plan checks", async () => {
+  const source = await readFile(reportDetailGatingPath, "utf8");
+
+  assert.equal(source.includes('if (isFounderFromEntitlement(entitlements)) {'), true);
+  assert.equal(source.includes('return "pro-unlocked";'), true);
+  assert.equal(source.includes('return "report-unlocked";'), true);
+  assert.equal(source.includes('return "pdf-unlocked";'), true);
 });
 
 test("report detail gating defines loading-safe handling for unresolved entitlement states", async () => {
@@ -114,6 +124,37 @@ test("report detail PDF access mode unlocks for one-time report access", async (
 
   assert.equal(mode, "pdf-unlocked");
   assert.equal(canAccessFullReportPdf(mode), true);
+});
+
+test("report detail gating unlocks founder users even when the base plan is free", async () => {
+  const { buildReportDetailSectionGatingModel, resolveReportDetailPdfAccessMode } = await loadModule(Date.now() + 115);
+
+  const entitlements = createEntitlements({
+    effectivePlanTier: "free",
+    plan: "free",
+    plan_tier: "free",
+    planTier: "free",
+    accessGranted: false,
+    isActive: false,
+    is_active: false,
+    isFounder: true,
+    is_founder: true,
+    accessReasonCode: "FOUNDER_PROTECTED",
+    access_reason_code: "FOUNDER_PROTECTED",
+  });
+
+  const sectionModel = buildReportDetailSectionGatingModel({
+    gateState: "authed_entitled",
+    entitlements,
+  });
+  const pdfMode = resolveReportDetailPdfAccessMode({
+    gateState: "authed_entitled",
+    entitlements,
+  });
+
+  assert.equal(sectionModel.wowSummary, "report-unlocked");
+  assert.equal(sectionModel.subscriberHealth, "pro-unlocked");
+  assert.equal(pdfMode, "pdf-unlocked");
 });
 
 test("report detail PDF access mode locks free users", async () => {

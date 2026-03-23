@@ -51,7 +51,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [errorRequestId, setErrorRequestId] = useState<string | undefined>(undefined);
 
-  const loadEntitlements = useCallback(async (options?: { forceRefresh?: boolean }) => {
+  const loadEntitlements = useCallback(async (options?: { forceRefresh?: boolean; resolvedEmail?: string | null }) => {
     const forceRefresh = options?.forceRefresh ?? false;
     if (entitlementsInFlightRef.current) {
       return entitlementsInFlightRef.current;
@@ -70,7 +70,10 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
 
     const request = (async () => {
       try {
-        const nextEntitlements = await fetchEntitlements({ forceRefresh });
+        const nextEntitlements = await fetchEntitlements({
+          forceRefresh,
+          resolvedEmail: options?.resolvedEmail ?? session?.user?.email ?? null,
+        });
         if (requestId !== entitlementsRequestRef.current) {
           return nextEntitlements;
         }
@@ -113,7 +116,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
         entitlementsInFlightRef.current = null;
       }
     }
-  }, []);
+  }, [session?.user?.email]);
 
   const syncSessionState = useCallback((nextSession: Session | null) => {
     if (!nextSession) {
@@ -145,7 +148,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
         setAdminStatus("not_admin");
       });
 
-    void loadEntitlements({ forceRefresh: true });
+    void loadEntitlements({ forceRefresh: true, resolvedEmail: nextSession.user.email ?? null });
   }, [loadEntitlements]);
 
   useEffect(() => {
@@ -197,7 +200,7 @@ export function AppGateProvider({ children }: { children: React.ReactNode }) {
         const supabase = await createBrowserSupabaseClient();
         await supabase.auth.signOut();
       },
-      refreshEntitlements: loadEntitlements,
+      refreshEntitlements: (options) => loadEntitlements(options),
     }),
     [loadEntitlements],
   );

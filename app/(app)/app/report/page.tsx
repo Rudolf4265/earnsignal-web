@@ -157,7 +157,13 @@ export default function ReportsPage() {
 
   const handleDownload = useCallback(
     async (row: ReportListRow) => {
-      if (!row.canDownload || !entitlementState.canDownloadPdf || !row.reportId || !row.artifactUrl || downloadingReportId) {
+      if (
+        !row.canDownload ||
+        (!entitlementState.canDownloadPdf && !entitlementState.isFounder) ||
+        !row.reportId ||
+        !row.artifactUrl ||
+        downloadingReportId
+      ) {
         return;
       }
 
@@ -180,7 +186,7 @@ export default function ReportsPage() {
         setDownloadingReportId(null);
       }
     },
-    [downloadingReportId, entitlementState.canDownloadPdf],
+    [downloadingReportId, entitlementState.canDownloadPdf, entitlementState.isFounder],
   );
 
   return (
@@ -203,7 +209,7 @@ export default function ReportsPage() {
             requestId={state.requestId}
             onRetry={retryLoad}
             action={
-              state.entitlementRequired ? (
+              state.entitlementRequired && !entitlementState.isFounder ? (
                 <Link href="/app/billing" className={buttonClassName({ variant: "secondary", size: "sm" })}>
                   Go to Billing
                 </Link>
@@ -223,7 +229,7 @@ export default function ReportsPage() {
               setDownloadRequestId(undefined);
             }}
             action={
-              downloadEntitlementRequired ? (
+              downloadEntitlementRequired && !entitlementState.isFounder ? (
                 <Link href="/app/billing" className={buttonClassName({ variant: "secondary", size: "sm" })}>
                   Go to Billing
                 </Link>
@@ -268,7 +274,7 @@ export default function ReportsPage() {
                 </div>
 
                 {reportRows.map((row) => {
-                  const canOfferPdfDownload = row.canDownload && entitlementState.canDownloadPdf;
+                  const canOfferPdfDownload = row.canDownload && (entitlementState.canDownloadPdf || entitlementState.isFounder);
                   const downloadTooltip = row.canDownload ? "Report or Pro access is required to download this PDF" : "PDF not available yet";
 
                   return (

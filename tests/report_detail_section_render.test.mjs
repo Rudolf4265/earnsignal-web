@@ -62,10 +62,10 @@ test("report detail includes loading-safe placeholders for unresolved entitlemen
 test("report detail keeps Pro content conditional to avoid locked-state leaks", async () => {
   const source = await readFile(reportDetailPagePath, "utf8");
 
-  assert.equal(source.includes("const showSubscriberHealthContent = canRenderReportDetailProContent(proSectionGate.subscriberHealth);"), true);
-  assert.equal(source.includes("const showGrowthRecommendationsContent = canRenderReportDetailProContent(proSectionGate.growthRecommendations);"), true);
-  assert.equal(source.includes("const showRevenueOutlookContent = canRenderReportDetailProContent(proSectionGate.revenueOutlook);"), true);
-  assert.equal(source.includes("const showPlatformRiskExplanationContent = canRenderReportDetailProContent(proSectionGate.platformRiskExplanation);"), true);
+  assert.equal(source.includes("const showSubscriberHealthContent = isFounder || canRenderReportDetailProContent(proSectionGate.subscriberHealth);"), true);
+  assert.equal(source.includes("const showGrowthRecommendationsContent = isFounder || canRenderReportDetailProContent(proSectionGate.growthRecommendations);"), true);
+  assert.equal(source.includes("const showRevenueOutlookContent = isFounder || canRenderReportDetailProContent(proSectionGate.revenueOutlook);"), true);
+  assert.equal(source.includes("const showPlatformRiskExplanationContent = isFounder || canRenderReportDetailProContent(proSectionGate.platformRiskExplanation);"), true);
 });
 
 test("report detail renders truth notices and metric badges for limited states", async () => {
@@ -93,6 +93,7 @@ test("report detail header renders source framing and included platform chips", 
 test("report detail keeps active PDF actions in the Pro-only branch", async () => {
   const source = await readFile(reportDetailPagePath, "utf8");
 
+  assert.equal(source.includes("const canAccessFullPdf = isFounder || canAccessFullReportPdf(pdfAccessMode);"), true);
   assert.equal(source.includes('pdfAccessMode === "pdf-unlocked"'), true);
   assert.equal(source.includes('canAccessPdf ? ('), true);
   assert.equal(source.includes('"Open PDF"'), true);
@@ -134,8 +135,19 @@ test("report detail preserves Pro artifact-missing PDF unavailable state", async
 test("report detail gates raw artifact debug payload behind Pro access", async () => {
   const source = await readFile(reportDetailPagePath, "utf8");
 
-  assert.equal(source.includes("const canAccessDebugPayload = useMemo(() => hasProEquivalentEntitlement(entitlements), [entitlements]);"), true);
+  assert.equal(source.includes("const canAccessDebugPayload = useMemo(() => isFounder || hasProEquivalentEntitlement(entitlements), [entitlements, isFounder]);"), true);
   assert.equal(source.includes("canAccessDebugPayload ? ("), true);
   assert.equal(source.includes('data-testid="report-debug-accordion"'), true);
   assert.equal(source.includes("Debug payload view is available with Pro access."), true);
+});
+
+test("report detail suppresses founder paywalls and renders retry instead of upgrade CTA on gated API responses", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8");
+
+  assert.equal(source.includes("const showFullReportContent = isFounder || canRenderReportDetailReportContent(proSectionGate.wowSummary);"), true);
+  assert.equal(source.includes('!isFounder && proSectionGate.wowSummary === "report-locked" && freeTeaserModel'), true);
+  assert.equal(source.includes('state.view === "entitlement_required" && !isFounder'), true);
+  assert.equal(source.includes('data-testid="report-founder-override-retry"'), true);
+  assert.equal(source.includes("Founder override was detected, but this report request still returned a gated response."), true);
+  assert.equal(source.includes("Go to Billing"), true);
 });

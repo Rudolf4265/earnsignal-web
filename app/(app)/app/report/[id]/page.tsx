@@ -33,7 +33,7 @@ import {
   canRenderReportDetailReportContent,
   resolveReportDetailPdfAccessMode,
 } from "@/src/lib/report/detail-gating";
-import { hasProEquivalentEntitlement } from "@/src/lib/entitlements/model";
+import { hasProEquivalentEntitlement, isFounderFromEntitlement } from "@/src/lib/entitlements/model";
 import { buildReportDetailPresentationModel, type ReportDetailPresentationNotice } from "@/src/lib/report/detail-presentation";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability";
@@ -465,8 +465,9 @@ export default function ReportPage() {
       }),
     [entitlements, gateState],
   );
-  const canAccessFullPdf = canAccessFullReportPdf(pdfAccessMode);
-  const canAccessDebugPayload = useMemo(() => hasProEquivalentEntitlement(entitlements), [entitlements]);
+  const isFounder = useMemo(() => isFounderFromEntitlement(entitlements), [entitlements]);
+  const canAccessFullPdf = isFounder || canAccessFullReportPdf(pdfAccessMode);
+  const canAccessDebugPayload = useMemo(() => isFounder || hasProEquivalentEntitlement(entitlements), [entitlements, isFounder]);
 
   const wowSummary = useMemo(
     () =>
@@ -479,7 +480,7 @@ export default function ReportPage() {
     () => (presentation ? buildReportFreeTeaserViewModel(presentation) : null),
     [presentation],
   );
-  const showFullReportContent = canRenderReportDetailReportContent(proSectionGate.wowSummary);
+  const showFullReportContent = isFounder || canRenderReportDetailReportContent(proSectionGate.wowSummary);
 
   const createdAtLabel = formatReportCreatedAt(state.report?.createdAt ?? state.artifactModel?.createdAt ?? null);
   const status = state.report?.status ?? "unknown";
@@ -513,10 +514,10 @@ export default function ReportPage() {
       return "Unable to serialize artifact JSON.";
     }
   }, [debugOpen, state.artifactRaw]);
-  const showSubscriberHealthContent = canRenderReportDetailProContent(proSectionGate.subscriberHealth);
-  const showGrowthRecommendationsContent = canRenderReportDetailProContent(proSectionGate.growthRecommendations);
-  const showRevenueOutlookContent = canRenderReportDetailProContent(proSectionGate.revenueOutlook);
-  const showPlatformRiskExplanationContent = canRenderReportDetailProContent(proSectionGate.platformRiskExplanation);
+  const showSubscriberHealthContent = isFounder || canRenderReportDetailProContent(proSectionGate.subscriberHealth);
+  const showGrowthRecommendationsContent = isFounder || canRenderReportDetailProContent(proSectionGate.growthRecommendations);
+  const showRevenueOutlookContent = isFounder || canRenderReportDetailProContent(proSectionGate.revenueOutlook);
+  const showPlatformRiskExplanationContent = isFounder || canRenderReportDetailProContent(proSectionGate.platformRiskExplanation);
 
   return (
     <FeatureGuard feature="report">
@@ -639,7 +640,7 @@ export default function ReportPage() {
 
           {showFullReportContent && wowSummary ? (
             <ReportWowSummary model={wowSummary} />
-          ) : proSectionGate.wowSummary === "report-locked" && freeTeaserModel ? (
+          ) : !isFounder && proSectionGate.wowSummary === "report-locked" && freeTeaserModel ? (
             <ReportFreeTeaser model={freeTeaserModel} />
           ) : null}
 
@@ -1269,13 +1270,25 @@ export default function ReportPage() {
         </section>
       ) : null}
 
-      {state.view === "entitlement_required" ? (
+      {state.view === "entitlement_required" && !isFounder ? (
         <section className="space-y-3" data-testid="report-entitlement-required">
           <h1 className="text-2xl font-semibold">Upgrade required</h1>
           <p className="text-slate-400">This report requires Report or Pro access. Continue in Billing to unlock access.</p>
           <Link href="/app/billing" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
             Go to Billing
           </Link>
+        </section>
+      ) : state.view === "entitlement_required" ? (
+        <section className="space-y-3" data-testid="report-founder-override-retry">
+          <h1 className="text-2xl font-semibold">Access sync required</h1>
+          <p className="text-slate-400">Founder override was detected, but this report request still returned a gated response. Retry to refresh access.</p>
+          <button
+            type="button"
+            onClick={() => setReloadNonce((prev) => prev + 1)}
+            className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100"
+          >
+            Retry
+          </button>
         </section>
       ) : null}
 

@@ -315,6 +315,29 @@ test("pro user unlocks both report-tier and pro-only sections", async () => {
   assert.equal(canRenderReportDetailProContent(model.subscriberHealth), true);
 });
 
+test("founder user unlocks both report-tier and pro-only sections without a paid plan", async () => {
+  const { buildReportDetailSectionGatingModel, canRenderReportDetailProContent, canRenderReportDetailReportContent } = await loadGating(265);
+
+  const model = buildReportDetailSectionGatingModel({
+    gateState: "authed_entitled",
+    entitlements: createEntitlements({
+      effectivePlanTier: "free",
+      plan: "free",
+      plan_tier: "free",
+      planTier: "free",
+      accessGranted: false,
+      isActive: false,
+      isFounder: true,
+      is_founder: true,
+      accessReasonCode: "FOUNDER_PROTECTED",
+      access_reason_code: "FOUNDER_PROTECTED",
+    }),
+  });
+
+  assert.equal(canRenderReportDetailReportContent(model.wowSummary), true);
+  assert.equal(canRenderReportDetailProContent(model.subscriberHealth), true);
+});
+
 // ── Part 3 & 4: Free teaser component and upgrade copy ────────────────────────
 
 test("ReportFreeTeaser component exists with correct test IDs", async () => {
@@ -417,7 +440,15 @@ test("report page gates wow summary behind showFullReportContent", async () => {
 
 test("report page shows teaser when report-locked", async () => {
   const source = await readFile(reportPagePath, "utf8");
-  assert.equal(source.includes('proSectionGate.wowSummary === "report-locked" && freeTeaserModel'), true);
+  assert.equal(source.includes('!isFounder && proSectionGate.wowSummary === "report-locked" && freeTeaserModel'), true);
+});
+
+test("report page derives founder override from entitlement state before paywall rendering", async () => {
+  const source = await readFile(reportPagePath, "utf8");
+
+  assert.equal(source.includes("isFounderFromEntitlement"), true);
+  assert.equal(source.includes("const isFounder = useMemo(() => isFounderFromEntitlement(entitlements), [entitlements]);"), true);
+  assert.equal(source.includes("const showFullReportContent = isFounder || canRenderReportDetailReportContent(proSectionGate.wowSummary);"), true);
 });
 
 test("report page gates hero metrics behind showFullReportContent", async () => {

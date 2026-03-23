@@ -6,11 +6,14 @@ import type {
   EntitlementsResponseSchema,
 } from "./generated";
 import {
+  applyFounderOverride,
+  isFounderFromEntitlement,
   resolveCapability,
   resolveBillingRequired,
   resolveEffectivePlanTier,
   resolveEntitlementSource,
 } from "../entitlements/model";
+import type { EntitlementSnapshotLike } from "../entitlements/model";
 
 export type EntitlementFeatures = Record<string, boolean | undefined>;
 export type CanonicalPlanTier = "free" | "report" | "pro";
@@ -64,11 +67,17 @@ export type EntitlementsResponse = Omit<
   canAccessDashboardIntelligence: boolean;
   canAccessRecurringMonitoring: boolean;
   canAccessProComparisonsOrFutureProFeatures: boolean;
+  canViewWowSummary: boolean;
+  canViewOpportunity: boolean;
+  canViewStrengthsRisks: boolean;
+  canViewNextActions: boolean;
+  canViewTeaserPreview: boolean;
   reportsRemainingThisPeriod: number | null;
   reportsGeneratedThisPeriod: number | null;
   monthlyReportLimit: number | null;
   billingPeriodStart: string | null;
   billingPeriodEnd: string | null;
+  isFounder: boolean;
   portalUrl?: string;
   effective_plan_tier: string;
   entitlement_source: string | null;
@@ -92,12 +101,18 @@ export type EntitlementsResponse = Omit<
   can_access_dashboard_intelligence: boolean;
   can_access_recurring_monitoring: boolean;
   can_access_pro_comparisons_or_future_pro_features: boolean;
+  can_view_wow_summary: boolean;
+  can_view_opportunity: boolean;
+  can_view_strengths_risks: boolean;
+  can_view_next_actions: boolean;
+  can_view_teaser_preview: boolean;
   reports_remaining_this_period: number | null;
   reports_generated_this_period: number | null;
   monthly_report_limit: number | null;
   billing_period_start: string | null;
   billing_period_end: string | null;
   features: EntitlementFeatures;
+  is_founder: boolean;
   portal_url?: string;
 };
 
@@ -432,6 +447,11 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
     capabilitySnapshot,
     "canAccessProComparisonsOrFutureProFeatures",
   );
+  const canViewWowSummary = resolveCapability(capabilitySnapshot, "canViewWowSummary");
+  const canViewOpportunity = resolveCapability(capabilitySnapshot, "canViewOpportunity");
+  const canViewStrengthsRisks = resolveCapability(capabilitySnapshot, "canViewStrengthsRisks");
+  const canViewNextActions = resolveCapability(capabilitySnapshot, "canViewNextActions");
+  const canViewTeaserPreview = resolveCapability(capabilitySnapshot, "canViewTeaserPreview");
   const canGenerateReport = canGeneratePaidReport;
   const canViewReports = canViewReportHistory;
   const canDownloadPdf = canDownloadOwnedReport;
@@ -455,6 +475,7 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
     upload: canUpload,
     report: canGenerateReport,
   };
+  const isFounder = isFounderFromEntitlement(raw as EntitlementSnapshotLike);
 
   return {
     effectivePlanTier,
@@ -479,11 +500,17 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
     canAccessDashboardIntelligence,
     canAccessRecurringMonitoring,
     canAccessProComparisonsOrFutureProFeatures,
+    canViewWowSummary,
+    canViewOpportunity,
+    canViewStrengthsRisks,
+    canViewNextActions,
+    canViewTeaserPreview,
     reportsRemainingThisPeriod,
     reportsGeneratedThisPeriod,
     monthlyReportLimit,
     billingPeriodStart,
     billingPeriodEnd,
+    isFounder,
     portalUrl,
     effective_plan_tier: effectivePlanTier,
     entitlement_source: entitlementSource,
@@ -507,28 +534,75 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
     can_access_dashboard_intelligence: canAccessDashboardIntelligence,
     can_access_recurring_monitoring: canAccessRecurringMonitoring,
     can_access_pro_comparisons_or_future_pro_features: canAccessProComparisonsOrFutureProFeatures,
+    can_view_wow_summary: canViewWowSummary,
+    can_view_opportunity: canViewOpportunity,
+    can_view_strengths_risks: canViewStrengthsRisks,
+    can_view_next_actions: canViewNextActions,
+    can_view_teaser_preview: canViewTeaserPreview,
     reports_remaining_this_period: reportsRemainingThisPeriod,
     reports_generated_this_period: reportsGeneratedThisPeriod,
     monthly_report_limit: monthlyReportLimit,
     billing_period_start: billingPeriodStart,
     billing_period_end: billingPeriodEnd,
     features: legacyFeatures,
+    is_founder: isFounder,
     portal_url: portalUrl,
   };
 }
 
-export async function fetchEntitlements(options?: { forceRefresh?: boolean }): Promise<EntitlementsResponse> {
+function applyFounderContext(value: EntitlementsResponse, resolvedEmail?: string | null): EntitlementsResponse {
+  const founderAware = applyFounderOverride(value, resolvedEmail) as EntitlementsResponse;
+  return {
+    ...founderAware,
+    features: {
+      ...founderAware.features,
+      app: founderAware.canAccessDashboard,
+      upload: founderAware.canUpload,
+      report: founderAware.canGenerateReport,
+      wow_summary: founderAware.canViewWowSummary,
+      opportunity: founderAware.canViewOpportunity,
+      strengths_risks: founderAware.canViewStrengthsRisks,
+      next_actions: founderAware.canViewNextActions,
+      download_pdf: founderAware.canDownloadPdf,
+    },
+  };
+}
+
+function logEntitlementResolution(value: EntitlementsResponse, resolvedEmail?: string | null) {
+  if (process.env.NODE_ENV !== "development") {
+    return;
+  }
+
+  console.info("[entitlements.fetch] founder resolution", {
+    resolvedEmail: resolvedEmail ?? null,
+    detectedOverride: value.isFounder,
+    finalEntitlements: {
+      isFounder: value.isFounder,
+      accessGranted: value.accessGranted,
+      billingRequired: value.billingRequired,
+      canViewWowSummary: value.canViewWowSummary,
+      canViewOpportunity: value.canViewOpportunity,
+      canViewStrengthsRisks: value.canViewStrengthsRisks,
+      canViewNextActions: value.canViewNextActions,
+      canAccessDashboardIntelligence: value.canAccessDashboardIntelligence,
+      canDownloadPDF: value.canDownloadPdf,
+    },
+  });
+}
+
+export async function fetchEntitlements(options?: { forceRefresh?: boolean; resolvedEmail?: string | null }): Promise<EntitlementsResponse> {
   const forceRefresh = options?.forceRefresh ?? false;
+  const resolvedEmail = options?.resolvedEmail ?? null;
 
   if (!forceRefresh && entitlementsMemoryCache && isFresh(entitlementsMemoryCache.fetchedAt)) {
-    return entitlementsMemoryCache.value;
+    return applyFounderContext(entitlementsMemoryCache.value, resolvedEmail);
   }
 
   if (!forceRefresh) {
     const storageCache = readStorageCache<EntitlementsResponse>(ENTITLEMENTS_CACHE_KEY);
     if (storageCache && isFresh(storageCache.fetchedAt)) {
       entitlementsMemoryCache = storageCache;
-      return storageCache.value;
+      return applyFounderContext(storageCache.value, resolvedEmail);
     }
 
     if (inFlightEntitlements) {
@@ -540,11 +614,12 @@ export async function fetchEntitlements(options?: { forceRefresh?: boolean }): P
     const body = await apiFetchJson<EntitlementsResponseSchema>("entitlements.fetch", CANONICAL_ENTITLEMENTS_PATH, {
       method: "GET",
     });
-    const value = normalizeEntitlements(body);
+    const value = applyFounderContext(normalizeEntitlements(body), resolvedEmail);
     const fetchedAt = Date.now();
 
     entitlementsMemoryCache = { value, fetchedAt };
     writeStorageCache(ENTITLEMENTS_CACHE_KEY, value, fetchedAt);
+    logEntitlementResolution(value, resolvedEmail);
     return value;
   })();
 
@@ -555,7 +630,10 @@ export async function fetchEntitlements(options?: { forceRefresh?: boolean }): P
   }
 }
 
-export async function fetchCanonicalEntitlementSnapshot(options?: { forceRefresh?: boolean }): Promise<EntitlementsResponse> {
+export async function fetchCanonicalEntitlementSnapshot(options?: {
+  forceRefresh?: boolean;
+  resolvedEmail?: string | null;
+}): Promise<EntitlementsResponse> {
   return fetchEntitlements(options);
 }
 

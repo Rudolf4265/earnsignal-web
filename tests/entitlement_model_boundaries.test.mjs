@@ -76,6 +76,41 @@ test("pro snapshot allows recurring and Pro-only actions", async () => {
   assert.equal(hasProEquivalentEntitlement(value), true);
 });
 
+test("founder override forces every report and Pro entitlement true regardless of plan", async () => {
+  const previousFounderEmails = process.env.NEXT_PUBLIC_FOUNDER_EMAILS;
+  process.env.NEXT_PUBLIC_FOUNDER_EMAILS = "founder@example.com";
+  const {
+    applyFounderOverride,
+    canGenerateReportFromEntitlement,
+    canDownloadPdfFromEntitlement,
+    hasProEquivalentEntitlement,
+    resolveAccessGranted,
+    resolveBillingRequired,
+    resolveCapability,
+  } = await loadModel(Date.now() + 35);
+  try {
+    const value = applyFounderOverride(snapshot(), "founder@example.com");
+
+    assert.equal(resolveAccessGranted(value), true);
+    assert.equal(resolveBillingRequired(value), false);
+    assert.equal(canGenerateReportFromEntitlement(value), true);
+    assert.equal(canDownloadPdfFromEntitlement(value), true);
+    assert.equal(hasProEquivalentEntitlement(value), true);
+    assert.equal(resolveCapability(value, "canViewWowSummary"), true);
+    assert.equal(resolveCapability(value, "canViewOpportunity"), true);
+    assert.equal(resolveCapability(value, "canViewStrengthsRisks"), true);
+    assert.equal(resolveCapability(value, "canViewNextActions"), true);
+    assert.equal(resolveCapability(value, "canAccessDashboardIntelligence"), true);
+    assert.equal(resolveCapability(value, "canViewTeaserPreview"), false);
+  } finally {
+    if (typeof previousFounderEmails === "string") {
+      process.env.NEXT_PUBLIC_FOUNDER_EMAILS = previousFounderEmails;
+    } else {
+      delete process.env.NEXT_PUBLIC_FOUNDER_EMAILS;
+    }
+  }
+});
+
 test("explicit override capabilities can still unlock Pro-only access", async () => {
   const { hasProEquivalentEntitlement, resolveCapability } = await loadModel(Date.now() + 4);
   const value = snapshot({

@@ -1,6 +1,11 @@
 import type { EntitlementsResponse } from "../api/entitlements";
 import type { AppGateState } from "../gating/app-gate";
-import { canDownloadPdfFromEntitlement, canViewOwnedReportFromEntitlement, hasProEquivalentEntitlement } from "../entitlements/model";
+import {
+  canDownloadPdfFromEntitlement,
+  canViewOwnedReportFromEntitlement,
+  hasProEquivalentEntitlement,
+  isFounderFromEntitlement,
+} from "../entitlements/model";
 
 export type ReportDetailProSectionMode = "pro-unlocked" | "pro-locked" | "loading-safe";
 export type ReportDetailReportSectionMode = "report-unlocked" | "report-locked" | "loading-safe";
@@ -34,6 +39,10 @@ function resolveProSectionMode(gateState: AppGateState, entitlements: Entitlemen
     return "loading-safe";
   }
 
+  if (isFounderFromEntitlement(entitlements)) {
+    return "pro-unlocked";
+  }
+
   return hasProEquivalentEntitlement(entitlements) ? "pro-unlocked" : "pro-locked";
 }
 
@@ -47,6 +56,10 @@ function resolveReportSectionMode(gateState: AppGateState, entitlements: Entitle
     entitlements === null
   ) {
     return "loading-safe";
+  }
+
+  if (isFounderFromEntitlement(entitlements)) {
+    return "report-unlocked";
   }
 
   return canViewOwnedReportFromEntitlement(entitlements) ? "report-unlocked" : "report-locked";
@@ -85,6 +98,10 @@ function resolvePdfAccessMode(gateState: AppGateState, entitlements: Entitlement
     entitlements === null
   ) {
     return "loading-safe";
+  }
+
+  if (isFounderFromEntitlement(entitlements)) {
+    return "pdf-unlocked";
   }
 
   return canDownloadPdfFromEntitlement(entitlements) ? "pdf-unlocked" : "pdf-locked";

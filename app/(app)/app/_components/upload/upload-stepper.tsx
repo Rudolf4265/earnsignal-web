@@ -231,6 +231,31 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
   }
 };
 
+// Per-platform file guidance shown in the file upload step.
+// All steps map to official export flows — do not invent formats.
+const PLATFORM_FILE_GUIDANCE: Partial<Record<UploadPlatform, { getFile: string; formatNote: string }>> = {
+  patreon: {
+    getFile: "In Patreon: go to Audience → Members → Export CSV. Use the native Members export only — do not rename or reformat columns.",
+    formatNote: "Native Patreon Members CSV. Columns like Patron Status, Pledge Amount, and Patronage Since Date must be present.",
+  },
+  substack: {
+    getFile: "In Substack: go to Settings → Subscribers → Export. Download the subscriber CSV directly.",
+    formatNote: "Native Substack subscriber CSV export.",
+  },
+  youtube: {
+    getFile: "In YouTube Studio: Analytics → Advanced Mode → Export current view. Or export via Google Takeout (youtube_watch_history or channel analytics).",
+    formatNote: "YouTube Analytics CSV or a supported YouTube Takeout ZIP. Not all Takeout ZIPs will be accepted.",
+  },
+  instagram: {
+    getFile: "In Instagram: Settings → Your activity → Download your information. Select the specific export type that matches the allowlisted shape.",
+    formatNote: "Allowlisted ZIP export only. Not every Instagram data export will be accepted — only specific export shapes are supported.",
+  },
+  tiktok: {
+    getFile: "In TikTok: Settings → Privacy → Personalization and data → Download your data. Request the data export and download the ZIP when ready.",
+    formatNote: "Allowlisted ZIP export only. Not every TikTok data export will be accepted — only specific export shapes are supported.",
+  },
+};
+
 // Extremely subtle brand-tinted dark chips — 9% opacity tint on both light and dark card surfaces.
 // On unselected (white) cards the tint reads as a soft warm/cool cast; on selected (dark navy) cards
 // the same value blends into the deep background. Both states benefit without being sticker-like.
@@ -245,6 +270,8 @@ const PLATFORM_LOGO_BUBBLE: Record<string, { bg: string; ring: string }> = {
 type PlatformCardProps = {
   label: string;
   description: string;
+  contributionLabel: string;
+  platformRole: "report-driving" | "performance-only";
   fileTypeLabel?: string;
   icon: string;
   available: boolean;
@@ -254,7 +281,7 @@ type PlatformCardProps = {
   platformId?: string;
 };
 
-function PlatformCard({ label, description, fileTypeLabel, icon, available, selected, onClick, testId, platformId }: PlatformCardProps) {
+function PlatformCard({ label, description, contributionLabel, platformRole, fileTypeLabel, icon, available, selected, onClick, testId, platformId }: PlatformCardProps) {
   const tint = PLATFORM_LOGO_BUBBLE[platformId ?? ""];
   const bubbleClass = tint
     ? [
@@ -265,6 +292,16 @@ function PlatformCard({ label, description, fileTypeLabel, icon, available, sele
     : selected
     ? "bg-white/[0.06] ring-1 ring-blue-400/[0.2]"
     : "bg-slate-100/70 ring-1 ring-black/[0.07]";
+
+  const isReportDriving = platformRole === "report-driving";
+  const roleBadgeClasses = isReportDriving
+    ? selected
+      ? "bg-emerald-400/18 text-emerald-300 ring-1 ring-inset ring-emerald-400/30"
+      : "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200"
+    : selected
+    ? "bg-sky-400/18 text-sky-300 ring-1 ring-inset ring-sky-400/30"
+    : "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200";
+  const roleBadgeLabel = isReportDriving ? "Report-driving" : "Performance-only";
 
   return (
     <button
@@ -293,18 +330,20 @@ function PlatformCard({ label, description, fileTypeLabel, icon, available, sele
           />
         </span>
         <span
+          data-testid={`platform-role-badge-${platformId ?? ""}`}
           className={[
             "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
-            selected ? "bg-emerald-400/18 text-emerald-300 ring-1 ring-inset ring-emerald-400/30" : "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200",
+            roleBadgeClasses,
           ].join(" ")}
         >
-          Supported
+          {roleBadgeLabel}
         </span>
       </div>
 
-      <div className="mt-4 space-y-1.5">
+      <div className="mt-4 space-y-1">
         <p className={`text-sm font-semibold ${selected ? "text-white" : "text-slate-900"}`}>{label}</p>
-        <p className={`text-xs leading-snug ${selected ? "text-slate-300/85" : "text-slate-600"}`}>{description}</p>
+        <p className={`text-xs font-medium ${selected ? "text-brand-accent-teal/90" : "text-slate-500"}`}>{contributionLabel}</p>
+        <p className={`text-xs leading-snug ${selected ? "text-slate-300/75" : "text-slate-500"}`}>{description}</p>
       </div>
 
       <div className="mt-auto pt-4">
@@ -1119,20 +1158,18 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
             className="rounded-[1.35rem] border border-slate-800/80 bg-[linear-gradient(145deg,rgba(10,24,50,0.96),rgba(14,30,63,0.96),rgba(12,27,53,0.98))] p-3 shadow-[0_18px_40px_-26px_rgba(15,23,42,0.75)]"
             data-testid="upload-platform-guide"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-accent-teal">Supported imports</p>
-            <p className="mt-2 text-xs leading-relaxed text-slate-300">Supported platforms: {supportedRevenueUploads}.</p>
-            <div className="mt-3 grid gap-2 md:grid-cols-3">
-              <div className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-3">
-                <p className="text-xs font-semibold text-white">Patreon, Substack</p>
-                <p className="mt-1 text-sm text-slate-300">Native CSV</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-accent-teal">Workspace sources</p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-300">Add multiple sources to build a complete cross-platform report. Report-driving sources generate revenue and audience insights. Performance-only sources enrich your report with engagement data.</p>
+            <div className="mt-3 grid gap-2 md:grid-cols-2">
+              <div className="rounded-xl border border-emerald-400/20 bg-white/[0.05] px-3 py-3">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-300">Report-driving</p>
+                <p className="text-xs font-semibold text-white">Patreon · Substack · YouTube</p>
+                <p className="mt-1 text-xs text-slate-400">Revenue, subscribers &amp; growth</p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-3">
-                <p className="text-xs font-semibold text-white">YouTube</p>
-                <p className="mt-1 text-sm text-slate-300">Analytics CSV or Takeout ZIP</p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-3">
-                <p className="text-xs font-semibold text-white">Instagram, TikTok</p>
-                <p className="mt-1 text-sm text-slate-300">Allowlisted ZIP only</p>
+              <div className="rounded-xl border border-sky-400/20 bg-white/[0.05] px-3 py-3">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-sky-300">Performance-only</p>
+                <p className="text-xs font-semibold text-white">Instagram · TikTok</p>
+                <p className="mt-1 text-xs text-slate-400">Engagement &amp; reach enrichment</p>
               </div>
             </div>
             <Link href="/app/help#upload-guide" className="mt-3 inline-flex text-[11px] font-medium text-blue-200 underline underline-offset-4 hover:text-white">
@@ -1151,6 +1188,8 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
                         key={item.id}
                         label={item.label}
                         description={item.subtitle}
+                        contributionLabel={item.contributionLabel}
+                        platformRole={item.platformRole}
                         fileTypeLabel={item.fileTypeLabel}
                         icon={item.icon}
                         available={item.available}
@@ -1194,15 +1233,22 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
             title="Select file"
             subtitle={selectedPlatformCard?.guidance ?? "Upload a supported file for this platform."}
           />
-          <InlineAlert variant="info" title="What happens after upload" data-testid="upload-file-guide">
-            <p>
-              {selectedPlatformCard?.importMode === "allowlisted_zip"
-                ? "Accepted file type: Allowlisted ZIP only. EarnSigma validates that the ZIP matches the exact supported export shape. Not every ZIP from this platform will work."
-                : selectedPlatformCard?.importMode === "csv_or_zip"
-                ? "Accepted file types: CSV or supported Takeout ZIP. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."
-                : "Accepted file type: CSV. EarnSigma validates the file first, then keeps processing until a report is ready when your plan includes report generation."}
-            </p>
-            <p className="mt-2">If validation fails, make sure you selected the matching platform and retry with the supported file format for this platform. If processing stalls, retry status before starting over.</p>
+          <InlineAlert variant="info" title="How to get your file" data-testid="upload-file-guide">
+            {platform && PLATFORM_FILE_GUIDANCE[platform] ? (
+              <div className="space-y-2">
+                <p>{PLATFORM_FILE_GUIDANCE[platform]!.getFile}</p>
+                <p className="text-current/70">{PLATFORM_FILE_GUIDANCE[platform]!.formatNote}</p>
+              </div>
+            ) : (
+              <p>
+                {selectedPlatformCard?.importMode === "allowlisted_zip"
+                  ? "Accepted file type: Allowlisted ZIP only. EarnSigma validates that the ZIP matches the exact supported export shape. Not every ZIP from this platform will work."
+                  : selectedPlatformCard?.importMode === "csv_or_zip"
+                  ? "Accepted file types: CSV or supported Takeout ZIP."
+                  : "Accepted file type: CSV. Make sure you're using the correct native export from this platform."}
+              </p>
+            )}
+            <p className="mt-2 text-current/70">After upload, EarnSigma validates your file. This source will be ready for your next report once validation succeeds.</p>
             <Link href="/app/help#after-upload" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
               Review upload help
             </Link>
@@ -1314,10 +1360,10 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
         <div className="space-y-5">
           {processingStatus === "validated" ? (
             <>
-              <InlineAlert variant="info" title="Upload validated" data-testid="upload-terminal-validated">
+              <InlineAlert variant="info" title={`${selectedPlatformCard?.label ?? "Source"} staged`} data-testid="upload-terminal-validated">
                 {reportId
-                  ? "Your data is ready. View your teaser preview and unlock the full report when ready."
-                  : "Your file passed validation. Upgrade to Report or Pro to generate a paid report from this upload."}
+                  ? "This source has been validated and staged. View your teaser preview, or add more sources before running your full report."
+                  : "This source is staged and ready. Upgrade to Report or Pro to run a report from your staged sources."}
               </InlineAlert>
               <div className="flex flex-wrap gap-2">
                 {reportId ? (
@@ -1338,14 +1384,15 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
                   onClick={resetFlow}
                   className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
                 >
-                  Upload another
+                  Add another source
                 </button>
               </div>
             </>
           ) : (
             <>
-              <InlineAlert variant="success" title="Report ready" data-testid="upload-terminal-success">
-                Your upload was validated and your report is now available.
+              <InlineAlert variant="success" title={`${selectedPlatformCard?.label ?? "Source"} added successfully`} data-testid="upload-terminal-success">
+                <p>This source is ready for your next report.</p>
+                <p className="mt-1 text-current/75">Add more sources to enrich your report, or view your report now.</p>
               </InlineAlert>
               <div className="flex flex-wrap gap-2">
                 <Link
@@ -1360,7 +1407,7 @@ export default function UploadStepper({ visiblePlatformCards, supportedRevenueUp
                   onClick={resetFlow}
                   className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
                 >
-                  Upload another
+                  Add another source
                 </button>
               </div>
             </>

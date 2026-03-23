@@ -1,4 +1,4 @@
-import { apiFetchBlobWithMeta, apiFetchJson, getApiBaseOrigin, getApiBaseUrl, isEntitlementRequiredError } from "./client";
+import { ApiError, apiFetchBlobWithMeta, apiFetchJson, getApiBaseOrigin, getApiBaseUrl, isEntitlementRequiredError } from "./client";
 import { normalizeReportDetail, type ReportDetail } from "../report/normalize-report-detail";
 import { normalizeReportsListResponse, type ReportListItem, type ReportListResult } from "../report/list-model";
 import { normalizeReportId } from "../report/id";

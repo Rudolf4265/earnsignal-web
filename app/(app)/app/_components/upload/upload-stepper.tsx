@@ -1234,7 +1234,7 @@ export default function UploadStepper({
                   >
                     Unlock report
                   </Link>
-                )}
+                ) : null}
                 <button
                   type="button"
                   data-testid="upload-completed-dismiss"

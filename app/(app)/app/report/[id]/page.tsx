@@ -582,6 +582,16 @@ export default function ReportPage() {
                       {presentation.displayContext.sourceContributionLine}
                     </p>
                   ) : null}
+                  {state.report.snapshotCoverageNote ? (
+                    <p className="text-xs text-brand-text-muted" data-testid="report-snapshot-coverage-note">
+                      {state.report.snapshotCoverageNote}
+                    </p>
+                  ) : null}
+                  {state.report.youtubeContributionMode === "content_only" ? (
+                    <p className="text-xs text-brand-text-muted" data-testid="report-youtube-contribution-note">
+                      YouTube data includes content performance only (revenue not included in business metrics).
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -1003,7 +1013,7 @@ export default function ReportPage() {
           </section>
 
           <section className="space-y-3">
-            <DashboardSectionHeader title="Current Revenue Mix" description="Concentration and channel exposure based on the latest available snapshot." />
+            <DashboardSectionHeader title={state.report.snapshotWindowMode !== "overlap" && state.report.snapshotWindowMode !== null ? "Current Snapshot (Latest Available Data)" : "Current Revenue Mix"} description="Concentration and channel exposure based on the latest available snapshot." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               {presentation.platformMix.notice ? <TruthNotice notice={presentation.platformMix.notice} testId="report-platform-mix-notice" /> : null}
               {presentation.platformMix.concentrationScore !== null ||

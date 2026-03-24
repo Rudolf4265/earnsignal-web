@@ -509,6 +509,12 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
+      {state.latestReport?.reportHasBusinessMetrics === false ? (
+        <p className="text-xs text-brand-text-muted" data-testid="dashboard-no-business-metrics-note">
+          Your latest report does not include business metrics. Connect a revenue data source to unlock earnings analysis.
+        </p>
+      ) : null}
+
       {showDashboardOnboarding ? (
         <DashboardOnboardingSection
           mode={dashboardMode}

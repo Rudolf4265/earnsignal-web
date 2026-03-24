@@ -29,6 +29,10 @@ export type ReportDetail = {
   platformsIncluded: string[];
   sourceCount: number | null;
   reportKind: ReportKind;
+  snapshotWindowMode: string | null;
+  snapshotCoverageNote: string | null;
+  youtubeContributionMode: string | null;
+  reportHasBusinessMetrics: boolean;
   metrics: {
     netRevenue: number | null;
     subscribers: number | null;
@@ -347,6 +351,13 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
     platformsIncluded,
     sourceCount,
     reportKind,
+    snapshotWindowMode: readString(payload, ["snapshot_window_mode", "snapshotWindowMode", "report.snapshot_window_mode"]) || null,
+    snapshotCoverageNote: readString(payload, ["snapshot_coverage_note", "snapshotCoverageNote", "report.snapshot_coverage_note"]) || null,
+    youtubeContributionMode: readString(payload, ["youtube_contribution_mode", "youtubeContributionMode", "report.youtube_contribution_mode"]) || null,
+    reportHasBusinessMetrics: (() => {
+      const raw = payload["report_has_business_metrics"] ?? payload["reportHasBusinessMetrics"] ?? (payload["report"] as Record<string, unknown> | undefined)?.["report_has_business_metrics"];
+      return raw === false ? false : true;
+    })(),
     metrics: {
       netRevenue: readNumber(payload, [
         "net_revenue",

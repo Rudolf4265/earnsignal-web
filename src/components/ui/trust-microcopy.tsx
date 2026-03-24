@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { publicUrls } from "@earnsigma/config";
 import { cn } from "@earnsigma/ui";
 
@@ -46,7 +45,10 @@ export function TrustMicrocopy({ body, className, testId, variant }: TrustMicroc
       >
         {body}
       </p>
-      <Link
+      {/* Use <a> instead of Next.js <Link> to force full browser navigation.
+          On app.earnsigma.com, <Link> triggers an RSC prefetch with the `rsc` header
+          which gets redirected cross-origin by the proxy and is blocked by the browser. */}
+      <a
         href={publicUrls.dataPrivacy}
         className={cn(
           "mt-2 inline-flex text-[11px] font-medium transition",
@@ -56,7 +58,7 @@ export function TrustMicrocopy({ body, className, testId, variant }: TrustMicroc
         )}
       >
         {TRUST_MICROCOPY_LINK_TEXT}
-      </Link>
+      </a>
     </div>
   );
 }

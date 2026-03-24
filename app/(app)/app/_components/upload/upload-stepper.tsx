@@ -217,6 +217,8 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
       return "This ZIP archive exceeds the size limit and was rejected.";
     case "ambiguous_archive_shape":
       return "This ZIP export isn’t in one of the currently supported formats for this platform.";
+    case "network_error":
+      return "We couldn’t reach the server. Please retry. Your upload may still be processing — refresh staged sources in a few moments if the error persists.";
     case "ingest_failed":
       return "We couldn’t ingest the file right now. Please retry in a moment.";
     case "report_failed":

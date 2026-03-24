@@ -1,7 +1,12 @@
 import type { DashboardRevenueTrendPoint } from "../dashboard/artifact-hydration";
 import type { ReportDetail } from "../api/reports";
 import { prioritizeRecommendations } from "./recommendation-prioritization";
-import { buildCanonicalReportTitle } from "./source-labeling";
+import {
+  buildCanonicalReportTitle,
+  buildReportDisplayLabels,
+  buildReportSourceContributionLine,
+  resolveReportSourceCount,
+} from "./source-labeling";
 import {
   buildDiagnosisPresentation,
   buildPresentationTruthNotice as buildNotice,
@@ -54,10 +59,25 @@ export type ReportDetailPresentationAppendixSection = {
   bullets: string[];
 };
 
+export type ReportDetailDisplayContext = {
+  /** Eyebrow label for the hero metrics grid — e.g. "Latest available snapshot" */
+  snapshotLabel: string;
+  /** Section eyebrow for trend/history sections — e.g. "Combined history" */
+  historyLabel: string;
+  /**
+   * Compact line shown directly under the report title when the current-snapshot
+   * sources are a proper subset of the full history sources.
+   * e.g. "Current snapshot: Patreon · Combined history: Patreon, Substack, YouTube"
+   * Null when there is no meaningful distinction to surface.
+   */
+  sourceContributionLine: string | null;
+};
+
 export type ReportDetailPresentationModel = {
   heroTitle: string;
   heroSubtitle: string | null;
   heroNotice: ReportDetailPresentationNotice | null;
+  displayContext: ReportDetailDisplayContext;
   executiveSummary: string[];
   heroMetrics: ReportDetailPresentationMetric[];
   signals: ReportSignalViewModel[];
@@ -789,6 +809,31 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
     bullets: section.bullets,
   }));
 
+  // Build display context: snapshot vs. history labels + source contribution line.
+  const reportSourceCount = resolveReportSourceCount({
+    platformsIncluded: input.report.platformsIncluded,
+    sourceCount: input.report.sourceCount ?? input.report.metrics.platformsConnected ?? null,
+  });
+  const displayLabels = buildReportDisplayLabels({ sourceCount: reportSourceCount });
+
+  // Collect snapshot sources from the key metric provenance entries.
+  const snapshotSourcesFromProvenance: string[] = [];
+  for (const key of ["net_revenue", "subscribers", "active_subscribers", "churn_rate", "arpu"]) {
+    const src = input.artifactModel?.metricProvenance?.[key]?.source ?? null;
+    if (src && !snapshotSourcesFromProvenance.includes(src)) {
+      snapshotSourcesFromProvenance.push(src);
+    }
+  }
+
+  const displayContext: ReportDetailDisplayContext = {
+    snapshotLabel: displayLabels.snapshotLabel,
+    historyLabel: displayLabels.historyLabel,
+    sourceContributionLine: buildReportSourceContributionLine({
+      platformsIncluded: input.report.platformsIncluded,
+      snapshotSources: snapshotSourcesFromProvenance,
+    }),
+  };
+
   const heroTitle = readFriendlyReportTitle(input.report);
 
   const netRevenueTruth = input.artifactModel?.metricProvenance?.net_revenue ?? null;
@@ -828,6 +873,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
     heroTitle: heroTitle.title,
     heroSubtitle: heroTitle.subtitle,
     heroNotice: buildReportTruthSummary(input.artifactModel),
+    displayContext,
     executiveSummary: summary,
     heroMetrics,
     signals: typedSignals,

@@ -138,7 +138,9 @@ test("report detail gates raw artifact debug payload behind Pro access", async (
   assert.equal(source.includes("const canAccessDebugPayload = useMemo(() => isFounder || hasProEquivalentEntitlement(entitlements), [entitlements, isFounder]);"), true);
   assert.equal(source.includes("canAccessDebugPayload ? ("), true);
   assert.equal(source.includes('data-testid="report-debug-accordion"'), true);
-  assert.equal(source.includes("Debug payload view is available with Pro access."), true);
+  // The debug leak message ("Debug payload view is available with Pro access.") must NOT be shown
+  // to standard users — the accordion is only rendered for founder/pro, nothing is shown otherwise.
+  assert.equal(source.includes("Debug payload view is available with Pro access."), false);
 });
 
 test("report detail suppresses founder paywalls and renders retry instead of upgrade CTA on gated API responses", async () => {

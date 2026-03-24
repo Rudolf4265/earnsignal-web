@@ -209,6 +209,224 @@ test.describe("Report detail route", () => {
     await expect(page.getByRole("link", { name: "Go to Billing" })).toBeVisible();
   });
 
+  // ── Intuitive UX: snapshot vs. combined-history framing ─────────────────────
+
+  test("renders source contribution line for combined report with uneven snapshot coverage", async ({ page }) => {
+    await page.route("**/v1/reports/rep_combined_uneven", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_combined_uneven",
+          title: "Combined Report — Patreon + Substack",
+          status: "ready",
+          created_at: "2026-03-01T10:00:00Z",
+          platforms_included: ["Patreon", "Substack"],
+          source_count: 2,
+          artifact_json_url: "https://artifacts.test/rep_combined_uneven.json",
+        }),
+      });
+    });
+
+    await page.route("https://artifacts.test/rep_combined_uneven.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          report: {
+            report_id: "rep_combined_uneven",
+            schema_version: "v1",
+            metric_provenance: {
+              net_revenue: { source: "Patreon", availability: "available", confidence: "high", evidence_strength: "strong" },
+              active_subscribers: { source: "Patreon", availability: "available", confidence: "high", evidence_strength: "strong" },
+            },
+            sections: {
+              executive_summary: { summary: "Patreon-driven snapshot with combined history from Patreon and Substack." },
+            },
+          },
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_combined_uneven");
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    // Source contribution line must appear and distinguish snapshot from history
+    await expect(page.getByTestId("report-source-contribution")).toBeVisible();
+    await expect(page.getByTestId("report-source-contribution")).toContainText("Current snapshot: Patreon");
+    await expect(page.getByTestId("report-source-contribution")).toContainText("Combined history:");
+    await expect(page.getByTestId("report-source-contribution")).toContainText("Substack");
+  });
+
+  test("does not render source contribution line for single-source report", async ({ page }) => {
+    await page.route("**/v1/reports/rep_single_source", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_single_source",
+          title: "Patreon Report — Mar 2026",
+          status: "ready",
+          created_at: "2026-03-01T10:00:00Z",
+          platforms_included: ["Patreon"],
+          source_count: 1,
+          artifact_json_url: "https://artifacts.test/rep_single_source.json",
+        }),
+      });
+    });
+
+    await page.route("https://artifacts.test/rep_single_source.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          report: {
+            report_id: "rep_single_source",
+            schema_version: "v1",
+            metric_provenance: {
+              net_revenue: { source: "Patreon", availability: "available", confidence: "high", evidence_strength: "strong" },
+            },
+            sections: {
+              executive_summary: { summary: "Single Patreon source report." },
+            },
+          },
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_single_source");
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    // No contribution line when snapshot sources = history sources (single source)
+    await expect(page.getByTestId("report-source-contribution")).not.toBeVisible();
+  });
+
+  test("renders snapshot label eyebrow above hero metrics", async ({ page }) => {
+    await page.route("**/v1/reports/rep_snapshot_eyebrow", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_snapshot_eyebrow",
+          title: "Q1 Revenue Quality",
+          status: "ready",
+          created_at: "2026-03-01T10:00:00Z",
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_snapshot_eyebrow");
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    await expect(page.getByTestId("report-snapshot-label")).toBeVisible();
+    await expect(page.getByTestId("report-snapshot-label")).toContainText("snapshot");
+  });
+
+  test("revenue history section uses combined-history framing for combined report", async ({ page }) => {
+    await page.route("**/v1/reports/rep_history_framing", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_history_framing",
+          title: "Combined Report",
+          status: "ready",
+          created_at: "2026-03-01T10:00:00Z",
+          platforms_included: ["Patreon", "Substack"],
+          source_count: 2,
+          artifact_json_url: "https://artifacts.test/rep_history_framing.json",
+        }),
+      });
+    });
+
+    await page.route("https://artifacts.test/rep_history_framing.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          report: {
+            report_id: "rep_history_framing",
+            schema_version: "v1",
+            sections: {
+              executive_summary: { summary: "Combined history drives the trend." },
+            },
+          },
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_history_framing");
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    // Revenue History section must appear (not "Revenue Trend")
+    await expect(page.getByText("Revenue History")).toBeVisible();
+    // Should contain "Combined history" framing in the description
+    await expect(page.getByText(/Combined history/i)).toBeVisible();
+  });
+
+  test("platform mix section uses snapshot-aware framing", async ({ page }) => {
+    await page.route("**/v1/reports/rep_platform_mix_framing", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_platform_mix_framing",
+          title: "Q1 Creator Report",
+          status: "ready",
+          created_at: "2026-03-01T10:00:00Z",
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_platform_mix_framing");
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    // Must read as "Current Revenue Mix" not generic "Platform Mix"
+    await expect(page.getByText("Current Revenue Mix")).toBeVisible();
+    // Snapshot framing should appear in description area
+    await expect(page.getByText(/latest available snapshot/i)).toBeVisible();
+  });
+
+  test("debug JSON payload is not visible to standard entitled users", async ({ page }) => {
+    await page.route("**/v1/reports/rep_no_debug", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_no_debug",
+          title: "Standard User Report",
+          status: "ready",
+          created_at: "2026-03-01T10:00:00Z",
+          artifact_json_url: "https://artifacts.test/rep_no_debug.json",
+        }),
+      });
+    });
+
+    await page.route("https://artifacts.test/rep_no_debug.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          report: {
+            report_id: "rep_no_debug",
+            schema_version: "v1",
+            sections: { executive_summary: { summary: "Normal report." } },
+          },
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_no_debug");
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    // Debug accordion must not appear for standard entitled users
+    await expect(page.getByTestId("report-debug-accordion")).not.toBeVisible();
+    // No raw JSON pre tag either
+    await expect(page.getByTestId("report-debug-json")).not.toBeVisible();
+    // The old leak message must be gone
+    await expect(page.getByText("Debug payload view is available with Pro access.")).not.toBeVisible();
+  });
+
   test("never requests /v1/reports/undefined for a valid /app/report/[id] route", async ({ page }) => {
     const reportRequests = new Set<string>();
 

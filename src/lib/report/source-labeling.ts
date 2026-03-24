@@ -225,3 +225,51 @@ export function buildReportFraming(input: { platformsIncluded?: string[] | null;
     helperText: null,
   };
 }
+
+/**
+ * Returns display labels for snapshot vs. history context used in the report UI.
+ * Single-source reports use simpler framing without "Combined".
+ */
+export function buildReportDisplayLabels(input: { sourceCount: number | null }): {
+  snapshotLabel: string;
+  historyLabel: string;
+} {
+  const isCombined = input.sourceCount !== null && input.sourceCount >= 2;
+  return {
+    snapshotLabel: "Latest available snapshot",
+    historyLabel: isCombined ? "Combined history" : "Report history",
+  };
+}
+
+/**
+ * Builds a compact source-contribution framing line for display directly under
+ * the report title when the current snapshot sources are a proper subset of the
+ * full history sources (e.g. Patreon-only snapshot inside a Patreon + Substack report).
+ *
+ * Returns null when there is no meaningful distinction to surface.
+ */
+export function buildReportSourceContributionLine(input: {
+  platformsIncluded: string[] | null | undefined;
+  snapshotSources: string[] | null | undefined;
+}): string | null {
+  const historyPlatforms = normalizePlatformsIncluded(input.platformsIncluded);
+  const snapshotPlatforms = normalizePlatformsIncluded(input.snapshotSources);
+
+  if (historyPlatforms.length === 0 || snapshotPlatforms.length === 0) {
+    return null;
+  }
+
+  // Only surface the distinction when snapshot is a *proper* subset of history.
+  const historySet = new Set(historyPlatforms);
+  const isProperSubset =
+    snapshotPlatforms.length < historyPlatforms.length &&
+    snapshotPlatforms.every((s) => historySet.has(s));
+
+  if (!isProperSubset) {
+    return null;
+  }
+
+  const snapshotLabel = snapshotPlatforms.join(", ");
+  const historyLabel = historyPlatforms.join(", ");
+  return `Current snapshot: ${snapshotLabel} · Combined history: ${historyLabel}`;
+}

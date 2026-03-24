@@ -577,6 +577,11 @@ export default function ReportPage() {
                       ))}
                     </div>
                   ) : null}
+                  {presentation.displayContext.sourceContributionLine ? (
+                    <p className="text-xs text-brand-text-muted" data-testid="report-source-contribution">
+                      {presentation.displayContext.sourceContributionLine}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -617,6 +622,10 @@ export default function ReportPage() {
               {presentation.heroNotice ? <TruthNotice notice={presentation.heroNotice} testId="report-hero-truth-notice" /> : null}
 
               {showFullReportContent ? (
+                <div className="space-y-2">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-brand-text-muted" data-testid="report-snapshot-label">
+                    {presentation.displayContext.snapshotLabel}
+                  </p>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   {presentation.heroMetrics.map((metric) => (
                     <article
@@ -631,6 +640,7 @@ export default function ReportPage() {
                       {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
                     </article>
                   ))}
+                </div>
                 </div>
               ) : null}
             </div>
@@ -833,7 +843,7 @@ export default function ReportPage() {
           )}
 
           <section className="space-y-3">
-            <DashboardSectionHeader title="Revenue Trend" description="Recent net revenue movement from your latest report timeline." />
+            <DashboardSectionHeader title="Revenue History" description={`${presentation.displayContext.historyLabel} — net revenue movement across your report timeline.`} />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               {revenueTrend.hasRenderableChart ? (
                 <div className="space-y-3">
@@ -993,7 +1003,7 @@ export default function ReportPage() {
           </section>
 
           <section className="space-y-3">
-            <DashboardSectionHeader title="Platform Mix" description="Current concentration and channel exposure signals." />
+            <DashboardSectionHeader title="Current Revenue Mix" description="Concentration and channel exposure based on the latest available snapshot." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               {presentation.platformMix.notice ? <TruthNotice notice={presentation.platformMix.notice} testId="report-platform-mix-notice" /> : null}
               {presentation.platformMix.concentrationScore !== null ||
@@ -1227,9 +1237,7 @@ export default function ReportPage() {
                         )}
                       </div>
                     </details>
-                  ) : (
-                    <p className="mt-4 text-xs text-brand-text-muted">Debug payload view is available with Pro access.</p>
-                  )}
+                  ) : null}
                 </PanelCard>
               </div>
             </details>

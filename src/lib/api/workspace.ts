@@ -12,6 +12,14 @@ type RawWorkspaceDataSource = {
   descriptor?: NullableString;
   accepted_file_types_label?: NullableString;
   acceptedFileTypesLabel?: NullableString;
+  report_role?: NullableString;
+  reportRole?: NullableString;
+  standalone_report_eligible?: boolean | null;
+  standaloneReportEligible?: boolean | null;
+  business_metrics_capable?: boolean | null;
+  businessMetricsCapable?: boolean | null;
+  role_summary?: NullableString;
+  roleSummary?: NullableString;
   state?: WorkspaceDataSourceState | string;
   included_in_next_report?: boolean | null;
   includedInNextReport?: boolean | null;
@@ -46,14 +54,28 @@ type RawWorkspaceDataSourcesResponse = {
   reportDrivingReadySourceCount?: number | null;
   report_driving_included_source_count?: number | null;
   reportDrivingIncludedSourceCount?: number | null;
+  eligible_for_report?: boolean | null;
+  eligibleForReport?: boolean | null;
+  blocking_reason?: NullableString;
+  blockingReason?: NullableString;
+  report_has_business_metrics?: boolean | null;
+  reportHasBusinessMetrics?: boolean | null;
+  report_readiness_note?: NullableString;
+  reportReadinessNote?: NullableString;
   sources?: RawWorkspaceDataSource[] | null;
 };
+
+export type WorkspaceSourceReportRole = "report_driving" | "supporting";
 
 export type WorkspaceDataSource = {
   platform: UploadPlatform;
   label: string;
   descriptor: string;
   acceptedFileTypesLabel: string;
+  reportRole: WorkspaceSourceReportRole;
+  standaloneReportEligible: boolean;
+  businessMetricsCapable: boolean;
+  roleSummary: string;
   state: WorkspaceDataSourceState;
   includedInNextReport: boolean;
   lastUploadAt: string | null;
@@ -71,6 +93,10 @@ export type WorkspaceDataSourcesResponse = {
   failedSourceCount: number;
   includedSourceCount: number;
   runReportEnabled: boolean;
+  eligibleForReport: boolean;
+  blockingReason: string | null;
+  reportHasBusinessMetrics: boolean;
+  reportReadinessNote: string | null;
   reportDrivingReadySourceCount: number | null;
   reportDrivingIncludedSourceCount: number | null;
   sources: WorkspaceDataSource[];
@@ -99,6 +125,10 @@ function normalizeWorkspaceActionLabel(value: string | null | undefined): Worksp
   return value && WORKSPACE_ACTION_LABELS.has(value as WorkspaceDataSourceActionLabel) ? (value as WorkspaceDataSourceActionLabel) : "Upload";
 }
 
+function normalizeWorkspaceSourceRole(value: string | null | undefined): WorkspaceSourceReportRole {
+  return value === "report_driving" ? "report_driving" : "supporting";
+}
+
 function normalizeWorkspaceDataSource(raw: RawWorkspaceDataSource): WorkspaceDataSource | null {
   const platform = raw.platform;
   if (!platform) {
@@ -112,6 +142,17 @@ function normalizeWorkspaceDataSource(raw: RawWorkspaceDataSource): WorkspaceDat
     acceptedFileTypesLabel:
       normalizeNullableString(raw.accepted_file_types_label) ??
       normalizeNullableString(raw.acceptedFileTypesLabel) ??
+      "",
+    reportRole: normalizeWorkspaceSourceRole(
+      normalizeNullableString(raw.report_role) ?? normalizeNullableString(raw.reportRole),
+    ),
+    standaloneReportEligible:
+      raw.standalone_report_eligible === true || raw.standaloneReportEligible === true,
+    businessMetricsCapable:
+      raw.business_metrics_capable === true || raw.businessMetricsCapable === true,
+    roleSummary:
+      normalizeNullableString(raw.role_summary) ??
+      normalizeNullableString(raw.roleSummary) ??
       "",
     state: normalizeWorkspaceDataSourceState(normalizeNullableString(raw.state)),
     includedInNextReport: raw.included_in_next_report === true || raw.includedInNextReport === true,
@@ -138,6 +179,16 @@ export function normalizeWorkspaceDataSourcesResponse(
     failedSourceCount: normalizeCount(raw?.failed_source_count ?? raw?.failedSourceCount),
     includedSourceCount: normalizeCount(raw?.included_source_count ?? raw?.includedSourceCount),
     runReportEnabled: raw?.run_report_enabled === true || raw?.runReportEnabled === true,
+    eligibleForReport:
+      raw?.eligible_for_report === true ||
+      raw?.eligibleForReport === true ||
+      raw?.run_report_enabled === true ||
+      raw?.runReportEnabled === true,
+    blockingReason: normalizeNullableString(raw?.blocking_reason) ?? normalizeNullableString(raw?.blockingReason),
+    reportHasBusinessMetrics:
+      raw?.report_has_business_metrics === true || raw?.reportHasBusinessMetrics === true,
+    reportReadinessNote:
+      normalizeNullableString(raw?.report_readiness_note) ?? normalizeNullableString(raw?.reportReadinessNote),
     reportDrivingReadySourceCount: normalizeOptionalCount(
       raw?.report_driving_ready_source_count ?? raw?.reportDrivingReadySourceCount,
     ),

@@ -5,52 +5,30 @@ import { readFile } from "node:fs/promises";
 
 const uploadStepperPath = path.resolve("app/(app)/app/_components/upload/upload-stepper.tsx");
 
-test("upload platform selector renders grouped section headers with shared support guidance", async () => {
+test("upload platform selector is manifest-driven and keeps the canonical workspace guide visible", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
   assert.equal(source.includes('data-testid="upload-platform-guide"'), true);
   assert.equal(source.includes("/app/help#upload-guide"), true);
+  assert.equal(source.includes("sourceManifest: NormalizedSourceManifest;"), true);
+  assert.equal(source.includes("visiblePlatformCards: UploadPlatformCardMetadata[];"), true);
   assert.equal(source.includes("platformSections.map((section) =>"), true);
   assert.equal(source.includes('data-testid={`platform-section-${section.category}`}'), true);
-  assert.equal(source.includes("Choose platform"), true);
-  assert.equal(source.includes("Select one supported platform to begin."), true);
-  assert.equal(source.includes("visiblePlatformCards: UploadPlatformCardMetadata[];"), true);
-  assert.equal(source.includes("supportedRevenueUploads: string;"), true);
-  assert.equal(source.includes("const platformSections = useMemo(() => groupPlatformCards(visiblePlatformCards), [visiblePlatformCards]);"), true);
-  assert.equal(source.includes("const showPlatformSectionHeading = platformSections.length > 1;"), true);
-  assert.equal(source.includes("label={item.label}"), true);
-  assert.equal(source.includes('testId={`platform-card-${item.id}`}'), true);
+  assert.equal(source.includes("sourceManifest.eligibilityRule"), true);
+  assert.equal(source.includes("sourceManifest.businessMetricsRule"), true);
+  assert.equal(source.includes("Current primary sources:"), true);
+  assert.equal(source.includes("Current supporting sources:"), false);
   assert.equal(source.includes("UPLOAD_PLATFORM_CARDS"), false);
 });
 
-test("upload platform file guidance stays truthful for normalized instagram and tiktok uploads", async () => {
+test("upload file step uses manifest card guidance rather than import-mode branches", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
-  assert.equal(source.includes('bg-[linear-gradient(145deg,rgba(10,24,50,0.96),rgba(14,30,63,0.96),rgba(12,27,53,0.98))]'), true);
-  assert.equal(source.includes('bg-white/[0.05] px-3 py-3'), true);
-  assert.equal(source.includes("YouTube"), true);
-  assert.equal(source.includes("Workspace sources"), true);
-  assert.equal(source.includes("Accepted file type: Allowlisted ZIP only."), true);
-  assert.equal(source.includes("Accepted file types: CSV or supported Takeout ZIP."), true);
-  assert.equal(source.includes("Accepted file type: CSV."), true);
-  assert.equal(source.includes('selectedPlatformCard?.importMode === "allowlisted_zip"'), true);
-  assert.equal(source.includes("Need help? Review the upload guide for the supported file type."), true);
-  assert.equal(source.includes("description={item.subtitle}"), true);
-  assert.equal(source.includes("fileTypeLabel={item.fileTypeLabel}"), true);
-  assert.equal(source.includes("File type"), true);
-  assert.equal(source.includes("Selected. Continue to file upload."), true);
-  assert.equal(source.includes("Select platform to continue"), true);
-  assert.equal(source.includes("Continue to file upload"), true);
-  assert.equal(source.includes("full support for this export type is coming soon"), false);
+  assert.equal(source.includes('title="How to get your file"'), true);
   assert.equal(source.includes("selectedPlatformCard?.guidance"), true);
-  assert.equal(source.includes("template-based normalized CSV"), false);
-  assert.equal(source.includes('className="platform-icon block h-5 w-5 object-contain"'), true);
-  assert.equal(source.includes("disabled={!available}"), true);
-  assert.equal(source.includes("if (!item.available) return;"), true);
-  assert.equal(source.includes("setPlatform(item.id);"), true);
-  assert.equal(source.includes("Coming soon"), false);
-  assert.equal(source.includes("Twitch"), false);
-  assert.equal(source.includes("Snapchat"), false);
-  assert.equal(source.includes("OnlyFans"), false);
-  assert.equal(source.includes("COMING_SOON_CHIP_PLATFORMS"), false);
+  assert.equal(source.includes("selectedPlatformCard?.acceptedFileTypesLabel"), true);
+  assert.equal(source.includes("selectedPlatformCard?.roleSummary"), true);
+  assert.equal(source.includes("Need help? Review the upload guide for the supported file type."), true);
+  assert.equal(source.includes("selectedPlatformCard?.importMode"), false);
+  assert.equal(source.includes("supportedRevenueUploads"), false);
 });

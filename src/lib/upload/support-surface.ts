@@ -1,179 +1,69 @@
-import type { UploadPlatform, UploadSupportMatrixFamily, UploadSupportMatrixResponse } from "@/src/lib/api/upload";
-import { getUploadPlatformCardsByIds, type UploadPlatformCardMetadata } from "./platform-metadata";
+import type { SourceManifestResponse, UploadPlatform } from "@/src/lib/api/upload";
+import {
+  buildUploadPlatformCardsFromManifest,
+  getFallbackSourceManifest,
+  getFallbackVisibleUploadPlatformCards,
+  type NormalizedSourceManifest,
+  normalizeSourceManifestResponse,
+  type UploadPlatformCardMetadata,
+} from "./platform-metadata";
 import { formatGuidanceLabelList } from "./guidance-labels";
 
-const REQUIRED_FAMILY_CLASS = "native_report_driving";
-const SUPPORTED_NOW_STATUS = "supported_now";
-const INTERNAL_ONLY_MARKERS = [
-  "brandconnect",
-  "sponsorship_rollup",
-  "stripe",
-] as const;
-
-export const FALLBACK_VISIBLE_UPLOAD_PLATFORM_IDS: UploadPlatform[] = ["patreon", "substack", "youtube", "instagram", "tiktok"];
-
-type NormalizedSupportFamily = {
-  family: string;
-  label: string;
-  familyClass: string | null;
-  isReportDriving: boolean;
-  isUserVisibleSupported: boolean;
-  supportStatus: string | null;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function normalizeString(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim().toLowerCase();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function readBoolean(record: Record<string, unknown>, snakeKey: string, camelKey: string): boolean {
-  const value = record[snakeKey] ?? record[camelKey];
-  return value === true;
-}
-
-function normalizeSupportFamily(raw: UploadSupportMatrixFamily | unknown): NormalizedSupportFamily | null {
-  if (!isRecord(raw)) {
-    return null;
-  }
-
-  return {
-    family: normalizeString(raw.family) ?? "",
-    label: normalizeString(raw.label) ?? "",
-    familyClass: normalizeString(raw.family_class ?? raw.familyClass),
-    isReportDriving: readBoolean(raw, "is_report_driving", "isReportDriving"),
-    isUserVisibleSupported: readBoolean(raw, "is_user_visible_supported", "isUserVisibleSupported"),
-    supportStatus: normalizeString(raw.support_status ?? raw.supportStatus),
-  };
-}
-
-function isSupportedVisibleFamily(family: NormalizedSupportFamily): boolean {
-  return (
-    family.supportStatus === SUPPORTED_NOW_STATUS &&
-    family.isUserVisibleSupported &&
-    family.isReportDriving &&
-    family.familyClass === REQUIRED_FAMILY_CLASS
-  );
-}
-
-function matchesInternalOnlyMarker(value: string): boolean {
-  return INTERNAL_ONLY_MARKERS.some((marker) => value.includes(marker));
-}
-
-function mapSupportFamilyToVisiblePlatform(family: NormalizedSupportFamily): UploadPlatform | null {
-  const combined = `${family.family} ${family.label}`;
-  if (matchesInternalOnlyMarker(combined)) {
-    return null;
-  }
-
-  if (family.family === "patreon" || family.family.startsWith("patreon_") || family.label.includes("patreon")) {
-    return "patreon";
-  }
-
-  if (family.family === "substack" || family.family.startsWith("substack_") || family.label.includes("substack")) {
-    return "substack";
-  }
-
-  if (family.family === "youtube" || family.family.startsWith("youtube_") || family.label.includes("youtube")) {
-    return "youtube";
-  }
-
-  if (combined.includes("instagram_performance") || family.label.includes("instagram performance")) {
-    return "instagram";
-  }
-
-  if (combined.includes("tiktok_performance") || family.label.includes("tiktok performance")) {
-    return "tiktok";
-  }
-
-  return null;
-}
-
-export function getFallbackVisibleUploadPlatformCards(): UploadPlatformCardMetadata[] {
-  return getUploadPlatformCardsByIds(FALLBACK_VISIBLE_UPLOAD_PLATFORM_IDS);
-}
+export { getFallbackVisibleUploadPlatformCards };
 
 export function getFallbackVisibleUploadPlatformLabels(): string[] {
   return getFallbackVisibleUploadPlatformCards().map((card) => card.label);
 }
 
-function getPlatformLabelsByImportMode(cards: UploadPlatformCardMetadata[], importMode: UploadPlatformCardMetadata["importMode"]): string[] {
-  return cards.filter((card) => card.importMode === importMode).map((card) => card.label);
-}
-
-function formatVerbForLabels(labels: string[]): "use" | "uses" {
-  return labels.length === 1 ? "uses" : "use";
-}
-
 function buildFormatGuidanceSegments(cards: UploadPlatformCardMetadata[]): string[] {
-  const csvLabels = getPlatformLabelsByImportMode(cards, "direct_csv");
-  const csvOrZipLabels = getPlatformLabelsByImportMode(cards, "csv_or_zip");
-  const zipOnlyLabels = getPlatformLabelsByImportMode(cards, "allowlisted_zip");
+  const csvOnly = cards.filter((card) => card.acceptedExtensions.includes(".csv") && !card.acceptedExtensions.includes(".zip"));
+  const csvAndZip = cards.filter((card) => card.acceptedExtensions.includes(".csv") && card.acceptedExtensions.includes(".zip"));
+  const zipOnly = cards.filter((card) => !card.acceptedExtensions.includes(".csv") && card.acceptedExtensions.includes(".zip"));
   const segments: string[] = [];
 
-  if (csvLabels.length > 0) {
-    segments.push(`${formatGuidanceLabelList(csvLabels)} ${formatVerbForLabels(csvLabels)} native CSV exports.`);
+  if (csvOnly.length > 0) {
+    const labels = csvOnly.map((card) => card.label);
+    segments.push(`${formatGuidanceLabelList(labels)} ${labels.length === 1 ? "uses" : "use"} supported CSV inputs.`);
   }
 
-  if (csvOrZipLabels.length > 0) {
-    segments.push(
-      `${formatGuidanceLabelList(csvOrZipLabels)} ${formatVerbForLabels(csvOrZipLabels)} a native CSV or supported Takeout ZIP.`,
-    );
+  if (csvAndZip.length > 0) {
+    const labels = csvAndZip.map((card) => card.label);
+    segments.push(`${formatGuidanceLabelList(labels)} ${labels.length === 1 ? "accepts" : "accept"} supported CSV or allowlisted ZIP inputs.`);
   }
 
-  if (zipOnlyLabels.length > 0) {
-    segments.push(
-      `${formatGuidanceLabelList(zipOnlyLabels)} ${formatVerbForLabels(zipOnlyLabels)} allowlisted ZIP exports only.`,
-    );
+  if (zipOnly.length > 0) {
+    const labels = zipOnly.map((card) => card.label);
+    segments.push(`${formatGuidanceLabelList(labels)} ${labels.length === 1 ? "accepts" : "accept"} allowlisted ZIP inputs only.`);
   }
 
   return segments;
 }
 
-function mergeVisiblePlatformIdsWithFallback(ids: Iterable<UploadPlatform>): UploadPlatform[] {
-  const visiblePlatformIds = new Set<UploadPlatform>(FALLBACK_VISIBLE_UPLOAD_PLATFORM_IDS);
-  for (const platformId of ids) {
-    visiblePlatformIds.add(platformId);
-  }
-  return FALLBACK_VISIBLE_UPLOAD_PLATFORM_IDS.filter((platformId) => visiblePlatformIds.has(platformId));
+export function normalizeSourceManifestOrFallback(
+  manifest: SourceManifestResponse | null | undefined,
+): NormalizedSourceManifest {
+  return normalizeSourceManifestResponse(manifest) ?? getFallbackSourceManifest();
 }
 
-export function buildVisibleUploadPlatformIdsFromSupportMatrix(
-  matrix: UploadSupportMatrixResponse | null | undefined,
-): UploadPlatform[] | null {
-  if (!matrix || !Array.isArray(matrix.families)) {
-    return null;
-  }
-
-  const visiblePlatformIds = new Set<UploadPlatform>();
-
-  for (const rawFamily of matrix.families) {
-    const family = normalizeSupportFamily(rawFamily);
-    if (!family || !isSupportedVisibleFamily(family)) {
-      continue;
-    }
-
-    const platformId = mapSupportFamilyToVisiblePlatform(family);
-    if (platformId) {
-      visiblePlatformIds.add(platformId);
-    }
-  }
-
-  return mergeVisiblePlatformIdsWithFallback(visiblePlatformIds);
-}
-
-export function buildVisibleUploadPlatformCardsFromSupportMatrix(
-  matrix: UploadSupportMatrixResponse | null | undefined,
+export function buildVisibleUploadPlatformCardsFromSourceManifest(
+  manifest: SourceManifestResponse | NormalizedSourceManifest | null | undefined,
 ): UploadPlatformCardMetadata[] | null {
-  const visiblePlatformIds = buildVisibleUploadPlatformIdsFromSupportMatrix(matrix);
-  return visiblePlatformIds ? getUploadPlatformCardsByIds(visiblePlatformIds) : null;
+  const normalized =
+    manifest &&
+    typeof manifest === "object" &&
+    Array.isArray((manifest as NormalizedSourceManifest).platforms) &&
+    typeof (manifest as NormalizedSourceManifest).eligibilityRule === "string"
+      ? (manifest as NormalizedSourceManifest)
+      : normalizeSourceManifestResponse(manifest as SourceManifestResponse | null | undefined);
+
+  return normalized ? buildUploadPlatformCardsFromManifest(normalized) : null;
+}
+
+export function buildVisibleUploadPlatformIdsFromSourceManifest(
+  manifest: SourceManifestResponse | NormalizedSourceManifest | null | undefined,
+): UploadPlatform[] | null {
+  const cards = buildVisibleUploadPlatformCardsFromSourceManifest(manifest);
+  return cards ? cards.map((card) => card.id) : null;
 }
 
 export function getSupportedRevenueUploadSummaryFromCards(cards: UploadPlatformCardMetadata[]): string {
@@ -184,5 +74,5 @@ export function getSupportedRevenueUploadSummaryFromCards(cards: UploadPlatformC
 export function getSupportedRevenueUploadFormatGuidanceFromCards(cards: UploadPlatformCardMetadata[]): string {
   const segments = buildFormatGuidanceSegments(cards);
   const base = segments.length > 0 ? segments.join(" ") : "Upload a supported file for the platform you selected.";
-  return `${base} Not every CSV or ZIP from a platform will work.`;
+  return `${base} Not every file from a platform will match the supported contract.`;
 }

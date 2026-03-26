@@ -8,11 +8,12 @@ const actionCardsSectionPath = path.resolve("app/(app)/app/_components/dashboard
 test("ActionCardsSection includes unlocked rendering for recommendation cards", async () => {
   const source = await readFile(actionCardsSectionPath, "utf8");
 
-  assert.equal(source.includes("mode === \"unlocked\""), true);
   assert.equal(source.includes('data-testid="dashboard-action-cards-unlocked"'), true);
+  assert.equal(source.includes("featuredCard.body"), true);
+  assert.equal(source.includes("featuredCard.detail"), true);
+  assert.equal(source.includes("featuredCard.stateLabel"), true);
   assert.equal(source.includes("supportingCards.map((card, index) => ("), true);
-  assert.equal(source.includes("featuredCard.label"), true);
-  assert.equal(source.includes("card.stateLabel"), true);
+  assert.equal(source.includes("card.body"), true);
   assert.equal(source.includes("card.detail"), true);
 });
 

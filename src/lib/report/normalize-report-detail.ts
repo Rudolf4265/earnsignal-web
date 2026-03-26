@@ -33,6 +33,12 @@ export type ReportDetail = {
   snapshotCoverageNote: string | null;
   youtubeContributionMode: string | null;
   reportHasBusinessMetrics: boolean;
+  sectionStrength: Array<{
+    id: string;
+    label: string;
+    level: "strong" | "medium" | "weak";
+    reason: string | null;
+  }>;
   metrics: {
     netRevenue: number | null;
     subscribers: number | null;
@@ -42,6 +48,50 @@ export type ReportDetail = {
     platformsConnected: number | null;
   };
 };
+
+function normalizeSectionStrengthLabel(key: string): string {
+  if (key === "subscriber_health") {
+    return "Subscriber health";
+  }
+  if (key === "platform_mix") {
+    return "Platform mix";
+  }
+  return key
+    .split("_")
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function normalizeSectionStrengthEntries(payload: Record<string, unknown>): ReportDetail["sectionStrength"] {
+  const raw =
+    payload["section_strength"] ??
+    payload["sectionStrength"] ??
+    (payload["report"] as Record<string, unknown> | undefined)?.["section_strength"];
+
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return [];
+  }
+
+  return Object.entries(raw as Record<string, unknown>)
+    .map(([id, value]) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return null;
+      }
+
+      const record = value as Record<string, unknown>;
+      const levelRaw = readString(record, ["level"], "").toLowerCase();
+      const level = levelRaw === "strong" || levelRaw === "medium" ? levelRaw : "weak";
+
+      return {
+        id,
+        label: normalizeSectionStrengthLabel(id),
+        level,
+        reason: readString(record, ["reason"], "") || null,
+      };
+    })
+    .filter((entry): entry is ReportDetail["sectionStrength"][number] => entry !== null);
+}
 
 function readString(record: Record<string, unknown>, keys: string[], fallback = ""): string {
   for (const key of keys) {
@@ -358,6 +408,7 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
       const raw = payload["report_has_business_metrics"] ?? payload["reportHasBusinessMetrics"] ?? (payload["report"] as Record<string, unknown> | undefined)?.["report_has_business_metrics"];
       return raw === false ? false : true;
     })(),
+    sectionStrength: normalizeSectionStrengthEntries(payload),
     metrics: {
       netRevenue: readNumber(payload, [
         "net_revenue",

@@ -427,3 +427,34 @@ test("summary sentence returns null when only generic placeholder text is availa
 
   assert.equal(result.summarySentence, null);
 });
+
+test("coverage metadata flows through to the wow summary model", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const result = buildReportWowSummaryViewModel(
+    makePresentation(),
+    makeArtifactModel(),
+    {
+      snapshotCoverageNote: "Based on Patreon Jan-Mar and Instagram Feb-Mar snapshots.",
+      reportHasBusinessMetrics: false,
+      sectionStrength: [
+        {
+          id: "subscriber_health",
+          label: "Subscriber health",
+          level: "weak",
+          reason: "Missing direct subscription data in this snapshot.",
+        },
+      ],
+    },
+  );
+
+  assert.equal(result.coverage.snapshotCoverageNote, "Based on Patreon Jan-Mar and Instagram Feb-Mar snapshots.");
+  assert.equal(result.coverage.reportHasBusinessMetrics, false);
+  assert.deepEqual(result.coverage.sectionStrength, [
+    {
+      id: "subscriber_health",
+      label: "Subscriber health",
+      level: "weak",
+      reason: "Missing direct subscription data in this snapshot.",
+    },
+  ]);
+});

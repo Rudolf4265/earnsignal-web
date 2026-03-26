@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 
 const helpPagePath = path.resolve("app/(app)/app/help/page.tsx");
 
-test("help page renders self-service onboarding guidance with explicit support limits", async () => {
+test("help page renders workspace-based onboarding guidance with manifest-driven support limits", async () => {
   const source = await readFile(helpPagePath, "utf8");
 
   assert.equal(source.includes('data-testid="help-page-hero"'), true);
@@ -17,7 +17,8 @@ test("help page renders self-service onboarding guidance with explicit support l
   assert.equal(source.includes('data-testid="help-page-faq"'), true);
   assert.equal(source.includes('data-testid="help-page-troubleshooting"'), true);
   assert.equal(source.includes('data-testid="help-page-not-supported"'), true);
-  assert.equal(source.includes("getSupportedRevenueUploadFormatGuidance"), true);
+  assert.equal(source.includes("getFallbackVisibleUploadPlatformCards"), true);
+  assert.equal(source.includes("getSupportedRevenueUploadFormatGuidanceFromCards"), true);
   assert.equal(source.includes("Quick help for first uploads"), true);
   assert.equal(source.includes("Quick orientation"), true);
   assert.equal(source.includes("Supported imports"), true);
@@ -27,28 +28,16 @@ test("help page renders self-service onboarding guidance with explicit support l
   assert.equal(source.includes("What is not supported yet"), true);
   assert.equal(source.includes("Currently supported uploads are {supportedRevenueUploads}."), true);
   assert.equal(source.includes("{supportedRevenueUploadFormatGuidance}"), true);
-  assert.equal(source.includes("Upload a supported file, let EarnSigma validate it, then review the dashboard and latest report once the workspace is ready."), true);
-  assert.equal(source.includes("After upload, validation runs first."), true);
-  assert.equal(source.includes("EarnSigma accepts only specific allowlisted ZIP formats. Not every ZIP from a platform will work."), true);
-  assert.equal(source.includes("If a ZIP is rejected, confirm it is the exact supported export shape for the platform you selected."), true);
-  assert.equal(source.includes('question: "How do I upload Instagram Performance data?"'), true);
-  assert.equal(source.includes('question: "How do I upload TikTok Performance data?"'), true);
-  assert.equal(source.includes('question: "Does EarnSigma support Stripe uploads?"'), true);
-  assert.equal(source.includes('question: "Does EarnSigma support sponsorship or brand-deal imports?"'), true);
+  assert.equal(source.includes("Upload supported files, let EarnSigma validate and stage them, then run one combined report when your workspace is ready."), true);
+  assert.equal(source.includes("After upload, validation and ingestion run first."), true);
+  assert.equal(source.includes("Trust copy such as coverage notes, business-metrics strength, and section-level limitations comes from the report payload itself."), true);
+  assert.equal(source.includes("Patreon and Substack currently use supported CSV inputs."), true);
+  assert.equal(source.includes("YouTube, Instagram Performance, and TikTok Performance accept supported CSV or allowlisted ZIP inputs."), true);
+  assert.equal(source.includes("Does EarnSigma support Stripe uploads?"), true);
+  assert.equal(source.includes("Does EarnSigma support sponsorship or brand-deal imports?"), true);
   assert.equal(source.includes("Generic ZIP uploads and arbitrary archive parsing."), true);
   assert.equal(source.includes("Stripe self-serve imports."), true);
   assert.equal(source.includes("Sponsorship or brand-deal automation."), true);
-  assert.equal(source.includes("Upload a supported CSV"), false);
-  assert.equal(source.includes("upload any ZIP"), false);
-  assert.equal(source.includes("Use a supported CSV for the platform you selected."), false);
-  assert.equal(source.includes("If a ZIP keeps failing, use a supported CSV."), false);
-  assert.equal(source.includes("Instagram Performance and TikTok Performance accept only the specific allowlisted ZIP"), true);
-  assert.equal(source.includes("there is no CSV fallback for these platforms"), true);
-  assert.equal(source.includes("For YouTube, a native analytics CSV is an alternative to the Takeout ZIP"), true);
-  assert.equal(source.includes("supports all major creator platforms"), false);
-  assert.equal(source.includes("Richer scorecards appear when supported analytics are available."), true);
-  assert.equal(source.includes("Instagram uploads"), false);
-  assert.equal(source.includes("TikTok uploads"), false);
   assert.equal(source.includes('href="/app/data"'), true);
   assert.equal(source.includes('href="/app"'), true);
 });

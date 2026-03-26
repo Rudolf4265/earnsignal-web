@@ -1,23 +1,23 @@
 import Link from "next/link";
 import { buttonClassName } from "@/src/components/ui/button";
 import { PanelCard } from "@/src/components/ui/panel-card";
-import { getSupportedRevenueUploadFormatGuidance, getSupportedRevenueUploadSummary } from "@/src/lib/upload/platform-guidance";
-import { getFallbackVisibleUploadPlatformCards } from "@/src/lib/upload/support-surface";
+import {
+  getFallbackVisibleUploadPlatformCards,
+  getSupportedRevenueUploadFormatGuidanceFromCards,
+  getSupportedRevenueUploadSummaryFromCards,
+} from "@/src/lib/upload/support-surface";
 
-const supportedRevenueUploads = getSupportedRevenueUploadSummary();
-const supportedRevenueUploadFormatGuidance = getSupportedRevenueUploadFormatGuidance();
 const supportedRevenueUploadCards = getFallbackVisibleUploadPlatformCards();
-const csvOnlyUploadCards = supportedRevenueUploadCards.filter((card) => card.importMode === "direct_csv");
-const csvOrZipUploadCards = supportedRevenueUploadCards.filter((card) => card.importMode === "csv_or_zip");
-const allowlistedZipUploadCards = supportedRevenueUploadCards.filter((card) => card.importMode === "allowlisted_zip");
+const supportedRevenueUploads = getSupportedRevenueUploadSummaryFromCards(supportedRevenueUploadCards);
+const supportedRevenueUploadFormatGuidance = getSupportedRevenueUploadFormatGuidanceFromCards(supportedRevenueUploadCards);
 
 const filePreparationItems = [
-  "Upload the correct file under the matching platform before you start validation.",
-  "Patreon and Substack use native CSV exports.",
-  "YouTube uses a native analytics CSV or supported Takeout ZIP.",
-  "Instagram and TikTok require the allowlisted ZIP export — not every ZIP from these platforms will work.",
-  "Include at least 3 months of data where possible for a more useful report.",
-  "Keep file contents clean and consistent, and do not rename required columns.",
+  "Choose the platform that matches the file before you start validation.",
+  "Use only the exact supported file types shown in the workspace and help guide.",
+  "Patreon and Substack currently use supported CSV inputs.",
+  "YouTube, Instagram Performance, and TikTok Performance accept supported CSV or allowlisted ZIP inputs.",
+  "Not every file exported from a platform will match the supported contract.",
+  "At least 3 months of data is helpful when you want a stronger report.",
 ];
 
 const commonUploadProblems = [
@@ -26,28 +26,20 @@ const commonUploadProblems = [
     body: "Go back, choose the platform that matches the file, and upload again.",
   },
   {
-    title: "Unsupported ZIP format",
-    body: "EarnSigma accepts only specific allowlisted ZIP exports for each platform. Ensure the ZIP matches the exact supported export shape for the platform you selected.",
-  },
-  {
-    title: "Unreadable ZIP file",
-    body: "Retry with the original unmodified ZIP export. If it still fails, check that the ZIP is the exact platform export and not a renamed or repackaged file.",
+    title: "Unsupported file format",
+    body: "Use the accepted format shown for that platform. If a ZIP is rejected, it usually does not match the allowlisted archive shape.",
   },
   {
     title: "Malformed CSV",
-    body: "Re-export the CSV without renaming required columns. Use the native platform CSV export without modification.",
+    body: "Retry with the exact supported CSV contract for that platform. Avoid renaming or restructuring the file.",
   },
   {
     title: "Missing required data",
-    body: "Use a file that includes the required columns, rows, and content for the platform you selected.",
+    body: "Use a file that contains the required rows and columns for that supported contract.",
   },
   {
-    title: "Rejected upload after validation",
-    body: "Retry with the supported import for that platform. If the file still fails, confirm the platform selection before uploading again.",
-  },
-  {
-    title: "File accepted but report not ready yet",
-    body: "Validation finished, but processing may still be running. Retry the upload status check before starting over.",
+    title: "File accepted but report not ready",
+    body: "Upload completion stages a source. Reports are generated only when you explicitly click Run Report from a workspace that is eligible.",
   },
 ];
 
@@ -64,101 +56,39 @@ const faqSections: Array<{
       },
       {
         question: "What file types can I upload?",
-        answer:
-          "Patreon and Substack use native CSV exports. YouTube uses a native analytics CSV or supported Takeout ZIP. Instagram Performance and TikTok Performance use allowlisted ZIP exports only. Not every CSV or ZIP from a platform will work.",
+        answer: "Patreon and Substack currently use supported CSV inputs. YouTube, Instagram Performance, and TikTok Performance accept supported CSV or allowlisted ZIP inputs. Not every file from a platform will work.",
       },
       {
-        question: "Do I need a CSV or a ZIP?",
-        answer:
-          "It depends on the platform. Patreon and Substack are CSV only. YouTube accepts a CSV or Takeout ZIP. Instagram and TikTok require the specific allowlisted ZIP export format.",
-      },
-      {
-        question: "How much data should I upload?",
-        answer: "Upload the most complete recent data you have. At least 3 months is recommended when possible for a more useful report.",
-      },
-      {
-        question: "Do I need three months of data?",
-        answer: "No. You can upload less, but at least 3 months is recommended when possible for more useful reporting.",
-      },
-      {
-        question: "What happens after I upload my files?",
-        answer:
-          "EarnSigma validates and stages each supported source first. Upload completion does not create a report. When you are ready, click Run Report to combine your staged sources into one report.",
+        question: "What happens after I upload files?",
+        answer: "EarnSigma validates and stages each source first. Upload completion does not generate a report. When your workspace is eligible, you can run one combined report from the staged snapshot.",
       },
       {
         question: "What kind of report will I get after I click Run Report?",
-        answer:
-          "After you click Run Report, EarnSigma generates one combined report from all eligible staged READY sources in your workspace, focused on supported revenue, subscriptions, and other measured business signals.",
+        answer: "EarnSigma generates one combined report from the eligible staged workspace sources, focused on revenue, subscriber health, platform risk, and next actions.",
       },
     ],
   },
   {
     title: "Platform-specific",
-    items: [
-      {
-        question: "How do I upload Patreon data?",
-        answer: "Choose Patreon in the upload flow, then upload the supported Patreon CSV.",
-      },
-      {
-        question: "How do I upload Substack data?",
-        answer: "Choose Substack in the upload flow, then upload the supported Substack CSV.",
-      },
-      {
-        question: "How do I upload YouTube data?",
-        answer: "Choose YouTube in the upload flow, then upload the native YouTube analytics CSV or a supported YouTube Takeout ZIP.",
-      },
-      {
-        question: "How do I upload Instagram Performance data?",
-        answer:
-          "Choose Instagram Performance, then upload the supported Instagram export ZIP in the exact allowed format. Only the specific allowlisted ZIP shape is accepted.",
-      },
-      {
-        question: "How do I upload TikTok Performance data?",
-        answer:
-          "Choose TikTok Performance, then upload the supported TikTok export ZIP in the exact allowed format. Only the specific allowlisted ZIP shape is accepted.",
-      },
-    ],
+    items: supportedRevenueUploadCards.map((card) => ({
+      question: `How do I upload ${card.label} data?`,
+      answer: `Choose ${card.label} in the upload flow, then use the supported file type shown for that source. ${card.guidance}`,
+    })),
   },
   {
-    title: "ZIP-specific",
+    title: "Eligibility and readiness",
     items: [
       {
-        question: "Can I upload any Instagram ZIP export?",
-        answer: "No. Only the specific allowlisted ZIP export shape is accepted for Instagram Performance. Not every ZIP from Instagram will work.",
+        question: "Why can’t I run a report yet?",
+        answer: "A workspace needs at least one report-driving source such as Patreon, Substack, or YouTube. Supporting sources add context but cannot generate a report alone.",
       },
       {
-        question: "Can I upload any TikTok ZIP export?",
-        answer: "No. Only the specific allowlisted ZIP export shape is accepted for TikTok Performance. Not every ZIP from TikTok will work.",
+        question: "What makes a report stronger?",
+        answer: "Reports are strongest when the staged workspace includes direct revenue or subscriber data. Performance-only support data can enrich a report but does not replace business metrics.",
       },
       {
-        question: "Why was my ZIP file rejected?",
-        answer:
-          "Most ZIP rejections mean the file is not one of the selected supported ZIP formats, the ZIP could not be read, or it does not match the platform you selected.",
-      },
-      {
-        question: 'What does "This ZIP format does not match the platform you selected" mean?',
-        answer: "The ZIP file does not match the platform you chose in the upload flow. Select the matching platform or retry with a supported CSV.",
-      },
-    ],
-  },
-  {
-    title: "Failure recovery",
-    items: [
-      {
-        question: "What should I do if my upload fails?",
-        answer: "Confirm that you selected the matching platform, then retry with the supported file type for that platform. For YouTube, a native analytics CSV is an alternative to the Takeout ZIP. For Instagram Performance and TikTok Performance, only the specific allowlisted ZIP is supported.",
-      },
-      {
-        question: "What if I selected the wrong platform?",
-        answer: "Go back, choose the correct platform, and upload the file again.",
-      },
-      {
-        question: "What if my file is missing required columns or content?",
-        answer: "Use the native platform export without renaming or removing required columns. EarnSigma validates the specific export format for each platform.",
-      },
-      {
-        question: "What should I use if my ZIP is not supported?",
-        answer: "For YouTube, a native analytics CSV is an alternative to the Takeout ZIP. For Patreon and Substack, native CSV is the supported format. Instagram Performance and TikTok Performance accept only the specific allowlisted ZIP — there is no CSV fallback for these platforms.",
+        question: "What does 'What this report is based on' mean?",
+        answer: "Before and after report generation, EarnSigma shows which staged sources were included, what role they play, and where insight is limited by available business metrics.",
       },
     ],
   },
@@ -167,11 +97,11 @@ const faqSections: Array<{
     items: [
       {
         question: "Does EarnSigma support Stripe uploads?",
-        answer: "No. Stripe self-serve imports are not supported in MVP v1.",
+        answer: "No. Stripe self-serve imports are not part of the public MVP support surface.",
       },
       {
         question: "Does EarnSigma support sponsorship or brand-deal imports?",
-        answer: "No. Sponsorship and brand-deal automation are not supported in MVP v1.",
+        answer: "No. Sponsorship and brand-deal automation are not part of the public MVP support surface.",
       },
       {
         question: "Can I upload any creator export bundle?",
@@ -195,7 +125,7 @@ export default function HelpPage() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-accent-teal">Help & onboarding</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-brand-text-primary">Quick help for first uploads</h1>
             <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-              What EarnSigma supports today, how to prepare your files, and how to recover from common upload issues.
+              Current source support, file prep guidance, report-readiness rules, and common failure recovery steps.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -219,7 +149,7 @@ export default function HelpPage() {
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr),minmax(0,0.85fr)]">
         <PanelCard
           title="Quick orientation"
-          description="The short version of how self-service onboarding works today."
+          description="The short version of how workspace-based onboarding works today."
           className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.95),rgba(19,41,80,0.92),rgba(16,32,67,0.96))]"
           contentClassName="space-y-4"
         >
@@ -229,25 +159,25 @@ export default function HelpPage() {
             </p>
             <ol className="space-y-2 text-sm leading-relaxed text-brand-text-secondary">
               <li>1. Choose the platform that matches your file.</li>
-              <li>2. Upload the supported file: CSV for Patreon and Substack, CSV or Takeout ZIP for YouTube, or allowlisted ZIP for Instagram and TikTok.</li>
+              <li>2. Upload the supported file type shown for that source.</li>
               <li>3. Validation and ingestion run first so the source becomes staged in your workspace.</li>
-              <li>4. Click Run Report when you want to generate the latest combined report and refresh the dashboard.</li>
+              <li>4. Click Run Report when you want to generate the latest combined report from the staged snapshot.</li>
             </ol>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2" data-testid="help-page-mode-guide">
             <article className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
               <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Earn</p>
-              <p className="mt-2 text-sm font-semibold text-brand-text-primary">Revenue and monetization health</p>
+              <p className="mt-2 text-sm font-semibold text-brand-text-primary">Private creator business diagnostics</p>
               <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                Earn covers revenue, subscriptions, member value, and the clearest business signal from the latest report.
+                Earn covers revenue, subscriptions, platform risk, and the clearest business signal from the latest report.
               </p>
             </article>
             <article className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
               <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Grow</p>
               <p className="mt-2 text-sm font-semibold text-brand-text-primary">Audience and engagement side</p>
               <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                Grow focuses on audience momentum and engagement. Richer scorecards appear when supported analytics are available.
+                Grow focuses on audience momentum and engagement. Richer scorecards appear as more supported analytics become available.
               </p>
             </article>
           </div>
@@ -255,7 +185,7 @@ export default function HelpPage() {
 
         <PanelCard
           title="Supported imports"
-          description="Exact file types currently accepted in MVP v1."
+          description="Current public support comes from the canonical source manifest."
           className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(18,38,73,0.92),rgba(12,27,53,0.96))]"
           contentClassName="space-y-4"
         >
@@ -267,48 +197,25 @@ export default function HelpPage() {
               {supportedRevenueUploadFormatGuidance}
             </p>
 
-            <div className="grid gap-3 md:grid-cols-3">
-              <article className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">CSV only</p>
-                <ul className="mt-3 space-y-2 text-sm leading-relaxed text-brand-text-secondary">
-                  {csvOnlyUploadCards.map((card) => (
-                    <li key={card.id}>
-                      <span className="font-medium text-brand-text-primary">{card.label}:</span> native CSV
-                    </li>
-                  ))}
-                </ul>
-              </article>
-
-              <article className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">CSV or ZIP</p>
-                <ul className="mt-3 space-y-2 text-sm leading-relaxed text-brand-text-secondary">
-                  {csvOrZipUploadCards.map((card) => (
-                    <li key={card.id}>
-                      <span className="font-medium text-brand-text-primary">{card.label}:</span> analytics CSV or Takeout ZIP
-                    </li>
-                  ))}
-                </ul>
-              </article>
-
-              <article className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Allowlisted ZIP</p>
-                <ul className="mt-3 space-y-2 text-sm leading-relaxed text-brand-text-secondary">
-                  {allowlistedZipUploadCards.map((card) => (
-                    <li key={card.id}>
-                      <span className="font-medium text-brand-text-primary">{card.label}:</span> allowlisted ZIP export
-                    </li>
-                  ))}
-                </ul>
-              </article>
+            <div className="grid gap-3">
+              {supportedRevenueUploadCards.map((card) => (
+                <article key={card.id} className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-brand-text-primary">{card.label}</p>
+                    <span className="rounded-full border border-brand-border/75 bg-brand-panel-muted/70 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">
+                      {card.platformRole === "report-driving" ? "Primary" : "Supporting"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{card.guidance}</p>
+                  <p className="mt-2 text-xs text-brand-text-muted">Accepted format: {card.fileTypeLabel}</p>
+                </article>
+              ))}
             </div>
 
             <div className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Important ZIP note</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Important note</p>
               <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                EarnSigma accepts only specific allowlisted ZIP formats. Not every ZIP from a platform will work.
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                If a ZIP is rejected, confirm it is the exact supported export shape for the platform you selected.
+                Not every CSV or ZIP exported from a platform will match the supported contract. EarnSigma is intentionally narrow and explicit here to keep reports trustworthy.
               </p>
             </div>
           </div>
@@ -318,7 +225,7 @@ export default function HelpPage() {
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr),minmax(0,1fr)]">
         <PanelCard
           title="How to prepare your files"
-          description="Use the matching platform and clean source files before you upload."
+          description="Use the matching platform and supported source files before you upload."
           className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.95),rgba(19,41,80,0.92),rgba(16,32,67,0.96))]"
           contentClassName="space-y-3"
         >
@@ -333,7 +240,7 @@ export default function HelpPage() {
 
         <PanelCard
           title="What happens after upload"
-          description="What to expect from validation, processing, and report readiness."
+          description="What to expect from validation, staging, and report readiness."
           className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(18,38,73,0.92),rgba(12,27,53,0.96))]"
           contentClassName="space-y-3"
         >
@@ -343,10 +250,10 @@ export default function HelpPage() {
               If the file passes, EarnSigma stages that source in your workspace. Upload completion does not create a report.
             </p>
             <p className="text-sm leading-relaxed text-brand-text-secondary">
-              When you click Run Report, EarnSigma generates one combined report from all eligible staged READY sources in the workspace.
+              When you click Run Report, EarnSigma generates one combined report from all eligible staged sources in the current workspace snapshot.
             </p>
             <p className="text-sm leading-relaxed text-brand-text-secondary">
-              If you are looking for Grow depth, keep expectations light until supported audience and engagement analytics are available.
+              Trust copy such as coverage notes, business-metrics strength, and section-level limitations comes from the report payload itself.
             </p>
           </div>
         </PanelCard>
@@ -393,7 +300,7 @@ export default function HelpPage() {
 
       <PanelCard
         title="What is not supported yet"
-        description="Current MVP v1 limits to keep support expectations accurate."
+        description="Current MVP v1 limits to keep expectations accurate."
         className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.95),rgba(19,41,80,0.9),rgba(16,32,67,0.96))]"
         contentClassName="space-y-3"
       >
@@ -418,7 +325,7 @@ export default function HelpPage() {
                 className: "border-brand-border-strong/75 bg-brand-panel/75 shadow-brand-card hover:bg-brand-panel-muted/90",
               })}
             >
-              Review upload guide
+              Review supported imports
             </Link>
           </div>
         </div>

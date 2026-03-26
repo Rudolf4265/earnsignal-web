@@ -1,4 +1,5 @@
 import type { ReportDetailPresentationModel } from "./detail-presentation";
+import type { ReportDetail } from "./normalize-report-detail";
 import type { ReportDiagnosisType, ReportViewModel } from "./normalize-artifact-to-report-model";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -54,6 +55,11 @@ export type WowNextActionViewModel = {
 export type ReportWowSummaryViewModel = {
   kpiCards: [WowKpiCard, WowKpiCard, WowKpiCard, WowKpiCard];
   summarySentence: string | null;
+  coverage: {
+    snapshotCoverageNote: string | null;
+    reportHasBusinessMetrics: boolean;
+    sectionStrength: ReportDetail["sectionStrength"];
+  };
   opportunity: WowOpportunityViewModel;
   platformMix: WowPlatformMixViewModel;
   momentum: WowMomentumViewModel;
@@ -415,10 +421,16 @@ function buildNextActions(presentation: ReportDetailPresentationModel): WowNextA
 export function buildReportWowSummaryViewModel(
   presentation: ReportDetailPresentationModel,
   artifactModel: ReportViewModel | null,
+  reportDetail?: Pick<ReportDetail, "snapshotCoverageNote" | "reportHasBusinessMetrics" | "sectionStrength"> | null,
 ): ReportWowSummaryViewModel {
   return {
     kpiCards: buildKpiCards(presentation, artifactModel),
     summarySentence: buildSummarySentence(presentation, artifactModel),
+    coverage: {
+      snapshotCoverageNote: reportDetail?.snapshotCoverageNote ?? null,
+      reportHasBusinessMetrics: reportDetail?.reportHasBusinessMetrics ?? true,
+      sectionStrength: reportDetail?.sectionStrength ?? [],
+    },
     opportunity: buildOpportunity(presentation, artifactModel),
     platformMix: buildPlatformMix(presentation),
     momentum: buildMomentum(presentation, artifactModel),

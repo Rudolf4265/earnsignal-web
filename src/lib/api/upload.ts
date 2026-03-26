@@ -37,6 +37,41 @@ export type UploadSupportMatrixFamily = {
 export type UploadSupportMatrixResponse = {
   families?: UploadSupportMatrixFamily[] | null;
 };
+export type SourceManifestPlatform = {
+  platform?: UploadPlatform;
+  label?: string;
+  descriptor?: string;
+  accepted_file_types_label?: string;
+  acceptedFileTypesLabel?: string;
+  upload_help_text?: string;
+  uploadHelpText?: string;
+  public_support_status?: string;
+  publicSupportStatus?: string;
+  report_role?: string;
+  reportRole?: string;
+  standalone_report_eligible?: boolean;
+  standaloneReportEligible?: boolean;
+  business_metrics_capable?: boolean;
+  businessMetricsCapable?: boolean;
+  accepted_extensions?: string[];
+  acceptedExtensions?: string[];
+  public_contract_ids?: string[];
+  publicContractIds?: string[];
+  data_domains?: string[];
+  dataDomains?: string[];
+  role_summary?: string;
+  roleSummary?: string;
+  known_limitations?: string[];
+  knownLimitations?: string[];
+};
+export type SourceManifestResponse = {
+  version?: number | null;
+  eligibility_rule?: string | null;
+  eligibilityRule?: string | null;
+  business_metrics_rule?: string | null;
+  businessMetricsRule?: string | null;
+  platforms?: SourceManifestPlatform[] | null;
+};
 const LATEST_UPLOAD_STATUS_TTL_MS = 5_000;
 let latestUploadStatusCache: { value: UploadStatusResponse; fetchedAt: number } | null = null;
 let latestUploadStatusInFlight: Promise<UploadStatusResponse> | null = null;
@@ -118,8 +153,16 @@ export async function getUploadStatus(uploadId: string): Promise<UploadStatusRes
   });
 }
 
+// Temporary compatibility path for older/internal surfaces.
+// Primary product flows should consume `/v1/source-manifest` instead.
 export async function getUploadSupportMatrix(): Promise<UploadSupportMatrixResponse> {
   return apiFetchJson<UploadSupportMatrixResponse>("uploads.supportMatrix", "/v1/uploads/support-matrix", {
+    method: "GET",
+  });
+}
+
+export async function getSourceManifest(): Promise<SourceManifestResponse> {
+  return apiFetchJson<SourceManifestResponse>("uploads.sourceManifest", "/v1/source-manifest", {
     method: "GET",
   });
 }

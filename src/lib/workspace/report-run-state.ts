@@ -1,9 +1,4 @@
 import type { WorkspaceDataSource, WorkspaceDataSourcesResponse } from "../api/workspace";
-import { UPLOAD_PLATFORM_CARDS } from "../upload/platform-metadata";
-
-const REPORT_DRIVING_PLATFORMS = new Set(
-  UPLOAD_PLATFORM_CARDS.filter((card) => card.platformRole === "report-driving").map((card) => card.id),
-);
 
 export type WorkspaceReportState = {
   stagedSourcesReadyCount: number;
@@ -16,6 +11,11 @@ export type WorkspaceReportState = {
   isLoading: boolean;
   currentReportId: string | null;
   mostRecentSource: WorkspaceDataSource | null;
+  eligibleForReport: boolean;
+  blockingReason: string | null;
+  reportReadinessNote: string | null;
+  reportHasBusinessMetrics: boolean;
+  includedSources: WorkspaceDataSource[];
 };
 
 function toTimestamp(source: WorkspaceDataSource): number {
@@ -33,10 +33,6 @@ function toTimestamp(source: WorkspaceDataSource): number {
   }
 
   return Number.NEGATIVE_INFINITY;
-}
-
-function isReportDrivingSource(platform: WorkspaceDataSource["platform"]): boolean {
-  return REPORT_DRIVING_PLATFORMS.has(platform);
 }
 
 function findMostRecentSource(sources: WorkspaceDataSource[]): WorkspaceDataSource | null {
@@ -57,26 +53,35 @@ export function buildWorkspaceReportState(
   },
 ): WorkspaceReportState {
   const sources = workspaceDataSources?.sources ?? [];
-  const includedReadySourceCount = sources.filter((source) => source.state === "ready" && source.includedInNextReport).length;
+  const includedSources = sources.filter((source) => source.includedInNextReport);
   const reportDrivingSourcesReadyCount =
     workspaceDataSources?.reportDrivingReadySourceCount ??
-    sources.filter((source) => source.state === "ready" && isReportDrivingSource(source.platform)).length;
-  const reportDrivingIncludedReadySourceCount =
+    sources.filter((source) => source.state === "ready" && source.reportRole === "report_driving").length;
+  const reportDrivingIncludedSourceCount =
     workspaceDataSources?.reportDrivingIncludedSourceCount ??
-    sources.filter(
-      (source) => source.state === "ready" && source.includedInNextReport && isReportDrivingSource(source.platform),
-    ).length;
+    includedSources.filter((source) => source.reportRole === "report_driving").length;
+  // Canonical readiness comes from the backend workspace payload. Keep the
+  // legacy field only as a temporary compatibility fallback during rollout.
+  const eligibleForReport =
+    workspaceDataSources?.eligibleForReport ??
+    workspaceDataSources?.runReportEnabled ??
+    false;
 
   return {
     stagedSourcesReadyCount: workspaceDataSources?.readySourceCount ?? 0,
     reportDrivingSourcesReadyCount,
-    includedSourceCount: includedReadySourceCount,
-    reportDrivingIncludedSourceCount: reportDrivingIncludedReadySourceCount,
-    canRunReport: reportDrivingIncludedReadySourceCount > 0,
+    includedSourceCount: includedSources.length,
+    reportDrivingIncludedSourceCount,
+    canRunReport: eligibleForReport,
     hasExistingReport: Boolean(options?.currentReportId),
     hasStagedSources: sources.some((source) => source.state !== "missing"),
     isLoading: options?.isLoading === true,
     currentReportId: options?.currentReportId ?? null,
     mostRecentSource: findMostRecentSource(sources),
+    eligibleForReport,
+    blockingReason: workspaceDataSources?.blockingReason ?? null,
+    reportReadinessNote: workspaceDataSources?.reportReadinessNote ?? null,
+    reportHasBusinessMetrics: workspaceDataSources?.reportHasBusinessMetrics ?? false,
+    includedSources,
   };
 }

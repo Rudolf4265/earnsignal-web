@@ -23,15 +23,25 @@ const plans: Array<{ id: CheckoutPlan; label: string; priceLabel: string; summar
     id: "report",
     label: "Report",
     priceLabel: "$79 one-time",
-    summary: "One complete creator business report for one upload. Biggest opportunity, platform risks, and next actions — plus PDF download.",
-    highlights: ["Full diagnosis for one upload", "Biggest opportunity and platform risks", "Strengths, risks, and next 3 actions", "Downloadable PDF report"],
+    summary: "One combined creator business report from your staged workspace sources. Full diagnosis, owned report access, and PDF download.",
+    highlights: [
+      "Combined report from staged workspace sources",
+      "Biggest opportunity and platform risk",
+      "Strengths, risks, and next 3 actions",
+      "Owned report access and downloadable PDF",
+    ],
   },
   {
     id: "pro",
     label: "Pro",
     priceLabel: "$59 / month",
-    summary: "Everything in Report, plus ongoing tracking across uploads, period comparisons, and dashboard intelligence.",
-    highlights: ["All Report features included", "Recurring report history and comparisons", "Dashboard intelligence and monitoring"],
+    summary: "Everything in Report, plus report history, comparisons, and ongoing intelligence across fresh workspace runs.",
+    highlights: [
+      "All Report features included",
+      "You keep purchased reports while Pro adds ongoing value",
+      "Recurring report history and period comparisons",
+      "Dashboard intelligence and monitoring",
+    ],
   },
 ];
 
@@ -319,6 +329,14 @@ export default function BillingPage() {
             </article>
           );
         })}
+      </section>
+
+      <section className="rounded-2xl border border-brand-border bg-brand-panel p-5 text-sm text-brand-text-secondary">
+        <h2 className="text-base font-semibold text-brand-text-primary">Ownership and subscription value</h2>
+        <p className="mt-2">
+          You keep any report you purchase. Pro adds ongoing value across fresh workspace runs, including history,
+          comparisons, and continued dashboard intelligence.
+        </p>
       </section>
 
       {checkoutError ? (

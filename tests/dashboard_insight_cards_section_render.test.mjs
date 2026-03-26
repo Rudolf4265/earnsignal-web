@@ -12,12 +12,14 @@ test("insight cards section includes graceful empty state copy", async () => {
   assert.equal(source.includes("New insight cards appear after a completed report with enough evidence to summarize the pattern clearly."), true);
 });
 
-test("insight cards section renders narrative fields for signal and implication", async () => {
+test("insight cards section renders narrative fields for body, implication, and state detail", async () => {
   const source = await readFile(insightCardsSectionPath, "utf8");
 
-  assert.equal(source.includes(">Pattern<"), true);
-  assert.equal(source.includes(">Why it matters<"), true);
-  assert.equal(source.includes("break-words"), true);
+  assert.equal(source.includes("insight.title"), true);
+  assert.equal(source.includes("insight.body"), true);
+  assert.equal(source.includes("Why it matters"), true);
+  assert.equal(source.includes("insight.implication"), true);
   assert.equal(source.includes("insight.stateLabel"), true);
   assert.equal(source.includes("insight.stateDetail"), true);
+  assert.equal(source.includes("break-words"), true);
 });

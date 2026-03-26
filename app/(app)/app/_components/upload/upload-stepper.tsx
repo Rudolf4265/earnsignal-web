@@ -19,8 +19,10 @@ import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/li
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import {
   groupPlatformCards,
+  type NormalizedSourceManifest,
   type UploadPlatformCardMetadata,
 } from "@/src/lib/upload/platform-metadata";
+import type { WorkspaceDataSource } from "@/src/lib/api/workspace";
 import { detectPatreonExportType } from "@/src/lib/upload/patreon-csv-detector";
 import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detector";
 import { extractInstagramZipBufferToUploadArtifact } from "@/src/lib/upload/instagram-zip-extractor";
@@ -116,7 +118,7 @@ async function buildInstagramClientContext(file: File): Promise<string | undefin
   }
 }
 
-const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?: UploadPlatform | null }) => {
+const friendlyFailureMessage = (reasonCode: string | null) => {
   if (
     reasonCode === "instagram_required_file_missing" ||
     reasonCode === "instagram_required_content_invalid" ||
@@ -163,7 +165,7 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
   }
 
   if (normalizedCode === "schema_mismatch") {
-    return "This file doesn't match one of the supported import formats for this platform.";
+    return "This file does not match one of the supported input contracts for this platform.";
   }
 
   if (normalizedCode === "recognized_not_implemented") {
@@ -180,7 +182,7 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
 
   switch (reasonCode) {
     case "validation_failed":
-      if (context?.platform === "patreon") {
+      if (false) {
         return (
           "We couldn’t validate that Patreon CSV. Make sure you’re uploading the native Members export " +
           "(Patreon › Audience › Members › Export CSV), which includes columns like Patron Status, " +
@@ -189,14 +191,14 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
       }
       return "This file was recognized, but one or more required fields are missing or invalid.";
     case "schema_mismatch_or_missing_columns":
-      if (context?.platform === "patreon") {
+      if (false) {
         return (
           "The CSV columns don’t match the expected Patreon Members export format. " +
           "Please use the native Members CSV export from Patreon › Audience › Members › Export CSV. " +
           "This file should include columns like Patron Status, Pledge Amount, and Patronage Since Date."
         );
       }
-      return "This file doesn't match one of the supported import formats for this platform.";
+      return "This file does not match one of the supported input contracts for this platform.";
     case "recognized_not_implemented":
       return "We recognized this export type, but it isn't supported yet in EarnSigma.";
     case "candidate_zip_not_yet_supported":
@@ -238,6 +240,7 @@ const friendlyFailureMessage = (reasonCode: string | null, context?: { platform?
 
 // Per-platform file guidance shown in the file upload step.
 // All steps map to official export flows — do not invent formats.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const PLATFORM_FILE_GUIDANCE: Partial<Record<UploadPlatform, { getFile: string; formatNote: string }>> = {
   patreon: {
     getFile: "In Patreon: go to Audience → Members → Export CSV. Use the native Members export only — do not rename or reformat columns.",
@@ -264,6 +267,55 @@ const PLATFORM_FILE_GUIDANCE: Partial<Record<UploadPlatform, { getFile: string; 
 // Extremely subtle brand-tinted dark chips — 9% opacity tint on both light and dark card surfaces.
 // On unselected (white) cards the tint reads as a soft warm/cool cast; on selected (dark navy) cards
 // the same value blends into the deep background. Both states benefit without being sticker-like.
+function buildFileInputAccept(card: UploadPlatformCardMetadata | null): string {
+  const accepted = new Set<string>();
+
+  if (card?.acceptedExtensions.includes(".csv")) {
+    accepted.add(".csv");
+    accepted.add("text/csv");
+  }
+
+  if (card?.acceptedExtensions.includes(".zip")) {
+    accepted.add(".zip");
+    accepted.add("application/zip");
+  }
+
+  return accepted.size > 0 ? [...accepted].join(",") : ".csv,text/csv";
+}
+
+function buildUploadRecognitionMessage(
+  source: WorkspaceDataSource | null | undefined,
+  selectedPlatformCard: UploadPlatformCardMetadata | null,
+): string {
+  if (source) {
+    return `${source.label} recognized. ${source.roleSummary} ${
+      source.includedInNextReport ? "Included in your next combined report." : "Ready for review in the workspace."
+    }`;
+  }
+
+  if (selectedPlatformCard) {
+    return `${selectedPlatformCard.label} recognized. ${selectedPlatformCard.roleSummary}`;
+  }
+
+  return "Your source was recognized and added to the workspace.";
+}
+
+function formatLabelList(labels: string[]): string {
+  if (labels.length === 0) {
+    return "No sources";
+  }
+
+  if (labels.length === 1) {
+    return labels[0];
+  }
+
+  if (labels.length === 2) {
+    return `${labels[0]} and ${labels[1]}`;
+  }
+
+  return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
+}
+
 const PLATFORM_LOGO_BUBBLE: Record<string, { bg: string; ring: string }> = {
   patreon:   { bg: "bg-[rgba(248,67,20,0.09)]",  ring: "ring-[rgba(248,67,20,0.18)]" },
   substack:  { bg: "bg-[rgba(255,104,31,0.09)]", ring: "ring-[rgba(255,104,31,0.18)]" },
@@ -276,7 +328,7 @@ type PlatformCardProps = {
   label: string;
   description: string;
   contributionLabel: string;
-  platformRole: "report-driving" | "performance-only";
+  platformRole: "report-driving" | "supporting";
   fileTypeLabel?: string;
   icon: string;
   available: boolean;
@@ -306,7 +358,7 @@ function PlatformCard({ label, description, contributionLabel, platformRole, fil
     : selected
     ? "bg-sky-400/18 text-sky-300 ring-1 ring-inset ring-sky-400/30"
     : "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200";
-  const roleBadgeLabel = isReportDriving ? "Report-driving" : "Performance-only";
+  const roleBadgeLabel = isReportDriving ? "Primary" : "Supporting";
 
   return (
     <button
@@ -390,8 +442,8 @@ async function awaitWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Prom
 }
 
 type UploadStepperProps = {
+  sourceManifest: NormalizedSourceManifest;
   visiblePlatformCards: UploadPlatformCardMetadata[];
-  supportedRevenueUploads: string;
   workspaceReportState: WorkspaceReportState;
   refreshWorkspaceDataSources: () => Promise<void>;
   clearCurrentReport: () => void;
@@ -399,8 +451,8 @@ type UploadStepperProps = {
 };
 
 export default function UploadStepper({
+  sourceManifest,
   visiblePlatformCards,
-  supportedRevenueUploads,
   workspaceReportState,
   refreshWorkspaceDataSources,
   clearCurrentReport,
@@ -462,26 +514,38 @@ export default function UploadStepper({
     !showWorkspaceLoadingGuard &&
     workspaceReportState.hasExistingReport &&
     Boolean(workspaceReportState.currentReportId);
-  const showWorkspaceRunReport =
+  const showWorkspaceRunReportCta =
     !showWorkspaceLoadingGuard &&
     !showWorkspaceViewReport &&
-    workspaceReportState.canRunReport &&
     !reportAccessBlocked;
+  const showWorkspaceRunReport =
+    showWorkspaceRunReportCta && workspaceReportState.canRunReport;
   const showWorkspaceNeedsReportDrivingSource =
     !showWorkspaceLoadingGuard &&
     !showWorkspaceViewReport &&
-    workspaceReportState.stagedSourcesReadyCount > 0 &&
     !workspaceReportState.canRunReport &&
-    workspaceReportState.reportDrivingSourcesReadyCount === 0;
+    workspaceReportState.hasStagedSources;
   const workspaceCurrentReportHref = workspaceReportState.currentReportId
     ? buildReportDetailPathOrIndex(workspaceReportState.currentReportId)
     : "/app/report";
-  const supportsSelectedZipImport = selectedPlatformCard?.importMode === "csv_or_zip" || selectedPlatformCard?.importMode === "allowlisted_zip";
-  const fileInputAccept = supportsSelectedZipImport
-    ? ".csv,.zip,text/csv,application/zip"
-    : ".csv,text/csv";
+  const fileInputAccept = buildFileInputAccept(selectedPlatformCard);
+  const supportsSelectedZipImport = selectedPlatformCard?.acceptedExtensions.includes(".zip") === true;
   const selectedSupportedZip = Boolean(file && supportsSelectedZipImport && isZipUploadCandidate(file));
   const unsupportedCsvWarning = Boolean(file && !file.name.toLowerCase().endsWith(".csv") && !selectedSupportedZip);
+  const selectedWorkspaceSource = useMemo(
+    () => workspaceReportState.includedSources.find((source) => source.platform === platform) ?? null,
+    [platform, workspaceReportState.includedSources],
+  );
+  const workspaceBlockingReason =
+    workspaceReportState.blockingReason ?? sourceManifest.eligibilityRule;
+  const reportDrivingPlatformLabels = useMemo(
+    () => visiblePlatformCards.filter((card) => card.platformRole === "report-driving").map((card) => card.label),
+    [visiblePlatformCards],
+  );
+  const supportingPlatformLabels = useMemo(
+    () => visiblePlatformCards.filter((card) => card.platformRole === "supporting").map((card) => card.label),
+    [visiblePlatformCards],
+  );
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production") {
@@ -542,7 +606,7 @@ export default function UploadStepper({
       operation?: string | null;
       nextStep?: Step;
     }) => {
-      const resolvedMessage = friendlyFailureMessage(params.reasonCode, { platform });
+      const resolvedMessage = friendlyFailureMessage(params.reasonCode);
       setStep(params.nextStep ?? "processing");
       setProcessingStatus("failed");
       setError(resolvedMessage);
@@ -568,7 +632,7 @@ export default function UploadStepper({
         operation: params.operation ?? null,
       });
     },
-    [logUploadDiagnostic, platform],
+    [logUploadDiagnostic],
   );
 
   const updateProcessingFromEnvelope = useCallback(
@@ -1202,9 +1266,7 @@ export default function UploadStepper({
               data-testid="upload-completed-summary"
             >
               <p className="text-xs text-current/80">
-                {latestTerminalUpload.status === "ready"
-                  ? "This source is staged and ready for your next report."
-                  : "Upload validated. Workspace actions below reflect your currently staged sources."}
+                {buildUploadRecognitionMessage(selectedWorkspaceSource, selectedPlatformCard)}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {showWorkspaceLoadingGuard ? (
@@ -1219,12 +1281,12 @@ export default function UploadStepper({
                   >
                     View Report
                   </Link>
-                ) : showWorkspaceRunReport ? (
+                ) : showWorkspaceRunReportCta ? (
                   <button
                     type="button"
                     data-testid="upload-completed-run-report"
                     onClick={() => void runReport()}
-                    disabled={runReportBusy}
+                    disabled={runReportBusy || !workspaceReportState.canRunReport}
                     className="rounded-lg border border-emerald-200/60 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {runReportBusy ? "Running..." : "Run Report"}
@@ -1256,7 +1318,7 @@ export default function UploadStepper({
               ) : null}
               {showWorkspaceNeedsReportDrivingSource ? (
                 <p className="mt-2 text-xs text-current/75">
-                  Add a report-driving source before running a combined report.
+                  {workspaceBlockingReason}
                 </p>
               ) : null}
             </InlineAlert>
@@ -1267,7 +1329,8 @@ export default function UploadStepper({
             data-testid="upload-platform-guide"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-accent-teal">Workspace sources</p>
-            <p className="mt-2 text-xs leading-relaxed text-slate-300">Add multiple sources to build a complete cross-platform report. Report-driving sources generate revenue and audience insights. Performance-only sources enrich your report with engagement data.</p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-300">{sourceManifest.eligibilityRule}</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-400">{sourceManifest.businessMetricsRule}</p>
             <div className="mt-3 grid gap-2 md:grid-cols-2">
               <div className="rounded-xl border border-emerald-400/20 bg-white/[0.05] px-3 py-3">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-300">Report-driving</p>
@@ -1275,11 +1338,14 @@ export default function UploadStepper({
                 <p className="mt-1 text-xs text-slate-400">Revenue, subscribers &amp; growth</p>
               </div>
               <div className="rounded-xl border border-sky-400/20 bg-white/[0.05] px-3 py-3">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-sky-300">Performance-only</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-sky-300">Supporting</p>
                 <p className="text-xs font-semibold text-white">Instagram · TikTok</p>
                 <p className="mt-1 text-xs text-slate-400">Engagement &amp; reach enrichment</p>
               </div>
             </div>
+            <p className="mt-3 text-[11px] leading-relaxed text-slate-400">
+              Current primary sources: {formatLabelList(reportDrivingPlatformLabels)}. Supporting sources: {formatLabelList(supportingPlatformLabels)}.
+            </p>
             <Link href="/app/help#upload-guide" className="mt-3 inline-flex text-[11px] font-medium text-blue-200 underline underline-offset-4 hover:text-white">
               Open upload guide
             </Link>
@@ -1342,21 +1408,18 @@ export default function UploadStepper({
             subtitle={selectedPlatformCard?.guidance ?? "Upload a supported file for this platform."}
           />
           <InlineAlert variant="info" title="How to get your file" data-testid="upload-file-guide">
-            {platform && PLATFORM_FILE_GUIDANCE[platform] ? (
-              <div className="space-y-2">
-                <p>{PLATFORM_FILE_GUIDANCE[platform]!.getFile}</p>
-                <p className="text-current/70">{PLATFORM_FILE_GUIDANCE[platform]!.formatNote}</p>
-              </div>
-            ) : (
-              <p>
-                {selectedPlatformCard?.importMode === "allowlisted_zip"
-                  ? "Accepted file type: Allowlisted ZIP only. EarnSigma validates that the ZIP matches the exact supported export shape. Not every ZIP from this platform will work."
-                  : selectedPlatformCard?.importMode === "csv_or_zip"
-                  ? "Accepted file types: CSV or supported Takeout ZIP."
-                  : "Accepted file type: CSV. Make sure you're using the correct native export from this platform."}
+            <div className="space-y-2">
+              <p>{selectedPlatformCard?.guidance ?? "Upload a supported file for this platform."}</p>
+              <p className="text-current/70">
+                Accepted format: {selectedPlatformCard?.acceptedFileTypesLabel ?? "Supported file required"}.
               </p>
-            )}
-            <p className="mt-2 text-current/70">After upload, EarnSigma validates your file. This source will be ready for your next report once validation succeeds.</p>
+              <p className="text-current/70">
+                {selectedPlatformCard?.roleSummary ?? "This source will be staged for your next combined report."}
+              </p>
+            </div>
+            <p className="mt-2 text-current/70">
+              After upload, EarnSigma validates and stages the source first. Workspace actions update from the canonical readiness state.
+            </p>
             <Link href="/app/help#after-upload" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
               Review upload help
             </Link>
@@ -1469,7 +1532,7 @@ export default function UploadStepper({
           {processingStatus === "validated" ? (
             <>
               <InlineAlert variant="info" title={`${selectedPlatformCard?.label ?? "Source"} staged`} data-testid="upload-terminal-validated">
-                This upload validated successfully. The workspace actions below reflect your currently staged sources.
+                {buildUploadRecognitionMessage(selectedWorkspaceSource, selectedPlatformCard)}
               </InlineAlert>
               <div className="flex flex-wrap gap-2">
                 {showWorkspaceLoadingGuard ? (
@@ -1480,12 +1543,12 @@ export default function UploadStepper({
                   <Link href={workspaceCurrentReportHref} className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
                     View Report
                   </Link>
-                ) : showWorkspaceRunReport ? (
+                ) : showWorkspaceRunReportCta ? (
                   <button
                     type="button"
                     data-testid="upload-run-report"
                     onClick={() => void runReport()}
-                    disabled={runReportBusy}
+                    disabled={runReportBusy || !workspaceReportState.canRunReport}
                     className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {runReportBusy ? "Running..." : "Run Report"}
@@ -1510,14 +1573,14 @@ export default function UploadStepper({
               ) : null}
               {showWorkspaceNeedsReportDrivingSource ? (
                 <p className="text-xs text-slate-500">
-                  Add a report-driving source before running a combined report.
+                  {workspaceBlockingReason}
                 </p>
               ) : null}
             </>
           ) : (
             <>
               <InlineAlert variant="success" title={`${selectedPlatformCard?.label ?? "Source"} added successfully`} data-testid="upload-terminal-success">
-                <p>This source is ready for your next report.</p>
+                <p>{buildUploadRecognitionMessage(selectedWorkspaceSource, selectedPlatformCard)}</p>
                 <p className="mt-1 text-current/75">
                   Add more sources to enrich your report, or use the workspace action below.
                 </p>
@@ -1531,12 +1594,12 @@ export default function UploadStepper({
                   <Link href={workspaceCurrentReportHref} className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
                     View Report
                   </Link>
-                ) : showWorkspaceRunReport ? (
+                ) : showWorkspaceRunReportCta ? (
                   <button
                     type="button"
                     data-testid="upload-run-report"
                     onClick={() => void runReport()}
-                    disabled={runReportBusy}
+                    disabled={runReportBusy || !workspaceReportState.canRunReport}
                     className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {runReportBusy ? "Running..." : "Run Report"}
@@ -1561,7 +1624,7 @@ export default function UploadStepper({
               ) : null}
               {showWorkspaceNeedsReportDrivingSource ? (
                 <p className="text-xs text-slate-500">
-                  Add a report-driving source before running a combined report.
+                  {workspaceBlockingReason}
                 </p>
               ) : null}
             </>

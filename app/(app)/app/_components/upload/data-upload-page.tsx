@@ -8,15 +8,54 @@ import UploadStepper from "./upload-stepper";
 import { buttonClassName } from "@/src/components/ui/button";
 import { createReportRun, getReportErrorMessage } from "@/src/lib/api/reports";
 import { fetchWorkspaceDataSources, type WorkspaceDataSourcesResponse } from "@/src/lib/api/workspace";
-import { getUploadSupportMatrix } from "@/src/lib/api/upload";
+import { getSourceManifest } from "@/src/lib/api/upload";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import { buildWorkspaceReportState, type WorkspaceReportState } from "@/src/lib/workspace/report-run-state";
 import {
-  buildVisibleUploadPlatformCardsFromSupportMatrix,
-  getFallbackVisibleUploadPlatformCards,
-} from "@/src/lib/upload/support-surface";
+  getFallbackSourceManifest,
+  normalizeSourceManifestResponse,
+  type NormalizedSourceManifest,
+  type UploadPlatformCardMetadata,
+  buildUploadPlatformCardsFromManifest,
+} from "@/src/lib/upload/platform-metadata";
 
-const FALLBACK_VISIBLE_UPLOAD_PLATFORM_CARDS = getFallbackVisibleUploadPlatformCards();
+const FALLBACK_SOURCE_MANIFEST = getFallbackSourceManifest();
+const FALLBACK_VISIBLE_UPLOAD_PLATFORM_CARDS = buildUploadPlatformCardsFromManifest(FALLBACK_SOURCE_MANIFEST);
+
+function IncludedSourcesSummary({ workspaceReportState }: { workspaceReportState: WorkspaceReportState }) {
+  if (workspaceReportState.includedSources.length === 0) {
+    return (
+      <p className="text-xs text-slate-500" data-testid="workspace-included-sources-empty">
+        No sources are staged for the next report yet.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2" data-testid="workspace-included-sources-summary">
+      {workspaceReportState.includedSources.map((source) => (
+        <div
+          key={source.platform}
+          className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold text-slate-900">{source.label}</p>
+            <span
+              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${
+                source.reportRole === "report_driving"
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-sky-50 text-sky-700"
+              }`}
+            >
+              {source.reportRole === "report_driving" ? "Primary" : "Supporting"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-slate-600">{source.roleSummary}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function StagedSourcesPanel({
   workspaceDataSources,
@@ -36,7 +75,7 @@ function StagedSourcesPanel({
   if (workspaceDataSources === "loading" || workspaceReportState.isLoading) {
     return (
       <UploadCard>
-        <h3 className="text-base font-semibold text-slate-900">Staged sources</h3>
+        <h3 className="text-base font-semibold text-slate-900">Report readiness</h3>
         <p className="mt-2 text-sm text-slate-500">Checking workspace...</p>
       </UploadCard>
     );
@@ -45,10 +84,10 @@ function StagedSourcesPanel({
   if (!workspaceReportState.hasStagedSources || !mostRecentSource) {
     return (
       <UploadCard>
-        <h3 className="text-base font-semibold text-slate-900">Staged sources</h3>
+        <h3 className="text-base font-semibold text-slate-900">Report readiness</h3>
         <p className="mt-2 text-sm text-slate-600">No sources staged yet.</p>
         <p className="mt-1 text-xs text-slate-500">
-          Upload a supported file to stage your first source. Your report will combine all staged sources.
+          Upload one or more supported data sources, then run a combined report from the staged workspace.
         </p>
       </UploadCard>
     );
@@ -68,16 +107,10 @@ function StagedSourcesPanel({
         ? "text-sky-700 bg-sky-50 border-sky-200"
         : "text-amber-700 bg-amber-50 border-amber-200";
 
-  const showRunReportAction = workspaceReportState.canRunReport && !showViewReportAction;
-  const showNeedsReportDrivingSource =
-    workspaceReportState.stagedSourcesReadyCount > 0 &&
-    !workspaceReportState.canRunReport &&
-    workspaceReportState.reportDrivingSourcesReadyCount === 0 &&
-    !showViewReportAction;
   const updatedAt = mostRecentSource.lastUploadAt ?? mostRecentSource.lastReadyAt;
 
   const handleRunReport = async () => {
-    if (runReportPending) {
+    if (runReportPending || !workspaceReportState.canRunReport) {
       return;
     }
 
@@ -95,61 +128,75 @@ function StagedSourcesPanel({
     }
   };
 
+  const readinessCopy =
+    workspaceReportState.reportReadinessNote ??
+    (workspaceReportState.canRunReport
+      ? "Ready to run a combined report from your staged sources."
+      : workspaceReportState.blockingReason ?? "Add at least one report-driving source to run a combined report.");
+
   return (
     <UploadCard>
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-slate-900">Staged sources</h3>
+        <h3 className="text-base font-semibold text-slate-900">Report readiness</h3>
         <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${statusColor}`}>
           {statusLabel}
         </span>
       </div>
-      <p className="mt-0.5 text-[10px] text-slate-400">Showing your most recent source</p>
-      <p className="mt-2 text-xs text-slate-500">
-        {mostRecentSource.statusMessage ??
-          (mostRecentSource.state === "ready"
-            ? "This source is staged and ready for your next report."
-            : mostRecentSource.state === "processing"
-              ? "Upload validation and ingestion are in progress."
-              : "This source needs attention. Try uploading again.")}
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {showViewReportAction && workspaceReportState.currentReportId ? (
-          <Link
-            href={buildReportDetailPathOrIndex(workspaceReportState.currentReportId)}
-            className="inline-flex rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue hover:bg-brand-blue/10"
-          >
-            View Report
-          </Link>
-        ) : null}
-        {showRunReportAction ? (
-          <div className="flex flex-col gap-1">
-            <button
-              type="button"
-              data-testid="staged-run-report"
-              onClick={() => void handleRunReport()}
-              disabled={runReportPending}
-              className="inline-flex rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue hover:bg-brand-blue/10 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {runReportPending ? "Running..." : "Run Report"}
-            </button>
-            <p className="text-[10px] text-slate-400">Combine your staged sources into one report.</p>
+      <p className="mt-0.5 text-[10px] text-slate-400">Most recent source: {mostRecentSource.label}</p>
+      <p className="mt-2 text-xs text-slate-600">{readinessCopy}</p>
+      {!workspaceReportState.reportHasBusinessMetrics && workspaceReportState.canRunReport ? (
+        <p className="mt-2 text-xs text-amber-700" data-testid="staged-business-metrics-note">
+          This workspace can run now, but direct revenue and subscriber coverage is limited.
+        </p>
+      ) : null}
+
+      <div className="mt-4 space-y-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-slate-500">
+            What this report is based on
+          </p>
+          <div className="mt-2">
+            <IncludedSourcesSummary workspaceReportState={workspaceReportState} />
           </div>
-        ) : null}
-        <Link
-          href="/app/report"
-          className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
-        >
-          All reports
-        </Link>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {showViewReportAction && workspaceReportState.currentReportId ? (
+            <Link
+              href={buildReportDetailPathOrIndex(workspaceReportState.currentReportId)}
+              className="inline-flex rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue hover:bg-brand-blue/10"
+            >
+              View Report
+            </Link>
+          ) : null}
+          {!showViewReportAction ? (
+            <div className="flex flex-col gap-1">
+              <button
+                type="button"
+                data-testid="staged-run-report"
+                onClick={() => void handleRunReport()}
+                disabled={runReportPending || !workspaceReportState.canRunReport}
+                className="inline-flex rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-1.5 text-xs font-medium text-brand-blue hover:bg-brand-blue/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {runReportPending ? "Running..." : "Run Report"}
+              </button>
+              <p className="text-[10px] text-slate-400">
+                {workspaceReportState.canRunReport
+                  ? "Generate one combined report from the staged workspace."
+                  : workspaceReportState.blockingReason ?? "Add at least one report-driving source first."}
+              </p>
+            </div>
+          ) : null}
+          <Link
+            href="/app/report"
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100"
+          >
+            All reports
+          </Link>
+        </div>
       </div>
       {runReportError ? (
         <p className="mt-3 text-xs text-rose-600" data-testid="staged-run-report-error">
           {runReportError}
-        </p>
-      ) : null}
-      {showNeedsReportDrivingSource ? (
-        <p className="mt-3 text-xs text-slate-500" data-testid="staged-next-best-action">
-          Add a report-driving source before running a combined report.
         </p>
       ) : null}
       {updatedAt ? (
@@ -159,16 +206,45 @@ function StagedSourcesPanel({
   );
 }
 
+function UploadGuide({ platformCards }: { platformCards: UploadPlatformCardMetadata[] }) {
+  return (
+    <UploadCard>
+      <div id="upload-guide" data-testid="data-upload-guide">
+        <h3 className="text-base font-semibold text-slate-900">Supported sources</h3>
+        <div className="mt-3 space-y-3">
+          {platformCards.map((card) => (
+            <div key={card.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-slate-900">{card.label}</p>
+                <span
+                  className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${
+                    card.platformRole === "report-driving"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-sky-50 text-sky-700"
+                  }`}
+                >
+                  {card.platformRole === "report-driving" ? "Primary" : "Supporting"}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-slate-600">{card.guidance}</p>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Accepted format: {card.fileTypeLabel}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </UploadCard>
+  );
+}
+
 export default function DataUploadPage() {
+  const [sourceManifest, setSourceManifest] = useState<NormalizedSourceManifest>(FALLBACK_SOURCE_MANIFEST);
   const [visiblePlatformCards, setVisiblePlatformCards] = useState(FALLBACK_VISIBLE_UPLOAD_PLATFORM_CARDS);
   const [workspaceDataSources, setWorkspaceDataSources] = useState<WorkspaceDataSourcesResponse | null | "loading">("loading");
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const workspaceDataSourcesRef = useRef<WorkspaceDataSourcesResponse | null | "loading">("loading");
 
-  const supportedRevenueUploads = useMemo(
-    () => visiblePlatformCards.map((c) => c.label).join(", "),
-    [visiblePlatformCards],
-  );
   const workspaceReportState = useMemo(
     () =>
       buildWorkspaceReportState(workspaceDataSources === "loading" ? null : workspaceDataSources, {
@@ -197,24 +273,14 @@ export default function DataUploadPage() {
       }
     }
   }, []);
+
   const clearCurrentReport = useCallback(() => {
     setCurrentReportId(null);
   }, []);
+
   const handleReportCreated = useCallback((reportId: string) => {
     setCurrentReportId(reportId);
   }, []);
-
-  useEffect(() => {
-    if (process.env.NODE_ENV === "production") {
-      return;
-    }
-
-    console.info("[upload.workspaceReportState]", {
-      workspaceReportState,
-      canRunReport: workspaceReportState.canRunReport,
-      hasExistingReport: workspaceReportState.hasExistingReport,
-    });
-  }, [workspaceReportState]);
 
   useEffect(() => {
     workspaceDataSourcesRef.current = workspaceDataSources;
@@ -223,19 +289,20 @@ export default function DataUploadPage() {
   useEffect(() => {
     let active = true;
 
-    const syncSupportSurface = async () => {
+    const syncManifest = async () => {
       try {
-        const supportMatrix = await getUploadSupportMatrix();
-        const nextVisiblePlatformCards = buildVisibleUploadPlatformCardsFromSupportMatrix(supportMatrix);
-        if (active && nextVisiblePlatformCards) {
-          setVisiblePlatformCards(nextVisiblePlatformCards);
+        const manifest = await getSourceManifest();
+        const normalized = normalizeSourceManifestResponse(manifest);
+        if (active && normalized) {
+          setSourceManifest(normalized);
+          setVisiblePlatformCards(buildUploadPlatformCardsFromManifest(normalized));
         }
       } catch {
-        // Keep the current safe fallback support surface.
+        // Keep the temporary compatibility snapshot.
       }
     };
 
-    void syncSupportSurface();
+    void syncManifest();
 
     return () => {
       active = false;
@@ -243,7 +310,17 @@ export default function DataUploadPage() {
   }, []);
 
   useEffect(() => {
-    void refreshWorkspaceDataSources({ preserveCurrent: false });
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (!cancelled) {
+        void refreshWorkspaceDataSources({ preserveCurrent: false });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [refreshWorkspaceDataSources]);
 
   return (
@@ -251,16 +328,18 @@ export default function DataUploadPage() {
       <div className="space-y-1">
         <h1 className="text-3xl font-semibold text-slate-900">Your Report Workspace</h1>
         <p className="text-slate-600">
-          Add your data sources to build a complete cross-platform report.
+          Stage real creator data sources, then generate one combined decision-ready report.
         </p>
-        <p className="text-sm text-slate-500">You can add multiple sources before running your report.</p>
+        <p className="text-sm text-slate-500">
+          EarnSigma validates and stages each source first. Reports are generated from the workspace snapshot you choose to run.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.55fr),minmax(20rem,0.95fr)]">
         <div>
           <UploadStepper
+            sourceManifest={sourceManifest}
             visiblePlatformCards={visiblePlatformCards}
-            supportedRevenueUploads={supportedRevenueUploads}
             workspaceReportState={workspaceReportState}
             refreshWorkspaceDataSources={refreshWorkspaceDataSources}
             clearCurrentReport={clearCurrentReport}
@@ -269,28 +348,7 @@ export default function DataUploadPage() {
         </div>
 
         <div className="space-y-4">
-          <UploadCard>
-            <div id="upload-guide" data-testid="data-upload-guide">
-              <h3 className="text-base font-semibold text-slate-900">What to upload</h3>
-              <div className="mt-3 space-y-3 text-sm text-slate-700">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-emerald-700" data-testid="label-report-driving">Report-driving</p>
-                  <ul className="mt-1 space-y-1 text-xs text-slate-600">
-                    <li>Patreon - native Members CSV export</li>
-                    <li>Substack - native subscriber CSV export</li>
-                    <li>YouTube - analytics CSV or Takeout ZIP</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.09em] text-sky-700" data-testid="label-performance-only">Performance-only</p>
-                  <ul className="mt-1 space-y-1 text-xs text-slate-600">
-                    <li>Instagram - allowlisted ZIP export only</li>
-                    <li>TikTok - allowlisted ZIP export only</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </UploadCard>
+          <UploadGuide platformCards={visiblePlatformCards} />
 
           <StagedSourcesPanel
             workspaceDataSources={workspaceDataSources}
@@ -301,7 +359,7 @@ export default function DataUploadPage() {
           <UploadCard>
             <h3 className="text-base font-semibold text-slate-900">Need help?</h3>
             <p className="mt-2 text-sm leading-relaxed text-slate-700">
-              Step-by-step file prep, supported format guidance, and troubleshooting in the upload guide.
+              Step-by-step prep, current support notes, and troubleshooting in the upload guide.
             </p>
             <Link href="/app/help#upload-guide" className={buttonClassName({ variant: "secondary", size: "sm", className: "mt-4" })}>
               Open upload guide

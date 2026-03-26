@@ -472,9 +472,9 @@ export default function ReportPage() {
   const wowSummary = useMemo(
     () =>
       presentation
-        ? buildReportWowSummaryViewModel(presentation, state.artifactModel)
+        ? buildReportWowSummaryViewModel(presentation, state.artifactModel, state.report)
         : null,
-    [presentation, state.artifactModel],
+    [presentation, state.artifactModel, state.report],
   );
   const freeTeaserModel = useMemo(
     () => (presentation ? buildReportFreeTeaserViewModel(presentation) : null),

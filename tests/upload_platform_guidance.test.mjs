@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 const supportSurfaceModuleUrl = pathToFileURL(path.resolve("src/lib/upload/support-surface.ts")).href;
 const platformGuidanceModuleUrl = pathToFileURL(path.resolve("src/lib/upload/platform-guidance.ts")).href;
 
-test("fallback upload guidance exposes the public platform list in stable order", async () => {
+test("fallback guidance exposes the public manifest-driven platform list in stable order", async () => {
   const {
     getFallbackVisibleUploadPlatformCards,
     getFallbackVisibleUploadPlatformLabels,
@@ -32,157 +32,82 @@ test("fallback upload guidance exposes the public platform list in stable order"
   );
   assert.equal(
     getSupportedRevenueUploadFormatGuidanceFromCards(fallbackCards),
-    "Patreon and Substack use native CSV exports. YouTube uses a native CSV or supported Takeout ZIP. Instagram Performance and TikTok Performance use allowlisted ZIP exports only. Not every CSV or ZIP from a platform will work.",
+    "Patreon and Substack use supported CSV inputs. YouTube, Instagram Performance, and TikTok Performance accept supported CSV or allowlisted ZIP inputs. Not every file from a platform will match the supported contract.",
   );
 });
 
-test("platform guidance summary mirrors the upload-page visible support truth", async () => {
+test("platform guidance helpers mirror manifest-driven fallback truth", async () => {
   const { getSupportedRevenueUploadFormatGuidance, getSupportedRevenueUploadLabels, getSupportedRevenueUploadSummary } = await import(
     `${platformGuidanceModuleUrl}?t=${Date.now() + 1}`,
   );
 
-  const labels = getSupportedRevenueUploadLabels();
-
-  assert.deepEqual(labels, ["Patreon", "Substack", "YouTube", "Instagram Performance", "TikTok Performance"]);
-  assert.equal(labels.includes("Instagram"), false);
-  assert.equal(labels.includes("TikTok"), false);
-  assert.equal(getSupportedRevenueUploadSummary(), "Patreon, Substack, YouTube, Instagram Performance, and TikTok Performance");
+  assert.deepEqual(getSupportedRevenueUploadLabels(), [
+    "Patreon",
+    "Substack",
+    "YouTube",
+    "Instagram Performance",
+    "TikTok Performance",
+  ]);
+  assert.equal(
+    getSupportedRevenueUploadSummary(),
+    "Patreon, Substack, YouTube, Instagram Performance, and TikTok Performance",
+  );
   assert.equal(
     getSupportedRevenueUploadFormatGuidance(),
-    "Patreon and Substack use native CSV exports. YouTube uses a native CSV or supported Takeout ZIP. Instagram Performance and TikTok Performance use allowlisted ZIP exports only. Not every CSV or ZIP from a platform will work.",
+    "Patreon and Substack use supported CSV inputs. YouTube, Instagram Performance, and TikTok Performance accept supported CSV or allowlisted ZIP inputs. Not every file from a platform will match the supported contract.",
   );
 });
 
-test("support-matrix truth derives only supported-now visible public upload platforms", async () => {
-  const { buildVisibleUploadPlatformIdsFromSupportMatrix } = await import(`${supportSurfaceModuleUrl}?t=${Date.now() + 2}`);
+test("source-manifest helpers normalize backend payloads and expose visible platform ids", async () => {
+  const {
+    buildVisibleUploadPlatformCardsFromSourceManifest,
+    buildVisibleUploadPlatformIdsFromSourceManifest,
+    normalizeSourceManifestOrFallback,
+  } = await import(`${supportSurfaceModuleUrl}?t=${Date.now() + 2}`);
 
-  const visiblePlatformIds = buildVisibleUploadPlatformIdsFromSupportMatrix({
-    families: [
+  const manifest = {
+    version: 1,
+    eligibility_rule: "Add at least one report-driving source.",
+    business_metrics_rule: "Reports are strongest with business metrics.",
+    platforms: [
       {
-        family: "youtube_brandconnect",
-        label: "YouTube BrandConnect",
-        family_class: "native_report_driving",
-        is_user_visible_supported: true,
-        is_report_driving: true,
-        support_status: "supported_now",
+        platform: "patreon",
+        label: "Patreon",
+        descriptor: "Membership revenue",
+        accepted_file_types_label: "Normalized CSV only",
+        upload_help_text: "Upload the exact supported Patreon CSV for this workspace.",
+        public_support_status: "supported_now",
+        report_role: "report_driving",
+        standalone_report_eligible: true,
+        business_metrics_capable: true,
+        accepted_extensions: [".csv"],
       },
       {
-        family: "patreon_members_export",
-        label: "Patreon Members Export",
-        family_class: "native_report_driving",
-        is_user_visible_supported: true,
-        is_report_driving: true,
-        support_status: "supported_now",
-      },
-      {
-        family: "substack_subscribers_export",
-        label: "Substack Subscribers Export",
-        family_class: "native_report_driving",
-        is_user_visible_supported: true,
-        is_report_driving: true,
-        support_status: "supported_now",
-      },
-      {
-        family: "youtube_channel_analytics_export",
-        label: "YouTube Channel Analytics Export",
-        family_class: "native_report_driving",
-        is_user_visible_supported: true,
-        is_report_driving: true,
-        support_status: "supported_now",
-      },
-      {
-        family: "instagram_performance",
+        platform: "instagram",
         label: "Instagram Performance",
-        family_class: "native_report_driving",
-        is_user_visible_supported: true,
-        is_report_driving: true,
-        support_status: "supported_now",
-      },
-      {
-        family: "tiktok_performance",
-        label: "TikTok Performance",
-        family_class: "native_report_driving",
-        is_user_visible_supported: true,
-        is_report_driving: true,
-        support_status: "supported_now",
-      },
-      {
-        family: "stripe",
-        label: "Stripe",
-        family_class: "native_report_driving",
-        is_user_visible_supported: true,
-        is_report_driving: true,
-        support_status: "supported_now",
-      },
-      {
-        family: "sponsorship_rollup",
-        label: "Sponsorship Rollup",
-        family_class: "native_report_driving",
-        is_user_visible_supported: true,
-        is_report_driving: true,
-        support_status: "supported_now",
+        descriptor: "Social performance",
+        accepted_file_types_label: "CSV or allowlisted ZIP",
+        upload_help_text: "Upload the supported Instagram performance CSV or allowlisted ZIP.",
+        public_support_status: "supported_now",
+        report_role: "supporting",
+        standalone_report_eligible: false,
+        business_metrics_capable: false,
+        accepted_extensions: [".csv", ".zip"],
       },
     ],
-  });
+  };
 
-  assert.deepEqual(visiblePlatformIds, ["patreon", "substack", "youtube", "instagram", "tiktok"]);
-});
+  const normalized = normalizeSourceManifestOrFallback(manifest);
+  const cards = buildVisibleUploadPlatformCardsFromSourceManifest(normalized);
+  const ids = buildVisibleUploadPlatformIdsFromSourceManifest(normalized);
 
-test("partial support-matrix responses still preserve the full public upload grid", async () => {
-  const { buildVisibleUploadPlatformIdsFromSupportMatrix } = await import(`${supportSurfaceModuleUrl}?t=${Date.now() + 21}`);
-
-  const visiblePlatformIds = buildVisibleUploadPlatformIdsFromSupportMatrix({
-    families: [
-      {
-        family: "patreon_members_export",
-        label: "Patreon Members Export",
-        family_class: "native_report_driving",
-        is_user_visible_supported: true,
-        is_report_driving: true,
-        support_status: "supported_now",
-      },
-      {
-        family: "substack_subscribers_export",
-        label: "Substack Subscribers Export",
-        family_class: "native_report_driving",
-        is_user_visible_supported: true,
-        is_report_driving: true,
-        support_status: "supported_now",
-      },
-      {
-        family: "youtube_channel_analytics_export",
-        label: "YouTube Channel Analytics Export",
-        family_class: "native_report_driving",
-        is_user_visible_supported: true,
-        is_report_driving: true,
-        support_status: "supported_now",
-      },
+  assert.equal(normalized.eligibilityRule, "Add at least one report-driving source.");
+  assert.deepEqual(ids, ["patreon", "instagram"]);
+  assert.deepEqual(
+    cards?.map((card) => ({ id: card.id, role: card.platformRole })),
+    [
+      { id: "patreon", role: "report-driving" },
+      { id: "instagram", role: "supporting" },
     ],
-  });
-
-  assert.deepEqual(visiblePlatformIds, ["patreon", "substack", "youtube", "instagram", "tiktok"]);
-});
-
-test("guidance helpers introduce zip language only for the bounded instagram and tiktok support surfaces", async () => {
-  const { getFallbackVisibleUploadPlatformCards, getSupportedRevenueUploadFormatGuidanceFromCards } = await import(
-    `${supportSurfaceModuleUrl}?t=${Date.now() + 3}`,
   );
-
-  const guidance = getSupportedRevenueUploadFormatGuidanceFromCards(getFallbackVisibleUploadPlatformCards());
-
-  assert.equal(
-    guidance.includes("Instagram Performance and TikTok Performance use allowlisted ZIP exports only."),
-    true,
-  );
-  assert.equal(guidance.includes("generic ZIP"), false);
-  assert.equal(guidance.includes("template-based normalized CSV"), false);
-  assert.equal(guidance.includes("Not every CSV or ZIP from a platform will work."), true);
-});
-
-test("malformed support-matrix responses trigger the explicit fallback path", async () => {
-  const { buildVisibleUploadPlatformIdsFromSupportMatrix } = await import(`${supportSurfaceModuleUrl}?t=${Date.now() + 4}`);
-
-  assert.equal(buildVisibleUploadPlatformIdsFromSupportMatrix(null), null);
-  assert.equal(buildVisibleUploadPlatformIdsFromSupportMatrix({}), null);
-  assert.equal(buildVisibleUploadPlatformIdsFromSupportMatrix({ families: null }), null);
 });

@@ -509,10 +509,19 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      {state.latestReport?.reportHasBusinessMetrics === false ? (
-        <p className="text-xs text-brand-text-muted" data-testid="dashboard-no-business-metrics-note">
-          Your latest report does not include business metrics. Connect a revenue data source to unlock earnings analysis.
-        </p>
+      {state.latestReport?.snapshotCoverageNote || state.latestReport?.reportHasBusinessMetrics === false ? (
+        <div className="space-y-1">
+          {state.latestReport?.snapshotCoverageNote ? (
+            <p className="text-xs text-brand-text-muted" data-testid="dashboard-snapshot-coverage-note">
+              {state.latestReport.snapshotCoverageNote}
+            </p>
+          ) : null}
+          {state.latestReport?.reportHasBusinessMetrics === false ? (
+            <p className="text-xs text-brand-text-muted" data-testid="dashboard-no-business-metrics-note">
+              Your latest report does not include strong business metrics. Connect a revenue or subscriber source to strengthen earnings analysis.
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {showDashboardOnboarding ? (

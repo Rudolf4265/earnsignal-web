@@ -64,6 +64,51 @@ function ExecutiveSummaryStrip({ model }: { model: ReportWowSummaryViewModel }) 
   );
 }
 
+function CoverageTrustPanel({ model }: { model: ReportWowSummaryViewModel }) {
+  const hasCoverageCopy =
+    Boolean(model.coverage.snapshotCoverageNote) ||
+    model.coverage.reportHasBusinessMetrics === false ||
+    model.coverage.sectionStrength.length > 0;
+
+  if (!hasCoverageCopy) {
+    return null;
+  }
+
+  return (
+    <article
+      className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+      data-testid="wow-coverage-trust"
+    >
+      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Coverage</p>
+      {model.coverage.snapshotCoverageNote ? (
+        <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">{model.coverage.snapshotCoverageNote}</p>
+      ) : null}
+      {model.coverage.reportHasBusinessMetrics === false ? (
+        <p className="mt-3 text-sm leading-relaxed text-amber-200">
+          Limited by available business metrics. Revenue and subscriber insight is weaker in this snapshot.
+        </p>
+      ) : null}
+      {model.coverage.sectionStrength.length > 0 ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {model.coverage.sectionStrength.map((section) => (
+            <div key={section.id} className="rounded-xl border border-brand-border/60 bg-brand-panel/60 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-brand-text-primary">{section.label}</p>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-text-muted">
+                  {section.level}
+                </span>
+              </div>
+              {section.reason ? (
+                <p className="mt-2 text-xs leading-relaxed text-brand-text-secondary">{section.reason}</p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 // ── Biggest Opportunity ───────────────────────────────────────────────────────
 
 function BiggestOpportunityCard({ model }: { model: ReportWowSummaryViewModel }) {
@@ -284,6 +329,8 @@ export function ReportWowSummary({ model }: ReportWowSummaryProps) {
       <PanelCard className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.88),rgba(16,32,67,0.95))]">
         <ExecutiveSummaryStrip model={model} />
       </PanelCard>
+
+      <CoverageTrustPanel model={model} />
 
       <BiggestOpportunityCard model={model} />
 

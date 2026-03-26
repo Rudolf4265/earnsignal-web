@@ -9,7 +9,7 @@ async function loadModule(seed = Date.now()) {
   return import(`${moduleUrl}?t=${seed}`);
 }
 
-test("workspace report state enables Run Report only when a report-driving staged source is ready and included", async () => {
+test("workspace report state trusts canonical backend eligibility and readiness copy", async () => {
   const { buildWorkspaceReportState } = await loadModule(Date.now() + 1);
 
   const result = buildWorkspaceReportState(
@@ -22,14 +22,22 @@ test("workspace report state enables Run Report only when a report-driving stage
       failedSourceCount: 0,
       includedSourceCount: 2,
       runReportEnabled: true,
-      reportDrivingReadySourceCount: null,
-      reportDrivingIncludedSourceCount: null,
+      eligibleForReport: true,
+      blockingReason: null,
+      reportHasBusinessMetrics: true,
+      reportReadinessNote: "Ready to run a combined report from your staged sources.",
+      reportDrivingReadySourceCount: 1,
+      reportDrivingIncludedSourceCount: 1,
       sources: [
         {
           platform: "patreon",
           label: "Patreon",
           descriptor: "Membership revenue",
-          acceptedFileTypesLabel: "CSV only",
+          acceptedFileTypesLabel: "Normalized CSV only",
+          reportRole: "report_driving",
+          standaloneReportEligible: true,
+          businessMetricsCapable: true,
+          roleSummary: "Revenue and subscriber data. Can generate a report on its own.",
           state: "ready",
           includedInNextReport: true,
           lastUploadAt: "2026-03-20T10:00:00Z",
@@ -39,9 +47,13 @@ test("workspace report state enables Run Report only when a report-driving stage
         },
         {
           platform: "instagram",
-          label: "Instagram",
-          descriptor: "Performance",
-          acceptedFileTypesLabel: "Allowlisted ZIP",
+          label: "Instagram Performance",
+          descriptor: "Social performance",
+          acceptedFileTypesLabel: "CSV or allowlisted ZIP",
+          reportRole: "supporting",
+          standaloneReportEligible: false,
+          businessMetricsCapable: false,
+          roleSummary: "Performance data only. Supports a combined report but cannot generate one alone.",
           state: "ready",
           includedInNextReport: true,
           lastUploadAt: "2026-03-21T10:00:00Z",
@@ -54,16 +66,20 @@ test("workspace report state enables Run Report only when a report-driving stage
     { isLoading: false, currentReportId: null },
   );
 
-  assert.equal(result.stagedSourcesReadyCount, 2);
+  assert.equal(result.canRunReport, true);
+  assert.equal(result.eligibleForReport, true);
+  assert.equal(result.blockingReason, null);
+  assert.equal(result.reportReadinessNote, "Ready to run a combined report from your staged sources.");
+  assert.equal(result.reportHasBusinessMetrics, true);
   assert.equal(result.reportDrivingSourcesReadyCount, 1);
   assert.equal(result.reportDrivingIncludedSourceCount, 1);
-  assert.equal(result.canRunReport, true);
-  assert.equal(result.hasExistingReport, false);
-  assert.equal(result.isLoading, false);
-  assert.equal(result.mostRecentSource?.platform, "instagram");
+  assert.deepEqual(
+    result.includedSources.map((source) => source.platform),
+    ["patreon", "instagram"],
+  );
 });
 
-test("workspace report state does not enable Run Report for performance-only staged sources", async () => {
+test("workspace report state keeps Run Report disabled when backend says the workspace is not eligible", async () => {
   const { buildWorkspaceReportState } = await loadModule(Date.now() + 2);
 
   const result = buildWorkspaceReportState(
@@ -75,15 +91,23 @@ test("workspace report state does not enable Run Report for performance-only sta
       missingSourceCount: 4,
       failedSourceCount: 0,
       includedSourceCount: 1,
-      runReportEnabled: true,
-      reportDrivingReadySourceCount: null,
-      reportDrivingIncludedSourceCount: null,
+      runReportEnabled: false,
+      eligibleForReport: false,
+      blockingReason: "Add at least one revenue or subscriber data source (Patreon, Substack, or YouTube).",
+      reportHasBusinessMetrics: false,
+      reportReadinessNote: "Supporting sources add context but cannot generate a report alone.",
+      reportDrivingReadySourceCount: 0,
+      reportDrivingIncludedSourceCount: 0,
       sources: [
         {
           platform: "instagram",
-          label: "Instagram",
-          descriptor: "Performance",
-          acceptedFileTypesLabel: "Allowlisted ZIP",
+          label: "Instagram Performance",
+          descriptor: "Social performance",
+          acceptedFileTypesLabel: "CSV or allowlisted ZIP",
+          reportRole: "supporting",
+          standaloneReportEligible: false,
+          businessMetricsCapable: false,
+          roleSummary: "Performance data only. Supports a combined report but cannot generate one alone.",
           state: "ready",
           includedInNextReport: true,
           lastUploadAt: "2026-03-22T10:00:00Z",
@@ -96,12 +120,17 @@ test("workspace report state does not enable Run Report for performance-only sta
     { isLoading: false, currentReportId: null },
   );
 
-  assert.equal(result.reportDrivingSourcesReadyCount, 0);
-  assert.equal(result.reportDrivingIncludedSourceCount, 0);
   assert.equal(result.canRunReport, false);
+  assert.equal(result.eligibleForReport, false);
+  assert.equal(
+    result.blockingReason,
+    "Add at least one revenue or subscriber data source (Patreon, Substack, or YouTube).",
+  );
+  assert.equal(result.reportHasBusinessMetrics, false);
+  assert.equal(result.reportDrivingSourcesReadyCount, 0);
 });
 
-test("workspace report state trusts backend included counts when a prior ready report-driving source remains runnable", async () => {
+test("workspace report state keeps legacy runReportEnabled only as a compatibility fallback", async () => {
   const { buildWorkspaceReportState } = await loadModule(Date.now() + 3);
 
   const result = buildWorkspaceReportState(
@@ -118,10 +147,14 @@ test("workspace report state trusts backend included counts when a prior ready r
       reportDrivingIncludedSourceCount: 1,
       sources: [
         {
-          platform: "patreon",
-          label: "Patreon",
-          descriptor: "Membership revenue",
-          acceptedFileTypesLabel: "CSV only",
+          platform: "youtube",
+          label: "YouTube",
+          descriptor: "Creator earnings",
+          acceptedFileTypesLabel: "CSV or allowlisted ZIP",
+          reportRole: "report_driving",
+          standaloneReportEligible: true,
+          businessMetricsCapable: true,
+          roleSummary: "Can generate a report. Revenue and subscriber depth depends on the YouTube file you upload.",
           state: "processing",
           includedInNextReport: true,
           lastUploadAt: "2026-03-23T10:00:00Z",
@@ -134,9 +167,8 @@ test("workspace report state trusts backend included counts when a prior ready r
     { isLoading: false, currentReportId: "rep_current_123" },
   );
 
-  assert.equal(result.reportDrivingSourcesReadyCount, 0);
-  assert.equal(result.reportDrivingIncludedSourceCount, 1);
   assert.equal(result.canRunReport, true);
+  assert.equal(result.eligibleForReport, true);
   assert.equal(result.hasExistingReport, true);
   assert.equal(result.currentReportId, "rep_current_123");
 });

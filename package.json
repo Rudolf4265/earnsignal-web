@@ -7,6 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "source-manifest:generate": "node ./scripts/generate-source-manifest-static.mjs",
     "api:generate": "node ./scripts/generate-openapi-types.mjs",
     "api:generate:check": "node ./scripts/generate-openapi-types.mjs --check",
     "contract:check:entitlements": "node --experimental-specifier-resolution=node --loader ./tests/node-ts-loader.mjs tests/generated_entitlement_contract_guard.test.mjs",

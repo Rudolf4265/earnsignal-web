@@ -2,21 +2,28 @@ import Link from "next/link";
 import { buttonClassName } from "@/src/components/ui/button";
 import { PanelCard } from "@/src/components/ui/panel-card";
 import {
-  getFallbackVisibleUploadPlatformCards,
+  getStaticSourceManifestSnapshot,
+  getStaticVisibleUploadPlatformCards,
   getSupportedRevenueUploadFormatGuidanceFromCards,
   getSupportedRevenueUploadSummaryFromCards,
 } from "@/src/lib/upload/support-surface";
 
-const supportedRevenueUploadCards = getFallbackVisibleUploadPlatformCards();
-const supportedRevenueUploads = getSupportedRevenueUploadSummaryFromCards(supportedRevenueUploadCards);
-const supportedRevenueUploadFormatGuidance = getSupportedRevenueUploadFormatGuidanceFromCards(supportedRevenueUploadCards);
+const sourceManifest = getStaticSourceManifestSnapshot();
+const supportedUploadCards = getStaticVisibleUploadPlatformCards();
+const supportedRevenueUploads = getSupportedRevenueUploadSummaryFromCards(supportedUploadCards);
+const supportedRevenueUploadFormatGuidance = getSupportedRevenueUploadFormatGuidanceFromCards(supportedUploadCards);
+const reportDrivingUploads = getSupportedRevenueUploadSummaryFromCards(
+  supportedUploadCards.filter((card) => card.platformRole === "report-driving"),
+);
+const supportingUploads = getSupportedRevenueUploadSummaryFromCards(
+  supportedUploadCards.filter((card) => card.platformRole === "supporting"),
+);
 
 const filePreparationItems = [
   "Choose the platform that matches the file before you start validation.",
   "Use only the exact supported file types shown in the workspace and help guide.",
-  "Patreon and Substack currently use supported CSV inputs.",
-  "YouTube, Instagram Performance, and TikTok Performance accept supported CSV or allowlisted ZIP inputs.",
-  "Not every file exported from a platform will match the supported contract.",
+  supportedRevenueUploadFormatGuidance,
+  `Report-driving sources: ${reportDrivingUploads}. Supporting sources: ${supportingUploads}.`,
   "At least 3 months of data is helpful when you want a stronger report.",
 ];
 
@@ -52,11 +59,11 @@ const faqSections: Array<{
     items: [
       {
         question: "What platforms does EarnSigma support?",
-        answer: "EarnSigma currently supports Patreon, Substack, YouTube, Instagram Performance, and TikTok Performance.",
+        answer: `EarnSigma currently supports ${supportedRevenueUploads}.`,
       },
       {
         question: "What file types can I upload?",
-        answer: "Patreon and Substack currently use supported CSV inputs. YouTube, Instagram Performance, and TikTok Performance accept supported CSV or allowlisted ZIP inputs. Not every file from a platform will work.",
+        answer: supportedRevenueUploadFormatGuidance,
       },
       {
         question: "What happens after I upload files?",
@@ -70,7 +77,7 @@ const faqSections: Array<{
   },
   {
     title: "Platform-specific",
-    items: supportedRevenueUploadCards.map((card) => ({
+    items: supportedUploadCards.map((card) => ({
       question: `How do I upload ${card.label} data?`,
       answer: `Choose ${card.label} in the upload flow, then use the supported file type shown for that source. ${card.guidance}`,
     })),
@@ -80,11 +87,11 @@ const faqSections: Array<{
     items: [
       {
         question: "Why can’t I run a report yet?",
-        answer: "A workspace needs at least one report-driving source such as Patreon, Substack, or YouTube. Supporting sources add context but cannot generate a report alone.",
+        answer: `${sourceManifest.eligibilityRule} Supporting sources such as ${supportingUploads} add context but cannot generate one alone.`,
       },
       {
         question: "What makes a report stronger?",
-        answer: "Reports are strongest when the staged workspace includes direct revenue or subscriber data. Performance-only support data can enrich a report but does not replace business metrics.",
+        answer: `${sourceManifest.businessMetricsRule} Performance-only support data can enrich a report but does not replace business metrics.`,
       },
       {
         question: "What does 'What this report is based on' mean?",
@@ -198,7 +205,7 @@ export default function HelpPage() {
             </p>
 
             <div className="grid gap-3">
-              {supportedRevenueUploadCards.map((card) => (
+              {supportedUploadCards.map((card) => (
                 <article key={card.id} className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-brand-text-primary">{card.label}</p>

@@ -12,15 +12,11 @@ import { getSourceManifest } from "@/src/lib/api/upload";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import { buildWorkspaceReportState, type WorkspaceReportState } from "@/src/lib/workspace/report-run-state";
 import {
-  getFallbackSourceManifest,
   normalizeSourceManifestResponse,
   type NormalizedSourceManifest,
   type UploadPlatformCardMetadata,
   buildUploadPlatformCardsFromManifest,
 } from "@/src/lib/upload/platform-metadata";
-
-const FALLBACK_SOURCE_MANIFEST = getFallbackSourceManifest();
-const FALLBACK_VISIBLE_UPLOAD_PLATFORM_CARDS = buildUploadPlatformCardsFromManifest(FALLBACK_SOURCE_MANIFEST);
 
 function IncludedSourcesSummary({ workspaceReportState }: { workspaceReportState: WorkspaceReportState }) {
   if (workspaceReportState.includedSources.length === 0) {
@@ -238,9 +234,30 @@ function UploadGuide({ platformCards }: { platformCards: UploadPlatformCardMetad
   );
 }
 
+function ManifestUnavailableCard() {
+  return (
+    <UploadCard>
+      <div data-testid="source-manifest-unavailable" className="space-y-3">
+        <h3 className="text-base font-semibold text-slate-900">Supported sources unavailable</h3>
+        <p className="text-sm leading-relaxed text-slate-700">
+          The canonical source manifest could not be loaded, so the upload flow is paused instead of falling back to stale local support data.
+        </p>
+        <p className="text-xs text-slate-500">
+          Reload the page and try again. If the problem persists, review the help guide while the backend manifest is restored.
+        </p>
+        <Link href="/app/help#upload-guide" className={buttonClassName({ variant: "secondary", size: "sm" })}>
+          Open upload guide
+        </Link>
+      </div>
+    </UploadCard>
+  );
+}
+
 export default function DataUploadPage() {
-  const [sourceManifest, setSourceManifest] = useState<NormalizedSourceManifest>(FALLBACK_SOURCE_MANIFEST);
-  const [visiblePlatformCards, setVisiblePlatformCards] = useState(FALLBACK_VISIBLE_UPLOAD_PLATFORM_CARDS);
+  const [sourceManifest, setSourceManifest] = useState<NormalizedSourceManifest | null>(null);
+  const [visiblePlatformCards, setVisiblePlatformCards] = useState<UploadPlatformCardMetadata[] | null>(null);
+  const [sourceManifestLoading, setSourceManifestLoading] = useState(true);
+  const [sourceManifestError, setSourceManifestError] = useState<string | null>(null);
   const [workspaceDataSources, setWorkspaceDataSources] = useState<WorkspaceDataSourcesResponse | null | "loading">("loading");
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const workspaceDataSourcesRef = useRef<WorkspaceDataSourcesResponse | null | "loading">("loading");
@@ -290,15 +307,33 @@ export default function DataUploadPage() {
     let active = true;
 
     const syncManifest = async () => {
+      if (active) {
+        setSourceManifestLoading(true);
+        setSourceManifestError(null);
+      }
+
       try {
         const manifest = await getSourceManifest();
         const normalized = normalizeSourceManifestResponse(manifest);
-        if (active && normalized) {
+        if (!normalized) {
+          throw new Error("invalid_source_manifest");
+        }
+
+        if (active) {
           setSourceManifest(normalized);
           setVisiblePlatformCards(buildUploadPlatformCardsFromManifest(normalized));
+          setSourceManifestError(null);
         }
       } catch {
-        // Keep the temporary compatibility snapshot.
+        if (active) {
+          setSourceManifest(null);
+          setVisiblePlatformCards(null);
+          setSourceManifestError("Supported sources are temporarily unavailable.");
+        }
+      } finally {
+        if (active) {
+          setSourceManifestLoading(false);
+        }
       }
     };
 
@@ -337,18 +372,36 @@ export default function DataUploadPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.55fr),minmax(20rem,0.95fr)]">
         <div>
-          <UploadStepper
-            sourceManifest={sourceManifest}
-            visiblePlatformCards={visiblePlatformCards}
-            workspaceReportState={workspaceReportState}
-            refreshWorkspaceDataSources={refreshWorkspaceDataSources}
-            clearCurrentReport={clearCurrentReport}
-            onReportCreated={handleReportCreated}
-          />
+          {sourceManifestLoading ? (
+            <UploadCard>
+              <h3 className="text-base font-semibold text-slate-900">Loading supported sources</h3>
+              <p className="mt-2 text-sm text-slate-500">Checking the canonical source manifest...</p>
+            </UploadCard>
+          ) : sourceManifest && visiblePlatformCards ? (
+            <UploadStepper
+              sourceManifest={sourceManifest}
+              visiblePlatformCards={visiblePlatformCards}
+              workspaceReportState={workspaceReportState}
+              refreshWorkspaceDataSources={refreshWorkspaceDataSources}
+              clearCurrentReport={clearCurrentReport}
+              onReportCreated={handleReportCreated}
+            />
+          ) : (
+            <ManifestUnavailableCard />
+          )}
         </div>
 
         <div className="space-y-4">
-          <UploadGuide platformCards={visiblePlatformCards} />
+          {sourceManifestLoading ? (
+            <UploadCard>
+              <h3 className="text-base font-semibold text-slate-900">Loading support guide</h3>
+              <p className="mt-2 text-sm text-slate-500">Waiting for the canonical source manifest...</p>
+            </UploadCard>
+          ) : visiblePlatformCards ? (
+            <UploadGuide platformCards={visiblePlatformCards} />
+          ) : (
+            <ManifestUnavailableCard />
+          )}
 
           <StagedSourcesPanel
             workspaceDataSources={workspaceDataSources}
@@ -359,7 +412,9 @@ export default function DataUploadPage() {
           <UploadCard>
             <h3 className="text-base font-semibold text-slate-900">Need help?</h3>
             <p className="mt-2 text-sm leading-relaxed text-slate-700">
-              Step-by-step prep, current support notes, and troubleshooting in the upload guide.
+              {sourceManifestError
+                ? `${sourceManifestError} Review the upload guide while the canonical manifest path is restored.`
+                : "Step-by-step prep, current support notes, and troubleshooting in the upload guide."}
             </p>
             <Link href="/app/help#upload-guide" className={buttonClassName({ variant: "secondary", size: "sm", className: "mt-4" })}>
               Open upload guide

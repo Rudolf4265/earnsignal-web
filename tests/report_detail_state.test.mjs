@@ -227,6 +227,47 @@ test("report detail normalization keeps deterministic source ordering from mixed
   assert.equal(result.reportKind, "combined");
 });
 
+test("report detail normalization preserves canonical coverage and section trust fields", async () => {
+  const { normalizeReportDetail } = await loadModules(Date.now() + 17);
+  const result = normalizeReportDetail("rep_trust_001", {
+    report: {
+      summary: "Trust fields are present in the canonical report payload.",
+      snapshot_coverage_note: "Current snapshot reflects the most recent month where all included sources have data.",
+      report_has_business_metrics: false,
+      section_strength: {
+        subscriber_health: {
+          level: "weak",
+          reason: "Missing direct subscriber data in this workspace snapshot.",
+        },
+        platform_mix: {
+          level: "medium",
+          reason: "Cross-platform breadth is present, but business-metric depth is limited.",
+        },
+      },
+    },
+  });
+
+  assert.equal(
+    result.snapshotCoverageNote,
+    "Current snapshot reflects the most recent month where all included sources have data.",
+  );
+  assert.equal(result.reportHasBusinessMetrics, false);
+  assert.deepEqual(result.sectionStrength, [
+    {
+      id: "subscriber_health",
+      label: "Subscriber health",
+      level: "weak",
+      reason: "Missing direct subscriber data in this workspace snapshot.",
+    },
+    {
+      id: "platform_mix",
+      label: "Platform mix",
+      level: "medium",
+      reason: "Cross-platform breadth is present, but business-metric depth is limited.",
+    },
+  ]);
+});
+
 test("report detail maps 404 to not_found", async () => {
   const { ApiError, getReportViewState } = await loadModules(Date.now() + 2);
   const error = new ApiError({ status: 404, code: "NOT_FOUND", message: "missing", operation: "report.fetch", path: "/v1/reports/1", method: "GET" });

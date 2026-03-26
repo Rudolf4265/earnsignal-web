@@ -1,4 +1,5 @@
 import type { SourceManifestPlatform, SourceManifestResponse, UploadPlatform } from "@/src/lib/api/upload";
+import { STATIC_SOURCE_MANIFEST_RESPONSE } from "./source-manifest-static.generated";
 
 export type PlatformCategory = "supported";
 export type PlatformCardId = UploadPlatform | "direct-fan-platforms";
@@ -93,16 +94,23 @@ function normalizeStringArray(value: unknown): string[] {
     .filter((entry, index, items) => entry.length > 0 && items.indexOf(entry) === index);
 }
 
-function normalizePublicSupportStatus(value: unknown): PublicSupportStatus {
+function normalizePublicSupportStatus(value: unknown): PublicSupportStatus | null {
   const normalized = normalizeString(value).toLowerCase();
-  if (normalized === "supported_now" || normalized === "internal_only") {
+  if (normalized === "supported_now" || normalized === "internal_only" || normalized === "not_supported") {
     return normalized;
   }
-  return "not_supported";
+  return null;
 }
 
-function normalizePlatformRole(value: unknown): PlatformRole {
-  return normalizeString(value).toLowerCase() === "report_driving" ? "report-driving" : "supporting";
+function normalizePlatformRole(value: unknown): PlatformRole | null {
+  const normalized = normalizeString(value).toLowerCase();
+  if (normalized === "report_driving") {
+    return "report-driving";
+  }
+  if (normalized === "supporting") {
+    return "supporting";
+  }
+  return null;
 }
 
 function normalizeManifestPlatform(raw: SourceManifestPlatform | null | undefined): NormalizedSourceManifestPlatform | null {
@@ -111,22 +119,34 @@ function normalizeManifestPlatform(raw: SourceManifestPlatform | null | undefine
     return null;
   }
 
+  const label = normalizeString(raw.label);
+  const acceptedFileTypesLabel = normalizeString(raw.accepted_file_types_label ?? raw.acceptedFileTypesLabel);
+  const uploadHelpText = normalizeString(raw.upload_help_text ?? raw.uploadHelpText);
+  const publicSupportStatus = normalizePublicSupportStatus(raw.public_support_status ?? raw.publicSupportStatus);
+  const reportRole = normalizePlatformRole(raw.report_role ?? raw.reportRole);
+  const acceptedExtensions = normalizeStringArray(raw.accepted_extensions ?? raw.acceptedExtensions);
+  const roleSummary = normalizeString(raw.role_summary ?? raw.roleSummary);
+
+  if (!label || !acceptedFileTypesLabel || !uploadHelpText || !publicSupportStatus || !reportRole || acceptedExtensions.length === 0 || !roleSummary) {
+    return null;
+  }
+
   return {
     platform,
-    label: normalizeString(raw.label) || platform,
+    label,
     descriptor: normalizeString(raw.descriptor),
-    acceptedFileTypesLabel: normalizeString(raw.accepted_file_types_label ?? raw.acceptedFileTypesLabel),
-    uploadHelpText: normalizeString(raw.upload_help_text ?? raw.uploadHelpText),
-    publicSupportStatus: normalizePublicSupportStatus(raw.public_support_status ?? raw.publicSupportStatus),
-    reportRole: normalizePlatformRole(raw.report_role ?? raw.reportRole),
+    acceptedFileTypesLabel,
+    uploadHelpText,
+    publicSupportStatus,
+    reportRole,
     standaloneReportEligible:
       raw.standalone_report_eligible === true || raw.standaloneReportEligible === true,
     businessMetricsCapable:
       raw.business_metrics_capable === true || raw.businessMetricsCapable === true,
-    acceptedExtensions: normalizeStringArray(raw.accepted_extensions ?? raw.acceptedExtensions),
+    acceptedExtensions,
     publicContractIds: normalizeStringArray(raw.public_contract_ids ?? raw.publicContractIds),
     dataDomains: normalizeStringArray(raw.data_domains ?? raw.dataDomains),
-    roleSummary: normalizeString(raw.role_summary ?? raw.roleSummary),
+    roleSummary,
     knownLimitations: normalizeStringArray(raw.known_limitations ?? raw.knownLimitations),
   };
 }
@@ -168,108 +188,23 @@ function buildUploadPlatformCard(platform: NormalizedSourceManifestPlatform): Up
   };
 }
 
-// Temporary compatibility shim for environments where `/v1/source-manifest`
-// is unavailable. Backend truth is primary; this snapshot exists only so
-// auth-gated pages can fail soft without inventing a second contract.
-const FALLBACK_SOURCE_MANIFEST: NormalizedSourceManifest = {
-  version: 1,
-  eligibilityRule: "Add at least one report-driving source (Patreon, Substack, or YouTube) to run a combined report.",
-  businessMetricsRule: "Reports are strongest when the staged workspace snapshot includes direct revenue or subscriber data.",
-  platforms: [
-    {
-      platform: "patreon",
-      label: "Patreon",
-      descriptor: "Membership revenue",
-      acceptedFileTypesLabel: "Normalized CSV only",
-      uploadHelpText: "Upload the exact supported Patreon CSV for this workspace. Not every Patreon export CSV matches this contract.",
-      publicSupportStatus: "supported_now",
-      reportRole: "report-driving",
-      standaloneReportEligible: true,
-      businessMetricsCapable: true,
-      acceptedExtensions: [".csv"],
-      publicContractIds: ["patreon_normalized_csv"],
-      dataDomains: ["revenue", "subscribers"],
-      roleSummary: "Revenue and subscriber data. Can generate a report on its own.",
-      knownLimitations: ["Exact normalized CSV template only", "Not every Patreon export CSV matches this contract"],
-    },
-    {
-      platform: "substack",
-      label: "Substack",
-      descriptor: "Subscription revenue",
-      acceptedFileTypesLabel: "Normalized CSV only",
-      uploadHelpText: "Upload the exact supported Substack CSV for this workspace. Not every Substack export CSV matches this contract.",
-      publicSupportStatus: "supported_now",
-      reportRole: "report-driving",
-      standaloneReportEligible: true,
-      businessMetricsCapable: true,
-      acceptedExtensions: [".csv"],
-      publicContractIds: ["substack_normalized_csv"],
-      dataDomains: ["revenue", "subscribers"],
-      roleSummary: "Revenue and subscriber data. Can generate a report on its own.",
-      knownLimitations: ["Exact normalized CSV template only", "Not every Substack export CSV matches this contract"],
-    },
-    {
-      platform: "youtube",
-      label: "YouTube",
-      descriptor: "Creator earnings",
-      acceptedFileTypesLabel: "CSV or allowlisted ZIP",
-      uploadHelpText: "Upload the supported YouTube CSV or allowlisted ZIP for this workspace. Revenue and subscriber depth depends on the file you upload.",
-      publicSupportStatus: "supported_now",
-      reportRole: "report-driving",
-      standaloneReportEligible: true,
-      businessMetricsCapable: true,
-      acceptedExtensions: [".csv", ".zip"],
-      publicContractIds: ["youtube_normalized_csv", "youtube_takeout_zip"],
-      dataDomains: ["revenue", "subscribers", "performance"],
-      roleSummary: "Can generate a report. Revenue and subscriber depth depends on the YouTube file you upload.",
-      knownLimitations: ["Exact normalized CSV template only", "Allowlisted ZIP support is limited to the approved archive shape"],
-    },
-    {
-      platform: "instagram",
-      label: "Instagram Performance",
-      descriptor: "Social performance",
-      acceptedFileTypesLabel: "CSV or allowlisted ZIP",
-      uploadHelpText: "Upload the supported Instagram performance CSV or allowlisted ZIP. This source supports combined reports but cannot generate one alone.",
-      publicSupportStatus: "supported_now",
-      reportRole: "supporting",
-      standaloneReportEligible: false,
-      businessMetricsCapable: false,
-      acceptedExtensions: [".csv", ".zip"],
-      publicContractIds: ["instagram_performance_monthly_csv", "instagram_allowlisted_zip"],
-      dataDomains: ["performance"],
-      roleSummary: "Performance data only. Supports a combined report but cannot generate one alone.",
-      knownLimitations: ["No revenue semantics", "Exact allowlisted ZIP shape only when using ZIP imports"],
-    },
-    {
-      platform: "tiktok",
-      label: "TikTok Performance",
-      descriptor: "Social performance",
-      acceptedFileTypesLabel: "CSV or allowlisted ZIP",
-      uploadHelpText: "Upload the supported TikTok performance CSV or allowlisted ZIP. This source supports combined reports but cannot generate one alone.",
-      publicSupportStatus: "supported_now",
-      reportRole: "supporting",
-      standaloneReportEligible: false,
-      businessMetricsCapable: false,
-      acceptedExtensions: [".csv", ".zip"],
-      publicContractIds: ["tiktok_performance_monthly_csv", "tiktok_allowlisted_zip"],
-      dataDomains: ["performance"],
-      roleSummary: "Performance data only. Supports a combined report but cannot generate one alone.",
-      knownLimitations: ["No revenue semantics", "Exact allowlisted ZIP shape only when using ZIP imports"],
-    },
-  ],
-};
-
-export function getFallbackSourceManifest(): NormalizedSourceManifest {
-  return FALLBACK_SOURCE_MANIFEST;
-}
-
 export function normalizeSourceManifestResponse(raw: SourceManifestResponse | null | undefined): NormalizedSourceManifest | null {
   if (!raw || !Array.isArray(raw.platforms)) {
     return null;
   }
 
-  const platforms = raw.platforms
-    .map((platform) => normalizeManifestPlatform(platform))
+  const eligibilityRule = normalizeString(raw.eligibility_rule ?? raw.eligibilityRule);
+  const businessMetricsRule = normalizeString(raw.business_metrics_rule ?? raw.businessMetricsRule);
+  if (!eligibilityRule || !businessMetricsRule) {
+    return null;
+  }
+
+  const normalizedPlatforms = raw.platforms.map((platform) => normalizeManifestPlatform(platform));
+  if (normalizedPlatforms.some((platform) => platform === null)) {
+    return null;
+  }
+
+  const platforms = normalizedPlatforms
     .filter((platform): platform is NormalizedSourceManifestPlatform => platform !== null)
     .sort((left, right) => PLATFORM_ORDER.indexOf(left.platform) - PLATFORM_ORDER.indexOf(right.platform));
 
@@ -279,26 +214,37 @@ export function normalizeSourceManifestResponse(raw: SourceManifestResponse | nu
 
   return {
     version: typeof raw.version === "number" && Number.isFinite(raw.version) ? raw.version : 1,
-    eligibilityRule: normalizeString(raw.eligibility_rule ?? raw.eligibilityRule) || FALLBACK_SOURCE_MANIFEST.eligibilityRule,
-    businessMetricsRule:
-      normalizeString(raw.business_metrics_rule ?? raw.businessMetricsRule) || FALLBACK_SOURCE_MANIFEST.businessMetricsRule,
+    eligibilityRule,
+    businessMetricsRule,
     platforms,
   };
 }
 
+const STATIC_SOURCE_MANIFEST = (() => {
+  const normalized = normalizeSourceManifestResponse(STATIC_SOURCE_MANIFEST_RESPONSE);
+  if (!normalized) {
+    throw new Error("Static source manifest snapshot does not match the canonical backend contract.");
+  }
+  return normalized;
+})();
+
+export function getStaticSourceManifest(): NormalizedSourceManifest {
+  return STATIC_SOURCE_MANIFEST;
+}
+
 export function buildUploadPlatformCardsFromManifest(
-  manifest: NormalizedSourceManifest = FALLBACK_SOURCE_MANIFEST,
+  manifest: NormalizedSourceManifest,
 ): UploadPlatformCardMetadata[] {
   return manifest.platforms.map(buildUploadPlatformCard);
 }
 
-export function getFallbackVisibleUploadPlatformCards(): UploadPlatformCardMetadata[] {
-  return buildUploadPlatformCardsFromManifest(FALLBACK_SOURCE_MANIFEST);
+export function getStaticVisibleUploadPlatformCards(): UploadPlatformCardMetadata[] {
+  return buildUploadPlatformCardsFromManifest(STATIC_SOURCE_MANIFEST);
 }
 
 export function getUploadPlatformCardsByIds(
   ids: readonly UploadPlatform[],
-  manifest: NormalizedSourceManifest = FALLBACK_SOURCE_MANIFEST,
+  manifest: NormalizedSourceManifest,
 ): UploadPlatformCardMetadata[] {
   const visibleIds = new Set(ids);
   return buildUploadPlatformCardsFromManifest(manifest).filter((card) => visibleIds.has(card.id));

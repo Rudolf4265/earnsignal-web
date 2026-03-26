@@ -1,18 +1,18 @@
 import {
-  getFallbackVisibleUploadPlatformCards,
-  getFallbackVisibleUploadPlatformLabels,
+  getStaticVisibleUploadPlatformCards,
+  getStaticVisibleUploadPlatformLabels,
   getSupportedRevenueUploadFormatGuidanceFromCards,
   getSupportedRevenueUploadSummaryFromCards,
 } from "./support-surface";
 
 export function getSupportedRevenueUploadLabels(): string[] {
-  return getFallbackVisibleUploadPlatformLabels();
+  return getStaticVisibleUploadPlatformLabels();
 }
 
 export function getSupportedRevenueUploadSummary(): string {
-  return getSupportedRevenueUploadSummaryFromCards(getFallbackVisibleUploadPlatformCards());
+  return getSupportedRevenueUploadSummaryFromCards(getStaticVisibleUploadPlatformCards());
 }
 
 export function getSupportedRevenueUploadFormatGuidance(): string {
-  return getSupportedRevenueUploadFormatGuidanceFromCards(getFallbackVisibleUploadPlatformCards());
+  return getSupportedRevenueUploadFormatGuidanceFromCards(getStaticVisibleUploadPlatformCards());
 }

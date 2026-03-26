@@ -47,7 +47,7 @@ test("workspace report state trusts canonical backend eligibility and readiness 
         },
         {
           platform: "instagram",
-          label: "Instagram Performance",
+          label: "Instagram",
           descriptor: "Social performance",
           acceptedFileTypesLabel: "CSV or allowlisted ZIP",
           reportRole: "supporting",
@@ -101,7 +101,7 @@ test("workspace report state keeps Run Report disabled when backend says the wor
       sources: [
         {
           platform: "instagram",
-          label: "Instagram Performance",
+          label: "Instagram",
           descriptor: "Social performance",
           acceptedFileTypesLabel: "CSV or allowlisted ZIP",
           reportRole: "supporting",
@@ -130,7 +130,7 @@ test("workspace report state keeps Run Report disabled when backend says the wor
   assert.equal(result.reportDrivingSourcesReadyCount, 0);
 });
 
-test("workspace report state keeps legacy runReportEnabled only as a compatibility fallback", async () => {
+test("workspace report state does not promote legacy runReportEnabled over canonical eligibility", async () => {
   const { buildWorkspaceReportState } = await loadModule(Date.now() + 3);
 
   const result = buildWorkspaceReportState(
@@ -143,6 +143,9 @@ test("workspace report state keeps legacy runReportEnabled only as a compatibili
       failedSourceCount: 0,
       includedSourceCount: 1,
       runReportEnabled: true,
+      eligibleForReport: false,
+      blockingReason: "Canonical eligibility is still false until a report-driving source is included.",
+      reportReadinessNote: "Supporting sources are staged, but the workspace is not yet report-eligible.",
       reportDrivingReadySourceCount: 0,
       reportDrivingIncludedSourceCount: 1,
       sources: [
@@ -167,8 +170,10 @@ test("workspace report state keeps legacy runReportEnabled only as a compatibili
     { isLoading: false, currentReportId: "rep_current_123" },
   );
 
-  assert.equal(result.canRunReport, true);
-  assert.equal(result.eligibleForReport, true);
+  assert.equal(result.canRunReport, false);
+  assert.equal(result.eligibleForReport, false);
+  assert.equal(result.blockingReason, "Canonical eligibility is still false until a report-driving source is included.");
+  assert.equal(result.reportReadinessNote, "Supporting sources are staged, but the workspace is not yet report-eligible.");
   assert.equal(result.hasExistingReport, true);
   assert.equal(result.currentReportId, "rep_current_123");
 });

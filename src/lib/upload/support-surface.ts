@@ -1,18 +1,18 @@
 import type { SourceManifestResponse, UploadPlatform } from "@/src/lib/api/upload";
 import {
   buildUploadPlatformCardsFromManifest,
-  getFallbackSourceManifest,
-  getFallbackVisibleUploadPlatformCards,
+  getStaticSourceManifest,
+  getStaticVisibleUploadPlatformCards,
   type NormalizedSourceManifest,
   normalizeSourceManifestResponse,
   type UploadPlatformCardMetadata,
 } from "./platform-metadata";
 import { formatGuidanceLabelList } from "./guidance-labels";
 
-export { getFallbackVisibleUploadPlatformCards };
+export { getStaticVisibleUploadPlatformCards };
 
-export function getFallbackVisibleUploadPlatformLabels(): string[] {
-  return getFallbackVisibleUploadPlatformCards().map((card) => card.label);
+export function getStaticVisibleUploadPlatformLabels(): string[] {
+  return getStaticVisibleUploadPlatformCards().map((card) => card.label);
 }
 
 function buildFormatGuidanceSegments(cards: UploadPlatformCardMetadata[]): string[] {
@@ -37,12 +37,6 @@ function buildFormatGuidanceSegments(cards: UploadPlatformCardMetadata[]): strin
   }
 
   return segments;
-}
-
-export function normalizeSourceManifestOrFallback(
-  manifest: SourceManifestResponse | null | undefined,
-): NormalizedSourceManifest {
-  return normalizeSourceManifestResponse(manifest) ?? getFallbackSourceManifest();
 }
 
 export function buildVisibleUploadPlatformCardsFromSourceManifest(
@@ -75,4 +69,8 @@ export function getSupportedRevenueUploadFormatGuidanceFromCards(cards: UploadPl
   const segments = buildFormatGuidanceSegments(cards);
   const base = segments.length > 0 ? segments.join(" ") : "Upload a supported file for the platform you selected.";
   return `${base} Not every file from a platform will match the supported contract.`;
+}
+
+export function getStaticSourceManifestSnapshot(): NormalizedSourceManifest {
+  return getStaticSourceManifest();
 }

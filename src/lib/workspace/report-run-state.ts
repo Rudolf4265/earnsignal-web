@@ -60,12 +60,7 @@ export function buildWorkspaceReportState(
   const reportDrivingIncludedSourceCount =
     workspaceDataSources?.reportDrivingIncludedSourceCount ??
     includedSources.filter((source) => source.reportRole === "report_driving").length;
-  // Canonical readiness comes from the backend workspace payload. Keep the
-  // legacy field only as a temporary compatibility fallback during rollout.
-  const eligibleForReport =
-    workspaceDataSources?.eligibleForReport ??
-    workspaceDataSources?.runReportEnabled ??
-    false;
+  const eligibleForReport = workspaceDataSources?.eligibleForReport ?? false;
 
   return {
     stagedSourcesReadyCount: workspaceDataSources?.readySourceCount ?? 0,

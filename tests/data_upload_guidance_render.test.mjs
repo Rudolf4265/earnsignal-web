@@ -20,6 +20,8 @@ test("data upload page consumes canonical source manifest and workspace readines
   assert.equal(source.includes("getSourceManifest"), true);
   assert.equal(source.includes("normalizeSourceManifestResponse"), true);
   assert.equal(source.includes("buildUploadPlatformCardsFromManifest"), true);
+  assert.equal(source.includes("source-manifest-unavailable"), true);
+  assert.equal(source.includes("getFallbackSourceManifest"), false);
   assert.equal(source.includes("Report readiness"), true);
   assert.equal(source.includes("What this report is based on"), true);
   assert.equal(source.includes("Generate one combined report from the staged workspace."), true);

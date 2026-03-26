@@ -31,6 +31,6 @@ test("launch support surfaces align on workspace, combined report, and manifest-
   assert.equal(uploadStepper.includes("Workspace sources"), true);
   assert.equal(uploadStepper.includes("sourceManifest.eligibilityRule"), true);
   assert.equal(supportSurface.includes("buildVisibleUploadPlatformCardsFromSourceManifest"), true);
-  assert.equal(supportSurface.includes("normalizeSourceManifestOrFallback"), true);
+  assert.equal(supportSurface.includes("getStaticVisibleUploadPlatformCards"), true);
   assert.equal(supportSurface.includes("support-matrix"), false);
 });

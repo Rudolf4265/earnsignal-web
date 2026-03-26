@@ -179,11 +179,7 @@ export function normalizeWorkspaceDataSourcesResponse(
     failedSourceCount: normalizeCount(raw?.failed_source_count ?? raw?.failedSourceCount),
     includedSourceCount: normalizeCount(raw?.included_source_count ?? raw?.includedSourceCount),
     runReportEnabled: raw?.run_report_enabled === true || raw?.runReportEnabled === true,
-    eligibleForReport:
-      raw?.eligible_for_report === true ||
-      raw?.eligibleForReport === true ||
-      raw?.run_report_enabled === true ||
-      raw?.runReportEnabled === true,
+    eligibleForReport: raw?.eligible_for_report === true || raw?.eligibleForReport === true,
     blockingReason: normalizeNullableString(raw?.blocking_reason) ?? normalizeNullableString(raw?.blockingReason),
     reportHasBusinessMetrics:
       raw?.report_has_business_metrics === true || raw?.reportHasBusinessMetrics === true,

@@ -9,10 +9,10 @@ async function loadModule(seed = Date.now()) {
   return import(`${metadataModuleUrl}?t=${seed}`);
 }
 
-test("fallback source manifest preserves stable public platform order", async () => {
-  const { getFallbackSourceManifest, buildUploadPlatformCardsFromManifest } = await loadModule(Date.now() + 1);
+test("static source manifest snapshot preserves canonical backend platform order", async () => {
+  const { getStaticSourceManifest, buildUploadPlatformCardsFromManifest } = await loadModule(Date.now() + 1);
 
-  const manifest = getFallbackSourceManifest();
+  const manifest = getStaticSourceManifest();
   const cards = buildUploadPlatformCardsFromManifest(manifest);
 
   assert.deepEqual(
@@ -21,14 +21,15 @@ test("fallback source manifest preserves stable public platform order", async ()
   );
   assert.deepEqual(
     cards.map((item) => item.label),
-    ["Patreon", "Substack", "YouTube", "Instagram Performance", "TikTok Performance"],
+    ["Patreon", "Substack", "YouTube", "Instagram", "TikTok"],
   );
 });
 
-test("manifest-driven platform cards expose source role, public support, and accepted extensions", async () => {
-  const { getUploadPlatformCardsByIds } = await loadModule(Date.now() + 2);
+test("manifest-driven platform cards expose canonical role, support, and accepted extensions", async () => {
+  const { getStaticSourceManifest, getUploadPlatformCardsByIds } = await loadModule(Date.now() + 2);
 
-  const cards = getUploadPlatformCardsByIds(["patreon", "youtube", "instagram", "tiktok"]);
+  const manifest = getStaticSourceManifest();
+  const cards = getUploadPlatformCardsByIds(["patreon", "youtube", "instagram", "tiktok"], manifest);
 
   assert.deepEqual(
     cards.map((item) => ({
@@ -52,7 +53,7 @@ test("manifest-driven platform cards expose source role, public support, and acc
         id: "youtube",
         role: "report-driving",
         publicSupportStatus: "supported_now",
-        fileTypeLabel: "CSV or allowlisted ZIP",
+        fileTypeLabel: "Normalized CSV or YouTube Takeout ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: true,
       },
@@ -60,7 +61,7 @@ test("manifest-driven platform cards expose source role, public support, and acc
         id: "instagram",
         role: "supporting",
         publicSupportStatus: "supported_now",
-        fileTypeLabel: "CSV or allowlisted ZIP",
+        fileTypeLabel: "Normalized CSV or exact allowlisted ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: false,
       },
@@ -68,7 +69,7 @@ test("manifest-driven platform cards expose source role, public support, and acc
         id: "tiktok",
         role: "supporting",
         publicSupportStatus: "supported_now",
-        fileTypeLabel: "CSV or allowlisted ZIP",
+        fileTypeLabel: "Normalized CSV or exact allowlisted ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: false,
       },
@@ -89,7 +90,7 @@ test("normalizeSourceManifestResponse accepts canonical backend fields", async (
         label: "Patreon",
         descriptor: "Membership revenue",
         accepted_file_types_label: "Normalized CSV only",
-        upload_help_text: "Upload the exact supported Patreon CSV for this workspace.",
+        upload_help_text: "Upload the supported Patreon normalized CSV template for this platform.",
         public_support_status: "supported_now",
         report_role: "report_driving",
         standalone_report_eligible: true,
@@ -107,4 +108,32 @@ test("normalizeSourceManifestResponse accepts canonical backend fields", async (
   assert.equal(manifest?.eligibilityRule, "Add at least one report-driving source.");
   assert.equal(manifest?.businessMetricsRule, "Reports are strongest with revenue or subscriber data.");
   assert.deepEqual(manifest?.platforms[0]?.acceptedExtensions, [".csv"]);
+});
+
+test("normalizeSourceManifestResponse rejects manifest payloads missing canonical readiness rules", async () => {
+  const { normalizeSourceManifestResponse } = await loadModule(Date.now() + 4);
+
+  const manifest = normalizeSourceManifestResponse({
+    version: 1,
+    platforms: [
+      {
+        platform: "patreon",
+        label: "Patreon",
+        descriptor: "Membership revenue",
+        accepted_file_types_label: "Normalized CSV only",
+        upload_help_text: "Upload the supported Patreon normalized CSV template for this platform.",
+        public_support_status: "supported_now",
+        report_role: "report_driving",
+        standalone_report_eligible: true,
+        business_metrics_capable: true,
+        accepted_extensions: [".csv"],
+        public_contract_ids: ["patreon_normalized_csv"],
+        data_domains: ["revenue", "subscribers"],
+        role_summary: "Revenue and subscriber data. Can generate a report on its own.",
+        known_limitations: ["Exact normalized CSV template only"],
+      },
+    ],
+  });
+
+  assert.equal(manifest, null);
 });

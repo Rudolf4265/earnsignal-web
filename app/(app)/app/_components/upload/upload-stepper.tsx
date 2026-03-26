@@ -1334,12 +1334,12 @@ export default function UploadStepper({
             <div className="mt-3 grid gap-2 md:grid-cols-2">
               <div className="rounded-xl border border-emerald-400/20 bg-white/[0.05] px-3 py-3">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-300">Report-driving</p>
-                <p className="text-xs font-semibold text-white">Patreon · Substack · YouTube</p>
+                <p className="text-xs font-semibold text-white">{formatLabelList(reportDrivingPlatformLabels)}</p>
                 <p className="mt-1 text-xs text-slate-400">Revenue, subscribers &amp; growth</p>
               </div>
               <div className="rounded-xl border border-sky-400/20 bg-white/[0.05] px-3 py-3">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-sky-300">Supporting</p>
-                <p className="text-xs font-semibold text-white">Instagram · TikTok</p>
+                <p className="text-xs font-semibold text-white">{formatLabelList(supportingPlatformLabels)}</p>
                 <p className="mt-1 text-xs text-slate-400">Engagement &amp; reach enrichment</p>
               </div>
             </div>

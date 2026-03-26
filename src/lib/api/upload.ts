@@ -18,25 +18,6 @@ export type UploadCallbackResponse = Omit<UploadCallbackResponseSchema, "upload_
   upload_id: string;
 };
 export type UploadStatusResponse = UploadStatusResponseSchema;
-export type UploadSupportMatrixFamily = {
-  family?: string;
-  label?: string;
-  family_class?: string;
-  familyClass?: string;
-  is_user_visible_supported?: boolean;
-  isUserVisibleSupported?: boolean;
-  is_report_driving?: boolean;
-  isReportDriving?: boolean;
-  support_status?: string;
-  supportStatus?: string;
-  data_domains?: string[];
-  dataDomains?: string[];
-  known_limitations?: string[];
-  knownLimitations?: string[];
-};
-export type UploadSupportMatrixResponse = {
-  families?: UploadSupportMatrixFamily[] | null;
-};
 export type SourceManifestPlatform = {
   platform?: UploadPlatform;
   label?: string;
@@ -149,14 +130,6 @@ export async function finalizeUploadCallback(
 
 export async function getUploadStatus(uploadId: string): Promise<UploadStatusResponse> {
   return apiFetchJson<UploadStatusResponse>("uploads.status", `/v1/uploads/${encodeURIComponent(uploadId)}/status`, {
-    method: "GET",
-  });
-}
-
-// Temporary compatibility path for older/internal surfaces.
-// Primary product flows should consume `/v1/source-manifest` instead.
-export async function getUploadSupportMatrix(): Promise<UploadSupportMatrixResponse> {
-  return apiFetchJson<UploadSupportMatrixResponse>("uploads.supportMatrix", "/v1/uploads/support-matrix", {
     method: "GET",
   });
 }

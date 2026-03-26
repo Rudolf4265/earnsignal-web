@@ -80,6 +80,9 @@ const PLATFORM_ICONS: Partial<Record<UploadPlatform, string>> = {
   onlyfans: "/platforms/direct-fan.png",
 };
 
+const FALLBACK_PLATFORM_ICON = "/platforms/direct-fan.png";
+const DIRECT_FAN_PLATFORM_ICON = PLATFORM_ICONS.onlyfans ?? FALLBACK_PLATFORM_ICON;
+
 function normalizeString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -172,7 +175,7 @@ function buildUploadPlatformCard(platform: NormalizedSourceManifestPlatform): Up
     subtitle: platform.descriptor,
     contributionLabel: buildContributionLabel(platform),
     fileTypeLabel: buildFileTypeLabel(platform),
-    icon: PLATFORM_ICONS[platform.platform] ?? "/platforms/direct-fan.png",
+    icon: PLATFORM_ICONS[platform.platform] ?? FALLBACK_PLATFORM_ICON,
     category: "supported",
     available: platform.publicSupportStatus === "supported_now",
     guidance: platform.uploadHelpText || platform.roleSummary,
@@ -267,7 +270,7 @@ export const DIRECT_FAN_PLATFORMS: DirectFanPlatformMetadata[] = [
     id: "onlyfans",
     label: "OnlyFans",
     subtitle: "Direct creator subscriptions",
-    icon: PLATFORM_ICONS.onlyfans,
+    icon: DIRECT_FAN_PLATFORM_ICON,
     available: false,
     backendId: "onlyfans",
   },
@@ -275,7 +278,7 @@ export const DIRECT_FAN_PLATFORMS: DirectFanPlatformMetadata[] = [
     id: "fansly",
     label: "Fansly",
     subtitle: "Direct creator subscriptions",
-    icon: PLATFORM_ICONS.onlyfans,
+    icon: DIRECT_FAN_PLATFORM_ICON,
     available: false,
     backendId: null,
   },
@@ -283,7 +286,7 @@ export const DIRECT_FAN_PLATFORMS: DirectFanPlatformMetadata[] = [
     id: "fanfix",
     label: "Fanfix",
     subtitle: "Direct creator subscriptions",
-    icon: PLATFORM_ICONS.onlyfans,
+    icon: DIRECT_FAN_PLATFORM_ICON,
     available: false,
     backendId: null,
   },

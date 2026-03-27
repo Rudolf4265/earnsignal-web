@@ -54,6 +54,8 @@ export type ReportListRow = {
   reportKind: ReportKind;
 };
 
+const IN_FLIGHT_REPORT_STATUSES = new Set(["queued", "running", "processing"]);
+
 function readString(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
@@ -274,6 +276,30 @@ export function toReportStatusLabel(status: string): string {
     .filter((part) => part.length > 0)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
+}
+
+export function isInFlightReportStatus(status: string): boolean {
+  return IN_FLIGHT_REPORT_STATUSES.has(status.trim().toLowerCase());
+}
+
+export function overlayReportRunStatus(
+  item: ReportListItem,
+  status: {
+    status: string;
+    createdAt: string | null;
+    finishedAt: string | null;
+    schemaVersion: string | null;
+  },
+): ReportListItem {
+  const nextStatus = status.status.trim() || item.status;
+
+  return {
+    ...item,
+    status: nextStatus,
+    createdAt: item.createdAt ?? status.createdAt,
+    finishedAt: status.finishedAt ?? item.finishedAt,
+    schemaVersion: item.schemaVersion ?? status.schemaVersion,
+  };
 }
 
 export function toReportListRows(items: ReportListItem[]): ReportListRow[] {

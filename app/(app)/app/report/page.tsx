@@ -12,8 +12,19 @@ import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { Button, buttonClassName } from "@/src/components/ui/button";
 import { PageHeader } from "@/src/components/ui/page-header";
 import { isApiError, isEntitlementRequiredError } from "@/src/lib/api/client";
-import { downloadReportArtifactPdf, fetchReportsList, getReportErrorMessage, type ReportListItem } from "@/src/lib/api/reports";
-import { toReportListRows, type ReportListRow } from "@/src/lib/report/list-model";
+import {
+  downloadReportArtifactPdf,
+  fetchReportsList,
+  fetchReportRunStatus,
+  getReportErrorMessage,
+  type ReportListItem,
+} from "@/src/lib/api/reports";
+import {
+  isInFlightReportStatus,
+  overlayReportRunStatus,
+  toReportListRows,
+  type ReportListRow,
+} from "@/src/lib/report/list-model";
 
 type ReportsState = {
   loading: boolean;
@@ -36,6 +47,33 @@ const initialState: ReportsState = {
   nextOffset: null,
   hasMore: false,
 };
+
+const REPORT_STATUS_POLL_INTERVAL_MS = 10_000;
+
+async function hydrateActiveReportItems(items: ReportListItem[]): Promise<ReportListItem[]> {
+  const activeItems = items
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => Boolean(item.reportId) && isInFlightReportStatus(item.status));
+
+  if (activeItems.length === 0) {
+    return items;
+  }
+
+  const nextItems = [...items];
+
+  await Promise.all(
+    activeItems.map(async ({ item, index }) => {
+      try {
+        const status = await fetchReportRunStatus(item.reportId as string);
+        nextItems[index] = overlayReportRunStatus(item, status);
+      } catch {
+        // Keep the list response as-is when status hydration fails.
+      }
+    }),
+  );
+
+  return nextItems;
+}
 
 function reportCountLabel(count: number): string {
   if (count === 0) {
@@ -60,6 +98,10 @@ export default function ReportsPage() {
 
   const reportRows = useMemo(() => toReportListRows(state.items), [state.items]);
   const listDescription = useMemo(() => reportCountLabel(reportRows.length), [reportRows.length]);
+  const hasInFlightReports = useMemo(
+    () => state.items.some((item) => item.reportId && isInFlightReportStatus(item.status)),
+    [state.items],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +120,7 @@ export default function ReportsPage() {
 
       try {
         const page = await fetchReportsList();
+        const hydratedItems = await hydrateActiveReportItems(page.items);
 
         if (cancelled) {
           return;
@@ -89,7 +132,7 @@ export default function ReportsPage() {
           error: null,
           entitlementRequired: false,
           requestId: undefined,
-          items: page.items,
+          items: hydratedItems,
           nextOffset: page.nextOffset,
           hasMore: page.hasMore,
         });
@@ -137,10 +180,11 @@ export default function ReportsPage() {
 
     try {
       const page = await fetchReportsList(state.nextOffset);
+      const hydratedItems = await hydrateActiveReportItems(page.items);
       setState((prev) => ({
         ...prev,
         loadingMore: false,
-        items: [...prev.items, ...page.items],
+        items: [...prev.items, ...hydratedItems],
         nextOffset: page.nextOffset,
         hasMore: page.hasMore,
       }));
@@ -154,6 +198,40 @@ export default function ReportsPage() {
       }));
     }
   }, [state.hasMore, state.loading, state.loadingMore, state.nextOffset]);
+
+  const refreshInFlightReportStatuses = useCallback(async () => {
+    if (state.loading || state.loadingMore || !hasInFlightReports) {
+      return;
+    }
+
+    const capturedItems = state.items;
+    const hydratedItems = await hydrateActiveReportItems(capturedItems);
+
+    setState((prev) => {
+      if (prev.items !== capturedItems) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        items: hydratedItems,
+      };
+    });
+  }, [hasInFlightReports, state.items, state.loading, state.loadingMore]);
+
+  useEffect(() => {
+    if (state.loading || state.loadingMore || !hasInFlightReports) {
+      return;
+    }
+
+    const intervalHandle = window.setInterval(() => {
+      void refreshInFlightReportStatuses();
+    }, REPORT_STATUS_POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalHandle);
+    };
+  }, [hasInFlightReports, refreshInFlightReportStatuses, state.loading, state.loadingMore]);
 
   const handleDownload = useCallback(
     async (row: ReportListRow) => {

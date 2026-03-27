@@ -14,6 +14,30 @@ export type CreateReportRunResponse = {
   reportId: string;
 };
 
+export type ReportRunStatus = {
+  reportId: string;
+  status: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  schemaVersion: string | null;
+  failureCode: string | null;
+  failureReason: string | null;
+  stalledReason: string | null;
+  lastErrorCode: string | null;
+  lastErrorMessage: string | null;
+};
+
+function readNullableString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 function requireReportId(reportId: unknown, context: string): string {
   const normalized = normalizeReportId(reportId);
   if (!normalized) {
@@ -50,6 +74,32 @@ export async function createReportRun(): Promise<CreateReportRunResponse> {
   }
 
   return { reportId };
+}
+
+export async function fetchReportRunStatus(reportId: string): Promise<ReportRunStatus> {
+  const canonicalReportId = requireReportId(reportId, "report.status");
+  const data = await apiFetchJson<Record<string, unknown>>(
+    "report.status",
+    `/v1/reports/${encodeURIComponent(canonicalReportId)}/status`,
+    {
+      method: "GET",
+    },
+  );
+
+  return {
+    reportId: normalizeReportId(data.report_id ?? data.reportId) ?? canonicalReportId,
+    status: readNullableString(data.status) ?? "unknown",
+    createdAt: readNullableString(data.created_at) ?? readNullableString(data.createdAt),
+    updatedAt: readNullableString(data.updated_at) ?? readNullableString(data.updatedAt),
+    startedAt: readNullableString(data.started_at) ?? readNullableString(data.startedAt),
+    finishedAt: readNullableString(data.finished_at) ?? readNullableString(data.finishedAt),
+    schemaVersion: readNullableString(data.schema_version) ?? readNullableString(data.schemaVersion),
+    failureCode: readNullableString(data.failure_code) ?? readNullableString(data.failureCode),
+    failureReason: readNullableString(data.failure_reason) ?? readNullableString(data.failureReason),
+    stalledReason: readNullableString(data.stalled_reason) ?? readNullableString(data.stalledReason),
+    lastErrorCode: readNullableString(data.last_error_code) ?? readNullableString(data.lastErrorCode),
+    lastErrorMessage: readNullableString(data.last_error_message) ?? readNullableString(data.lastErrorMessage),
+  };
 }
 
 export async function fetchReportArtifactJson(artifactJsonUrl: string): Promise<unknown> {

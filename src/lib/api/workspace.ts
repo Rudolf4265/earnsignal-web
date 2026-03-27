@@ -117,6 +117,20 @@ function normalizeOptionalCount(value: number | null | undefined): number | null
   return typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : null;
 }
 
+function hasOwnField(record: object | null | undefined, key: string): boolean {
+  return Boolean(record) && Object.prototype.hasOwnProperty.call(record, key);
+}
+
+function normalizeEligibleForReport(raw: RawWorkspaceDataSourcesResponse | null | undefined): boolean {
+  // Keep canonical eligibility authoritative when present, but avoid treating an omitted field as a hard false.
+  const hasCanonicalEligibilityField = hasOwnField(raw, "eligible_for_report") || hasOwnField(raw, "eligibleForReport");
+  if (hasCanonicalEligibilityField) {
+    return raw?.eligible_for_report === true || raw?.eligibleForReport === true;
+  }
+
+  return raw?.run_report_enabled === true || raw?.runReportEnabled === true;
+}
+
 function normalizeWorkspaceDataSourceState(value: string | null | undefined): WorkspaceDataSourceState {
   return value && WORKSPACE_DATA_SOURCE_STATES.has(value as WorkspaceDataSourceState) ? (value as WorkspaceDataSourceState) : "missing";
 }
@@ -179,7 +193,7 @@ export function normalizeWorkspaceDataSourcesResponse(
     failedSourceCount: normalizeCount(raw?.failed_source_count ?? raw?.failedSourceCount),
     includedSourceCount: normalizeCount(raw?.included_source_count ?? raw?.includedSourceCount),
     runReportEnabled: raw?.run_report_enabled === true || raw?.runReportEnabled === true,
-    eligibleForReport: raw?.eligible_for_report === true || raw?.eligibleForReport === true,
+    eligibleForReport: normalizeEligibleForReport(raw),
     blockingReason: normalizeNullableString(raw?.blocking_reason) ?? normalizeNullableString(raw?.blockingReason),
     reportHasBusinessMetrics:
       raw?.report_has_business_metrics === true || raw?.reportHasBusinessMetrics === true,

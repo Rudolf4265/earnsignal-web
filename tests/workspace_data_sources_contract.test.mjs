@@ -58,3 +58,52 @@ test("workspace readiness normalization trusts canonical backend fields over leg
   assert.equal(state.eligibleForReport, false);
   assert.equal(state.includedSources.map((source) => source.platform).join(","), "instagram");
 });
+
+test("workspace readiness normalization falls back to legacy run_report_enabled when canonical eligibility is absent", async () => {
+  const [{ normalizeWorkspaceDataSourcesResponse }, { buildWorkspaceReportState }] = await Promise.all([
+    import(`${workspaceApiModuleUrl}?t=${Date.now() + 2}`),
+    import(`${workspaceStateModuleUrl}?t=${Date.now() + 3}`),
+  ]);
+
+  const normalized = normalizeWorkspaceDataSourcesResponse({
+    workspace_id: "creator-5",
+    supported_source_count: 5,
+    ready_source_count: 1,
+    processing_source_count: 0,
+    missing_source_count: 4,
+    failed_source_count: 0,
+    included_source_count: 1,
+    run_report_enabled: true,
+    blocking_reason: null,
+    report_has_business_metrics: true,
+    report_readiness_note: "Ready to run from the staged workspace.",
+    report_driving_ready_source_count: 1,
+    report_driving_included_source_count: 1,
+    sources: [
+      {
+        platform: "patreon",
+        label: "Patreon",
+        descriptor: "Membership revenue",
+        accepted_file_types_label: "Normalized CSV only",
+        report_role: "report_driving",
+        standalone_report_eligible: true,
+        business_metrics_capable: true,
+        role_summary: "Revenue and subscriber data.",
+        state: "ready",
+        included_in_next_report: true,
+        last_upload_at: "2026-03-24T10:00:00Z",
+        last_ready_at: "2026-03-24T10:00:00Z",
+        status_message: "ready",
+        action_label: "Replace",
+      },
+    ],
+  });
+
+  assert.equal(normalized.runReportEnabled, true);
+  assert.equal(normalized.eligibleForReport, true);
+
+  const state = buildWorkspaceReportState(normalized, { isLoading: false, currentReportId: null });
+  assert.equal(state.canRunReport, true);
+  assert.equal(state.eligibleForReport, true);
+  assert.equal(state.includedSources.map((source) => source.platform).join(","), "patreon");
+});

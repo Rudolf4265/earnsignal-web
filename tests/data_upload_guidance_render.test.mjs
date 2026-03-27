@@ -22,11 +22,17 @@ test("data upload page consumes canonical source manifest and workspace readines
   assert.equal(source.includes("buildUploadPlatformCardsFromManifest"), true);
   assert.equal(source.includes("source-manifest-unavailable"), true);
   assert.equal(source.includes("getFallbackSourceManifest"), false);
-  assert.equal(source.includes("Report readiness"), true);
-  assert.equal(source.includes("What this report is based on"), true);
-  assert.equal(source.includes("Generate one combined report from the staged workspace."), true);
-  assert.equal(source.includes("Stage real creator data sources, then generate one combined decision-ready report."), true);
-  assert.equal(source.includes("Reports are generated from the workspace snapshot you choose to run."), true);
+  assert.equal(source.includes("WorkspaceActionHero"), true);
+  assert.equal(source.includes("WorkspaceChecklist"), true);
+  assert.equal(source.includes("WorkspaceSourceDrawer"), true);
+  assert.equal(source.includes("WorkspaceHelpFooter"), true);
+  assert.equal(source.includes("Your workspace is ready"), true);
+  assert.equal(source.includes("Build your report"), true);
+  assert.equal(source.includes("Your data sources"), true);
+  assert.equal(source.includes("Stage creator data, then run one combined decision-ready report from the current workspace snapshot."), true);
+  assert.equal(source.includes('testId="workspace-help-trust"'), true);
+  assert.equal(source.includes("Report readiness"), false);
+  assert.equal(source.includes("What this report is based on"), false);
   assert.equal(source.includes("getUploadSupportMatrix()"), false);
   assert.equal(source.includes("supportMatrix"), false);
 

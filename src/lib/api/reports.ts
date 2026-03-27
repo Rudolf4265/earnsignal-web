@@ -38,6 +38,12 @@ function readNullableString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function buildFreshReportReadInit(): { cache: RequestCache } {
+  return {
+    cache: "no-store",
+  };
+}
+
 function requireReportId(reportId: unknown, context: string): string {
   const normalized = normalizeReportId(reportId);
   if (!normalized) {
@@ -56,8 +62,10 @@ function requireReportId(reportId: unknown, context: string): string {
 
 export async function fetchReportDetail(reportId: string): Promise<ReportDetail> {
   const canonicalReportId = requireReportId(reportId, "report.fetch");
+  const freshReadInit = buildFreshReportReadInit();
   const data = await apiFetchJson<ReportDetailResponseSchema>("report.fetch", `/v1/reports/${encodeURIComponent(canonicalReportId)}`, {
     method: "GET",
+    ...freshReadInit,
   });
 
   return normalizeReportDetail(canonicalReportId, data as Record<string, unknown>);
@@ -78,11 +86,13 @@ export async function createReportRun(): Promise<CreateReportRunResponse> {
 
 export async function fetchReportRunStatus(reportId: string): Promise<ReportRunStatus> {
   const canonicalReportId = requireReportId(reportId, "report.status");
+  const freshReadInit = buildFreshReportReadInit();
   const data = await apiFetchJson<Record<string, unknown>>(
     "report.status",
     `/v1/reports/${encodeURIComponent(canonicalReportId)}/status`,
     {
       method: "GET",
+      ...freshReadInit,
     },
   );
 
@@ -103,8 +113,10 @@ export async function fetchReportRunStatus(reportId: string): Promise<ReportRunS
 }
 
 export async function fetchReportArtifactJson(artifactJsonUrl: string): Promise<unknown> {
+  const freshReadInit = buildFreshReportReadInit();
   return apiFetchJson<unknown>("report.artifact_json", artifactJsonUrl, {
     method: "GET",
+    ...freshReadInit,
     headers: {
       Accept: "application/json",
     },
@@ -139,8 +151,10 @@ export async function fetchReportsList(offset?: number | null, options?: { force
 
   const requestPromise = (async () => {
     const path = normalizedOffset === null ? "/v1/reports" : `/v1/reports?offset=${encodeURIComponent(String(normalizedOffset))}`;
+    const freshReadInit = buildFreshReportReadInit();
     const data = await apiFetchJson<Record<string, unknown>>("reports.list", path, {
       method: "GET",
+      ...freshReadInit,
     });
     const normalized = normalizeReportsListResponse(data);
     reportListCache.set(cacheKey, { value: normalized, fetchedAt: Date.now() });

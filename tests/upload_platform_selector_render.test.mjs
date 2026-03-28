@@ -14,9 +14,11 @@ test("upload platform selector is manifest-driven and keeps the canonical worksp
   assert.equal(source.includes("visiblePlatformCards: UploadPlatformCardMetadata[];"), true);
   assert.equal(source.includes("platformSections.map((section) =>"), true);
   assert.equal(source.includes('data-testid={`platform-section-${section.category}`}'), true);
-  assert.equal(source.includes("sourceManifest.eligibilityRule"), true);
-  assert.equal(source.includes("sourceManifest.businessMetricsRule"), true);
-  assert.equal(source.includes("Current primary sources:"), true);
+  assert.equal(source.includes("Source types"), true);
+  assert.equal(source.includes("Choose what to add next. Exact file rules stay in the Upload Guide."), true);
+  assert.equal(source.includes('getPlatformRoleBadgeLabel("report-driving")'), true);
+  assert.equal(source.includes('getPlatformRoleDetail("supporting")'), true);
+  assert.equal(source.includes("Current primary sources:"), false);
   assert.equal(source.includes("Current supporting sources:"), false);
   assert.equal(source.includes("UPLOAD_PLATFORM_CARDS"), false);
 });
@@ -24,11 +26,14 @@ test("upload platform selector is manifest-driven and keeps the canonical worksp
 test("upload file step uses manifest card guidance rather than import-mode branches", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
-  assert.equal(source.includes('title="How to get your file"'), true);
-  assert.equal(source.includes("selectedPlatformCard?.guidance"), true);
+  assert.equal(source.includes('title="Before you upload"'), true);
+  assert.equal(source.includes("selectedPlatformCard.contributionLabel"), true);
   assert.equal(source.includes("selectedPlatformCard?.acceptedFileTypesLabel"), true);
-  assert.equal(source.includes("selectedPlatformCard?.roleSummary"), true);
-  assert.equal(source.includes("Need help? Review the upload guide for the supported file type."), true);
+  assert.equal(source.includes("selectedPlatformCard?.guidance"), false);
+  assert.equal(source.includes("selectedPlatformCard?.roleSummary"), false);
+  assert.equal(source.includes("Exact file rules, ZIP requirements, and troubleshooting live in the Upload Guide."), true);
+  assert.equal(source.includes("Need help? Review the upload guide for the supported file type."), false);
+  assert.equal(source.includes("Exact file rules are in Upload Guide."), true);
   assert.equal(source.includes("selectedPlatformCard?.importMode"), false);
   assert.equal(source.includes("supportedRevenueUploads"), false);
 });

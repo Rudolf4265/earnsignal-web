@@ -19,6 +19,8 @@ import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/li
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import {
   groupPlatformCards,
+  getPlatformRoleBadgeLabel,
+  getPlatformRoleDetail,
   type NormalizedSourceManifest,
   type UploadPlatformCardMetadata,
 } from "@/src/lib/upload/platform-metadata";
@@ -358,7 +360,7 @@ function PlatformCard({ label, description, contributionLabel, platformRole, fil
     : selected
     ? "bg-sky-400/18 text-sky-300 ring-1 ring-inset ring-sky-400/30"
     : "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200";
-  const roleBadgeLabel = isReportDriving ? "Primary" : "Supporting";
+  const roleBadgeLabel = getPlatformRoleBadgeLabel(platformRole);
 
   return (
     <button
@@ -1328,24 +1330,26 @@ export default function UploadStepper({
             className="rounded-[1.35rem] border border-slate-800/80 bg-[linear-gradient(145deg,rgba(10,24,50,0.96),rgba(14,30,63,0.96),rgba(12,27,53,0.98))] p-3 shadow-[0_18px_40px_-26px_rgba(15,23,42,0.75)]"
             data-testid="upload-platform-guide"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-accent-teal">Workspace sources</p>
-            <p className="mt-2 text-xs leading-relaxed text-slate-300">{sourceManifest.eligibilityRule}</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-400">{sourceManifest.businessMetricsRule}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-accent-teal">Source types</p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-300">
+              Choose what to add next. Exact file rules stay in the Upload Guide.
+            </p>
             <div className="mt-3 grid gap-2 md:grid-cols-2">
               <div className="rounded-xl border border-emerald-400/20 bg-white/[0.05] px-3 py-3">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-300">Report-driving</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-300">
+                  {getPlatformRoleBadgeLabel("report-driving")}
+                </p>
                 <p className="text-xs font-semibold text-white">{formatLabelList(reportDrivingPlatformLabels)}</p>
-                <p className="mt-1 text-xs text-slate-400">Revenue, subscribers &amp; growth</p>
+                <p className="mt-1 text-xs text-slate-400">{getPlatformRoleDetail("report-driving")}</p>
               </div>
               <div className="rounded-xl border border-sky-400/20 bg-white/[0.05] px-3 py-3">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-sky-300">Supporting</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-sky-300">
+                  {getPlatformRoleBadgeLabel("supporting")}
+                </p>
                 <p className="text-xs font-semibold text-white">{formatLabelList(supportingPlatformLabels)}</p>
-                <p className="mt-1 text-xs text-slate-400">Engagement &amp; reach enrichment</p>
+                <p className="mt-1 text-xs text-slate-400">{getPlatformRoleDetail("supporting")}</p>
               </div>
             </div>
-            <p className="mt-3 text-[11px] leading-relaxed text-slate-400">
-              Current primary sources: {formatLabelList(reportDrivingPlatformLabels)}. Supporting sources: {formatLabelList(supportingPlatformLabels)}.
-            </p>
             <Link href="/app/help#upload-guide" className="mt-3 inline-flex text-[11px] font-medium text-blue-200 underline underline-offset-4 hover:text-white">
               Open upload guide
             </Link>
@@ -1405,23 +1409,26 @@ export default function UploadStepper({
         <div className="space-y-5">
           <StepHeader
             title="Select file"
-            subtitle={selectedPlatformCard?.guidance ?? "Upload a supported file for this platform."}
+            subtitle={
+              selectedPlatformCard ? `Upload a supported ${selectedPlatformCard.label} file.` : "Upload a supported file for this platform."
+            }
           />
-          <InlineAlert variant="info" title="How to get your file" data-testid="upload-file-guide">
+          <InlineAlert variant="info" title="Before you upload" data-testid="upload-file-guide">
             <div className="space-y-2">
-              <p>{selectedPlatformCard?.guidance ?? "Upload a supported file for this platform."}</p>
+              <p>
+                {selectedPlatformCard
+                  ? `${selectedPlatformCard.contributionLabel}. ${getPlatformRoleDetail(selectedPlatformCard.platformRole)}`
+                  : "Upload a supported file for this platform."}
+              </p>
               <p className="text-current/70">
                 Accepted format: {selectedPlatformCard?.acceptedFileTypesLabel ?? "Supported file required"}.
               </p>
               <p className="text-current/70">
-                {selectedPlatformCard?.roleSummary ?? "This source will be staged for your next combined report."}
+                Exact file rules, ZIP requirements, and troubleshooting live in the Upload Guide.
               </p>
             </div>
-            <p className="mt-2 text-current/70">
-              After upload, EarnSigma validates and stages the source first. Workspace actions update from the canonical readiness state.
-            </p>
-            <Link href="/app/help#after-upload" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
-              Review upload help
+            <Link href="/app/help#upload-guide" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
+              Open upload guide
             </Link>
           </InlineAlert>
           <button
@@ -1459,7 +1466,7 @@ export default function UploadStepper({
           ) : null}
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">Need help? Review the upload guide for the supported file type.</span>
+            <span className="text-xs text-slate-500">Exact file rules are in Upload Guide.</span>
             <div className="flex gap-2">
               <button
                 type="button"

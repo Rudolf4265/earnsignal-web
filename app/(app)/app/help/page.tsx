@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { buttonClassName } from "@/src/components/ui/button";
 import { PanelCard } from "@/src/components/ui/panel-card";
+import { getPlatformRoleBadgeLabel, getPlatformRoleDetail } from "@/src/lib/upload/platform-metadata";
 import {
   getStaticSourceManifestSnapshot,
   getStaticVisibleUploadPlatformCards,
@@ -192,7 +193,7 @@ export default function HelpPage() {
 
         <PanelCard
           title="Supported imports"
-          description="Current public support comes from the canonical source manifest."
+          description="Current public support and exact file rules."
           className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(18,38,73,0.92),rgba(12,27,53,0.96))]"
           contentClassName="space-y-4"
         >
@@ -204,17 +205,41 @@ export default function HelpPage() {
               {supportedRevenueUploadFormatGuidance}
             </p>
 
+            <div className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Why details live here</p>
+              <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
+                Exact file rules and edge cases stay here, not in the workspace cards.
+              </p>
+            </div>
+
             <div className="grid gap-3">
               {supportedUploadCards.map((card) => (
                 <article key={card.id} className="rounded-[1.05rem] border border-brand-border/75 bg-brand-panel/78 p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-brand-text-primary">{card.label}</p>
                     <span className="rounded-full border border-brand-border/75 bg-brand-panel-muted/70 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">
-                      {card.platformRole === "report-driving" ? "Primary" : "Supporting"}
+                      {getPlatformRoleBadgeLabel(card.platformRole)}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{card.guidance}</p>
-                  <p className="mt-2 text-xs text-brand-text-muted">Accepted format: {card.fileTypeLabel}</p>
+                  <p className="mt-2 text-xs text-brand-text-muted">{getPlatformRoleDetail(card.platformRole)}</p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Contribution</p>
+                      <p className="mt-1 text-sm text-brand-text-primary">{card.contributionLabel}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Accepted format</p>
+                      <p className="mt-1 text-sm text-brand-text-primary">{card.fileTypeLabel}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">{card.guidance}</p>
+                  {card.knownLimitations.length > 0 ? (
+                    <ul className="mt-3 space-y-1 text-xs leading-relaxed text-brand-text-muted">
+                      {card.knownLimitations.map((limitation) => (
+                        <li key={limitation}>{limitation}</li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </article>
               ))}
             </div>

@@ -14,7 +14,7 @@ test("upload stepper keeps Upload & Validate as the primary file-step CTA", asyn
   assert.equal(source.includes("const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;"), true);
   assert.equal(source.includes('data-testid="upload-file-guide"'), true);
   assert.equal(source.includes("Accepted format: {selectedPlatformCard?.acceptedFileTypesLabel"), true);
-  assert.equal(source.includes("/app/help#after-upload"), true);
+  assert.equal(source.includes("/app/help#upload-guide"), true);
   assert.equal(source.includes("disabled={!uploadReady}"), true);
   assert.equal(source.includes("Checking access..."), true);
   assert.equal(source.includes("Upload & Validate"), true);

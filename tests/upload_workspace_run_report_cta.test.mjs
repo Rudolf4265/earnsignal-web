@@ -16,7 +16,8 @@ test("workspace hero derives Run Report availability from canonical workspace fi
   assert.equal(source.includes("workspaceReportState.reportReadinessNote"), true);
   assert.equal(source.includes("workspaceReportState.reportHasBusinessMetrics"), true);
   assert.equal(source.includes('data-testid="staged-run-report"'), true);
-  assert.equal(source.includes("Your workspace is ready"), true);
+  assert.equal(source.includes("Ready to run"), true);
+  assert.equal(source.includes('data-testid="workspace-run-summary"'), true);
   assert.equal(source.includes("Build your report"), true);
   assert.equal(source.includes("View all reports"), true);
   assert.equal(source.includes("What this report is based on"), false);

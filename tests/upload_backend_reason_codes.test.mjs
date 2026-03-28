@@ -34,8 +34,10 @@ test("upload stepper surfaces canonical workspace guidance instead of frontend-o
   const source = await readFile(uploadStepperPath, "utf8");
 
   assert.equal(source.includes("sourceManifest.eligibilityRule"), true);
-  assert.equal(source.includes("sourceManifest.businessMetricsRule"), true);
-  assert.equal(source.includes("selectedPlatformCard?.guidance"), true);
-  assert.equal(source.includes("selectedPlatformCard?.roleSummary"), true);
+  assert.equal(source.includes("selectedPlatformCard.contributionLabel"), true);
+  assert.equal(source.includes("selectedPlatformCard?.acceptedFileTypesLabel"), true);
+  assert.equal(source.includes("selectedPlatformCard?.guidance"), false);
+  assert.equal(source.includes("selectedPlatformCard?.roleSummary"), false);
+  assert.equal(source.includes("getPlatformRoleDetail(selectedPlatformCard.platformRole)"), true);
   assert.equal(source.includes("workspaceBlockingReason"), true);
 });

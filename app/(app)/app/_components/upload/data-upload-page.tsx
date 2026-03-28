@@ -16,6 +16,8 @@ import {
   type NormalizedSourceManifest,
   type UploadPlatformCardMetadata,
   buildUploadPlatformCardsFromManifest,
+  getPlatformRoleBadgeLabel,
+  getPlatformRoleDetail,
 } from "@/src/lib/upload/platform-metadata";
 
 type ChecklistStatus = "complete" | "current" | "optional";
@@ -26,19 +28,6 @@ type ChecklistItem = {
   helper: string;
   status: ChecklistStatus;
 };
-
-function pluralize(count: number, singular: string, plural = `${singular}s`): string {
-  return count === 1 ? singular : plural;
-}
-
-function formatConnectedSourcesSummary(primaryCount: number, supportingCount: number): string {
-  const primarySummary = `${primaryCount} report-driving ${pluralize(primaryCount, "source")} connected`;
-  if (supportingCount === 0) {
-    return primarySummary;
-  }
-
-  return `${primarySummary} and ${supportingCount} optional ${pluralize(supportingCount, "source")} connected`;
-}
 
 function formatWorkspaceUpdatedAt(value: string | null | undefined): string | null {
   if (!value) {
@@ -83,24 +72,27 @@ function buildChecklistItems(workspaceReportState: WorkspaceReportState): Checkl
 function getSourceStatusPresentation(source: WorkspaceDataSource | null | undefined): {
   label: string;
   className: string;
-  summary: string;
+  runState: string;
   actionLabel: string;
+  actionHref: string;
 } {
   if (!source || source.state === "missing") {
     return {
       label: "Not added",
       className: "border-white/10 bg-white/[0.05] text-slate-300",
-      summary: "Not staged in the workspace yet.",
+      runState: "Not staged yet",
       actionLabel: "Add source",
+      actionHref: "#workspace-uploader",
     };
   }
 
   if (source.state === "processing") {
     return {
-      label: "Processing",
+      label: "Connected",
       className: "border-sky-400/20 bg-sky-400/10 text-sky-200",
-      summary: source.statusMessage ?? "This source is still being validated.",
-      actionLabel: source.actionLabel === "View status" ? "View status" : "Upload again",
+      runState: source.includedInNextReport ? "Latest upload is processing" : "Validating latest upload",
+      actionLabel: "View details",
+      actionHref: "/app/help#after-upload",
     };
   }
 
@@ -108,18 +100,18 @@ function getSourceStatusPresentation(source: WorkspaceDataSource | null | undefi
     return {
       label: "Needs attention",
       className: "border-amber-400/20 bg-amber-400/10 text-amber-200",
-      summary: source.statusMessage ?? "This source needs another upload before it can be included.",
+      runState: "Upload failed, needs retry",
       actionLabel: source.actionLabel === "Retry" ? "Retry source" : "Replace source",
+      actionHref: "#workspace-uploader",
     };
   }
 
   return {
-    label: source.includedInNextReport ? "Connected" : "Ready",
+    label: "Connected",
     className: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
-    summary:
-      source.statusMessage ??
-      (source.includedInNextReport ? "Included in the next report snapshot." : "Staged and ready in the workspace."),
-    actionLabel: source.actionLabel === "Replace" ? "Replace source" : "Refresh source",
+    runState: source.includedInNextReport ? "Included in the next report" : "Not staged yet",
+    actionLabel: "Replace source",
+    actionHref: "#workspace-uploader",
   };
 }
 
@@ -127,9 +119,7 @@ function WorkspaceHeader() {
   return (
     <section className="space-y-2">
       <h1 className="text-3xl font-semibold text-white">Your Report Workspace</h1>
-      <p className="max-w-3xl text-sm leading-6 text-slate-300">
-        Stage creator data, then run one combined decision-ready report from the current workspace snapshot.
-      </p>
+      <p className="max-w-3xl text-sm leading-6 text-slate-300">This report will use your staged workspace sources.</p>
     </section>
   );
 }
@@ -154,21 +144,25 @@ function WorkspaceActionHero({
     ? "Checking workspace"
     : workspaceReportState.canRunReport
       ? "Ready to run"
-      : "Add a source to continue";
+      : workspaceReportState.hasStagedSources
+        ? "Needs attention"
+        : "Add a source";
 
   const headline = workspaceReportState.isLoading
-    ? "Checking your workspace"
+    ? "Checking workspace"
     : workspaceReportState.canRunReport
-      ? "Your workspace is ready"
-      : "Start building your report";
+      ? "Ready to run"
+      : workspaceReportState.hasStagedSources
+        ? "Needs one more step"
+        : "Start with a source";
 
   const summary = workspaceReportState.isLoading
-    ? "We're syncing your latest staged sources and report eligibility."
-    : workspaceReportState.includedSourceCount > 0
-      ? formatConnectedSourcesSummary(primaryCount, supportingCount)
+    ? "Syncing staged sources and eligibility."
+    : workspaceReportState.canRunReport
+      ? "This report will use your staged workspace sources."
       : workspaceReportState.hasStagedSources
-        ? workspaceReportState.blockingReason ?? "Your sources are still staging. Add one report-driving source to unlock Run Report."
-        : "No sources are staged yet. Add at least one report-driving source like Patreon, Substack, or YouTube.";
+        ? workspaceReportState.blockingReason ?? "Add a report-driving source to continue."
+        : "Add a report-driving source to start.";
 
   const handleRunReport = async () => {
     if (runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport) {
@@ -200,26 +194,10 @@ function WorkspaceActionHero({
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold text-white sm:text-[2rem]">{headline}</h2>
             <p className="max-w-2xl text-sm leading-6 text-slate-300">{summary}</p>
-            {mostRecentSource ? (
-              <p className="text-xs text-slate-400">
-                Latest source: {mostRecentSource.label}
-                {updatedAt ? ` | Updated ${updatedAt}` : ""}
-              </p>
-            ) : null}
           </div>
-
-          <p className="max-w-2xl text-sm leading-6 text-slate-200">
-            Your report will include revenue, subscriber, and growth insights when supported by your staged data.
-          </p>
 
           {workspaceReportState.reportReadinessNote ? (
             <p className="text-xs text-slate-400">{workspaceReportState.reportReadinessNote}</p>
-          ) : null}
-
-          {!workspaceReportState.reportHasBusinessMetrics && workspaceReportState.canRunReport ? (
-            <p className="text-xs text-amber-200/90" data-testid="staged-business-metrics-note">
-              This workspace can run now, but direct revenue and subscriber coverage is limited.
-            </p>
           ) : null}
         </div>
 
@@ -239,6 +217,37 @@ function WorkspaceActionHero({
           >
             View all reports
           </Link>
+          <div
+            data-testid="workspace-run-summary"
+            className="min-w-[240px] rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Next run</p>
+            <div className="mt-3 space-y-2 text-sm text-slate-200">
+              <div className="flex items-center justify-between gap-4">
+                <span>Included sources</span>
+                <span>{workspaceReportState.includedSourceCount}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span>Report-driving</span>
+                <span>{primaryCount}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span>Optional context</span>
+                <span>{supportingCount}</span>
+              </div>
+            </div>
+            {mostRecentSource ? (
+              <p className="mt-3 text-xs text-slate-400">
+                Snapshot: {mostRecentSource.label}
+                {updatedAt ? ` | ${updatedAt}` : ""}
+              </p>
+            ) : null}
+            {!workspaceReportState.reportHasBusinessMetrics && workspaceReportState.canRunReport ? (
+              <p className="mt-2 text-xs text-amber-200/90" data-testid="staged-business-metrics-note">
+                Strongest when revenue or subscriber data is present.
+              </p>
+            ) : null}
+          </div>
           {!workspaceReportState.canRunReport && !workspaceReportState.isLoading ? (
             <p className="max-w-xs text-right text-xs leading-5 text-slate-400">
               {workspaceReportState.blockingReason ?? "Add at least one report-driving source to run a combined report."}
@@ -263,7 +272,7 @@ function WorkspaceChecklist({ workspaceReportState }: { workspaceReportState: Wo
     <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-white">Build your report</h3>
-        <p className="mt-1 text-sm text-slate-400">A quick view of what&apos;s done and what&apos;s optional.</p>
+        <p className="mt-1 text-sm text-slate-400">Scan what&apos;s done and what comes next.</p>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-3">
@@ -307,52 +316,45 @@ function SourceCard({
   source: WorkspaceDataSource | null | undefined;
 }) {
   const status = getSourceStatusPresentation(source);
+  const roleLabel = getPlatformRoleBadgeLabel(card.platformRole);
 
   return (
-    <article className="rounded-2xl border border-white/10 bg-[#0f1d38]/90 p-4">
+    <article className="rounded-2xl border border-white/10 bg-[#0f1d38]/90 p-4" data-testid={`workspace-source-card-${card.id}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className="text-sm font-semibold text-white">{card.label}</h4>
-            <span
-              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${
-                card.platformRole === "report-driving"
-                  ? "bg-emerald-400/10 text-emerald-200"
-                  : "bg-sky-400/10 text-sky-200"
-              }`}
-            >
-              {card.platformRole === "report-driving" ? "Report-driving" : "Optional context"}
-            </span>
-          </div>
-          <p className="text-xs text-slate-400">{card.subtitle}</p>
-        </div>
+        <h4 className="text-sm font-semibold text-white">{card.label}</h4>
         <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${status.className}`}>
           {status.label}
         </span>
       </div>
 
-      <div className="mt-3 space-y-2">
-        <p className="text-sm leading-6 text-slate-300">{status.summary}</p>
-        <p className="text-xs leading-5 text-slate-400">{card.roleSummary}</p>
-        <p className="text-xs leading-5 text-slate-400">Accepted format: {card.fileTypeLabel}</p>
-        <p className="text-xs leading-5 text-slate-400">{card.guidance}</p>
-        {card.knownLimitations.length > 0 ? (
-          <ul className="space-y-1 text-xs leading-5 text-slate-500">
-            {card.knownLimitations.map((limitation) => (
-              <li key={limitation}>{limitation}</li>
-            ))}
-          </ul>
-        ) : null}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span
+          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${
+            card.platformRole === "report-driving"
+              ? "bg-emerald-400/10 text-emerald-200"
+              : "bg-sky-400/10 text-sky-200"
+          }`}
+        >
+          {roleLabel}
+        </span>
       </div>
 
-      {(source?.state === "missing" || source?.state === "failed" || source?.state === "processing" || !source) ? (
-        <a
-          href="#workspace-uploader"
-          className="mt-4 inline-flex text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white"
-        >
+      <div className="mt-4 space-y-3">
+        <div className="space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Contribution</p>
+          <p className="text-sm text-slate-200">{card.contributionLabel}</p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Next run</p>
+          <p className="text-sm text-slate-300">{status.runState}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-4">
+        <Link href={status.actionHref} className="text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white">
           {status.actionLabel}
-        </a>
-      ) : null}
+        </Link>
+      </div>
     </article>
   );
 }
@@ -390,8 +392,8 @@ function WorkspaceSourceDrawer({
 
   const supportingCount = workspaceReportState.includedSources.filter((source) => source.reportRole === "supporting").length;
   const connectedSummary = workspaceReportState.isLoading
-    ? "Syncing staged sources"
-    : `${workspaceReportState.reportDrivingIncludedSourceCount} report-driving / ${supportingCount} optional connected`;
+    ? "Syncing sources"
+    : `${workspaceReportState.reportDrivingIncludedSourceCount} report-driving / ${supportingCount} optional`;
 
   return (
     <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] backdrop-blur-sm">
@@ -402,9 +404,7 @@ function WorkspaceSourceDrawer({
       >
         <div>
           <h3 className="text-sm font-semibold text-white">Your data sources</h3>
-          <p className="mt-1 text-sm text-slate-400">
-            View connected sources, support details, and add more data when you need it.
-          </p>
+          <p className="mt-1 text-sm text-slate-400">Scan what&apos;s connected, included, and next.</p>
         </div>
         <div className="flex items-center gap-4">
           <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{connectedSummary}</p>
@@ -422,9 +422,23 @@ function WorkspaceSourceDrawer({
           ) : sourceManifest && visiblePlatformCards ? (
             <div className="space-y-6">
               <div id="upload-guide" data-testid="data-upload-guide" className="rounded-2xl border border-white/10 bg-[#0f1d38]/90 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-accent-teal">Source support</p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">{sourceManifest.eligibilityRule}</p>
-                <p className="mt-1 text-sm leading-6 text-slate-400">{sourceManifest.businessMetricsRule}</p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="max-w-2xl">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-accent-teal">Upload Guide</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                      Detailed format rules, ZIP support, and troubleshooting live in the Upload Guide.
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-400">
+                      {getPlatformRoleDetail("report-driving")} {getPlatformRoleDetail("supporting")}
+                    </p>
+                  </div>
+                  <Link
+                    href="/app/help#upload-guide"
+                    className="text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white"
+                  >
+                    Open guide
+                  </Link>
+                </div>
               </div>
 
               <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -436,10 +450,8 @@ function WorkspaceSourceDrawer({
               <div className="border-t border-white/10 pt-6">
                 <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <h4 className="text-base font-semibold text-white">Add or refresh a source</h4>
-                    <p className="mt-1 text-sm text-slate-400">
-                      Upload validation and staging still follow the same backend truth and report-eligibility rules.
-                    </p>
+                    <h4 className="text-base font-semibold text-white">Add or replace a source</h4>
+                    <p className="mt-1 text-sm text-slate-400">Choose a source and upload a supported file.</p>
                   </div>
                   <Link
                     href="/app/help#upload-guide"
@@ -479,7 +491,7 @@ function WorkspaceHelpFooter({ sourceManifestError }: { sourceManifestError: str
           <p className="mt-2 text-sm leading-6 text-slate-400">
             {sourceManifestError
               ? `${sourceManifestError} Use the upload guide for current prep steps and troubleshooting while the canonical manifest path recovers.`
-              : "Prep steps, supported formats, and troubleshooting are available in the upload guide. Privacy and trust details stay visible here without crowding the workspace."}
+              : "Formats, exact contracts, and troubleshooting live in the upload guide. Privacy and trust details stay here."}
           </p>
         </div>
 

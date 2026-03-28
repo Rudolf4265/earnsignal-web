@@ -27,8 +27,13 @@ test("help page renders workspace-based onboarding guidance with manifest-driven
   assert.equal(source.includes("Frequently asked questions"), true);
   assert.equal(source.includes("Common upload problems"), true);
   assert.equal(source.includes("What is not supported yet"), true);
+  assert.equal(source.includes("getPlatformRoleBadgeLabel"), true);
+  assert.equal(source.includes("getPlatformRoleDetail"), true);
   assert.equal(source.includes("Currently supported uploads are {supportedRevenueUploads}."), true);
   assert.equal(source.includes("{supportedRevenueUploadFormatGuidance}"), true);
+  assert.equal(source.includes("Why details live here"), true);
+  assert.equal(source.includes("Exact file rules and edge cases stay here, not in the workspace cards."), true);
+  assert.equal(source.includes("card.knownLimitations.map"), true);
   assert.equal(source.includes("sourceManifest.eligibilityRule"), true);
   assert.equal(source.includes("sourceManifest.businessMetricsRule"), true);
   assert.equal(source.includes("Upload supported files, let EarnSigma validate and stage them, then run one combined report when your workspace is ready."), true);

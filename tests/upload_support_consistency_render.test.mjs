@@ -23,14 +23,14 @@ test("launch support surfaces align on workspace, combined report, and manifest-
   ]);
 
   assert.equal(dashboardPage.includes("Add a fresh supported upload when you want to refresh the workspace."), true);
-  assert.equal(dataUploadPage.includes("Stage creator data, then run one combined decision-ready report from the current workspace snapshot."), true);
+  assert.equal(dataUploadPage.includes("This report will use your staged workspace sources."), true);
   assert.equal(dataUploadPage.includes("Your data sources"), true);
   assert.equal(dataUploadPage.includes("Build your report"), true);
   assert.equal(helpPage.includes("Upload supported files, let EarnSigma validate and stage them, then run one combined report when your workspace is ready."), true);
   assert.equal(dashboardOnboarding.includes("Start with a supported upload."), true);
   assert.equal(creatorHealthPanel.includes("Upload a supported file and run a report to unlock a measured health baseline."), true);
-  assert.equal(uploadStepper.includes("Workspace sources"), true);
-  assert.equal(uploadStepper.includes("sourceManifest.eligibilityRule"), true);
+  assert.equal(uploadStepper.includes("Source types"), true);
+  assert.equal(uploadStepper.includes("Exact file rules stay in the Upload Guide."), true);
   assert.equal(supportSurface.includes("buildVisibleUploadPlatformCardsFromSourceManifest"), true);
   assert.equal(supportSurface.includes("getStaticVisibleUploadPlatformCards"), true);
   assert.equal(supportSurface.includes("support-matrix"), false);

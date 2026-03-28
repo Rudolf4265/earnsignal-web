@@ -26,7 +26,7 @@ test("static source manifest snapshot preserves canonical backend platform order
 });
 
 test("manifest-driven platform cards expose canonical role, support, and accepted extensions", async () => {
-  const { getStaticSourceManifest, getUploadPlatformCardsByIds } = await loadModule(Date.now() + 2);
+  const { getStaticSourceManifest, getUploadPlatformCardsByIds, getPlatformRoleBadgeLabel, getPlatformRoleDetail } = await loadModule(Date.now() + 2);
 
   const manifest = getStaticSourceManifest();
   const cards = getUploadPlatformCardsByIds(["patreon", "youtube", "instagram", "tiktok"], manifest);
@@ -39,6 +39,7 @@ test("manifest-driven platform cards expose canonical role, support, and accepte
       fileTypeLabel: item.fileTypeLabel,
       acceptedExtensions: item.acceptedExtensions,
       businessMetricsCapable: item.businessMetricsCapable,
+      contributionLabel: item.contributionLabel,
     })),
     [
       {
@@ -48,6 +49,7 @@ test("manifest-driven platform cards expose canonical role, support, and accepte
         fileTypeLabel: "Normalized CSV only",
         acceptedExtensions: [".csv"],
         businessMetricsCapable: true,
+        contributionLabel: "Revenue + subscriber data",
       },
       {
         id: "youtube",
@@ -56,6 +58,7 @@ test("manifest-driven platform cards expose canonical role, support, and accepte
         fileTypeLabel: "Normalized CSV or YouTube Takeout ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: true,
+        contributionLabel: "Creator revenue or content data",
       },
       {
         id: "instagram",
@@ -64,6 +67,7 @@ test("manifest-driven platform cards expose canonical role, support, and accepte
         fileTypeLabel: "Normalized CSV or exact allowlisted ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: false,
+        contributionLabel: "Audience/context enrichment",
       },
       {
         id: "tiktok",
@@ -72,9 +76,15 @@ test("manifest-driven platform cards expose canonical role, support, and accepte
         fileTypeLabel: "Normalized CSV or exact allowlisted ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: false,
+        contributionLabel: "Audience/context enrichment",
       },
     ],
   );
+
+  assert.equal(getPlatformRoleBadgeLabel("report-driving"), "Report-driving");
+  assert.equal(getPlatformRoleBadgeLabel("supporting"), "Optional context");
+  assert.equal(getPlatformRoleDetail("report-driving"), "Used for core revenue/subscriber analysis.");
+  assert.equal(getPlatformRoleDetail("supporting"), "Adds audience and performance context.");
 });
 
 test("normalizeSourceManifestResponse accepts canonical backend fields", async () => {

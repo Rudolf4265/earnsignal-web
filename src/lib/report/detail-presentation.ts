@@ -445,7 +445,7 @@ function buildSubscriberMetrics(input: {
     metrics.push(
       createMetric({
         id: "subscribers",
-        label: "Subscribers",
+        label: "Paid Subscribers",
         value: formatNumber(input.subscribers),
         truth: activeSubscribers ?? null,
         source: activeSubscribers?.source ?? input.metricSnapshot?.activeSubscribersSource ?? null,

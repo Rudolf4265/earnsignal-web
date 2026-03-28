@@ -200,7 +200,7 @@ function buildKpiCards(
   const subscriberMetric = presentation.subscriberHealth.metrics.find((m) => m.id === "subscribers");
   const subscribersCard: WowKpiCard = {
     id: "active_subscribers",
-    label: "Active Subscribers",
+    label: "Paid Subscribers",
     value: subscriberMetric?.value ?? "--",
     detail: null,
   };

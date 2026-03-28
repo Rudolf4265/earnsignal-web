@@ -71,9 +71,15 @@ export async function fetchReportDetail(reportId: string): Promise<ReportDetail>
   return normalizeReportDetail(canonicalReportId, data as Record<string, unknown>);
 }
 
-export async function createReportRun(): Promise<CreateReportRunResponse> {
+export async function createReportRun(options?: { selectedPlatforms?: string[] }): Promise<CreateReportRunResponse> {
+  const body =
+    options?.selectedPlatforms && options.selectedPlatforms.length > 0
+      ? JSON.stringify({ selected_platforms: options.selectedPlatforms })
+      : undefined;
+
   const data = await apiFetchJson<Record<string, unknown>>("reports.run", "/v1/reports/run", {
     method: "POST",
+    ...(body ? { headers: { "Content-Type": "application/json" }, body } : {}),
   });
 
   const reportId = normalizeReportId(data.report_id ?? data.reportId ?? data.id);

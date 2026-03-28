@@ -7,7 +7,7 @@ import UploadStepper from "./upload-stepper";
 import { buttonClassName } from "@/src/components/ui/button";
 import { TrustMicrocopy, UPLOAD_TRUST_MICROCOPY_BODY } from "@/src/components/ui/trust-microcopy";
 import { createReportRun, getReportErrorMessage } from "@/src/lib/api/reports";
-import { fetchWorkspaceDataSources, type WorkspaceDataSource, type WorkspaceDataSourcesResponse } from "@/src/lib/api/workspace";
+import { clearWorkspaceData, fetchWorkspaceDataSources, updateSourceSelection, type WorkspaceDataSource, type WorkspaceDataSourcesResponse } from "@/src/lib/api/workspace";
 import { getSourceManifest } from "@/src/lib/api/upload";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import { buildWorkspaceReportState, type WorkspaceReportState } from "@/src/lib/workspace/report-run-state";
@@ -173,7 +173,8 @@ function WorkspaceActionHero({
     setRunReportError(null);
 
     try {
-      const result = await createReportRun();
+      const selectedPlatforms = workspaceReportState.includedSources.map((s) => s.platform);
+      const result = await createReportRun({ selectedPlatforms });
       onReportCreated(result.reportId);
       router.push(buildReportDetailPathOrIndex(result.reportId));
     } catch (error) {
@@ -311,12 +312,27 @@ function ChecklistRow({ item }: { item: ChecklistItem }) {
 function SourceCard({
   card,
   source,
+  onToggleSelection,
 }: {
   card: UploadPlatformCardMetadata;
   source: WorkspaceDataSource | null | undefined;
+  onToggleSelection?: (platform: string, selected: boolean) => Promise<void>;
 }) {
+  const [toggling, setToggling] = useState(false);
   const status = getSourceStatusPresentation(source);
   const roleLabel = getPlatformRoleBadgeLabel(card.platformRole);
+  const canToggle = source?.state === "ready" && onToggleSelection != null;
+  const isIncluded = source?.includedInNextReport === true;
+
+  const handleToggle = async () => {
+    if (!canToggle || toggling) return;
+    setToggling(true);
+    try {
+      await onToggleSelection!(card.id, !isIncluded);
+    } finally {
+      setToggling(false);
+    }
+  };
 
   return (
     <article className="rounded-2xl border border-white/10 bg-[#0f1d38]/90 p-4" data-testid={`workspace-source-card-${card.id}`}>
@@ -337,6 +353,15 @@ function SourceCard({
         >
           {roleLabel}
         </span>
+        {canToggle && (
+          <span
+            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${
+              isIncluded ? "bg-emerald-400/10 text-emerald-300" : "bg-white/[0.05] text-slate-400"
+            }`}
+          >
+            {isIncluded ? "Included" : "Excluded"}
+          </span>
+        )}
       </div>
 
       <div className="mt-4 space-y-3">
@@ -354,6 +379,19 @@ function SourceCard({
         <Link href={status.actionHref} className="text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white">
           {status.actionLabel}
         </Link>
+        {canToggle && (
+          <button
+            type="button"
+            onClick={() => void handleToggle()}
+            disabled={toggling}
+            data-testid={`source-toggle-${card.id}`}
+            className={`text-sm font-medium underline underline-offset-4 transition disabled:opacity-50 ${
+              isIncluded ? "text-slate-400 hover:text-rose-300" : "text-emerald-300 hover:text-white"
+            }`}
+          >
+            {toggling ? "Updating…" : isIncluded ? "Exclude from run" : "Include in run"}
+          </button>
+        )}
       </div>
     </article>
   );
@@ -370,6 +408,7 @@ function WorkspaceSourceDrawer({
   refreshWorkspaceDataSources,
   clearCurrentReport,
   onReportCreated,
+  onToggleSourceSelection,
 }: {
   isOpen: boolean;
   onToggle: () => void;
@@ -381,6 +420,7 @@ function WorkspaceSourceDrawer({
   refreshWorkspaceDataSources: (options?: { preserveCurrent?: boolean }) => Promise<void>;
   clearCurrentReport: () => void;
   onReportCreated: (reportId: string) => void;
+  onToggleSourceSelection: (platform: string, selected: boolean) => Promise<void>;
 }) {
   const sourceLookup = useMemo(() => {
     if (workspaceDataSources === "loading" || !workspaceDataSources) {
@@ -443,7 +483,7 @@ function WorkspaceSourceDrawer({
 
               <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
                 {visiblePlatformCards.map((card) => (
-                  <SourceCard key={card.id} card={card} source={sourceLookup.get(card.id)} />
+                  <SourceCard key={card.id} card={card} source={sourceLookup.get(card.id)} onToggleSelection={onToggleSourceSelection} />
                 ))}
               </div>
 
@@ -587,6 +627,34 @@ export default function DataUploadPage() {
     setCurrentReportId(reportId);
   }, []);
 
+  const handleToggleSourceSelection = useCallback(async (platform: string, selected: boolean) => {
+    try {
+      const updated = await updateSourceSelection(platform, selected);
+      setWorkspaceDataSources(updated);
+    } catch {
+      // Refresh from server on error so UI stays consistent.
+      await refreshWorkspaceDataSources({ preserveCurrent: true });
+    }
+  }, [refreshWorkspaceDataSources]);
+
+  const [clearDataPending, setClearDataPending] = useState(false);
+  const [clearDataConfirming, setClearDataConfirming] = useState(false);
+  const [clearDataError, setClearDataError] = useState<string | null>(null);
+
+  const handleClearData = useCallback(async () => {
+    setClearDataPending(true);
+    setClearDataError(null);
+    try {
+      await clearWorkspaceData();
+      setClearDataConfirming(false);
+      await refreshWorkspaceDataSources({ preserveCurrent: false });
+    } catch {
+      setClearDataError("Failed to clear data. Please try again.");
+    } finally {
+      setClearDataPending(false);
+    }
+  }, [refreshWorkspaceDataSources]);
+
   useEffect(() => {
     workspaceDataSourcesRef.current = workspaceDataSources;
   }, [workspaceDataSources]);
@@ -662,8 +730,82 @@ export default function DataUploadPage() {
         refreshWorkspaceDataSources={refreshWorkspaceDataSources}
         clearCurrentReport={clearCurrentReport}
         onReportCreated={handleReportCreated}
+        onToggleSourceSelection={handleToggleSourceSelection}
       />
       <WorkspaceHelpFooter sourceManifestError={sourceManifestError} />
+      <ClearDataSection
+        confirming={clearDataConfirming}
+        pending={clearDataPending}
+        error={clearDataError}
+        onRequestConfirm={() => setClearDataConfirming(true)}
+        onCancel={() => { setClearDataConfirming(false); setClearDataError(null); }}
+        onConfirm={() => void handleClearData()}
+      />
     </div>
+  );
+}
+
+function ClearDataSection({
+  confirming,
+  pending,
+  error,
+  onRequestConfirm,
+  onCancel,
+  onConfirm,
+}: {
+  confirming: boolean;
+  pending: boolean;
+  error: string | null;
+  onRequestConfirm: () => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <section className="rounded-[1.5rem] border border-rose-400/20 bg-rose-400/[0.03] p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="max-w-xl">
+          <h3 className="text-sm font-semibold text-white">Clear all data</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-400">
+            Permanently removes all saved workspace sources. Report history is preserved. This cannot be undone.
+          </p>
+          {error ? <p className="mt-2 text-xs text-rose-300">{error}</p> : null}
+        </div>
+        <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+          {!confirming ? (
+            <button
+              type="button"
+              onClick={onRequestConfirm}
+              data-testid="clear-data-request"
+              className="rounded-xl border border-rose-400/30 px-4 py-2 text-sm font-medium text-rose-300 transition hover:bg-rose-400/10 hover:text-rose-200"
+            >
+              Clear all data
+            </button>
+          ) : (
+            <div className="flex flex-col items-end gap-2">
+              <p className="text-xs font-semibold text-rose-300">This will permanently delete all saved sources.</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  disabled={pending}
+                  className="rounded-xl border border-white/10 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-white/[0.05] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  disabled={pending}
+                  data-testid="clear-data-confirm"
+                  className="rounded-xl bg-rose-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:opacity-50"
+                >
+                  {pending ? "Clearing…" : "Yes, clear all data"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

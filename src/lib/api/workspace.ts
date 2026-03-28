@@ -216,3 +216,42 @@ export async function fetchWorkspaceDataSources(): Promise<WorkspaceDataSourcesR
 
   return normalizeWorkspaceDataSourcesResponse(data);
 }
+
+/**
+ * Explicitly include or exclude a saved workspace source from future report runs.
+ * Setting selected=false excludes the source without deleting it.
+ * Returns the updated workspace data sources so the UI can refresh in one round-trip.
+ */
+export async function updateSourceSelection(platform: string, selected: boolean): Promise<WorkspaceDataSourcesResponse> {
+  const data = await apiFetchJson<RawWorkspaceDataSourcesResponse>(
+    "workspace.updateSourceSelection",
+    `/v1/workspace/sources/${encodeURIComponent(platform)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ selected }),
+    },
+  );
+  return normalizeWorkspaceDataSourcesResponse(data);
+}
+
+export type ClearWorkspaceDataResult = {
+  cleared: boolean;
+  sourcesCleared: number;
+  message: string;
+};
+
+/**
+ * Permanently clear all saved source data for this workspace.
+ * Report history and account/billing state are NOT affected.
+ */
+export async function clearWorkspaceData(): Promise<ClearWorkspaceDataResult> {
+  const data = await apiFetchJson<Record<string, unknown>>("workspace.clearData", "/v1/workspace/clear-data", {
+    method: "POST",
+  });
+  return {
+    cleared: data.cleared === true,
+    sourcesCleared: typeof data.sources_cleared === "number" ? data.sources_cleared : 0,
+    message: typeof data.message === "string" ? data.message : "",
+  };
+}

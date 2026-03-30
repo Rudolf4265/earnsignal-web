@@ -168,6 +168,69 @@ test("createCheckoutSession does not call legacy endpoints on canonical 500 erro
   delete global.window;
 });
 
+test("createCheckoutSession surfaces 401 immediately — no retry, no endpoint fallback", async () => {
+  const calls = [];
+
+  global.window = createWindow();
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    return jsonResponse({ message: "Unauthorized" }, 401);
+  };
+
+  const moduleUrl = await buildEntitlementsTestModule(`auth-401-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
+
+  await assert.rejects(createCheckoutSession("report"), /request failed/);
+  assert.equal(calls.length, 1, "auth error must not trigger legacy payload retry or endpoint fallback");
+  assert.equal(calls[0], "/v1/billing/create-checkout-session");
+
+  clearCheckoutAttempt();
+  delete global.fetch;
+  delete global.window;
+});
+
+test("createCheckoutSession surfaces 403 immediately — no retry, no endpoint fallback", async () => {
+  const calls = [];
+
+  global.window = createWindow();
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    return jsonResponse({ message: "Forbidden" }, 403);
+  };
+
+  const moduleUrl = await buildEntitlementsTestModule(`auth-403-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
+
+  await assert.rejects(createCheckoutSession("report"), /request failed/);
+  assert.equal(calls.length, 1, "forbidden error must not trigger legacy payload retry or endpoint fallback");
+  assert.equal(calls[0], "/v1/billing/create-checkout-session");
+
+  clearCheckoutAttempt();
+  delete global.fetch;
+  delete global.window;
+});
+
+test("createCheckoutSession surfaces 503 (billing not configured) immediately — no retry, no fallback", async () => {
+  const calls = [];
+
+  global.window = createWindow();
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    return jsonResponse({ message: "Stripe checkout is not configured.", code: "BILLING_NOT_CONFIGURED" }, 503);
+  };
+
+  const moduleUrl = await buildEntitlementsTestModule(`billing-503-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
+
+  await assert.rejects(createCheckoutSession("report"), /request failed/);
+  assert.equal(calls.length, 1, "billing config error must not trigger legacy payload retry or endpoint fallback");
+  assert.equal(calls[0], "/v1/billing/create-checkout-session");
+
+  clearCheckoutAttempt();
+  delete global.fetch;
+  delete global.window;
+});
+
 test("createCheckoutSession validates selected plan before API request", async () => {
   const calls = [];
 

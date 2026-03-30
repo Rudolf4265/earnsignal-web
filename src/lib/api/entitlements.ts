@@ -844,12 +844,21 @@ function toLegacyCheckoutPlan(plan: CheckoutPlan): CheckoutCreateRequestSchema["
   return LEGACY_PLAN_BY_CHECKOUT_PLAN[plan];
 }
 
+// Endpoint fallback applies only when the endpoint itself is absent (404/405).
+// Auth errors (401/403), billing config errors (503), and all other failures
+// are surfaced immediately — they apply to all endpoints equally.
 function shouldFallbackEndpoint(error: unknown): error is ApiError {
   return error instanceof ApiError && (error.status === 404 || error.status === 405);
 }
 
+// Legacy payload retry applies only for request-format compatibility errors
+// (older backend versions may not accept plan_tier and return 400/422).
+// Auth errors (401/403) are explicitly excluded: they indicate a session or
+// permission problem that a different payload cannot resolve.
 function shouldRetryWithLegacyPayload(error: unknown): error is ApiError {
-  return error instanceof ApiError && (error.status === 400 || error.status === 422);
+  if (!(error instanceof ApiError)) return false;
+  if (error.status === 401 || error.status === 403) return false;
+  return error.status === 400 || error.status === 422;
 }
 
 async function requestCheckout(path: string, payload: Record<string, unknown>): Promise<CheckoutResponse> {

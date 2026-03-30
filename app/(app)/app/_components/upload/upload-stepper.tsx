@@ -1265,44 +1265,29 @@ export default function UploadStepper({
       <UploadPrivacyLine />
 
       {error ? (
-        <ErrorBanner data-testid="upload-terminal-error"
-          title="Upload needs attention"
-          message={error}
+        <ErrorBanner
+          data-testid="upload-terminal-error"
+          title="Upload issue"
+          message="We couldn't complete your upload. This can happen if the connection was interrupted."
           requestId={errorRequestId ?? undefined}
-          retryLabel="Retry status"
-          onRetry={uploadId && !busy ? () => void retryProcessing() : undefined}
-          action={
-            <>
-              <button
-                type="button"
-                data-testid="upload-reset"
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
-                onClick={resetFlow}
-              >
-                Reset
-              </button>
-              <button
-                type="button"
-                data-testid="upload-copy-diagnostics"
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
-                onClick={copyDiagnostics}
-                disabled={!errorDetails}
-              >
-                Copy diagnostics
-              </button>
-            </>
-          }
         >
-          <div className="space-y-2">
-            {reasonCode ? <p className="text-xs text-red-100/80">Reason code: {reasonCode}</p> : null}
-            {errorOperation ? <p className="text-xs text-red-100/80">Operation: {errorOperation}</p> : null}
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <button
+              type="button"
+              data-testid="upload-copy-diagnostics"
+              className="font-medium text-rose-100/75 underline underline-offset-4 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={copyDiagnostics}
+              disabled={!errorDetails}
+            >
+              Copy diagnostics
+            </button>
             {reasonCode === "session_expired" ? (
-              <Link href="/login" className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100">
+              <Link href="/login" className="font-medium text-rose-100/75 underline underline-offset-4 transition hover:text-white">
                 Log in again
               </Link>
             ) : null}
             {reasonCode === "entitlement_required" ? (
-              <Link href="/app/billing" className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100">
+              <Link href="/app/billing" className="font-medium text-rose-100/75 underline underline-offset-4 transition hover:text-white">
                 Go to Billing
               </Link>
             ) : null}
@@ -1518,22 +1503,24 @@ export default function UploadStepper({
 
       {step === "uploading" || step === "processing" ? (
         <div className="space-y-4">
-          <StepHeader
-            title={step === "uploading" ? "Uploading file" : "Processing upload"}
-            subtitle={
-              step === "uploading"
-                ? "We're sending your file securely."
-                : processingStatus === "failed"
-                  ? "Processing did not finish successfully."
-                  : "Most uploads complete within 45-90 seconds. Keep this tab open while we validate your data."
-            }
-          />
-          <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3">
-            {(step === "uploading" || busy) && (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
-            )}
-            <p className="text-sm text-slate-300">{statusMsg ?? "Working..."}</p>
-          </div>
+          {!error ? (
+            <>
+              <StepHeader
+                title={step === "uploading" ? "Uploading file" : "Processing upload"}
+                subtitle={
+                  step === "uploading"
+                    ? "We're sending your file securely."
+                    : "Most uploads complete within 45-90 seconds. Keep this tab open while we validate your data."
+                }
+              />
+              <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3">
+                {(step === "uploading" || busy) && (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
+                )}
+                <p className="text-sm text-slate-300">{statusMsg ?? "Working..."}</p>
+              </div>
+            </>
+          ) : null}
           <div className="flex gap-2">
             {error ? (
               <button

@@ -3,20 +3,22 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppGate } from "../_components/app-gate-provider";
 import { useEntitlementState } from "../_components/use-entitlement-state";
-import { ActionCardsSection } from "./_components/dashboard/ActionCardsSection";
-import { CreatorHealthPanel } from "./_components/dashboard/CreatorHealthPanel";
-import { DashboardMetricStrip } from "./_components/dashboard/DashboardMetricStrip";
+import { CreatorHealthCard } from "./_components/dashboard/CreatorHealthCard";
+import { DashboardHeader } from "./_components/dashboard/DashboardHeader";
+import { DashboardKpiRow } from "./_components/dashboard/DashboardKpiRow";
 import { DashboardOnboardingSection } from "./_components/dashboard/DashboardOnboardingSection";
-import { DashboardTopShell } from "./_components/dashboard/DashboardTopShell";
+import { DashboardTopGrid } from "./_components/dashboard/DashboardTopGrid";
 import { DashboardUtilitySection } from "./_components/dashboard/DashboardUtilitySection";
 import { GrowDashboardSection } from "./_components/dashboard/GrowDashboardSection";
-import { InsightCardsSection } from "./_components/dashboard/InsightCardsSection";
+import { NextBestMoveCard } from "./_components/dashboard/NextBestMoveCard";
 import { RevenueTrendSection } from "./_components/dashboard/RevenueTrendSection";
+import { SignalsPanel, type SignalItem } from "./_components/dashboard/SignalsPanel";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
 import { fetchReportArtifactJson, fetchReportDetail, fetchReportsList, type ReportDetail, type ReportListResult } from "@/src/lib/api/reports";
 import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
 import { hydrateDashboardFromArtifact, type DashboardArtifactHydrationResult } from "@/src/lib/dashboard/artifact-hydration";
+import { buildDashboardKpiItems } from "@/src/lib/dashboard/kpi-row";
 import { findFirstCompletedReport, loadLatestDashboardReport } from "@/src/lib/dashboard/latest-report";
 import { buildDashboardInsights } from "@/src/lib/dashboard/insights";
 import { buildDashboardDiagnosisViewModel } from "@/src/lib/dashboard/diagnosis";
@@ -212,14 +214,14 @@ function formatNumber(value: number | null): string {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
 }
 
-function formatDate(value?: string | null): string {
+function formatDate(value?: string | null, fallback = "Not available"): string {
   if (!value) {
-    return "--";
+    return fallback;
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return value;
+    return fallback;
   }
 
   return new Intl.DateTimeFormat("en-US", {
@@ -271,6 +273,42 @@ function toPlanBadgeVariant(status: string | null, entitled: boolean): "good" | 
 
   if (!entitled || ["inactive", "past_due", "canceled", "cancelled", "incomplete", "unpaid"].includes(normalized)) {
     return "warn";
+  }
+
+  return "neutral";
+}
+
+function buildCreatorTrajectoryLabel(score: number | null, stateLabel: string | null): string | null {
+  if (score === null) {
+    return "Trajectory appears after the next complete report.";
+  }
+
+  if (stateLabel) {
+    return "Trajectory is provisional while evidence is still limited.";
+  }
+
+  if (score >= 85) {
+    return "Strong and improving.";
+  }
+
+  if (score >= 70) {
+    return "Healthy and stable.";
+  }
+
+  if (score >= 55) {
+    return "Mixed. Watch the next cycle closely.";
+  }
+
+  return "At risk and needs attention.";
+}
+
+function toSignalTone(variant: "positive" | "warning" | "neutral"): SignalItem["tone"] {
+  if (variant === "positive") {
+    return "positive";
+  }
+
+  if (variant === "warning") {
+    return "warning";
   }
 
   return "neutral";
@@ -464,6 +502,92 @@ export default function DashboardPage() {
     ],
   );
 
+  const dashboardKpis = useMemo(
+    () =>
+      buildDashboardKpiItems({
+        netRevenue: kpis.netRevenue,
+        subscribers: kpis.subscribers,
+        stabilityIndex: kpis.stabilityIndex,
+        revenueDeltaText: state.latestArtifact?.revenueDeltaText ?? null,
+        subscriberDeltaText: state.latestArtifact?.subscriberDeltaText ?? null,
+        stabilityLabel: earnDashboardModel.creatorHealth.stateLabel,
+      }),
+    [
+      earnDashboardModel.creatorHealth.stateLabel,
+      kpis.netRevenue,
+      kpis.stabilityIndex,
+      kpis.subscribers,
+      state.latestArtifact?.revenueDeltaText,
+      state.latestArtifact?.subscriberDeltaText,
+    ],
+  );
+
+  const signalItems = useMemo<SignalItem[]>(
+    () =>
+      insightCards.slice(0, 3).map((insight) => ({
+        id: insight.id,
+        tone: toSignalTone(insight.variant),
+        label: insight.title,
+        title: insight.title,
+        body: insight.body,
+        lowConfidence: Boolean(insight.stateLabel),
+        sourceLabel: insight.stateLabel ?? undefined,
+      })),
+    [insightCards],
+  );
+
+  const biggestConstraint = useMemo(() => {
+    if (!diagnosisViewModel.hasTypedDiagnosis && state.latestReport === null) {
+      return null;
+    }
+
+    const body = diagnosisViewModel.summary ?? diagnosisViewModel.unavailableBody;
+    if (!body) {
+      return null;
+    }
+
+    return {
+      title: diagnosisViewModel.heading,
+      body,
+    };
+  }, [diagnosisViewModel, state.latestReport]);
+
+  const nextBestMove = useMemo(() => {
+    if (actionCardsSection.mode === "loading") {
+      return {
+        title: "Loading your next best move",
+        description: "Checking access to tailored recommendations from the latest report.",
+        confidenceLabel: undefined,
+        ctaLabel: undefined,
+        ctaHref: undefined,
+        loading: true,
+      };
+    }
+
+    if (actionCardsSection.mode === "locked") {
+      return {
+        title: "Unlock prioritized next actions.",
+        description: "Upgrade to Pro to unlock tailored next steps based on your revenue, subscriber, and diagnosis signals.",
+        confidenceLabel: "Pro feature",
+        ctaLabel: "Upgrade to Pro",
+        ctaHref: "/app/billing",
+        loading: false,
+      };
+    }
+
+    const featuredCard = actionCardsSection.cards[0] ?? null;
+    return {
+      title: featuredCard?.body ?? fallbackProActions[0],
+      description: featuredCard?.detail ?? "Keep this as the clearest near-term move from your latest report.",
+      confidenceLabel:
+        featuredCard?.stateLabel ??
+        (featuredCard?.label && !featuredCard.label.startsWith("Recommendation") ? featuredCard.label : undefined),
+      ctaLabel: undefined,
+      ctaHref: undefined,
+      loading: false,
+    };
+  }, [actionCardsSection.cards, actionCardsSection.mode]);
+
   const platformsConnected = kpis.platformsConnected ?? (state.latestUpload ? 1 : 0);
   const growGuidanceLimited =
     dashboardMode === "grow" && (!growDashboardModel || growDashboardModel.availability !== "structured" || !growDashboardModel.creatorScore);
@@ -479,9 +603,16 @@ export default function DashboardPage() {
       : state.hasReports === false
         ? "This workspace is still empty. Upload a supported file to populate Earn."
         : "Checking workspace data availability.";
-  const workspaceStatusLabel = state.latestUpload
-    ? state.hasReports === true ? "Ready" : state.hasReports === false ? "Upload connected" : "Checking..."
-    : state.hasReports === true ? "Reports available" : state.hasReports === false ? "No data yet" : "Checking...";
+  const dashboardSnapshotLabel = state.latestReportRow
+    ? `Latest snapshot: ${state.latestReportRow.date}.`
+    : state.loading
+      ? "Loading your latest dashboard snapshot."
+      : "Run a report to unlock your latest dashboard snapshot.";
+  const dashboardHeaderNote =
+    state.latestReport?.snapshotCoverageNote ??
+    (state.latestReport?.reportHasBusinessMetrics === false
+      ? "Your latest report does not include strong business metrics. Connect a revenue or subscriber source to strengthen earnings analysis."
+      : null);
   const handleModeChange = useCallback(
     (nextMode: "earn" | "grow") => {
       const query = buildDashboardModeSearch(searchParams, nextMode);
@@ -492,35 +623,20 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <DashboardTopShell
+      <DashboardHeader
+        snapshotLabel={dashboardSnapshotLabel}
+        note={dashboardHeaderNote}
         mode={dashboardMode}
         onModeChange={handleModeChange}
         refreshing={state.refreshing}
         refreshDisabled={state.loading || state.refreshing}
         onRefresh={refresh}
-        primaryCtaLabel={primaryCta.label}
-        primaryCtaHref={primaryCta.href}
       />
 
       {state.error || state.latestArtifactError ? (
         <div className="space-y-3">
           {state.error ? <ErrorBanner title="Data refresh failed" message={state.error} /> : null}
           {state.latestArtifactError ? <ErrorBanner title="Latest report artifact mismatch" message={state.latestArtifactError} /> : null}
-        </div>
-      ) : null}
-
-      {state.latestReport?.snapshotCoverageNote || state.latestReport?.reportHasBusinessMetrics === false ? (
-        <div className="space-y-1">
-          {state.latestReport?.snapshotCoverageNote ? (
-            <p className="text-xs text-brand-text-muted" data-testid="dashboard-snapshot-coverage-note">
-              {state.latestReport.snapshotCoverageNote}
-            </p>
-          ) : null}
-          {state.latestReport?.reportHasBusinessMetrics === false ? (
-            <p className="text-xs text-brand-text-muted" data-testid="dashboard-no-business-metrics-note">
-              Your latest report does not include strong business metrics. Connect a revenue or subscriber source to strengthen earnings analysis.
-            </p>
-          ) : null}
         </div>
       ) : null}
 
@@ -538,32 +654,37 @@ export default function DashboardPage() {
       {dashboardMode === "earn" ? (
         <>
           {/* Top executive summary: rows 1–3 grouped tighter */}
-          <div className="space-y-4">
-            {/* Row 1: Primary Health (left) + Signals Worth Watching (right) */}
-            <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-              <CreatorHealthPanel
-                creatorHealth={earnDashboardModel.creatorHealth}
-                loading={state.loading}
-                latestReportRow={state.latestReportRow}
-                latestReportHref={latestReportHref}
-                latestReportStatusLabel={toBadgeLabel(state.latestReportRow?.status ?? "unknown")}
-                latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
-                diagnosisNotice={diagnosisViewModel.notice}
-              />
-
-              <InsightCardsSection insights={insightCards} diagnosis={diagnosisViewModel} loading={state.loading} />
-            </div>
-
-            {/* Row 2: Compact metric strip */}
-            <DashboardMetricStrip
-              revenueSnapshot={earnDashboardModel.revenueSnapshot}
-              churnVelocity={kpis.churnVelocity}
-              coverageMonths={kpis.coverageMonths}
+          <DashboardTopGrid>
+            <CreatorHealthCard
+              score={earnDashboardModel.creatorHealth.score}
+              trajectoryLabel={buildCreatorTrajectoryLabel(earnDashboardModel.creatorHealth.score, earnDashboardModel.creatorHealth.stateLabel)}
+              latestReport={
+                state.latestReportRow
+                  ? {
+                      id: state.latestReportRow.id,
+                      dateLabel: state.latestReportRow.date,
+                      statusLabel: toBadgeLabel(state.latestReportRow.status),
+                      summary: state.latestArtifact?.trendPreview ?? state.latestReport?.summary ?? undefined,
+                    }
+                  : null
+              }
+              reportHref={latestReportHref}
+              loading={state.loading}
             />
 
-            {/* Row 3: Next Best Move */}
-            <ActionCardsSection mode={actionCardsSection.mode} cards={actionCardsSection.cards} presentation="hero" />
-          </div>
+            <SignalsPanel signals={signalItems} biggestConstraint={biggestConstraint} loading={state.loading} />
+          </DashboardTopGrid>
+
+          <DashboardKpiRow items={dashboardKpis} loading={state.loading} />
+
+          <NextBestMoveCard
+            title={nextBestMove.title}
+            description={nextBestMove.description}
+            confidenceLabel={nextBestMove.confidenceLabel}
+            ctaLabel={nextBestMove.ctaLabel}
+            ctaHref={nextBestMove.ctaHref}
+            loading={nextBestMove.loading}
+          />
 
           <RevenueTrendSection
             trend={revenueTrend}

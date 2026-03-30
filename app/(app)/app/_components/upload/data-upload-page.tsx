@@ -4,560 +4,223 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import UploadStepper from "./upload-stepper";
+import { SkeletonBlock } from "../../../_components/ui/skeleton";
 import { buttonClassName } from "@/src/components/ui/button";
+import { StatusPill } from "@/src/components/ui/status-pill";
 import { TrustMicrocopy, UPLOAD_TRUST_MICROCOPY_BODY } from "@/src/components/ui/trust-microcopy";
 import { createReportRun, getReportErrorMessage } from "@/src/lib/api/reports";
-import { clearWorkspaceData, fetchWorkspaceDataSources, updateSourceSelection, type WorkspaceDataSource, type WorkspaceDataSourcesResponse } from "@/src/lib/api/workspace";
-import { getSourceManifest } from "@/src/lib/api/upload";
-import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
-import { buildWorkspaceReportState, type WorkspaceReportState } from "@/src/lib/workspace/report-run-state";
+import { clearWorkspaceData, fetchWorkspaceDataSources, type WorkspaceDataSourcesResponse } from "@/src/lib/api/workspace";
+import { getSourceManifest, type UploadPlatform } from "@/src/lib/api/upload";
+import { buildWorkspaceReportState } from "@/src/lib/workspace/report-run-state";
 import {
+  buildSourceListItems,
+  getPrimarySourceStatusLabel,
+  getPrimarySourceStatusVariant,
+  type SourceListAction,
+  type SourceListItem,
+} from "@/src/lib/workspace/source-display";
+import {
+  buildUploadPlatformCardsFromManifest,
   normalizeSourceManifestResponse,
   type NormalizedSourceManifest,
   type UploadPlatformCardMetadata,
-  buildUploadPlatformCardsFromManifest,
-  getPlatformRoleBadgeLabel,
-  getPlatformRoleDetail,
 } from "@/src/lib/upload/platform-metadata";
 
-type ChecklistStatus = "complete" | "current" | "optional";
-
-type ChecklistItem = {
-  id: string;
-  label: string;
-  helper: string;
-  status: ChecklistStatus;
+type DataPageHeaderProps = {
+  title?: string;
+  subtitle?: string;
 };
 
-function formatWorkspaceUpdatedAt(value: string | null | undefined): string | null {
-  if (!value) {
-    return null;
-  }
+type ReadyToRunBannerProps = {
+  loading: boolean;
+  ready: boolean;
+  statusLabel: string;
+  connectedCount: number;
+  note: string;
+  runDisabled?: boolean;
+  onRunReport: () => void;
+  onViewReports: () => void;
+};
 
-  const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) {
-    return null;
-  }
+type SourceCardProps = {
+  item: SourceListItem;
+  onUploadAction: (platform: UploadPlatform) => void;
+};
 
-  return new Date(parsed).toLocaleString();
-}
+type SourceListSectionProps = {
+  items: SourceListItem[];
+  loading: boolean;
+  sourceManifest: NormalizedSourceManifest | null;
+  sourceManifestLoading: boolean;
+  visiblePlatformCards: UploadPlatformCardMetadata[] | null;
+  workspaceReportState: ReturnType<typeof buildWorkspaceReportState>;
+  refreshWorkspaceDataSources: () => Promise<void>;
+  clearCurrentReport: () => void;
+  onReportCreated: (reportId: string) => void;
+  onUploadAction: (platform: UploadPlatform) => void;
+  preferredPlatform: UploadPlatform | null;
+  preferredPlatformNonce: number;
+};
 
-function buildChecklistItems(workspaceReportState: WorkspaceReportState): ChecklistItem[] {
-  const supportingCount = workspaceReportState.includedSources.filter((source) => source.reportRole === "supporting").length;
-  const totalIncludedCount = workspaceReportState.includedSourceCount;
-  const reportDrivingCount = workspaceReportState.reportDrivingIncludedSourceCount;
-
-  return [
-    {
-      id: "report-driving-source",
-      label: "Add a report-driving source",
-      helper: reportDrivingCount > 0 ? `${reportDrivingCount} connected` : "Patreon, Substack, or YouTube",
-      status: reportDrivingCount > 0 ? "complete" : "current",
-    },
-    {
-      id: "another-source",
-      label: "Add another source",
-      helper: totalIncludedCount > 1 ? `${totalIncludedCount} sources staged` : "Improves report coverage",
-      status: totalIncludedCount > 1 ? "complete" : totalIncludedCount > 0 ? "current" : "optional",
-    },
-    {
-      id: "audience-context",
-      label: "Add audience context",
-      helper: supportingCount > 0 ? `${supportingCount} connected` : "Instagram or TikTok",
-      status: supportingCount > 0 ? "complete" : reportDrivingCount > 0 ? "current" : "optional",
-    },
-  ];
-}
-
-function getSourceStatusPresentation(source: WorkspaceDataSource | null | undefined): {
-  label: string;
-  className: string;
-  runState: string;
-  actionLabel: string;
-  actionHref: string;
-} {
-  if (!source || source.state === "missing") {
-    return {
-      label: "Not added",
-      className: "border-white/10 bg-white/[0.05] text-slate-300",
-      runState: "Not staged yet",
-      actionLabel: "Add source",
-      actionHref: "#workspace-uploader",
-    };
-  }
-
-  if (source.state === "processing") {
-    return {
-      label: "Connected",
-      className: "border-sky-400/20 bg-sky-400/10 text-sky-200",
-      runState: source.includedInNextReport ? "Latest upload is processing" : "Validating latest upload",
-      actionLabel: "View details",
-      actionHref: "/app/help#after-upload",
-    };
-  }
-
-  if (source.state === "failed") {
-    return {
-      label: "Needs attention",
-      className: "border-amber-400/20 bg-amber-400/10 text-amber-200",
-      runState: "Upload failed, needs retry",
-      actionLabel: source.actionLabel === "Retry" ? "Retry source" : "Replace source",
-      actionHref: "#workspace-uploader",
-    };
-  }
-
-  return {
-    label: "Connected",
-    className: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
-    runState: source.includedInNextReport ? "Included in the next report" : "Not staged yet",
-    actionLabel: "Replace source",
-    actionHref: "#workspace-uploader",
-  };
-}
-
-function WorkspaceHeader() {
+function DataPageHeader({
+  title = "Your Report Workspace",
+  subtitle = "This report uses your staged sources.",
+}: DataPageHeaderProps) {
   return (
     <section className="space-y-2">
-      <h1 className="text-3xl font-semibold text-white">Your Report Workspace</h1>
-      <p className="max-w-3xl text-sm leading-6 text-slate-300">This report will use your staged workspace sources.</p>
+      <h1 className="text-3xl font-semibold text-white">{title}</h1>
+      <p className="max-w-3xl text-sm leading-6 text-slate-300">{subtitle}</p>
     </section>
   );
 }
 
-function WorkspaceActionHero({
-  workspaceReportState,
-  onReportCreated,
-}: {
-  workspaceReportState: WorkspaceReportState;
-  onReportCreated: (reportId: string) => void;
-}) {
-  const router = useRouter();
-  const [runReportPending, setRunReportPending] = useState(false);
-  const [runReportError, setRunReportError] = useState<string | null>(null);
-
-  const primaryCount = workspaceReportState.reportDrivingIncludedSourceCount;
-  const supportingCount = workspaceReportState.includedSources.filter((source) => source.reportRole === "supporting").length;
-  const mostRecentSource = workspaceReportState.mostRecentSource;
-  const updatedAt = formatWorkspaceUpdatedAt(mostRecentSource?.lastUploadAt ?? mostRecentSource?.lastReadyAt);
-
-  const readinessLabel = workspaceReportState.isLoading
-    ? "Checking workspace"
-    : workspaceReportState.canRunReport
-      ? "Ready to run"
-      : workspaceReportState.hasStagedSources
-        ? "Needs attention"
-        : "Add a source";
-
-  const headline = workspaceReportState.isLoading
-    ? "Checking workspace"
-    : workspaceReportState.canRunReport
-      ? "Ready to run"
-      : workspaceReportState.hasStagedSources
-        ? "Needs one more step"
-        : "Start with a source";
-
-  const summary = workspaceReportState.isLoading
-    ? "Syncing staged sources and eligibility."
-    : workspaceReportState.canRunReport
-      ? "This report will use your staged workspace sources."
-      : workspaceReportState.hasStagedSources
-        ? workspaceReportState.blockingReason ?? "Add a report-driving source to continue."
-        : "Add a report-driving source to start.";
-
-  const handleRunReport = async () => {
-    if (runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport) {
-      return;
-    }
-
-    setRunReportPending(true);
-    setRunReportError(null);
-
-    try {
-      const selectedPlatforms = workspaceReportState.includedSources.map((s) => s.platform);
-      const result = await createReportRun({ selectedPlatforms });
-      onReportCreated(result.reportId);
-      router.push(buildReportDetailPathOrIndex(result.reportId));
-    } catch (error) {
-      setRunReportError(getReportErrorMessage(error));
-    } finally {
-      setRunReportPending(false);
-    }
-  };
+function ReadyToRunBanner({
+  loading,
+  ready,
+  statusLabel,
+  connectedCount,
+  note,
+  runDisabled = false,
+  onRunReport,
+  onViewReports,
+}: ReadyToRunBannerProps) {
+  const countLabel = `${connectedCount} ${connectedCount === 1 ? "source" : "sources"} connected`;
 
   return (
-    <section className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-[linear-gradient(145deg,rgba(11,24,50,0.96),rgba(14,32,69,0.96),rgba(9,20,43,0.98))] p-6 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.95)] sm:p-7">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-3xl space-y-4">
-          <div className="inline-flex items-center rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-200">
-            {readinessLabel}
+    <section className="rounded-[1.5rem] border border-white/10 bg-[linear-gradient(145deg,rgba(11,24,50,0.96),rgba(14,32,69,0.96),rgba(9,20,43,0.98))] p-5 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.95)] sm:p-6">
+      {loading ? (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-3">
+            <SkeletonBlock className="h-7 w-28 bg-white/10" />
+            <SkeletonBlock className="h-8 w-52 bg-white/10" />
+            <SkeletonBlock className="h-4 w-36 bg-white/10" />
           </div>
-
+          <div className="flex flex-wrap gap-3">
+            <SkeletonBlock className="h-11 w-36 bg-white/10" />
+            <SkeletonBlock className="h-11 w-32 bg-white/10" />
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
-            <h2 className="text-2xl font-semibold text-white sm:text-[2rem]">{headline}</h2>
-            <p className="max-w-2xl text-sm leading-6 text-slate-300">{summary}</p>
-          </div>
-
-          {workspaceReportState.reportReadinessNote ? (
-            <p className="text-xs text-slate-400">{workspaceReportState.reportReadinessNote}</p>
-          ) : null}
-        </div>
-
-        <div className="flex shrink-0 flex-col gap-3 lg:items-end">
-          <button
-            type="button"
-            data-testid="staged-run-report"
-            onClick={() => void handleRunReport()}
-            disabled={runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport}
-            className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-slate-400"
-          >
-            {runReportPending ? "Running..." : "Run Report"}
-          </button>
-          <Link
-            href="/app/report"
-            className="text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white"
-          >
-            View all reports
-          </Link>
-          <div
-            data-testid="workspace-run-summary"
-            className="min-w-[240px] rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Next run</p>
-            <div className="mt-3 space-y-2 text-sm text-slate-200">
-              <div className="flex items-center justify-between gap-4">
-                <span>Included sources</span>
-                <span>{workspaceReportState.includedSourceCount}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span>Report-driving</span>
-                <span>{primaryCount}</span>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <span>Optional context</span>
-                <span>{supportingCount}</span>
-              </div>
+            <StatusPill variant={ready ? "good" : connectedCount > 0 ? "warn" : "neutral"}>{statusLabel}</StatusPill>
+            <div>
+              <h2 className="text-2xl font-semibold text-white">Ready to run</h2>
+              <p className="mt-1 text-sm text-slate-300">{countLabel}</p>
             </div>
-            {mostRecentSource ? (
-              <p className="mt-3 text-xs text-slate-400">
-                Snapshot: {mostRecentSource.label}
-                {updatedAt ? ` | ${updatedAt}` : ""}
-              </p>
-            ) : null}
-            {!workspaceReportState.reportHasBusinessMetrics && workspaceReportState.canRunReport ? (
-              <p className="mt-2 text-xs text-amber-200/90" data-testid="staged-business-metrics-note">
-                Strongest when revenue or subscriber data is present.
-              </p>
-            ) : null}
+            <p className="text-xs leading-5 text-slate-400">{note}</p>
           </div>
-          {!workspaceReportState.canRunReport && !workspaceReportState.isLoading ? (
-            <p className="max-w-xs text-right text-xs leading-5 text-slate-400">
-              {workspaceReportState.blockingReason ?? "Add at least one report-driving source to run a combined report."}
-            </p>
-          ) : null}
-        </div>
-      </div>
 
-      {runReportError ? (
-        <p className="mt-4 text-sm text-rose-300" data-testid="staged-run-report-error">
-          {runReportError}
-        </p>
-      ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              data-testid="staged-run-report"
+              onClick={() => void onRunReport()}
+              disabled={runDisabled}
+              className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-slate-400"
+            >
+              Run Report
+            </button>
+            <button
+              type="button"
+              onClick={onViewReports}
+              className={buttonClassName({
+                variant: "secondary",
+                className: "border-white/10 bg-white/[0.05] text-slate-200 hover:bg-white/[0.08] hover:text-white",
+              })}
+            >
+              View all reports
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
 
-function WorkspaceChecklist({ workspaceReportState }: { workspaceReportState: WorkspaceReportState }) {
-  const items = buildChecklistItems(workspaceReportState);
+function renderAction(action: SourceListAction | undefined, onUploadAction: (platform: UploadPlatform) => void, secondary = false) {
+  if (!action) {
+    return null;
+  }
+
+  if (action.kind === "link") {
+    return (
+      <Link
+        href={action.href}
+        className={
+          secondary
+            ? "text-sm font-medium text-slate-400 underline underline-offset-4 transition hover:text-white"
+            : buttonClassName({
+                variant: "secondary",
+                size: "sm",
+                className: "border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08] hover:text-white",
+              })
+        }
+      >
+        {action.label}
+      </Link>
+    );
+  }
 
   return (
-    <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
-      <div className="mb-4">
-        <h3 className="text-sm font-semibold text-white">Build your report</h3>
-        <p className="mt-1 text-sm text-slate-400">Scan what&apos;s done and what comes next.</p>
-      </div>
-
-      <div className="grid gap-3 lg:grid-cols-3">
-        {items.map((item) => (
-          <ChecklistRow key={item.id} item={item} />
-        ))}
-      </div>
-    </section>
+    <button
+      type="button"
+      onClick={() => onUploadAction(action.platform)}
+      className={
+        secondary
+          ? "text-sm font-medium text-slate-400 underline underline-offset-4 transition hover:text-white"
+          : buttonClassName({
+              variant: "secondary",
+              size: "sm",
+              className: "border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08] hover:text-white",
+            })
+      }
+    >
+      {action.label}
+    </button>
   );
 }
 
-function ChecklistRow({ item }: { item: ChecklistItem }) {
-  const tone =
-    item.status === "complete"
-      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-      : item.status === "current"
-        ? "border-blue-400/20 bg-blue-400/10 text-blue-200"
-        : "border-white/10 bg-white/[0.03] text-slate-300";
-  const icon = item.status === "complete" ? "OK" : item.status === "current" ? ">" : "+";
-
+function SourceCard({ item, onUploadAction }: SourceCardProps) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0f1d38]/85 p-4">
-      <div className="flex items-start gap-3">
-        <div className={`mt-0.5 flex h-7 min-w-7 items-center justify-center rounded-full border px-1 text-[10px] font-semibold ${tone}`}>
-          {icon}
+    <article
+      className="rounded-[1.25rem] border border-white/10 bg-[#0f1d38]/90 p-5"
+      data-testid={`workspace-source-card-${item.id}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-base font-semibold text-white">{item.name}</h3>
+          <p className="mt-1 text-sm text-slate-300">{item.summary}</p>
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-white">{item.label}</p>
-          <p className="mt-1 text-xs text-slate-400">{item.helper}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SourceCard({
-  card,
-  source,
-  onToggleSelection,
-}: {
-  card: UploadPlatformCardMetadata;
-  source: WorkspaceDataSource | null | undefined;
-  onToggleSelection?: (platform: string, selected: boolean) => Promise<void>;
-}) {
-  const [toggling, setToggling] = useState(false);
-  const status = getSourceStatusPresentation(source);
-  const roleLabel = getPlatformRoleBadgeLabel(card.platformRole);
-  const canToggle = source?.state === "ready" && onToggleSelection != null;
-  const isIncluded = source?.includedInNextReport === true;
-
-  const handleToggle = async () => {
-    if (!canToggle || toggling) return;
-    setToggling(true);
-    try {
-      await onToggleSelection!(card.id, !isIncluded);
-    } finally {
-      setToggling(false);
-    }
-  };
-
-  return (
-    <article className="rounded-2xl border border-white/10 bg-[#0f1d38]/90 p-4" data-testid={`workspace-source-card-${card.id}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <h4 className="text-sm font-semibold text-white">{card.label}</h4>
-        <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${status.className}`}>
-          {status.label}
-        </span>
+        <StatusPill variant={getPrimarySourceStatusVariant(item.status)}>{getPrimarySourceStatusLabel(item.status)}</StatusPill>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span
-          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${
-            card.platformRole === "report-driving"
-              ? "bg-emerald-400/10 text-emerald-200"
-              : "bg-sky-400/10 text-sky-200"
-          }`}
-        >
-          {roleLabel}
-        </span>
-        {canToggle && (
-          <span
-            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${
-              isIncluded ? "bg-emerald-400/10 text-emerald-300" : "bg-white/[0.05] text-slate-400"
-            }`}
-          >
-            {isIncluded ? "Included" : "Excluded"}
-          </span>
-        )}
+      <div className="mt-4 space-y-2">
+        <p className="text-sm leading-relaxed text-slate-300">{item.note}</p>
+        {item.lastUpdatedLabel ? <p className="text-xs text-slate-400">Last updated: {item.lastUpdatedLabel}</p> : null}
       </div>
 
-      <div className="mt-4 space-y-3">
-        <div className="space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Contribution</p>
-          <p className="text-sm text-slate-200">{card.contributionLabel}</p>
-        </div>
-        <div className="space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Next run</p>
-          <p className="text-sm text-slate-300">{status.runState}</p>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-4">
-        <Link href={status.actionHref} className="text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white">
-          {status.actionLabel}
-        </Link>
-        {canToggle && (
-          <button
-            type="button"
-            onClick={() => void handleToggle()}
-            disabled={toggling}
-            data-testid={`source-toggle-${card.id}`}
-            className={`text-sm font-medium underline underline-offset-4 transition disabled:opacity-50 ${
-              isIncluded ? "text-slate-400 hover:text-rose-300" : "text-emerald-300 hover:text-white"
-            }`}
-          >
-            {toggling ? "Updating…" : isIncluded ? "Exclude from run" : "Include in run"}
-          </button>
-        )}
+      <div className="mt-5 flex flex-wrap items-center gap-4">
+        {renderAction(item.primaryAction, onUploadAction)}
+        {renderAction(item.secondaryAction, onUploadAction, true)}
       </div>
     </article>
   );
 }
 
-function WorkspaceSourceDrawer({
-  isOpen,
-  onToggle,
-  sourceManifest,
-  sourceManifestLoading,
-  visiblePlatformCards,
-  workspaceDataSources,
-  workspaceReportState,
-  refreshWorkspaceDataSources,
-  clearCurrentReport,
-  onReportCreated,
-  onToggleSourceSelection,
-}: {
-  isOpen: boolean;
-  onToggle: () => void;
-  sourceManifest: NormalizedSourceManifest | null;
-  sourceManifestLoading: boolean;
-  visiblePlatformCards: UploadPlatformCardMetadata[] | null;
-  workspaceDataSources: WorkspaceDataSourcesResponse | null | "loading";
-  workspaceReportState: WorkspaceReportState;
-  refreshWorkspaceDataSources: (options?: { preserveCurrent?: boolean }) => Promise<void>;
-  clearCurrentReport: () => void;
-  onReportCreated: (reportId: string) => void;
-  onToggleSourceSelection: (platform: string, selected: boolean) => Promise<void>;
-}) {
-  const sourceLookup = useMemo(() => {
-    if (workspaceDataSources === "loading" || !workspaceDataSources) {
-      return new Map<string, WorkspaceDataSource>();
-    }
-
-    return new Map(workspaceDataSources.sources.map((source) => [source.platform, source]));
-  }, [workspaceDataSources]);
-
-  const supportingCount = workspaceReportState.includedSources.filter((source) => source.reportRole === "supporting").length;
-  const connectedSummary = workspaceReportState.isLoading
-    ? "Syncing sources"
-    : `${workspaceReportState.reportDrivingIncludedSourceCount} report-driving / ${supportingCount} optional`;
-
+function SourceCardsSkeleton() {
   return (
-    <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] backdrop-blur-sm">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full flex-col gap-3 px-5 py-4 text-left sm:flex-row sm:items-center sm:justify-between"
-      >
-        <div>
-          <h3 className="text-sm font-semibold text-white">Your data sources</h3>
-          <p className="mt-1 text-sm text-slate-400">Scan what&apos;s connected, included, and next.</p>
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 5 }, (_, index) => (
+        <div key={`workspace-source-skeleton-${index + 1}`} className="rounded-[1.25rem] border border-white/10 bg-[#0f1d38]/90 p-5">
+          <SkeletonBlock className="h-5 w-28 bg-white/10" />
+          <SkeletonBlock className="mt-2 h-4 w-36 bg-white/10" />
+          <SkeletonBlock className="mt-6 h-4 w-full bg-white/10" />
+          <SkeletonBlock className="mt-2 h-4 w-4/5 bg-white/10" />
+          <SkeletonBlock className="mt-6 h-9 w-28 bg-white/10" />
         </div>
-        <div className="flex items-center gap-4">
-          <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{connectedSummary}</p>
-          <span className="text-sm font-medium text-slate-300">{isOpen ? "Hide details" : "View details"}</span>
-        </div>
-      </button>
-
-      {isOpen ? (
-        <div className="border-t border-white/10 px-5 py-5">
-          {sourceManifestLoading ? (
-            <div className="rounded-2xl border border-white/10 bg-[#0f1d38]/90 p-4">
-              <h4 className="text-sm font-semibold text-white">Loading supported sources</h4>
-              <p className="mt-2 text-sm text-slate-400">Checking the canonical source manifest...</p>
-            </div>
-          ) : sourceManifest && visiblePlatformCards ? (
-            <div className="space-y-6">
-              <div id="upload-guide" data-testid="data-upload-guide" className="rounded-2xl border border-white/10 bg-[#0f1d38]/90 p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="max-w-2xl">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-accent-teal">Upload Guide</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">
-                      Detailed format rules, ZIP support, and troubleshooting live in the Upload Guide.
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-slate-400">
-                      {getPlatformRoleDetail("report-driving")} {getPlatformRoleDetail("supporting")}
-                    </p>
-                  </div>
-                  <Link
-                    href="/app/help#upload-guide"
-                    className="text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white"
-                  >
-                    Open guide
-                  </Link>
-                </div>
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                {visiblePlatformCards.map((card) => (
-                  <SourceCard key={card.id} card={card} source={sourceLookup.get(card.id)} onToggleSelection={onToggleSourceSelection} />
-                ))}
-              </div>
-
-              <div className="border-t border-white/10 pt-6">
-                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h4 className="text-base font-semibold text-white">Add or replace a source</h4>
-                    <p className="mt-1 text-sm text-slate-400">Choose a source and upload a supported file.</p>
-                  </div>
-                  <Link
-                    href="/app/help#upload-guide"
-                    className="text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white"
-                  >
-                    Open upload guide
-                  </Link>
-                </div>
-
-                <div id="workspace-uploader">
-                  <UploadStepper
-                    sourceManifest={sourceManifest}
-                    visiblePlatformCards={visiblePlatformCards}
-                    workspaceReportState={workspaceReportState}
-                    refreshWorkspaceDataSources={refreshWorkspaceDataSources}
-                    clearCurrentReport={clearCurrentReport}
-                    onReportCreated={onReportCreated}
-                  />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <ManifestUnavailableCard />
-          )}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function WorkspaceHelpFooter({ sourceManifestError }: { sourceManifestError: string | null }) {
-  return (
-    <section className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-2xl">
-          <h3 className="text-sm font-semibold text-white">Need help?</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            {sourceManifestError
-              ? `${sourceManifestError} Use the upload guide for current prep steps and troubleshooting while the canonical manifest path recovers.`
-              : "Formats, exact contracts, and troubleshooting live in the upload guide. Privacy and trust details stay here."}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/app/help#upload-guide"
-            className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:bg-white/[0.05] hover:text-white"
-          >
-            Open upload guide
-          </Link>
-          <Link
-            href="/app/help#after-upload"
-            className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:bg-white/[0.05] hover:text-white"
-          >
-            Troubleshooting
-          </Link>
-        </div>
-      </div>
-
-      <TrustMicrocopy
-        body={UPLOAD_TRUST_MICROCOPY_BODY}
-        className="mt-5 border-white/10 bg-white/[0.03]"
-        testId="workspace-help-trust"
-        variant="marketing"
-      />
-    </section>
+      ))}
+    </div>
   );
 }
 
@@ -567,10 +230,7 @@ function ManifestUnavailableCard() {
       <div data-testid="source-manifest-unavailable" className="space-y-3">
         <h3 className="text-base font-semibold text-white">Supported sources unavailable</h3>
         <p className="text-sm leading-relaxed text-slate-300">
-          The canonical source manifest could not be loaded, so the upload flow is paused instead of falling back to stale local support data.
-        </p>
-        <p className="text-xs text-slate-400">
-          Reload the page and try again. If the problem persists, review the help guide while the backend manifest is restored.
+          The supported source list could not be loaded, so uploads are paused until the manifest is available again.
         </p>
         <Link href="/app/help#upload-guide" className={buttonClassName({ variant: "secondary", size: "sm" })}>
           Open upload guide
@@ -580,15 +240,247 @@ function ManifestUnavailableCard() {
   );
 }
 
+function SourceListSection({
+  items,
+  loading,
+  sourceManifest,
+  sourceManifestLoading,
+  visiblePlatformCards,
+  workspaceReportState,
+  refreshWorkspaceDataSources,
+  clearCurrentReport,
+  onReportCreated,
+  onUploadAction,
+  preferredPlatform,
+  preferredPlatformNonce,
+}: SourceListSectionProps) {
+  return (
+    <section className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Your data sources</h2>
+          <p className="mt-1 text-sm text-slate-400">Connect, replace, or manage the data used in your report.</p>
+        </div>
+        <Link href="/app/settings#data-sources" className="text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white">
+          Manage details in Settings
+        </Link>
+      </div>
+
+      {loading ? (
+        <SourceCardsSkeleton />
+      ) : sourceManifest || visiblePlatformCards ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {items.map((item) => (
+            <SourceCard key={item.id} item={item} onUploadAction={onUploadAction} />
+          ))}
+        </div>
+      ) : (
+        <ManifestUnavailableCard />
+      )}
+
+      <div id="workspace-uploader" className="space-y-4 rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white">Add or replace a source</h3>
+            <p className="mt-1 text-sm text-slate-400">Choose a platform, then upload a supported file.</p>
+          </div>
+          <Link href="/app/help#upload-guide" className="text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white">
+            Open upload guide
+          </Link>
+        </div>
+
+        {sourceManifestLoading ? (
+          <div className="rounded-2xl border border-white/10 bg-[#0f1d38]/90 p-5">
+            <SkeletonBlock className="h-5 w-44 bg-white/10" />
+            <SkeletonBlock className="mt-3 h-4 w-3/4 bg-white/10" />
+            <SkeletonBlock className="mt-6 h-40 w-full bg-white/10" />
+          </div>
+        ) : sourceManifest && visiblePlatformCards ? (
+          <UploadStepper
+            sourceManifest={sourceManifest}
+            visiblePlatformCards={visiblePlatformCards}
+            workspaceReportState={workspaceReportState}
+            refreshWorkspaceDataSources={refreshWorkspaceDataSources}
+            clearCurrentReport={clearCurrentReport}
+            onReportCreated={onReportCreated}
+            preferredPlatform={preferredPlatform}
+            preferredPlatformNonce={preferredPlatformNonce}
+          />
+        ) : (
+          <ManifestUnavailableCard />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PrivacyTrustCard() {
+  return (
+    <article className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-5">
+      <p className="text-sm font-semibold text-white">Privacy</p>
+      <p className="mt-2 text-sm leading-6 text-slate-400">Your files stay private and are used only to generate reports and operate the service.</p>
+      <TrustMicrocopy
+        body={UPLOAD_TRUST_MICROCOPY_BODY}
+        className="mt-4 border-white/10 bg-white/[0.02] px-4 py-3"
+        testId="workspace-help-trust"
+        variant="marketing"
+      />
+    </article>
+  );
+}
+
+function HelpSection({ sourceManifestError }: { sourceManifestError: string | null }) {
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-xl font-semibold text-white">Help</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          {sourceManifestError
+            ? `${sourceManifestError} You can still use the guide and troubleshooting steps while the source list recovers.`
+            : "Keep the guide and troubleshooting nearby, but out of the main workflow."}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <article className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-5">
+          <p className="text-sm font-semibold text-white">Upload Guide</p>
+          <p className="mt-2 text-sm leading-6 text-slate-400">Format rules, supported files, and exact prep steps.</p>
+          <Link href="/app/help#upload-guide" className="mt-4 inline-flex text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white">
+            Open guide
+          </Link>
+        </article>
+
+        <article className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-5">
+          <p className="text-sm font-semibold text-white">Troubleshooting</p>
+          <p className="mt-2 text-sm leading-6 text-slate-400">What to check after a failed or slow upload.</p>
+          <Link href="/app/help#after-upload" className="mt-4 inline-flex text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white">
+            Open troubleshooting
+          </Link>
+        </article>
+
+        <PrivacyTrustCard />
+      </div>
+    </section>
+  );
+}
+
+function DangerZoneClearData({
+  confirming,
+  pending,
+  error,
+  onRequestConfirm,
+  onCancel,
+  onConfirm,
+}: {
+  confirming: boolean;
+  pending: boolean;
+  error: string | null;
+  onRequestConfirm: () => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <section className="rounded-[1.5rem] border border-rose-400/20 bg-rose-400/[0.03] p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="max-w-xl">
+          <h2 className="text-base font-semibold text-white">Clear all data</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-400">
+            Permanently removes all saved workspace sources. Report history is preserved. This cannot be undone.
+          </p>
+          {error ? <p className="mt-2 text-xs text-rose-300">{error}</p> : null}
+        </div>
+
+        <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+          {!confirming ? (
+            <button
+              type="button"
+              onClick={onRequestConfirm}
+              data-testid="clear-data-request"
+              className="rounded-xl border border-rose-400/30 px-4 py-2 text-sm font-medium text-rose-300 transition hover:bg-rose-400/10 hover:text-rose-200"
+            >
+              Clear all data
+            </button>
+          ) : (
+            <div className="flex flex-col items-end gap-2">
+              <p className="text-xs font-semibold text-rose-300">This will permanently delete all saved sources.</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  disabled={pending}
+                  className="rounded-xl border border-white/10 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-white/[0.05] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  disabled={pending}
+                  data-testid="clear-data-confirm"
+                  className="rounded-xl bg-rose-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:opacity-50"
+                >
+                  {pending ? "Clearing..." : "Yes, clear all data"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function buildReadyBannerStatus(
+  loading: boolean,
+  canRunReport: boolean,
+  connectedCount: number,
+  reportHasBusinessMetrics: boolean,
+): {
+  statusLabel: string;
+  note: string;
+} {
+  if (loading) {
+    return {
+      statusLabel: "Checking",
+      note: "Checking your current source status.",
+    };
+  }
+
+  if (canRunReport) {
+    return {
+      statusLabel: "Ready",
+      note: reportHasBusinessMetrics
+        ? "Your current staged sources are ready for a report."
+        : "Your sources are ready. Adding revenue + subscriber data will strengthen the report.",
+    };
+  }
+
+  if (connectedCount > 0) {
+    return {
+      statusLabel: "Needs attention",
+      note: "Add or retry the source you need so the report is ready to run.",
+    };
+  }
+
+  return {
+    statusLabel: "Not added",
+    note: "Add your first source to start building a report workspace.",
+  };
+}
+
 export default function DataUploadPage() {
+  const router = useRouter();
   const [sourceManifest, setSourceManifest] = useState<NormalizedSourceManifest | null>(null);
   const [visiblePlatformCards, setVisiblePlatformCards] = useState<UploadPlatformCardMetadata[] | null>(null);
   const [sourceManifestLoading, setSourceManifestLoading] = useState(true);
   const [sourceManifestError, setSourceManifestError] = useState<string | null>(null);
   const [workspaceDataSources, setWorkspaceDataSources] = useState<WorkspaceDataSourcesResponse | null | "loading">("loading");
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
-  const [sourcesExpanded, setSourcesExpanded] = useState(false);
+  const [preferredPlatform, setPreferredPlatform] = useState<UploadPlatform | null>(null);
+  const [preferredPlatformNonce, setPreferredPlatformNonce] = useState(0);
   const workspaceDataSourcesRef = useRef<WorkspaceDataSourcesResponse | null | "loading">("loading");
+  const [runReportPending, setRunReportPending] = useState(false);
+  const [runReportError, setRunReportError] = useState<string | null>(null);
 
   const workspaceReportState = useMemo(
     () =>
@@ -627,15 +519,37 @@ export default function DataUploadPage() {
     setCurrentReportId(reportId);
   }, []);
 
-  const handleToggleSourceSelection = useCallback(async (platform: string, selected: boolean) => {
-    try {
-      const updated = await updateSourceSelection(platform, selected);
-      setWorkspaceDataSources(updated);
-    } catch {
-      // Refresh from server on error so UI stays consistent.
-      await refreshWorkspaceDataSources({ preserveCurrent: true });
+  const handleRunReport = useCallback(async () => {
+    if (runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport) {
+      return;
     }
-  }, [refreshWorkspaceDataSources]);
+
+    setRunReportPending(true);
+    setRunReportError(null);
+
+    try {
+      const selectedPlatforms = workspaceReportState.includedSources.map((source) => source.platform);
+      const result = await createReportRun({ selectedPlatforms });
+      handleReportCreated(result.reportId);
+      router.push(`/app/report/${result.reportId}`);
+    } catch (error) {
+      setRunReportError(getReportErrorMessage(error));
+    } finally {
+      setRunReportPending(false);
+    }
+  }, [handleReportCreated, router, runReportPending, workspaceReportState]);
+
+  const handleUploadAction = useCallback((platform: UploadPlatform) => {
+    clearCurrentReport();
+    setPreferredPlatform(platform);
+    setPreferredPlatformNonce((current) => current + 1);
+
+    if (typeof document !== "undefined") {
+      requestAnimationFrame(() => {
+        document.getElementById("workspace-uploader")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [clearCurrentReport]);
 
   const [clearDataPending, setClearDataPending] = useState(false);
   const [clearDataConfirming, setClearDataConfirming] = useState(false);
@@ -714,98 +628,79 @@ export default function DataUploadPage() {
     };
   }, [refreshWorkspaceDataSources]);
 
+  const sourceListItems = useMemo(
+    () =>
+      visiblePlatformCards
+        ? buildSourceListItems(visiblePlatformCards, workspaceDataSources === "loading" ? null : workspaceDataSources?.sources ?? null)
+        : [],
+    [visiblePlatformCards, workspaceDataSources],
+  );
+
+  const connectedCount = useMemo(
+    () => sourceListItems.filter((item) => item.status !== "not_added").length,
+    [sourceListItems],
+  );
+
+  const readyBanner = useMemo(
+    () =>
+      buildReadyBannerStatus(
+        workspaceReportState.isLoading,
+        workspaceReportState.canRunReport,
+        connectedCount,
+        workspaceReportState.reportHasBusinessMetrics,
+      ),
+    [connectedCount, workspaceReportState.canRunReport, workspaceReportState.isLoading, workspaceReportState.reportHasBusinessMetrics],
+  );
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <WorkspaceHeader />
-      <WorkspaceActionHero workspaceReportState={workspaceReportState} onReportCreated={handleReportCreated} />
-      <WorkspaceChecklist workspaceReportState={workspaceReportState} />
-      <WorkspaceSourceDrawer
-        isOpen={sourcesExpanded}
-        onToggle={() => setSourcesExpanded((current) => !current)}
+      <DataPageHeader />
+
+      <ReadyToRunBanner
+        loading={workspaceReportState.isLoading}
+        ready={workspaceReportState.canRunReport}
+        statusLabel={readyBanner.statusLabel}
+        connectedCount={connectedCount}
+        note={readyBanner.note}
+        runDisabled={runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport}
+        onRunReport={handleRunReport}
+        onViewReports={() => router.push("/app/report")}
+      />
+
+      {runReportError ? (
+        <p className="text-sm text-rose-300" data-testid="staged-run-report-error">
+          {runReportError}
+        </p>
+      ) : null}
+
+      <SourceListSection
+        items={sourceListItems}
+        loading={workspaceDataSources === "loading" || sourceManifestLoading}
         sourceManifest={sourceManifest}
         sourceManifestLoading={sourceManifestLoading}
         visiblePlatformCards={visiblePlatformCards}
-        workspaceDataSources={workspaceDataSources}
         workspaceReportState={workspaceReportState}
-        refreshWorkspaceDataSources={refreshWorkspaceDataSources}
+        refreshWorkspaceDataSources={() => refreshWorkspaceDataSources({ preserveCurrent: true })}
         clearCurrentReport={clearCurrentReport}
         onReportCreated={handleReportCreated}
-        onToggleSourceSelection={handleToggleSourceSelection}
+        onUploadAction={handleUploadAction}
+        preferredPlatform={preferredPlatform}
+        preferredPlatformNonce={preferredPlatformNonce}
       />
-      <WorkspaceHelpFooter sourceManifestError={sourceManifestError} />
-      <ClearDataSection
+
+      <HelpSection sourceManifestError={sourceManifestError} />
+
+      <DangerZoneClearData
         confirming={clearDataConfirming}
         pending={clearDataPending}
         error={clearDataError}
         onRequestConfirm={() => setClearDataConfirming(true)}
-        onCancel={() => { setClearDataConfirming(false); setClearDataError(null); }}
+        onCancel={() => {
+          setClearDataConfirming(false);
+          setClearDataError(null);
+        }}
         onConfirm={() => void handleClearData()}
       />
     </div>
-  );
-}
-
-function ClearDataSection({
-  confirming,
-  pending,
-  error,
-  onRequestConfirm,
-  onCancel,
-  onConfirm,
-}: {
-  confirming: boolean;
-  pending: boolean;
-  error: string | null;
-  onRequestConfirm: () => void;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  return (
-    <section className="rounded-[1.5rem] border border-rose-400/20 bg-rose-400/[0.03] p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="max-w-xl">
-          <h3 className="text-sm font-semibold text-white">Clear all data</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-400">
-            Permanently removes all saved workspace sources. Report history is preserved. This cannot be undone.
-          </p>
-          {error ? <p className="mt-2 text-xs text-rose-300">{error}</p> : null}
-        </div>
-        <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-          {!confirming ? (
-            <button
-              type="button"
-              onClick={onRequestConfirm}
-              data-testid="clear-data-request"
-              className="rounded-xl border border-rose-400/30 px-4 py-2 text-sm font-medium text-rose-300 transition hover:bg-rose-400/10 hover:text-rose-200"
-            >
-              Clear all data
-            </button>
-          ) : (
-            <div className="flex flex-col items-end gap-2">
-              <p className="text-xs font-semibold text-rose-300">This will permanently delete all saved sources.</p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  disabled={pending}
-                  className="rounded-xl border border-white/10 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-white/[0.05] disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={onConfirm}
-                  disabled={pending}
-                  data-testid="clear-data-confirm"
-                  className="rounded-xl bg-rose-500 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-rose-400 disabled:opacity-50"
-                >
-                  {pending ? "Clearing…" : "Yes, clear all data"}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </section>
   );
 }

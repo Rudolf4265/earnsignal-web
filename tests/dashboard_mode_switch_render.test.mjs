@@ -12,12 +12,14 @@ test("dashboard page wires additive Earn and Grow mode branching without disturb
   const source = await readFile(dashboardPagePath, "utf8");
 
   assert.equal(source.includes("const dashboardMode = parseDashboardMode(searchParams.get(\"mode\"));"), true);
-  assert.equal(source.includes("<DashboardTopShell"), true);
+  assert.equal(source.includes("<DashboardHeader"), true);
   assert.equal(source.includes("mode={dashboardMode}"), true);
   assert.equal(source.includes("buildDashboardModeSearch(searchParams, nextMode)"), true);
   assert.equal(source.includes("{dashboardMode === \"earn\" ? ("), true);
-  assert.equal(source.includes("<DashboardMetricStrip"), true);
-  assert.equal(source.includes("revenueSnapshot={earnDashboardModel.revenueSnapshot}"), true);
+  assert.equal(source.includes("<DashboardTopGrid"), true);
+  assert.equal(source.includes("<DashboardKpiRow"), true);
+  assert.equal(source.includes("<NextBestMoveCard"), true);
+  assert.equal(source.includes("buildDashboardKpiItems"), true);
   assert.equal(source.includes("<GrowDashboardSection"), true);
   assert.equal(source.includes("const primaryCta = useMemo("), true);
   assert.equal(source.includes("const latestReportHref = useMemo(() => buildReportDetailPathOrIndex(state.latestReportRow?.id), [state.latestReportRow?.id]);"), true);

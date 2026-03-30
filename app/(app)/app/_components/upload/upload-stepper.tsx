@@ -19,8 +19,6 @@ import { clearUploadResume, readUploadResume, writeUploadResume } from "@/src/li
 import { computeSHA256Hex } from "@/src/lib/upload/checksum";
 import {
   groupPlatformCards,
-  getPlatformRoleBadgeLabel,
-  getPlatformRoleDetail,
   type NormalizedSourceManifest,
   type UploadPlatformCardMetadata,
 } from "@/src/lib/upload/platform-metadata";
@@ -302,22 +300,6 @@ function buildUploadRecognitionMessage(
   return "Your source was recognized and added to the workspace.";
 }
 
-function formatLabelList(labels: string[]): string {
-  if (labels.length === 0) {
-    return "No sources";
-  }
-
-  if (labels.length === 1) {
-    return labels[0];
-  }
-
-  if (labels.length === 2) {
-    return `${labels[0]} and ${labels[1]}`;
-  }
-
-  return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
-}
-
 const PLATFORM_LOGO_BUBBLE: Record<string, { bg: string; ring: string }> = {
   patreon:   { bg: "bg-[rgba(248,67,20,0.09)]",  ring: "ring-[rgba(248,67,20,0.18)]" },
   substack:  { bg: "bg-[rgba(255,104,31,0.09)]", ring: "ring-[rgba(255,104,31,0.18)]" },
@@ -326,11 +308,9 @@ const PLATFORM_LOGO_BUBBLE: Record<string, { bg: string; ring: string }> = {
   tiktok:    { bg: "bg-[rgba(37,244,238,0.10)]", ring: "ring-[rgba(37,244,238,0.18)]" },
 };
 
-type PlatformCardProps = {
+type UploadPlatformCardProps = {
   label: string;
   description: string;
-  contributionLabel: string;
-  platformRole: "report-driving" | "supporting";
   fileTypeLabel?: string;
   icon: string;
   available: boolean;
@@ -340,7 +320,22 @@ type PlatformCardProps = {
   platformId?: string;
 };
 
-function PlatformCard({ label, description, contributionLabel, platformRole, fileTypeLabel, icon, available, selected, onClick, testId, platformId }: PlatformCardProps) {
+function UploadFlowHeader() {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Upload flow</p>
+        <h2 className="mt-2 text-xl font-semibold text-slate-900">Add or replace a source</h2>
+        <p className="mt-1 text-sm text-slate-600">Choose a platform, upload the matching file, and let EarnSigma validate it.</p>
+      </div>
+      <Link href="/app/help#upload-guide" className="text-sm font-medium text-blue-700 underline underline-offset-4 transition hover:text-blue-900">
+        Open upload guide
+      </Link>
+    </div>
+  );
+}
+
+function UploadPlatformCard({ label, description, fileTypeLabel, icon, available, selected, onClick, testId, platformId }: UploadPlatformCardProps) {
   const tint = PLATFORM_LOGO_BUBBLE[platformId ?? ""];
   const bubbleClass = tint
     ? [
@@ -349,18 +344,8 @@ function PlatformCard({ label, description, contributionLabel, platformRole, fil
         selected ? "ring-blue-400/[0.22]" : tint.ring,
       ].join(" ")
     : selected
-    ? "bg-white/[0.06] ring-1 ring-blue-400/[0.2]"
-    : "bg-slate-100/70 ring-1 ring-black/[0.07]";
-
-  const isReportDriving = platformRole === "report-driving";
-  const roleBadgeClasses = isReportDriving
-    ? selected
-      ? "bg-emerald-400/18 text-emerald-300 ring-1 ring-inset ring-emerald-400/30"
-      : "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200"
-    : selected
-    ? "bg-sky-400/18 text-sky-300 ring-1 ring-inset ring-sky-400/30"
-    : "bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-200";
-  const roleBadgeLabel = getPlatformRoleBadgeLabel(platformRole);
+      ? "bg-white/[0.06] ring-1 ring-blue-400/[0.2]"
+      : "bg-slate-100/70 ring-1 ring-black/[0.07]";
 
   return (
     <button
@@ -388,20 +373,15 @@ function PlatformCard({ label, description, contributionLabel, platformRole, fil
             className="platform-icon block h-5 w-5 object-contain"
           />
         </span>
-        <span
-          data-testid={`platform-role-badge-${platformId ?? ""}`}
-          className={[
-            "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
-            roleBadgeClasses,
-          ].join(" ")}
-        >
-          {roleBadgeLabel}
-        </span>
+        {selected ? (
+          <span className="inline-flex items-center rounded-full bg-blue-500/12 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-200">
+            Selected
+          </span>
+        ) : null}
       </div>
 
       <div className="mt-4 space-y-1">
         <p className={`text-sm font-semibold ${selected ? "text-white" : "text-slate-900"}`}>{label}</p>
-        <p className={`text-xs font-medium ${selected ? "text-brand-accent-teal/90" : "text-slate-500"}`}>{contributionLabel}</p>
         <p className={`text-xs leading-snug ${selected ? "text-slate-300/75" : "text-slate-500"}`}>{description}</p>
       </div>
 
@@ -409,11 +389,101 @@ function PlatformCard({ label, description, contributionLabel, platformRole, fil
         <p className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${selected ? "text-slate-400" : "text-slate-500"}`}>File type</p>
         <p className={`mt-1 text-sm font-medium ${selected ? "text-white" : "text-slate-900"}`}>{fileTypeLabel ?? "Supported file required"}</p>
       </div>
-
-      {selected ? (
-        <p className="mt-3 text-[11px] font-medium text-blue-200">Selected. Continue to file upload.</p>
-      ) : null}
     </button>
+  );
+}
+
+function UploadPlatformPicker({
+  platformSections,
+  showPlatformSectionHeading,
+  platform,
+  onSelect,
+}: {
+  platformSections: Array<{
+    category: string;
+    label: string;
+    items: UploadPlatformCardMetadata[];
+  }>;
+  showPlatformSectionHeading: boolean;
+  platform: UploadPlatform | null;
+  onSelect: (platform: UploadPlatform) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <div
+        className="rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-4 shadow-[0_12px_32px_-24px_rgba(15,23,42,0.3)]"
+        data-testid="upload-platform-guide"
+      >
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-slate-900">Choose platform</h3>
+            <p className="mt-1 text-sm text-slate-600">Select the source you want to upload.</p>
+          </div>
+          <Link href="/app/help#upload-guide" className="text-sm font-medium text-blue-700 underline underline-offset-4 transition hover:text-blue-900">
+            Need format rules? Open upload guide.
+          </Link>
+        </div>
+      </div>
+
+      {platformSections.map((section) => (
+        <section key={section.category} className="space-y-2" data-testid={`platform-section-${section.category}`}>
+          {showPlatformSectionHeading ? <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{section.label}</h3> : null}
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {section.items.map((item) => {
+              const selected = platform === item.id;
+              return (
+                <UploadPlatformCard
+                  key={item.id}
+                  label={item.label}
+                  description={item.subtitle}
+                  fileTypeLabel={item.fileTypeLabel}
+                  icon={item.icon}
+                  available={item.available}
+                  selected={selected}
+                  onClick={() => {
+                    if (!item.available) return;
+                    onSelect(item.id);
+                  }}
+                  testId={`platform-card-${item.id}`}
+                  platformId={item.id}
+                />
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function UploadPrimaryFooterBar({
+  canContinue,
+  onContinue,
+  onStartOver,
+}: {
+  canContinue: boolean;
+  onContinue: () => void;
+  onStartOver: () => void;
+}) {
+  return (
+    <div className="sticky bottom-0 z-20 -mx-6 mt-6 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur" data-testid="upload-primary-footer-bar">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-sm text-slate-500">Step 1 of 5</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={onStartOver} className="text-sm font-medium text-slate-500 underline underline-offset-4 hover:text-slate-900">
+            Start over
+          </button>
+          <button
+            type="button"
+            disabled={!canContinue}
+            onClick={onContinue}
+            className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand-blue px-6 py-3 text-base font-semibold text-white shadow-[0_12px_30px_-16px_rgba(37,99,235,0.6)] transition hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {canContinue ? "Continue to file upload" : "Select platform to continue"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -450,6 +520,8 @@ type UploadStepperProps = {
   refreshWorkspaceDataSources: () => Promise<void>;
   clearCurrentReport: () => void;
   onReportCreated: (reportId: string) => void;
+  preferredPlatform?: UploadPlatform | null;
+  preferredPlatformNonce?: number;
 };
 
 export default function UploadStepper({
@@ -459,6 +531,8 @@ export default function UploadStepper({
   refreshWorkspaceDataSources,
   clearCurrentReport,
   onReportCreated,
+  preferredPlatform = null,
+  preferredPlatformNonce = 0,
 }: UploadStepperProps) {
   const router = useRouter();
   const entitlementState = useEntitlementState();
@@ -538,16 +612,9 @@ export default function UploadStepper({
     () => workspaceReportState.includedSources.find((source) => source.platform === platform) ?? null,
     [platform, workspaceReportState.includedSources],
   );
-  const workspaceBlockingReason =
-    workspaceReportState.blockingReason ?? sourceManifest.eligibilityRule;
-  const reportDrivingPlatformLabels = useMemo(
-    () => visiblePlatformCards.filter((card) => card.platformRole === "report-driving").map((card) => card.label),
-    [visiblePlatformCards],
-  );
-  const supportingPlatformLabels = useMemo(
-    () => visiblePlatformCards.filter((card) => card.platformRole === "supporting").map((card) => card.label),
-    [visiblePlatformCards],
-  );
+  const workspaceBlockingReason = workspaceReportState.hasStagedSources
+    ? "Add revenue + subscriber data before running a report."
+    : "Add your first source to start.";
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production") {
@@ -568,6 +635,35 @@ export default function UploadStepper({
     pollAbortRef.current?.abort();
     pollAbortRef.current = null;
   }, []);
+
+  useEffect(() => {
+    if (!preferredPlatform) {
+      return;
+    }
+
+    stopPolling();
+    setPlatform(preferredPlatform);
+    setStep("platform");
+    setFile(null);
+    setUploadId(null);
+    setStatusMsg(null);
+    setError(null);
+    setReasonCode(null);
+    setErrorDetails(null);
+    setErrorRequestId(null);
+    setErrorOperation(null);
+    setWarnings([]);
+    setBusy(false);
+    setProcessingStatus(null);
+    setHasResumeCandidate(false);
+    setLatestTerminalUpload(null);
+    setRunReportBusy(false);
+    setRunReportError(null);
+
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  }, [preferredPlatform, preferredPlatformNonce, stopPolling]);
 
   const logUploadDiagnostic = useCallback((event: string, details: Record<string, unknown>) => {
     if (process.env.NODE_ENV === "production") {
@@ -1156,12 +1252,13 @@ export default function UploadStepper({
 
   return (
     <UploadCard className="space-y-6">
+      <UploadFlowHeader />
       <Stepper steps={steps} activeIndex={activeStepIndex} />
 
       {step === "platform" || step === "file" ? (
         <TrustMicrocopy
           body={UPLOAD_TRUST_MICROCOPY_BODY}
-          className="border-slate-300/90 bg-white"
+          className="border-slate-200 bg-slate-50/80 px-4 py-2.5"
           testId="upload-trust-strip"
           variant="app"
         />
@@ -1325,83 +1422,24 @@ export default function UploadStepper({
               ) : null}
             </InlineAlert>
           ) : null}
-          <StepHeader title="Choose platform" subtitle="Select one supported platform to begin." />
-          <div
-            className="rounded-[1.35rem] border border-slate-800/80 bg-[linear-gradient(145deg,rgba(10,24,50,0.96),rgba(14,30,63,0.96),rgba(12,27,53,0.98))] p-3 shadow-[0_18px_40px_-26px_rgba(15,23,42,0.75)]"
-            data-testid="upload-platform-guide"
-          >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-accent-teal">Source types</p>
-            <p className="mt-2 text-xs leading-relaxed text-slate-300">
-              Choose what to add next. Exact file rules stay in the Upload Guide.
-            </p>
-            <div className="mt-3 grid gap-2 md:grid-cols-2">
-              <div className="rounded-xl border border-emerald-400/20 bg-white/[0.05] px-3 py-3">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-300">
-                  {getPlatformRoleBadgeLabel("report-driving")}
-                </p>
-                <p className="text-xs font-semibold text-white">{formatLabelList(reportDrivingPlatformLabels)}</p>
-                <p className="mt-1 text-xs text-slate-400">{getPlatformRoleDetail("report-driving")}</p>
-              </div>
-              <div className="rounded-xl border border-sky-400/20 bg-white/[0.05] px-3 py-3">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-sky-300">
-                  {getPlatformRoleBadgeLabel("supporting")}
-                </p>
-                <p className="text-xs font-semibold text-white">{formatLabelList(supportingPlatformLabels)}</p>
-                <p className="mt-1 text-xs text-slate-400">{getPlatformRoleDetail("supporting")}</p>
-              </div>
-            </div>
-            <Link href="/app/help#upload-guide" className="mt-3 inline-flex text-[11px] font-medium text-blue-200 underline underline-offset-4 hover:text-white">
-              Open upload guide
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {platformSections.map((section) => (
-              <section key={section.category} className="space-y-2" data-testid={`platform-section-${section.category}`}>
-                {showPlatformSectionHeading ? <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{section.label}</h3> : null}
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {section.items.map((item) => {
-                    const selected = platform === item.id;
-                    return (
-                      <PlatformCard
-                        key={item.id}
-                        label={item.label}
-                        description={item.subtitle}
-                        contributionLabel={item.contributionLabel}
-                        platformRole={item.platformRole}
-                        fileTypeLabel={item.fileTypeLabel}
-                        icon={item.icon}
-                        available={item.available}
-                        selected={selected}
-                        onClick={() => {
-                          if (!item.available) return;
-                          setPlatform(item.id);
-                        }}
-                        testId={`platform-card-${item.id}`}
-                        platformId={item.id}
-                      />
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
+          <UploadPlatformPicker
+            platformSections={platformSections}
+            showPlatformSectionHeading={showPlatformSectionHeading || sourceManifest.platforms.length === 0}
+            platform={platform}
+            onSelect={setPlatform}
+          />
 
-          <div className="flex justify-end border-t border-slate-200 pt-3.5">
-            <button
-              type="button"
-              disabled={!platform}
-              onClick={() => {
-                setStep("file");
-                setError(null);
-                setErrorDetails(null);
-                setErrorRequestId(null);
-                setErrorOperation(null);
-              }}
-              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {platform ? "Continue to file upload" : "Select platform to continue"}
-            </button>
-          </div>
+          <UploadPrimaryFooterBar
+            canContinue={Boolean(platform)}
+            onContinue={() => {
+              setStep("file");
+              setError(null);
+              setErrorDetails(null);
+              setErrorRequestId(null);
+              setErrorOperation(null);
+            }}
+            onStartOver={resetFlow}
+          />
         </div>
       ) : null}
 
@@ -1417,7 +1455,7 @@ export default function UploadStepper({
             <div className="space-y-2">
               <p>
                 {selectedPlatformCard
-                  ? `${selectedPlatformCard.contributionLabel}. ${getPlatformRoleDetail(selectedPlatformCard.platformRole)}`
+                  ? `${selectedPlatformCard.label}. ${selectedPlatformCard.contributionLabel}.`
                   : "Upload a supported file for this platform."}
               </p>
               <p className="text-current/70">

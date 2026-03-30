@@ -6,19 +6,15 @@ import { readFile } from "node:fs/promises";
 const dataUploadPagePath = path.resolve("app/(app)/app/_components/upload/data-upload-page.tsx");
 const uploadStepperPath = path.resolve("app/(app)/app/_components/upload/upload-stepper.tsx");
 
-test("workspace hero derives Run Report availability from canonical workspace fields", async () => {
+test("workspace banner derives Run Report availability from canonical workspace fields", async () => {
   const source = await readFile(dataUploadPagePath, "utf8");
 
   assert.equal(source.includes("fetchWorkspaceDataSources"), true);
   assert.equal(source.includes("buildWorkspaceReportState"), true);
   assert.equal(source.includes("workspaceReportState.canRunReport"), true);
-  assert.equal(source.includes("workspaceReportState.blockingReason"), true);
-  assert.equal(source.includes("workspaceReportState.reportReadinessNote"), true);
   assert.equal(source.includes("workspaceReportState.reportHasBusinessMetrics"), true);
   assert.equal(source.includes('data-testid="staged-run-report"'), true);
   assert.equal(source.includes("Ready to run"), true);
-  assert.equal(source.includes('data-testid="workspace-run-summary"'), true);
-  assert.equal(source.includes("Build your report"), true);
   assert.equal(source.includes("View all reports"), true);
   assert.equal(source.includes("What this report is based on"), false);
 });

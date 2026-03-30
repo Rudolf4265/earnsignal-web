@@ -156,10 +156,7 @@ function normalizeManifestPlatform(raw: SourceManifestPlatform | null | undefine
 
 function buildContributionLabel(platform: NormalizedSourceManifestPlatform): string {
   if (platform.reportRole === "supporting") {
-    return "Audience/context enrichment";
-  }
-  if (platform.platform === "youtube") {
-    return "Creator revenue or content data";
+    return "Audience/performance context";
   }
   return "Revenue + subscriber data";
 }

@@ -20,6 +20,17 @@ test("upload stepper keeps Upload & Validate as the primary file-step CTA", asyn
   assert.equal(source.includes("Upload & Validate"), true);
 });
 
+test("upload platform step uses a sticky primary footer CTA", async () => {
+  const source = await readFile(uploadStepperPath, "utf8");
+
+  assert.equal(source.includes("UploadPrimaryFooterBar"), true);
+  assert.equal(source.includes('data-testid="upload-primary-footer-bar"'), true);
+  assert.equal(source.includes("sticky bottom-0"), true);
+  assert.equal(source.includes("Continue to file upload"), true);
+  assert.equal(source.includes("Step 1 of 5"), true);
+  assert.equal(source.includes("Source types"), false);
+});
+
 test("upload progress stepper keeps explicit active, complete, and upcoming styling", async () => {
   const source = await readFile(progressStepperPath, "utf8");
 

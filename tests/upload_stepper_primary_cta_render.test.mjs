@@ -13,7 +13,7 @@ test("upload stepper keeps Upload & Validate as the primary file-step CTA", asyn
   assert.equal(source.includes("entitlementState.canValidateUpload;"), true);
   assert.equal(source.includes("const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;"), true);
   assert.equal(source.includes('data-testid="upload-file-guide"'), true);
-  assert.equal(source.includes("Accepted format: {selectedPlatformCard?.acceptedFileTypesLabel"), true);
+  assert.equal(source.includes("Accepted format: ${selectedPlatformCard.acceptedFileTypesLabel"), true);
   assert.equal(source.includes("/app/help#upload-guide"), true);
   assert.equal(source.includes("disabled={!uploadReady}"), true);
   assert.equal(source.includes("Checking access..."), true);
@@ -34,8 +34,8 @@ test("upload platform step uses a sticky primary footer CTA", async () => {
 test("upload progress stepper keeps explicit active, complete, and upcoming styling", async () => {
   const source = await readFile(progressStepperPath, "utf8");
 
-  assert.equal(source.includes('bg-[linear-gradient(145deg,rgba(7,17,37,0.98),rgba(12,27,53,0.98),rgba(10,24,50,0.98))]'), true);
-  assert.equal(source.includes("bg-gradient-to-r from-emerald-300/70 to-blue-300/70"), true);
-  assert.equal(source.includes('complete ? "\\u2713" : index + 1'), true);
-  assert.equal(source.includes('active ? "text-white" : complete ? "text-slate-200" : "text-slate-400"'), true);
+  assert.equal(source.includes('rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-4'), true);
+  assert.equal(source.includes("bg-emerald-500/15 text-emerald-300 ring-emerald-400/25"), true);
+  assert.equal(source.includes("bg-blue-500/15 text-blue-200 ring-blue-400/30"), true);
+  assert.equal(source.includes("index + 1"), true);
 });

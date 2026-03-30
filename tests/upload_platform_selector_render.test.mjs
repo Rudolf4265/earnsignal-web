@@ -16,7 +16,7 @@ test("upload platform selector is manifest-driven and simplified for users", asy
   assert.equal(source.includes('data-testid={`platform-section-${section.category}`}'), true);
   assert.equal(source.includes("Choose platform"), true);
   assert.equal(source.includes("Select the source you want to upload."), true);
-  assert.equal(source.includes("Need format rules? Open upload guide."), true);
+  assert.equal(source.includes("Need format rules?"), true);
   assert.equal(source.includes("Source types"), false);
   assert.equal(source.includes("getPlatformRoleBadgeLabel"), false);
   assert.equal(source.includes("getPlatformRoleDetail"), false);
@@ -26,9 +26,9 @@ test("upload platform selector is manifest-driven and simplified for users", asy
 test("upload file step uses manifest card guidance without source-taxonomy copy", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
-  assert.equal(source.includes('title="Before you upload"'), true);
-  assert.equal(source.includes("selectedPlatformCard.contributionLabel"), true);
-  assert.equal(source.includes("selectedPlatformCard?.acceptedFileTypesLabel"), true);
+  assert.equal(source.includes('data-testid="upload-file-guide"'), true);
+  assert.equal(source.includes("selectedPlatformCard.contributionLabel"), false);
+  assert.equal(source.includes("selectedPlatformCard.acceptedFileTypesLabel"), true);
   assert.equal(source.includes("selectedPlatformCard?.guidance"), false);
   assert.equal(source.includes("selectedPlatformCard?.roleSummary"), false);
   assert.equal(source.includes("Exact file rules, ZIP requirements, and troubleshooting live in the Upload Guide."), true);

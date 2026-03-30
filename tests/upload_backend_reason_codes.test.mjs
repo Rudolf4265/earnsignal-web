@@ -33,11 +33,11 @@ test("friendly error messages cover backend validation reason codes and keep cop
 test("upload stepper surfaces canonical workspace guidance instead of frontend-owned support heuristics", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
-  assert.equal(source.includes("sourceManifest.eligibilityRule"), true);
-  assert.equal(source.includes("selectedPlatformCard.contributionLabel"), true);
-  assert.equal(source.includes("selectedPlatformCard?.acceptedFileTypesLabel"), true);
+  assert.equal(source.includes("sourceManifest.eligibilityRule"), false);
+  assert.equal(source.includes("selectedPlatformCard.contributionLabel"), false);
+  assert.equal(source.includes("selectedPlatformCard.acceptedFileTypesLabel"), true);
   assert.equal(source.includes("selectedPlatformCard?.guidance"), false);
   assert.equal(source.includes("selectedPlatformCard?.roleSummary"), false);
-  assert.equal(source.includes("getPlatformRoleDetail(selectedPlatformCard.platformRole)"), true);
+  assert.equal(source.includes("getPlatformRoleDetail(selectedPlatformCard.platformRole)"), false);
   assert.equal(source.includes("workspaceBlockingReason"), true);
 });

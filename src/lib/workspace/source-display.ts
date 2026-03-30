@@ -2,8 +2,6 @@ import type { UploadPlatformCardMetadata } from "../upload/platform-metadata";
 import type { UploadPlatform } from "../api/upload";
 import type { WorkspaceDataSource } from "../api/workspace";
 
-export type PrimarySourceStatus = "connected" | "not_added" | "needs_attention";
-
 export type SourceListAction =
   | {
       kind: "upload";
@@ -19,10 +17,10 @@ export type SourceListAction =
 export type SourceListItem = {
   id: UploadPlatform;
   name: string;
-  summary: string;
+  icon: string;
   status: PrimarySourceStatus;
   lastUpdatedLabel: string | null;
-  note: string;
+  issueLabel: string | null;
   primaryAction: SourceListAction;
   secondaryAction?: SourceListAction;
 };
@@ -59,18 +57,15 @@ function formatLastUpdated(value: string | null | undefined): string | null {
   }).format(new Date(parsed));
 }
 
-function resolveSourceSummary(card: UploadPlatformCardMetadata, source?: WorkspaceDataSource | null): string {
-  const role = source?.reportRole === "report_driving" ? "report-driving" : source?.reportRole === "supporting" ? "supporting" : card.platformRole;
-  return role === "report-driving" ? "Revenue + subscriber data" : "Audience/performance context";
-}
+export type PrimarySourceStatus = "connected" | "not_connected" | "fix_needed";
 
 function resolvePrimaryStatus(source?: WorkspaceDataSource | null): PrimarySourceStatus {
   if (!source || source.state === "missing") {
-    return "not_added";
+    return "not_connected";
   }
 
   if (source.state === "failed") {
-    return "needs_attention";
+    return "fix_needed";
   }
 
   return "connected";
@@ -81,11 +76,11 @@ export function getPrimarySourceStatusLabel(status: PrimarySourceStatus): string
     return "Connected";
   }
 
-  if (status === "needs_attention") {
-    return "Needs attention";
+  if (status === "fix_needed") {
+    return "Fix needed";
   }
 
-  return "Not added";
+  return "Not connected";
 }
 
 export function getPrimarySourceStatusVariant(status: PrimarySourceStatus): "good" | "warn" | "neutral" {
@@ -93,7 +88,7 @@ export function getPrimarySourceStatusVariant(status: PrimarySourceStatus): "goo
     return "good";
   }
 
-  if (status === "needs_attention") {
+  if (status === "fix_needed") {
     return "warn";
   }
 
@@ -104,31 +99,19 @@ function resolveLastUpdated(source?: WorkspaceDataSource | null): string | null 
   return formatLastUpdated(source?.lastReadyAt ?? source?.lastUploadAt ?? null);
 }
 
-function resolveNote(status: PrimarySourceStatus, source?: WorkspaceDataSource | null, lastUpdatedLabel?: string | null): string {
-  if (status === "not_added") {
-    return "Not added yet.";
+function resolveIssueLabel(status: PrimarySourceStatus, source?: WorkspaceDataSource | null): string | null {
+  if (status !== "fix_needed") {
+    return null;
   }
 
-  if (status === "needs_attention") {
-    return source?.statusMessage?.trim() || "Upload failed. Retry needed.";
-  }
-
-  if (source?.state === "processing") {
-    return source.statusMessage?.trim() || "Checking the latest upload.";
-  }
-
-  if (lastUpdatedLabel) {
-    return `Last updated: ${lastUpdatedLabel}`;
-  }
-
-  return "Connected and ready.";
+  return source?.statusMessage?.trim() || "Upload failed";
 }
 
 function resolvePrimaryAction(card: UploadPlatformCardMetadata, source?: WorkspaceDataSource | null): SourceListAction {
   if (!source || source.state === "missing") {
     return {
       kind: "upload",
-      label: "Add source",
+      label: "Connect",
       platform: card.id,
     };
   }
@@ -136,7 +119,7 @@ function resolvePrimaryAction(card: UploadPlatformCardMetadata, source?: Workspa
   if (source.state === "failed") {
     return {
       kind: "upload",
-      label: source.actionLabel === "Replace" ? "Replace source" : "Retry source",
+      label: "Retry",
       platform: card.id,
     };
   }
@@ -151,23 +134,15 @@ function resolvePrimaryAction(card: UploadPlatformCardMetadata, source?: Workspa
 
   return {
     kind: "upload",
-    label: "Replace source",
+    label: "Update",
     platform: card.id,
   };
 }
 
-function resolveSecondaryAction(source?: WorkspaceDataSource | null): SourceListAction | undefined {
-  if (!source || source.state === "missing") {
-    return {
-      kind: "link",
-      label: "Manage details",
-      href: SETTINGS_DATA_SOURCES_HREF,
-    };
-  }
-
+function resolveSecondaryAction(): SourceListAction {
   return {
     kind: "link",
-    label: "Manage details",
+    label: "Details",
     href: SETTINGS_DATA_SOURCES_HREF,
   };
 }
@@ -178,14 +153,14 @@ function resolveAdvancedStatus(source?: WorkspaceDataSource | null): {
 } {
   if (!source || source.state === "missing") {
     return {
-      label: "Not added",
+      label: "Not connected",
       variant: "neutral",
     };
   }
 
   if (source.state === "failed") {
     return {
-      label: "Needs attention",
+      label: "Fix needed",
       variant: "warn",
     };
   }
@@ -217,12 +192,12 @@ export function buildSourceListItems(
     return {
       id: card.id,
       name: source?.label || card.label,
-      summary: resolveSourceSummary(card, source),
+      icon: card.icon,
       status,
       lastUpdatedLabel,
-      note: resolveNote(status, source, lastUpdatedLabel),
+      issueLabel: resolveIssueLabel(status, source),
       primaryAction: resolvePrimaryAction(card, source),
-      secondaryAction: resolveSecondaryAction(source),
+      secondaryAction: resolveSecondaryAction(),
     };
   });
 }

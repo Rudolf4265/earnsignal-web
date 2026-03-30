@@ -35,9 +35,7 @@ import { useEntitlementState } from "../../../_components/use-entitlement-state"
 import InlineAlert from "./InlineAlert";
 import StepHeader from "./StepHeader";
 import Stepper from "./Stepper";
-import UploadCard from "./UploadCard";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
-import { TrustMicrocopy, UPLOAD_TRUST_MICROCOPY_BODY } from "@/src/components/ui/trust-microcopy";
 
 type Step = "platform" | "file" | "uploading" | "processing" | "done";
 
@@ -311,7 +309,6 @@ const PLATFORM_LOGO_BUBBLE: Record<string, { bg: string; ring: string }> = {
 type UploadPlatformCardProps = {
   label: string;
   description: string;
-  fileTypeLabel?: string;
   icon: string;
   available: boolean;
   selected: boolean;
@@ -322,20 +319,35 @@ type UploadPlatformCardProps = {
 
 function UploadFlowHeader() {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Upload flow</p>
-        <h2 className="mt-2 text-xl font-semibold text-slate-900">Add or replace a source</h2>
-        <p className="mt-1 text-sm text-slate-600">Choose a platform, upload the matching file, and let EarnSigma validate it.</p>
+        <h2 className="text-2xl font-semibold text-white">Add or replace a source</h2>
+        <p className="mt-1 text-sm text-slate-400">Choose a platform, then upload a supported file.</p>
       </div>
-      <Link href="/app/help#upload-guide" className="text-sm font-medium text-blue-700 underline underline-offset-4 transition hover:text-blue-900">
+      <Link href="/app/help#upload-guide" className="text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
         Open upload guide
       </Link>
     </div>
   );
 }
 
-function UploadPlatformCard({ label, description, fileTypeLabel, icon, available, selected, onClick, testId, platformId }: UploadPlatformCardProps) {
+function UploadPrivacyLine() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">
+      <span className="inline-flex items-center gap-2 text-slate-300">
+        <span className="h-2 w-2 rounded-full bg-emerald-300" />
+        Your data stays private
+      </span>
+      <span className="hidden text-slate-600 sm:inline">|</span>
+      <span>Used only to generate reports and operate the service.</span>
+      <Link href="/data-privacy" className="text-slate-300 underline underline-offset-4 transition hover:text-white">
+        Learn more
+      </Link>
+    </div>
+  );
+}
+
+function UploadPlatformCard({ label, description, icon, available, selected, onClick, testId, platformId }: UploadPlatformCardProps) {
   const tint = PLATFORM_LOGO_BUBBLE[platformId ?? ""];
   const bubbleClass = tint
     ? [
@@ -354,16 +366,16 @@ function UploadPlatformCard({ label, description, fileTypeLabel, icon, available
       disabled={!available}
       onClick={onClick}
       className={[
-        "group flex h-full w-full flex-col rounded-[1.35rem] border p-4 text-left transition-all duration-200",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+        "group flex h-full w-full flex-col rounded-2xl border p-5 text-left transition-all duration-200",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#081325]",
         available
           ? selected
-            ? "cursor-pointer border-blue-400/70 bg-[#0b1628] shadow-[0_0_0_1px_rgba(59,130,246,0.35),0_0_20px_-6px_rgba(59,130,246,0.28)]"
-            : "cursor-pointer border-slate-200 bg-white shadow-[0_8px_20px_-14px_rgba(15,23,42,0.18)] hover:-translate-y-0.5 hover:border-blue-300/60 hover:shadow-[0_16px_28px_-18px_rgba(37,99,235,0.28)]"
-          : "cursor-not-allowed border-slate-200 bg-white opacity-55",
+            ? "cursor-pointer border-blue-400/50 bg-blue-500/[0.08] shadow-[0_0_24px_-10px_rgba(59,130,246,0.75)]"
+            : "cursor-pointer border-white/8 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.03]"
+          : "cursor-not-allowed border-white/8 bg-white/[0.02] opacity-55",
       ].join(" ")}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${bubbleClass}`}>
           <Image
             src={icon}
@@ -380,14 +392,9 @@ function UploadPlatformCard({ label, description, fileTypeLabel, icon, available
         ) : null}
       </div>
 
-      <div className="mt-4 space-y-1">
-        <p className={`text-sm font-semibold ${selected ? "text-white" : "text-slate-900"}`}>{label}</p>
-        <p className={`text-xs leading-snug ${selected ? "text-slate-300/75" : "text-slate-500"}`}>{description}</p>
-      </div>
-
-      <div className="mt-auto pt-4">
-        <p className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${selected ? "text-slate-400" : "text-slate-500"}`}>File type</p>
-        <p className={`mt-1 text-sm font-medium ${selected ? "text-white" : "text-slate-900"}`}>{fileTypeLabel ?? "Supported file required"}</p>
+      <div className="space-y-1">
+        <p className="text-base font-semibold text-white">{label}</p>
+        <p className={`text-sm leading-snug ${selected ? "text-slate-300/85" : "text-slate-400"}`}>{description}</p>
       </div>
     </button>
   );
@@ -409,26 +416,21 @@ function UploadPlatformPicker({
   onSelect: (platform: UploadPlatform) => void;
 }) {
   return (
-    <div className="space-y-5">
-      <div
-        className="rounded-[1.35rem] border border-slate-200 bg-slate-50 px-4 py-4 shadow-[0_12px_32px_-24px_rgba(15,23,42,0.3)]"
-        data-testid="upload-platform-guide"
-      >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-base font-semibold text-slate-900">Choose platform</h3>
-            <p className="mt-1 text-sm text-slate-600">Select the source you want to upload.</p>
-          </div>
-          <Link href="/app/help#upload-guide" className="text-sm font-medium text-blue-700 underline underline-offset-4 transition hover:text-blue-900">
-            Need format rules? Open upload guide.
-          </Link>
+    <section className="space-y-4 rounded-[1.75rem] border border-white/8 bg-white/[0.02] p-5" data-testid="upload-platform-guide">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Choose platform</h3>
+          <p className="mt-1 text-sm text-slate-400">Select the source you want to upload.</p>
         </div>
+        <Link href="/app/help#upload-guide" className="text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
+          Need format rules?
+        </Link>
       </div>
 
       {platformSections.map((section) => (
         <section key={section.category} className="space-y-2" data-testid={`platform-section-${section.category}`}>
           {showPlatformSectionHeading ? <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{section.label}</h3> : null}
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {section.items.map((item) => {
               const selected = platform === item.id;
               return (
@@ -436,7 +438,6 @@ function UploadPlatformPicker({
                   key={item.id}
                   label={item.label}
                   description={item.subtitle}
-                  fileTypeLabel={item.fileTypeLabel}
                   icon={item.icon}
                   available={item.available}
                   selected={selected}
@@ -452,7 +453,7 @@ function UploadPlatformPicker({
           </div>
         </section>
       ))}
-    </div>
+    </section>
   );
 }
 
@@ -466,18 +467,26 @@ function UploadPrimaryFooterBar({
   onStartOver: () => void;
 }) {
   return (
-    <div className="sticky bottom-0 z-20 -mx-6 mt-6 border-t border-slate-200 bg-white/95 px-6 py-4 backdrop-blur" data-testid="upload-primary-footer-bar">
+    <div
+      className="sticky bottom-0 z-20 -mx-4 border-t border-white/10 bg-[#081325]/95 px-4 py-4 backdrop-blur md:-mx-6 md:px-6"
+      data-testid="upload-primary-footer-bar"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-sm text-slate-500">Step 1 of 5</span>
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={onStartOver} className="text-sm font-medium text-slate-500 underline underline-offset-4 hover:text-slate-900">
+        <span className="text-sm text-slate-400">Step 1 of 5</span>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={onStartOver} className="text-sm font-medium text-slate-300 underline underline-offset-4 hover:text-white">
             Start over
           </button>
           <button
             type="button"
             disabled={!canContinue}
             onClick={onContinue}
-            className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand-blue px-6 py-3 text-base font-semibold text-white shadow-[0_12px_30px_-16px_rgba(37,99,235,0.6)] transition hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className={[
+              "inline-flex h-12 min-w-[260px] items-center justify-center rounded-2xl px-5 text-base font-semibold transition",
+              canContinue
+                ? "bg-brand-blue text-white shadow-[0_0_28px_-10px_rgba(59,130,246,0.95)] hover:bg-brand-blue/90"
+                : "cursor-not-allowed bg-white/[0.05] text-slate-500",
+            ].join(" ")}
           >
             {canContinue ? "Continue to file upload" : "Select platform to continue"}
           </button>
@@ -561,7 +570,6 @@ export default function UploadStepper({
   const [runReportError, setRunReportError] = useState<string | null>(null);
 
   const activeStepIndex = stepOrder.indexOf(step);
-  const progressPct = Math.round(((activeStepIndex + 1) / stepOrder.length) * 100);
   const steps = useMemo(
     () => [
       { id: "platform", label: "Platform" },
@@ -578,13 +586,13 @@ export default function UploadStepper({
     () => visiblePlatformCards.find((card) => card.id === platform) ?? null,
     [platform, visiblePlatformCards],
   );
+  const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
   const uploadReady =
     Boolean(platform && file) &&
     !busy &&
     !entitlementState.loading &&
     entitlementState.canUpload &&
     entitlementState.canValidateUpload;
-  const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
   const showWorkspaceLoadingGuard = workspaceReportState.isLoading;
   const showWorkspaceViewReport =
     !showWorkspaceLoadingGuard &&
@@ -741,7 +749,7 @@ export default function UploadStepper({
       setProcessingStatus(mapped.status);
       setUploadId(resolvedUploadId ?? null);
       if (mapped.status === "processing") {
-        setStatusMsg("Processing upload…");
+        setStatusMsg("Checking upload status...");
         setStep("processing");
         setError(null);
         setReasonCode(null);
@@ -1143,7 +1151,7 @@ export default function UploadStepper({
       }
 
       setStep("processing");
-      setStatusMsg("Processing upload…");
+      setStatusMsg("Checking upload status...");
       await pollUntilTerminal(presign.upload_id);
     } catch (uploadError) {
       const mapped = mapApiErrorToUploadFailure(uploadError);
@@ -1251,18 +1259,10 @@ export default function UploadStepper({
   }, [clearResumeCandidateState, resumeIfBackendActive, step, uploadId]);
 
   return (
-    <UploadCard className="space-y-6">
+    <section className="space-y-6 rounded-[1.75rem] border border-white/8 bg-[#081325]/95 p-5 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.95)] backdrop-blur md:p-6">
       <UploadFlowHeader />
       <Stepper steps={steps} activeIndex={activeStepIndex} />
-
-      {step === "platform" || step === "file" ? (
-        <TrustMicrocopy
-          body={UPLOAD_TRUST_MICROCOPY_BODY}
-          className="border-slate-200 bg-slate-50/80 px-4 py-2.5"
-          testId="upload-trust-strip"
-          variant="app"
-        />
-      ) : null}
+      <UploadPrivacyLine />
 
       {error ? (
         <ErrorBanner data-testid="upload-terminal-error"
@@ -1309,16 +1309,6 @@ export default function UploadStepper({
           </div>
         </ErrorBanner>
       ) : null}
-
-      <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
-        <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>Step {activeStepIndex + 1} of {stepOrder.length}</span>
-          <span>{progressPct}%</span>
-        </div>
-        <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-          <div className="h-full rounded-full bg-gradient-to-r from-brand-blue to-emerald-400 transition-all" style={{ width: `${progressPct}%` }} />
-        </div>
-      </div>
 
       {warnings.length > 0 ? (
         <InlineAlert variant="warn" title="Limited data quality detected">
@@ -1451,31 +1441,27 @@ export default function UploadStepper({
               selectedPlatformCard ? `Upload a supported ${selectedPlatformCard.label} file.` : "Upload a supported file for this platform."
             }
           />
-          <InlineAlert variant="info" title="Before you upload" data-testid="upload-file-guide">
-            <div className="space-y-2">
-              <p>
-                {selectedPlatformCard
-                  ? `${selectedPlatformCard.label}. ${selectedPlatformCard.contributionLabel}.`
-                  : "Upload a supported file for this platform."}
-              </p>
-              <p className="text-current/70">
-                Accepted format: {selectedPlatformCard?.acceptedFileTypesLabel ?? "Supported file required"}.
-              </p>
-              <p className="text-current/70">
-                Exact file rules, ZIP requirements, and troubleshooting live in the Upload Guide.
-              </p>
-            </div>
-            <Link href="/app/help#upload-guide" className="mt-3 inline-flex rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
+          <div
+            className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-4 text-sm text-slate-400"
+            data-testid="upload-file-guide"
+          >
+            <p className="text-slate-200">
+              {selectedPlatformCard
+                ? `${selectedPlatformCard.label} selected. Accepted format: ${selectedPlatformCard.acceptedFileTypesLabel ?? "Supported file required"}.`
+                : "Upload a supported file for this platform."}
+            </p>
+            <p className="mt-2">Exact file rules, ZIP requirements, and troubleshooting live in the Upload Guide.</p>
+            <Link href="/app/help#upload-guide" className="mt-3 inline-flex text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
               Open upload guide
             </Link>
-          </InlineAlert>
+          </div>
           <button
             type="button"
-            className="w-full rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center hover:border-brand-blue/60 hover:bg-slate-100"
+            className="w-full rounded-2xl border border-dashed border-white/12 bg-white/[0.02] px-5 py-8 text-center transition hover:border-blue-400/40 hover:bg-white/[0.03]"
             onClick={() => inputRef.current?.click()}
           >
-            <p className="text-sm font-medium text-slate-900">Click to choose a file</p>
-            <p className="mt-1 text-xs text-slate-600">Drag and drop is supported by your browser as well.</p>
+            <p className="text-sm font-medium text-white">Click to choose a file</p>
+            <p className="mt-1 text-xs text-slate-400">Drag and drop is supported by your browser as well.</p>
           </button>
 
           <input
@@ -1490,10 +1476,10 @@ export default function UploadStepper({
           />
 
           {file ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-              <p className="font-medium text-slate-900">{file.name}</p>
-              <p className="text-xs text-slate-600">Size: {readableFileSize(file.size)}</p>
-              <p className="text-xs text-slate-600">Last modified: {new Date(file.lastModified).toLocaleString()}</p>
+            <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3 text-sm text-slate-300">
+              <p className="font-medium text-white">{file.name}</p>
+              <p className="text-xs text-slate-400">Size: {readableFileSize(file.size)}</p>
+              <p className="text-xs text-slate-400">Last modified: {new Date(file.lastModified).toLocaleString()}</p>
             </div>
           ) : null}
 
@@ -1509,7 +1495,7 @@ export default function UploadStepper({
               <button
                 type="button"
                 onClick={() => setStep("platform")}
-                className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 transition hover:bg-white/[0.05] hover:text-white"
               >
                 Back
               </button>
@@ -1536,17 +1522,17 @@ export default function UploadStepper({
             title={step === "uploading" ? "Uploading file" : "Processing upload"}
             subtitle={
               step === "uploading"
-                ? "We’re sending your file securely."
+                ? "We're sending your file securely."
                 : processingStatus === "failed"
                   ? "Processing did not finish successfully."
-                  : "Most uploads complete within 45–90 seconds. Keep this tab open while we validate your data."
+                  : "Most uploads complete within 45-90 seconds. Keep this tab open while we validate your data."
             }
           />
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3">
             {(step === "uploading" || busy) && (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
             )}
-            <p className="text-sm text-slate-700">{statusMsg ?? "Working…"}</p>
+            <p className="text-sm text-slate-300">{statusMsg ?? "Working..."}</p>
           </div>
           <div className="flex gap-2">
             {error ? (
@@ -1555,7 +1541,7 @@ export default function UploadStepper({
                 data-testid="upload-retry"
                 onClick={() => void retryProcessing()}
                 disabled={!uploadId || busy}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Retry status
               </button>
@@ -1564,7 +1550,7 @@ export default function UploadStepper({
               type="button"
               data-testid="upload-reset"
               onClick={resetFlow}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100"
+              className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/[0.05]"
             >
               Start over
             </button>
@@ -1581,11 +1567,11 @@ export default function UploadStepper({
               </InlineAlert>
               <div className="flex flex-wrap gap-2">
                 {showWorkspaceLoadingGuard ? (
-                  <span className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-500" data-testid="upload-workspace-loading">
+                  <span className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-400" data-testid="upload-workspace-loading">
                     Checking workspace...
                   </span>
                 ) : showWorkspaceViewReport ? (
-                  <Link href={workspaceCurrentReportHref} className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
+                  <Link href={workspaceCurrentReportHref} data-testid="upload-view-report" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
                     View Report
                   </Link>
                 ) : showWorkspaceRunReportCta ? (
@@ -1606,7 +1592,7 @@ export default function UploadStepper({
                 <button
                   type="button"
                   onClick={resetFlow}
-                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                  className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 transition hover:bg-white/[0.05] hover:text-white"
                 >
                   Add another source
                 </button>
@@ -1632,11 +1618,11 @@ export default function UploadStepper({
               </InlineAlert>
               <div className="flex flex-wrap gap-2">
                 {showWorkspaceLoadingGuard ? (
-                  <span className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-500" data-testid="upload-workspace-loading">
+                  <span className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-400" data-testid="upload-workspace-loading">
                     Checking workspace...
                   </span>
                 ) : showWorkspaceViewReport ? (
-                  <Link href={workspaceCurrentReportHref} className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
+                  <Link href={workspaceCurrentReportHref} data-testid="upload-view-report" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
                     View Report
                   </Link>
                 ) : showWorkspaceRunReportCta ? (
@@ -1657,7 +1643,7 @@ export default function UploadStepper({
                 <button
                   type="button"
                   onClick={resetFlow}
-                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                  className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 transition hover:bg-white/[0.05] hover:text-white"
                 >
                   Add another source
                 </button>
@@ -1687,7 +1673,7 @@ export default function UploadStepper({
                 data-testid="upload-retry"
                 onClick={() => void retryProcessing()}
                 disabled={!uploadId || busy}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Retry status
               </button>
@@ -1696,14 +1682,14 @@ export default function UploadStepper({
               type="button"
               data-testid="upload-reset"
               onClick={resetFlow}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100"
+              className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/[0.05]"
             >
               Start over
             </button>
           </div>
         </div>
       ) : null}
-    </UploadCard>
+    </section>
   );
 }
 

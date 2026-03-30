@@ -7,15 +7,16 @@ const dataUploadPagePath = path.resolve("app/(app)/app/_components/upload/data-u
 const helpPagePath = path.resolve("app/(app)/app/help/page.tsx");
 const settingsPagePath = path.resolve("app/(app)/app/settings/page.tsx");
 
-test("workspace source cards stay scan-first while Settings keeps advanced source metadata", async () => {
+test("workspace source rows stay scan-first while Settings keeps advanced source metadata", async () => {
   const [dataUploadPage, helpPage, settingsPage] = await Promise.all([
     readFile(dataUploadPagePath, "utf8"),
     readFile(helpPagePath, "utf8"),
     readFile(settingsPagePath, "utf8"),
   ]);
 
-  assert.equal(dataUploadPage.includes('data-testid={`workspace-source-card-${item.id}`}'), true);
-  assert.equal(dataUploadPage.includes("Manage details in Settings"), true);
+  assert.equal(dataUploadPage.includes('data-testid={`workspace-source-row-${item.id}`}'), true);
+  assert.equal(dataUploadPage.includes("Advanced details"), true);
+  assert.equal(dataUploadPage.includes("Connect source"), true);
   assert.equal(dataUploadPage.includes("Contribution"), false);
   assert.equal(dataUploadPage.includes("Next run"), false);
   assert.equal(dataUploadPage.includes("report-driving"), false);

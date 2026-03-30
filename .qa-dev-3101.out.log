@@ -1,0 +1,12 @@
+
+> earnsignal-web@0.1.0 dev
+> next dev --port 3101 --webpack
+
+▲ Next.js 16.1.6 (webpack)
+- Local:         http://localhost:3101
+- Network:       http://10.0.0.18:3101
+
+✓ Starting...
+✓ Ready in 1307ms
+ GET /app/data 200 in 2.3s (compile: 1896ms, proxy.ts: 13ms, render: 423ms)
+[?25h

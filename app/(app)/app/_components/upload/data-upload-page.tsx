@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -7,7 +8,6 @@ import UploadStepper from "./upload-stepper";
 import { SkeletonBlock } from "../../../_components/ui/skeleton";
 import { buttonClassName } from "@/src/components/ui/button";
 import { StatusPill } from "@/src/components/ui/status-pill";
-import { TrustMicrocopy, UPLOAD_TRUST_MICROCOPY_BODY } from "@/src/components/ui/trust-microcopy";
 import { createReportRun, getReportErrorMessage } from "@/src/lib/api/reports";
 import { clearWorkspaceData, fetchWorkspaceDataSources, type WorkspaceDataSourcesResponse } from "@/src/lib/api/workspace";
 import { getSourceManifest, type UploadPlatform } from "@/src/lib/api/upload";
@@ -42,7 +42,7 @@ type ReadyToRunBannerProps = {
   onViewReports: () => void;
 };
 
-type SourceCardProps = {
+type SourceRowProps = {
   item: SourceListItem;
   onUploadAction: (platform: UploadPlatform) => void;
 };
@@ -50,16 +50,9 @@ type SourceCardProps = {
 type SourceListSectionProps = {
   items: SourceListItem[];
   loading: boolean;
-  sourceManifest: NormalizedSourceManifest | null;
-  sourceManifestLoading: boolean;
-  visiblePlatformCards: UploadPlatformCardMetadata[] | null;
-  workspaceReportState: ReturnType<typeof buildWorkspaceReportState>;
-  refreshWorkspaceDataSources: () => Promise<void>;
-  clearCurrentReport: () => void;
-  onReportCreated: (reportId: string) => void;
+  hasManifest: boolean;
+  onAddSource: () => void;
   onUploadAction: (platform: UploadPlatform) => void;
-  preferredPlatform: UploadPlatform | null;
-  preferredPlatformNonce: number;
 };
 
 function DataPageHeader({
@@ -138,7 +131,7 @@ function ReadyToRunBanner({
   );
 }
 
-function renderAction(action: SourceListAction | undefined, onUploadAction: (platform: UploadPlatform) => void, secondary = false) {
+function renderAction(action: SourceListAction | undefined, onUploadAction: (platform: UploadPlatform) => void, variant: "primary" | "secondary") {
   if (!action) {
     return null;
   }
@@ -148,12 +141,12 @@ function renderAction(action: SourceListAction | undefined, onUploadAction: (pla
       <Link
         href={action.href}
         className={
-          secondary
+          variant === "secondary"
             ? "text-sm font-medium text-slate-400 underline underline-offset-4 transition hover:text-white"
             : buttonClassName({
                 variant: "secondary",
                 size: "sm",
-                className: "border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08] hover:text-white",
+                className: "h-9 rounded-xl border-white/10 bg-white/[0.04] px-3 text-slate-200 hover:bg-white/[0.08] hover:text-white",
               })
         }
       >
@@ -167,12 +160,12 @@ function renderAction(action: SourceListAction | undefined, onUploadAction: (pla
       type="button"
       onClick={() => onUploadAction(action.platform)}
       className={
-        secondary
+        variant === "secondary"
           ? "text-sm font-medium text-slate-400 underline underline-offset-4 transition hover:text-white"
           : buttonClassName({
               variant: "secondary",
               size: "sm",
-              className: "border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/[0.08] hover:text-white",
+              className: "h-9 rounded-xl border-white/10 bg-white/[0.04] px-3 text-slate-200 hover:bg-white/[0.08] hover:text-white",
             })
       }
     >
@@ -181,43 +174,68 @@ function renderAction(action: SourceListAction | undefined, onUploadAction: (pla
   );
 }
 
-function SourceCard({ item, onUploadAction }: SourceCardProps) {
+function SourceRow({ item, onUploadAction }: SourceRowProps) {
+  const compactMetaLabel = item.issueLabel
+    ? item.issueLabel
+    : item.lastUpdatedLabel
+      ? `Updated ${item.lastUpdatedLabel}`
+      : "No data yet";
+  const desktopMetaLabel =
+    item.status === "fix_needed"
+      ? item.issueLabel || "Needs review"
+      : item.lastUpdatedLabel
+        ? `Updated ${item.lastUpdatedLabel}`
+        : "-";
+
   return (
-    <article
-      className="rounded-[1.25rem] border border-white/10 bg-[#0f1d38]/90 p-5"
-      data-testid={`workspace-source-card-${item.id}`}
+    <div
+      className="grid grid-cols-1 gap-3 px-4 py-4 transition-colors hover:bg-white/[0.02] md:grid-cols-[minmax(180px,1.2fr)_auto_minmax(140px,0.8fr)_auto] md:items-center md:gap-4"
+      data-testid={`workspace-source-row-${item.id}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold text-white">{item.name}</h3>
-          <p className="mt-1 text-sm text-slate-300">{item.summary}</p>
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.03] ring-1 ring-inset ring-white/8">
+          <Image src={item.icon} alt="" width={18} height={18} className="h-[18px] w-[18px] object-contain" />
         </div>
-        <StatusPill variant={getPrimarySourceStatusVariant(item.status)}>{getPrimarySourceStatusLabel(item.status)}</StatusPill>
+        <div className="min-w-0">
+          <h3 className="truncate text-sm font-semibold text-white">{item.name}</h3>
+          <p className="truncate text-xs text-slate-400">{compactMetaLabel}</p>
+        </div>
       </div>
 
-      <div className="mt-4 space-y-2">
-        <p className="text-sm leading-relaxed text-slate-300">{item.note}</p>
-        {item.lastUpdatedLabel ? <p className="text-xs text-slate-400">Last updated: {item.lastUpdatedLabel}</p> : null}
+      <div className="md:justify-self-start">
+        <StatusPill variant={getPrimarySourceStatusVariant(item.status)} className="text-[11px] tracking-wide">
+          {getPrimarySourceStatusLabel(item.status)}
+        </StatusPill>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-4">
-        {renderAction(item.primaryAction, onUploadAction)}
-        {renderAction(item.secondaryAction, onUploadAction, true)}
+      <div className="hidden text-xs text-slate-400 md:block">{desktopMetaLabel}</div>
+
+      <div className="flex items-center gap-3 md:justify-self-end">
+        {renderAction(item.primaryAction, onUploadAction, "primary")}
+        {renderAction(item.secondaryAction, onUploadAction, "secondary")}
       </div>
-    </article>
+    </div>
   );
 }
 
-function SourceCardsSkeleton() {
+function SourceRowsSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="divide-y divide-white/8">
       {Array.from({ length: 5 }, (_, index) => (
-        <div key={`workspace-source-skeleton-${index + 1}`} className="rounded-[1.25rem] border border-white/10 bg-[#0f1d38]/90 p-5">
-          <SkeletonBlock className="h-5 w-28 bg-white/10" />
-          <SkeletonBlock className="mt-2 h-4 w-36 bg-white/10" />
-          <SkeletonBlock className="mt-6 h-4 w-full bg-white/10" />
-          <SkeletonBlock className="mt-2 h-4 w-4/5 bg-white/10" />
-          <SkeletonBlock className="mt-6 h-9 w-28 bg-white/10" />
+        <div key={`workspace-source-skeleton-${index + 1}`} className="grid grid-cols-1 gap-3 px-4 py-4 md:grid-cols-[minmax(180px,1.2fr)_auto_minmax(140px,0.8fr)_auto] md:items-center md:gap-4">
+          <div className="flex items-center gap-3">
+            <SkeletonBlock className="h-9 w-9 rounded-xl bg-white/10" />
+            <div className="space-y-2">
+              <SkeletonBlock className="h-4 w-24 bg-white/10" />
+              <SkeletonBlock className="h-3 w-32 bg-white/10" />
+            </div>
+          </div>
+          <SkeletonBlock className="h-6 w-24 rounded-full bg-white/10" />
+          <SkeletonBlock className="hidden h-4 w-28 bg-white/10 md:block" />
+          <div className="flex items-center gap-3 md:justify-self-end">
+            <SkeletonBlock className="h-9 w-24 rounded-xl bg-white/10" />
+            <SkeletonBlock className="h-4 w-14 bg-white/10" />
+          </div>
         </div>
       ))}
     </div>
@@ -243,122 +261,104 @@ function ManifestUnavailableCard() {
 function SourceListSection({
   items,
   loading,
-  sourceManifest,
-  sourceManifestLoading,
-  visiblePlatformCards,
-  workspaceReportState,
-  refreshWorkspaceDataSources,
-  clearCurrentReport,
-  onReportCreated,
+  hasManifest,
+  onAddSource,
   onUploadAction,
-  preferredPlatform,
-  preferredPlatformNonce,
 }: SourceListSectionProps) {
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.02]">
+      <div className="flex flex-col gap-3 border-b border-white/8 px-5 py-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-white">Your data sources</h2>
-          <p className="mt-1 text-sm text-slate-400">Connect, replace, or manage the data used in your report.</p>
+          <p className="mt-1 text-sm text-slate-400">Manage connected sources and keep your next report up to date.</p>
         </div>
-        <Link href="/app/settings#data-sources" className="text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white">
-          Manage details in Settings
-        </Link>
+        <div className="flex flex-wrap items-center gap-4">
+          <Link href="/app/settings#data-sources" className="text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
+            Advanced details
+          </Link>
+          <button
+            type="button"
+            onClick={onAddSource}
+            disabled={!hasManifest}
+            className="inline-flex h-10 items-center rounded-xl bg-brand-blue px-4 text-sm font-semibold text-white shadow-[0_0_24px_-10px_rgba(59,130,246,0.8)] transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-slate-500"
+          >
+            Connect source
+          </button>
+        </div>
       </div>
 
       {loading ? (
-        <SourceCardsSkeleton />
-      ) : sourceManifest || visiblePlatformCards ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <SourceRowsSkeleton />
+      ) : hasManifest ? (
+        <div className="divide-y divide-white/8">
           {items.map((item) => (
-            <SourceCard key={item.id} item={item} onUploadAction={onUploadAction} />
+            <SourceRow key={item.id} item={item} onUploadAction={onUploadAction} />
           ))}
         </div>
       ) : (
-        <ManifestUnavailableCard />
-      )}
-
-      <div id="workspace-uploader" className="space-y-4 rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-white">Add or replace a source</h3>
-            <p className="mt-1 text-sm text-slate-400">Choose a platform, then upload a supported file.</p>
-          </div>
-          <Link href="/app/help#upload-guide" className="text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white">
-            Open upload guide
-          </Link>
-        </div>
-
-        {sourceManifestLoading ? (
-          <div className="rounded-2xl border border-white/10 bg-[#0f1d38]/90 p-5">
-            <SkeletonBlock className="h-5 w-44 bg-white/10" />
-            <SkeletonBlock className="mt-3 h-4 w-3/4 bg-white/10" />
-            <SkeletonBlock className="mt-6 h-40 w-full bg-white/10" />
-          </div>
-        ) : sourceManifest && visiblePlatformCards ? (
-          <UploadStepper
-            sourceManifest={sourceManifest}
-            visiblePlatformCards={visiblePlatformCards}
-            workspaceReportState={workspaceReportState}
-            refreshWorkspaceDataSources={refreshWorkspaceDataSources}
-            clearCurrentReport={clearCurrentReport}
-            onReportCreated={onReportCreated}
-            preferredPlatform={preferredPlatform}
-            preferredPlatformNonce={preferredPlatformNonce}
-          />
-        ) : (
+        <div className="p-5">
           <ManifestUnavailableCard />
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
 
-function PrivacyTrustCard() {
+function UploadFlowSkeleton() {
   return (
-    <article className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-5">
-      <p className="text-sm font-semibold text-white">Privacy</p>
-      <p className="mt-2 text-sm leading-6 text-slate-400">Your files stay private and are used only to generate reports and operate the service.</p>
-      <TrustMicrocopy
-        body={UPLOAD_TRUST_MICROCOPY_BODY}
-        className="mt-4 border-white/10 bg-white/[0.02] px-4 py-3"
-        testId="workspace-help-trust"
-        variant="marketing"
-      />
-    </article>
+    <section className="space-y-6 rounded-[1.75rem] border border-white/8 bg-white/[0.02] p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <SkeletonBlock className="h-7 w-48 bg-white/10" />
+          <SkeletonBlock className="h-4 w-60 bg-white/10" />
+        </div>
+        <SkeletonBlock className="h-4 w-28 bg-white/10" />
+      </div>
+      <SkeletonBlock className="h-16 rounded-2xl bg-white/10" />
+      <SkeletonBlock className="h-5 w-64 bg-white/10" />
+      <SkeletonBlock className="h-64 rounded-[1.5rem] bg-white/10" />
+    </section>
   );
 }
 
 function HelpSection({ sourceManifestError }: { sourceManifestError: string | null }) {
   return (
-    <section className="space-y-4">
-      <div>
-        <h2 className="text-xl font-semibold text-white">Help</h2>
-        <p className="mt-1 text-sm text-slate-400">
-          {sourceManifestError
-            ? `${sourceManifestError} You can still use the guide and troubleshooting steps while the source list recovers.`
-            : "Keep the guide and troubleshooting nearby, but out of the main workflow."}
-        </p>
+    <section className="rounded-[1.5rem] border border-white/8 bg-white/[0.02] p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Help</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            {sourceManifestError
+              ? `${sourceManifestError} Use the guide and troubleshooting while the source list recovers.`
+              : "Keep the supporting references nearby without interrupting the main workflow."}
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <article className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-5">
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <Link href="/app/help#upload-guide" className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 transition hover:bg-white/[0.04]">
           <p className="text-sm font-semibold text-white">Upload Guide</p>
           <p className="mt-2 text-sm leading-6 text-slate-400">Format rules, supported files, and exact prep steps.</p>
-          <Link href="/app/help#upload-guide" className="mt-4 inline-flex text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white">
+          <span className="mt-4 inline-flex text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
             Open guide
-          </Link>
-        </article>
+          </span>
+        </Link>
 
-        <article className="rounded-[1.25rem] border border-white/10 bg-white/[0.03] p-5">
+        <Link href="/app/help#after-upload" className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 transition hover:bg-white/[0.04]">
           <p className="text-sm font-semibold text-white">Troubleshooting</p>
           <p className="mt-2 text-sm leading-6 text-slate-400">What to check after a failed or slow upload.</p>
-          <Link href="/app/help#after-upload" className="mt-4 inline-flex text-sm font-medium text-blue-200 underline underline-offset-4 transition hover:text-white">
+          <span className="mt-4 inline-flex text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
             Open troubleshooting
-          </Link>
-        </article>
+          </span>
+        </Link>
 
-        <PrivacyTrustCard />
+        <Link href="/data-privacy" className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 transition hover:bg-white/[0.04]">
+          <p className="text-sm font-semibold text-white">Privacy</p>
+          <p className="mt-2 text-sm leading-6 text-slate-400">How uploads stay private and are used to operate the service.</p>
+          <span className="mt-4 inline-flex text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
+            Learn more
+          </span>
+        </Link>
       </div>
     </section>
   );
@@ -457,14 +457,14 @@ function buildReadyBannerStatus(
 
   if (connectedCount > 0) {
     return {
-      statusLabel: "Needs attention",
-      note: "Add or retry the source you need so the report is ready to run.",
+      statusLabel: "Fix needed",
+      note: "Connect or retry the source you need so the report is ready to run.",
     };
   }
 
   return {
-    statusLabel: "Not added",
-    note: "Add your first source to start building a report workspace.",
+    statusLabel: "Not connected",
+    note: "Connect your first source to start building a report workspace.",
   };
 }
 
@@ -550,6 +550,14 @@ export default function DataUploadPage() {
       });
     }
   }, [clearCurrentReport]);
+
+  const handleAddSource = useCallback(() => {
+    if (typeof document !== "undefined") {
+      requestAnimationFrame(() => {
+        document.getElementById("workspace-uploader")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, []);
 
   const [clearDataPending, setClearDataPending] = useState(false);
   const [clearDataConfirming, setClearDataConfirming] = useState(false);
@@ -637,7 +645,7 @@ export default function DataUploadPage() {
   );
 
   const connectedCount = useMemo(
-    () => sourceListItems.filter((item) => item.status !== "not_added").length,
+    () => sourceListItems.filter((item) => item.status !== "not_connected").length,
     [sourceListItems],
   );
 
@@ -649,7 +657,12 @@ export default function DataUploadPage() {
         connectedCount,
         workspaceReportState.reportHasBusinessMetrics,
       ),
-    [connectedCount, workspaceReportState.canRunReport, workspaceReportState.isLoading, workspaceReportState.reportHasBusinessMetrics],
+    [
+      connectedCount,
+      workspaceReportState.canRunReport,
+      workspaceReportState.isLoading,
+      workspaceReportState.reportHasBusinessMetrics,
+    ],
   );
 
   return (
@@ -676,17 +689,29 @@ export default function DataUploadPage() {
       <SourceListSection
         items={sourceListItems}
         loading={workspaceDataSources === "loading" || sourceManifestLoading}
-        sourceManifest={sourceManifest}
-        sourceManifestLoading={sourceManifestLoading}
-        visiblePlatformCards={visiblePlatformCards}
-        workspaceReportState={workspaceReportState}
-        refreshWorkspaceDataSources={() => refreshWorkspaceDataSources({ preserveCurrent: true })}
-        clearCurrentReport={clearCurrentReport}
-        onReportCreated={handleReportCreated}
+        hasManifest={Boolean(sourceManifest && visiblePlatformCards)}
+        onAddSource={handleAddSource}
         onUploadAction={handleUploadAction}
-        preferredPlatform={preferredPlatform}
-        preferredPlatformNonce={preferredPlatformNonce}
       />
+
+      <div id="workspace-uploader">
+        {sourceManifestLoading ? (
+          <UploadFlowSkeleton />
+        ) : sourceManifest && visiblePlatformCards ? (
+          <UploadStepper
+            sourceManifest={sourceManifest}
+            visiblePlatformCards={visiblePlatformCards}
+            workspaceReportState={workspaceReportState}
+            refreshWorkspaceDataSources={() => refreshWorkspaceDataSources({ preserveCurrent: true })}
+            clearCurrentReport={clearCurrentReport}
+            onReportCreated={handleReportCreated}
+            preferredPlatform={preferredPlatform}
+            preferredPlatformNonce={preferredPlatformNonce}
+          />
+        ) : (
+          <ManifestUnavailableCard />
+        )}
+      </div>
 
       <HelpSection sourceManifestError={sourceManifestError} />
 

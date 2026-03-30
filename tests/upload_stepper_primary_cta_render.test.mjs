@@ -27,6 +27,8 @@ test("upload platform step uses a sticky primary footer CTA", async () => {
   assert.equal(source.includes('data-testid="upload-primary-footer-bar"'), true);
   assert.equal(source.includes("sticky bottom-0"), true);
   assert.equal(source.includes("Continue to file upload"), true);
+  assert.equal(source.includes("bg-emerald-400 text-slate-950 shadow-[0_0_28px_-10px_rgba(52,211,153,0.95)] hover:bg-emerald-300"), true);
+  assert.equal(source.includes("bg-brand-blue text-white shadow-[0_0_28px_-10px_rgba(59,130,246,0.95)] hover:bg-brand-blue/90"), false);
   assert.equal(source.includes("Step 1 of 5"), true);
   assert.equal(source.includes("Source types"), false);
 });

@@ -73,7 +73,7 @@ function resolvePrimaryStatus(source?: WorkspaceDataSource | null): PrimarySourc
 
 export function getPrimarySourceStatusLabel(status: PrimarySourceStatus): string {
   if (status === "connected") {
-    return "Connected";
+    return "Uploaded";
   }
 
   if (status === "fix_needed") {
@@ -173,7 +173,7 @@ function resolveAdvancedStatus(source?: WorkspaceDataSource | null): {
   }
 
   return {
-    label: "Connected",
+    label: "Uploaded",
     variant: "good",
   };
 }

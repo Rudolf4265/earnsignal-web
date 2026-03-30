@@ -484,7 +484,7 @@ function UploadPrimaryFooterBar({
             className={[
               "inline-flex h-12 min-w-[260px] items-center justify-center rounded-2xl px-5 text-base font-semibold transition",
               canContinue
-                ? "bg-brand-blue text-white shadow-[0_0_28px_-10px_rgba(59,130,246,0.95)] hover:bg-brand-blue/90"
+                ? "bg-emerald-400 text-slate-950 shadow-[0_0_28px_-10px_rgba(52,211,153,0.95)] hover:bg-emerald-300"
                 : "cursor-not-allowed bg-white/[0.05] text-slate-500",
             ].join(" ")}
           >

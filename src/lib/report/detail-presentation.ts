@@ -5,6 +5,7 @@ import {
   buildCanonicalReportTitle,
   buildReportDisplayLabels,
   buildReportSourceContributionLine,
+  normalizePlatformsIncluded,
   resolveReportSourceCount,
 } from "./source-labeling";
 import {
@@ -279,11 +280,37 @@ function readConcentrationScore(lines: string[]): number | null {
   return null;
 }
 
+const KNOWN_PLATFORM_TITLES = ["Patreon", "Substack", "YouTube", "Instagram", "TikTok"];
+
+function hasConflictingPlatformMentions(rawTitle: string, platformsIncluded: string[]): boolean {
+  const includedPlatforms = normalizePlatformsIncluded(platformsIncluded);
+  if (includedPlatforms.length === 0) {
+    return false;
+  }
+
+  const normalizedTitle = rawTitle.toLowerCase();
+  const mentionedPlatforms = KNOWN_PLATFORM_TITLES.filter((platform) => normalizedTitle.includes(platform.toLowerCase()));
+  if (mentionedPlatforms.length === 0) {
+    return false;
+  }
+
+  if (mentionedPlatforms.length !== includedPlatforms.length) {
+    return true;
+  }
+
+  const includedSet = new Set(includedPlatforms);
+  return mentionedPlatforms.some((platform) => !includedSet.has(platform));
+}
+
 function readFriendlyReportTitle(report: ReportDetail): { title: string; subtitle: string | null } {
   const rawTitle = report.title.trim();
   const normalizedTitle = rawTitle.toLowerCase();
   const normalizedFallback = `report ${report.id}`.toLowerCase();
-  const titleLooksGeneric = !rawTitle || normalizedTitle === normalizedFallback || /^report\s+[a-z0-9_-]{8,}$/i.test(rawTitle);
+  const titleLooksGeneric =
+    !rawTitle ||
+    normalizedTitle === normalizedFallback ||
+    /^report\s+[a-z0-9_-]{8,}$/i.test(rawTitle) ||
+    hasConflictingPlatformMentions(rawTitle, report.platformsIncluded);
 
   return {
     title: titleLooksGeneric

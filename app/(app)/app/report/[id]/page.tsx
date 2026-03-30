@@ -18,6 +18,7 @@ import {
   downloadReportArtifactPdf,
   fetchReportArtifactJson,
   fetchReportDetail,
+  fetchReportRunStatus,
   fetchReportPdfBlobUrl,
   getReportErrorMessage,
   type ReportDetail,
@@ -37,7 +38,7 @@ import { hasProEquivalentEntitlement, isFounderFromEntitlement } from "@/src/lib
 import { buildReportDetailPresentationModel, type ReportDetailPresentationNotice } from "@/src/lib/report/detail-presentation";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability";
-import { formatReportCreatedAt, toReportStatusLabel, toReportStatusVariant } from "@/src/lib/report/list-model";
+import { formatReportCreatedAt, isInFlightReportStatus, toReportStatusLabel, toReportStatusVariant } from "@/src/lib/report/list-model";
 import { readReportRouteParamId } from "@/src/lib/report/route-id";
 import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/report/normalize-artifact-to-report-model";
 import { formatReportArtifactContractErrors, validateReportArtifactContract } from "@/src/lib/report/artifact-contract";
@@ -66,6 +67,7 @@ const initialState: ReportPageState = {
   artifactError: null,
   artifactJsonMissing: false,
 };
+const REPORT_DETAIL_POLL_INTERVAL_MS = 3_000;
 
 function toArtifactErrorMessage(error: unknown): string {
   if (isApiError(error) && error.code === "INVALID_JSON_RESPONSE") {
@@ -362,6 +364,74 @@ export default function ReportPage() {
       cancelled = true;
     };
   }, [canonicalReportId, reloadNonce, routeParamIdForDebug]);
+
+  useEffect(() => {
+    if (state.view !== "success" || !state.report || !isInFlightReportStatus(state.report.status)) {
+      return;
+    }
+
+    let cancelled = false;
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    const activeReportId = state.report.id;
+
+    const pollStatus = async () => {
+      try {
+        const latestStatus = await fetchReportRunStatus(activeReportId);
+        if (cancelled) {
+          return;
+        }
+
+        const nextStatus = latestStatus.status.trim() || state.report?.status || "unknown";
+        setState((current) => {
+          if (!current.report || current.report.id !== activeReportId) {
+            return current;
+          }
+
+          if (current.report.status === nextStatus && current.report.updatedAt === (latestStatus.updatedAt ?? current.report.updatedAt)) {
+            return current;
+          }
+
+          return {
+            ...current,
+            report: {
+              ...current.report,
+              status: nextStatus,
+              updatedAt: latestStatus.updatedAt ?? current.report.updatedAt,
+            },
+          };
+        });
+
+        const normalizedNextStatus = nextStatus.toLowerCase();
+        if (["ready", "completed", "complete", "success", "succeeded"].includes(normalizedNextStatus)) {
+          setReloadNonce((current) => current + 1);
+          return;
+        }
+
+        if (!isInFlightReportStatus(nextStatus)) {
+          return;
+        }
+      } catch {
+        // Keep the current report detail state intact and try again on the next interval.
+      }
+
+      if (!cancelled) {
+        timeoutHandle = setTimeout(() => {
+          void pollStatus();
+        }, REPORT_DETAIL_POLL_INTERVAL_MS);
+      }
+    };
+
+    timeoutHandle = setTimeout(() => {
+      void pollStatus();
+    }, REPORT_DETAIL_POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      if (timeoutHandle !== null) {
+        clearTimeout(timeoutHandle);
+      }
+    };
+  }, [state.report, state.view]);
 
   const openPdf = async () => {
     if (!state.report || !canAccessFullPdf || !canAccessPdf || pdfLoading) {

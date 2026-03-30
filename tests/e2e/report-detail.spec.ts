@@ -30,6 +30,79 @@ test.describe("Report detail route", () => {
     await expect(page.getByTestId("nav-reports")).toHaveAttribute("aria-current", "page");
   });
 
+  test("auto-refreshes report detail when a running report becomes ready", async ({ page }) => {
+    let detailFetchCount = 0;
+    let statusPollCount = 0;
+
+    await page.route("**/v1/reports/rep_auto_refresh_ready/status", async (route) => {
+      statusPollCount += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          report_id: "rep_auto_refresh_ready",
+          status: statusPollCount >= 2 ? "ready" : "processing",
+          updated_at: "2026-03-01T10:05:00Z",
+        }),
+      });
+    });
+
+    await page.route("**/v1/reports/rep_auto_refresh_ready", async (route) => {
+      detailFetchCount += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          statusPollCount >= 2
+            ? {
+                id: "rep_auto_refresh_ready",
+                title: "Combined Report — Patreon + Substack",
+                status: "ready",
+                created_at: "2026-03-01T10:00:00Z",
+                platforms_included: ["Patreon", "Substack"],
+                source_count: 2,
+                artifact_json_url: "https://artifacts.test/rep_auto_refresh_ready.json",
+                artifact_url: "/v1/reports/rep_auto_refresh_ready/artifact",
+              }
+            : {
+                id: "rep_auto_refresh_ready",
+                title: "Combined Report — Patreon + Substack",
+                status: "processing",
+                created_at: "2026-03-01T10:00:00Z",
+                platforms_included: ["Patreon", "Substack"],
+                source_count: 2,
+              },
+        ),
+      });
+    });
+
+    await page.route("https://artifacts.test/rep_auto_refresh_ready.json", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          report: {
+            report_id: "rep_auto_refresh_ready",
+            schema_version: "v1",
+            sections: {
+              executive_summary: {
+                summary: "Ready report loaded automatically after processing finished.",
+              },
+            },
+          },
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_auto_refresh_ready");
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    await expect.poll(() => statusPollCount).toBeGreaterThan(0);
+    await expect.poll(() => detailFetchCount).toBeGreaterThan(1);
+    await expect(page.getByText("Ready")).toBeVisible();
+    await expect(page.getByText("Ready report loaded automatically after processing finished.").first()).toBeVisible();
+  });
+
   test("renders body from production report.sections payload shape", async ({ page }) => {
     await page.route("**/v1/reports/rep_sections_prod", async (route) => {
       await route.fulfill({
@@ -256,6 +329,29 @@ test.describe("Report detail route", () => {
     await expect(page.getByTestId("report-source-contribution")).toContainText("Current snapshot: Patreon");
     await expect(page.getByTestId("report-source-contribution")).toContainText("Combined history:");
     await expect(page.getByTestId("report-source-contribution")).toContainText("Substack");
+  });
+
+  test("uses actual included sources for the displayed report title when explicit title is stale", async ({ page }) => {
+    await page.route("**/v1/reports/rep_title_mismatch", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_title_mismatch",
+          title: "Combined Report — Patreon + Substack + YouTube",
+          status: "ready",
+          created_at: "2026-03-01T10:00:00Z",
+          platforms_included: ["Patreon", "Substack"],
+          source_count: 2,
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_title_mismatch");
+
+    await expect(page.getByTestId("report-content")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Combined Report — Patreon + Substack" })).toBeVisible();
+    await expect(page.getByText("Combined Report — Patreon + Substack + YouTube")).not.toBeVisible();
   });
 
   test("does not render source contribution line for single-source report", async ({ page }) => {

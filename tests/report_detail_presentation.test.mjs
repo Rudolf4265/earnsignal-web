@@ -165,6 +165,31 @@ test("buildReportDetailPresentationModel degrades gracefully for sparse report d
   assert.equal(model.heroMetrics.find((metric) => metric.id === "net_revenue")?.value, "$--");
 });
 
+test("buildReportDetailPresentationModel falls back to canonical title when explicit title conflicts with included sources", async () => {
+  const { buildReportDetailPresentationModel } = await loadModule(Date.now() + 21);
+
+  const model = buildReportDetailPresentationModel({
+    report: makeReport({
+      title: "Combined Report — Patreon + Substack + YouTube",
+      platformsIncluded: ["Patreon", "Substack"],
+      sourceCount: 2,
+      reportKind: "combined",
+      metrics: {
+        netRevenue: null,
+        subscribers: null,
+        stabilityIndex: null,
+        churnVelocity: null,
+        coverageMonths: null,
+        platformsConnected: 2,
+      },
+    }),
+    artifactModel: null,
+    artifactSignals: null,
+  });
+
+  assert.equal(model.heroTitle, "Combined Report — Patreon + Substack");
+});
+
 test("buildReportDetailPresentationModel maps platform-risk insight tone into hero signal when no score exists", async () => {
   const { buildReportDetailPresentationModel } = await loadModule(Date.now() + 3);
 

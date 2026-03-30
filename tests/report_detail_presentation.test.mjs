@@ -165,6 +165,28 @@ test("buildReportDetailPresentationModel degrades gracefully for sparse report d
   assert.equal(model.heroMetrics.find((metric) => metric.id === "net_revenue")?.value, "$--");
 });
 
+test("buildReportDetailPresentationModel uses source-based fallback summary wording", async () => {
+  const { buildReportDetailPresentationModel } = await loadModule(Date.now() + 22);
+
+  const model = buildReportDetailPresentationModel({
+    report: makeReport({
+      sourceCount: 1,
+      metrics: {
+        netRevenue: null,
+        subscribers: null,
+        stabilityIndex: null,
+        churnVelocity: null,
+        coverageMonths: null,
+        platformsConnected: 3,
+      },
+    }),
+    artifactModel: null,
+    artifactSignals: null,
+  });
+
+  assert.equal(model.executiveSummary[0], "This report includes data from 1 source.");
+});
+
 test("buildReportDetailPresentationModel falls back to canonical title when explicit title conflicts with included sources", async () => {
   const { buildReportDetailPresentationModel } = await loadModule(Date.now() + 21);
 
@@ -609,7 +631,7 @@ test("buildReportDetailPresentationModel keeps mixed diagnosis and comparison-un
   assert.equal(model.diagnosis.summary.includes("mixed pressure"), true);
   assert.equal(model.diagnosis.notice?.label, "Reduced confidence");
   assert.equal(model.whatChanged.comparisonAvailable, false);
-  assert.equal(model.whatChanged.unavailableBody?.includes("Unavailable for this report"), true);
+  assert.equal(model.whatChanged.unavailableBody, "Unavailable for this report because prior report unavailable.");
   assert.deepEqual(model.whatChanged.improved, []);
   assert.deepEqual(model.whatChanged.worsened, []);
   assert.deepEqual(model.whatChanged.watchNext, []);

@@ -273,13 +273,13 @@ function StrengthsRisksSection({ model }: { model: ReportWowSummaryViewModel }) 
   );
 }
 
-// ── Next 3 Actions ────────────────────────────────────────────────────────────
+// ── Recommended Actions ──────────────────────────────────────────────────────
 
 function NextActionsSection({ model }: { model: ReportWowSummaryViewModel }) {
   const { nextActions } = model;
   return (
     <div data-testid="wow-next-actions">
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">Next 3 Actions</p>
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">Recommended Actions</p>
       {nextActions.length > 0 ? (
         <ol className="space-y-2.5">
           {nextActions.map((action, index) => (
@@ -308,9 +308,7 @@ function NextActionsSection({ model }: { model: ReportWowSummaryViewModel }) {
         </ol>
       ) : (
         <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/70 p-4">
-          <p className="text-sm text-brand-text-secondary">
-            Prioritized action recommendations are not available in this report artifact.
-          </p>
+          <p className="text-sm text-brand-text-secondary">Recommended actions are not available in this report.</p>
         </div>
       )}
     </div>

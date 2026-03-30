@@ -353,7 +353,7 @@ test("ReportFreeTeaser upgrade CTA has correct copy", async () => {
   const source = await readFile(teaserComponentPath, "utf8");
 
   assert.equal(
-    source.includes("Your data is ready. Unlock the full report to see your biggest opportunity, platform risks, and next actions."),
+    source.includes("Your data is ready. Unlock the full report to see your biggest opportunity, platform risks, and recommended actions."),
     true,
   );
   assert.equal(source.includes("View plans"), true);
@@ -375,7 +375,7 @@ test("ReportFreeTeaser locked sections preview shows all four gated sections", a
   assert.equal(source.includes("Biggest Opportunity"), true);
   assert.equal(source.includes("Platform Mix"), true);
   assert.equal(source.includes("Strengths & Risks"), true);
-  assert.equal(source.includes("Next 3 Actions"), true);
+  assert.equal(source.includes("Recommended Actions"), true);
 });
 
 test("ReportFreeTeaser component renders only safe generic data", async () => {

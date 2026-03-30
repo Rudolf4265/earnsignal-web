@@ -172,7 +172,7 @@ test("shared diagnosis presentation keeps dashboard and report detail labels and
     metricIdPrefix: "shared",
     supportingMetricLimit: 4,
     noticeFallbackBody: "Diagnosis is bounded by the available evidence in this report.",
-    missingDiagnosisBody: "Typed diagnosis is unavailable for this report artifact.",
+    missingDiagnosisBody: "Diagnosis details are not available in this report.",
     missingSummaryBody: "Diagnosis details are limited for this report.",
   });
   const dashboard = dashboardModule.buildDashboardDiagnosisViewModel({
@@ -211,7 +211,7 @@ test("shared what-changed presentation centralizes comparison window formatting 
     itemLimit: 3,
     includeDirectionInDetail: true,
     noticeFallbackBody: "Comparison results are bounded by the comparable report evidence that was available.",
-    missingWhatChangedBody: "Typed report-over-report comparison is unavailable for this report artifact.",
+    missingWhatChangedBody: "Comparison details are not available in this report.",
     unavailableComparisonBody: "A prior comparable report is not available yet.",
   });
   const sharedContext = sharedModule.buildComparisonContextPresentation(whatChanged);
@@ -268,7 +268,7 @@ test("mixed, limited, and unavailable typed states stay aligned without upgradin
     metricIdPrefix: "shared",
     supportingMetricLimit: 4,
     noticeFallbackBody: "Diagnosis is bounded by the available evidence in this report.",
-    missingDiagnosisBody: "Typed diagnosis is unavailable for this report artifact.",
+    missingDiagnosisBody: "Diagnosis details are not available in this report.",
     missingSummaryBody: "Diagnosis details are limited for this report.",
   });
   const sharedWhatChanged = sharedModule.buildWhatChangedPresentation(whatChanged, {
@@ -276,7 +276,7 @@ test("mixed, limited, and unavailable typed states stay aligned without upgradin
     itemLimit: 3,
     includeDirectionInDetail: true,
     noticeFallbackBody: "Comparison results are bounded by the comparable report evidence that was available.",
-    missingWhatChangedBody: "Typed report-over-report comparison is unavailable for this report artifact.",
+    missingWhatChangedBody: "Comparison details are not available in this report.",
     unavailableComparisonBody: "A prior comparable report is not available yet.",
   });
   const dashboard = dashboardModule.buildDashboardDiagnosisViewModel({
@@ -296,7 +296,7 @@ test("mixed, limited, and unavailable typed states stay aligned without upgradin
   assert.equal(sharedWhatChanged.notice?.label, "Unavailable");
   assert.equal(report.whatChanged.notice?.label, sharedWhatChanged.notice?.label);
   assert.equal(report.whatChanged.unavailableBody, sharedWhatChanged.unavailableBody);
-  assert.equal(report.whatChanged.unavailableBody?.includes("Unavailable for this report"), true);
+  assert.equal(report.whatChanged.unavailableBody, "Unavailable for this report because prior report unavailable.");
   assert.equal(dashboard.comparisonContext, null);
 });
 
@@ -306,7 +306,7 @@ test("older artifacts without typed diagnosis or comparison stay conservative th
     metricIdPrefix: "shared",
     supportingMetricLimit: 4,
     noticeFallbackBody: "Diagnosis is bounded by the available evidence in this report.",
-    missingDiagnosisBody: "Typed diagnosis is unavailable for this report artifact.",
+    missingDiagnosisBody: "Diagnosis details are not available in this report.",
     missingSummaryBody: "Diagnosis details are limited for this report.",
   });
   const sharedWhatChanged = sharedModule.buildWhatChangedPresentation(null, {
@@ -314,7 +314,7 @@ test("older artifacts without typed diagnosis or comparison stay conservative th
     itemLimit: 3,
     includeDirectionInDetail: true,
     noticeFallbackBody: "Comparison results are bounded by the comparable report evidence that was available.",
-    missingWhatChangedBody: "Typed report-over-report comparison is unavailable for this report artifact.",
+    missingWhatChangedBody: "Comparison details are not available in this report.",
     unavailableComparisonBody: "A prior comparable report is not available yet.",
   });
   const dashboard = dashboardModule.buildDashboardDiagnosisViewModel({
@@ -330,19 +330,19 @@ test("older artifacts without typed diagnosis or comparison stay conservative th
 
   assert.equal(sharedDiagnosis.notice, null);
   assert.equal(sharedDiagnosis.supportingMetrics.length, 0);
-  assert.equal(sharedDiagnosis.unavailableBody, "Typed diagnosis is unavailable for this report artifact.");
+  assert.equal(sharedDiagnosis.unavailableBody, "Diagnosis details are not available in this report.");
   assert.equal(sharedWhatChanged.notice, null);
   assert.equal(sharedWhatChanged.improved.length, 0);
-  assert.equal(sharedWhatChanged.unavailableBody, "Typed report-over-report comparison is unavailable for this report artifact.");
+  assert.equal(sharedWhatChanged.unavailableBody, "Comparison details are not available in this report.");
   assert.equal(dashboard.heading, "No primary constraint identified yet");
   assert.equal(dashboard.hasTypedDiagnosis, false);
   assert.equal(dashboard.notice, null);
   assert.equal(dashboard.comparisonContext, null);
   assert.equal(dashboard.unavailableBody, "This snapshot does not contain enough structured evidence to identify a primary growth constraint yet.");
   assert.equal(report.diagnosis.notice, null);
-  assert.equal(report.diagnosis.unavailableBody, "Typed diagnosis is unavailable for this report artifact.");
+  assert.equal(report.diagnosis.unavailableBody, "Diagnosis details are not available in this report.");
   assert.equal(report.whatChanged.notice, null);
-  assert.equal(report.whatChanged.unavailableBody, "Typed report-over-report comparison is unavailable for this report artifact.");
+  assert.equal(report.whatChanged.unavailableBody, "Comparison details are not available in this report.");
 });
 
 test("shared diagnosis and what-changed helpers do not strengthen backend copy", async () => {
@@ -377,7 +377,7 @@ test("shared diagnosis and what-changed helpers do not strengthen backend copy",
     metricIdPrefix: "shared",
     supportingMetricLimit: 4,
     noticeFallbackBody: "Diagnosis is bounded by the available evidence in this report.",
-    missingDiagnosisBody: "Typed diagnosis is unavailable for this report artifact.",
+    missingDiagnosisBody: "Diagnosis details are not available in this report.",
     missingSummaryBody: "Diagnosis details are limited for this report.",
   });
   const sharedWhatChanged = sharedModule.buildWhatChangedPresentation(whatChanged, {
@@ -385,7 +385,7 @@ test("shared diagnosis and what-changed helpers do not strengthen backend copy",
     itemLimit: 3,
     includeDirectionInDetail: true,
     noticeFallbackBody: "Comparison results are bounded by the comparable report evidence that was available.",
-    missingWhatChangedBody: "Typed report-over-report comparison is unavailable for this report artifact.",
+    missingWhatChangedBody: "Comparison details are not available in this report.",
     unavailableComparisonBody: "A prior comparable report is not available yet.",
   });
   const dashboard = dashboardModule.buildDashboardDiagnosisViewModel({

@@ -302,7 +302,7 @@ test("momentum falls back gracefully when no diagnosis primitives", async () => 
   assert.equal(result.momentum.summaryText.length > 0, true);
 });
 
-test("next 3 actions renders from recommendations", async () => {
+test("recommended actions renders from recommendations", async () => {
   const { buildReportWowSummaryViewModel } = await loadModule();
   const pres = makePresentation({
     recommendations: [
@@ -322,7 +322,7 @@ test("next 3 actions renders from recommendations", async () => {
   assert.equal(result.nextActions.some((a) => a.title.includes("fourth action")), false);
 });
 
-test("next 3 actions returns empty array when no recommendations", async () => {
+test("recommended actions returns empty array when no recommendations", async () => {
   const { buildReportWowSummaryViewModel } = await loadModule();
   const result = buildReportWowSummaryViewModel(makePresentation(), makeArtifactModel());
 
@@ -421,7 +421,7 @@ test("summary sentence prefers substantive executive summary over null", async (
 test("summary sentence returns null when only generic placeholder text is available", async () => {
   const { buildReportWowSummaryViewModel } = await loadModule();
   const pres = makePresentation({
-    executiveSummary: ["Summary details are limited for this report artifact."],
+    executiveSummary: ["Summary details are limited for this report."],
   });
   const result = buildReportWowSummaryViewModel(pres, makeArtifactModel());
 

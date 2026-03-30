@@ -62,7 +62,7 @@ export function ReportFreeTeaser({ model }: ReportFreeTeaserProps) {
           </div>
 
           <p className="text-base font-semibold leading-snug text-brand-text-primary">
-            Your data is ready. Unlock the full report to see your biggest opportunity, platform risks, and next actions.
+            Your data is ready. Unlock the full report to see your biggest opportunity, platform risks, and recommended actions.
           </p>
 
           <div className="flex flex-wrap gap-2">
@@ -79,7 +79,7 @@ export function ReportFreeTeaser({ model }: ReportFreeTeaserProps) {
           { label: "Biggest Opportunity", description: "Your highest-value growth lever and the action to take" },
           { label: "Platform Mix", description: "Concentration risk across your revenue sources" },
           { label: "Strengths & Risks", description: "What is working and what to watch closely" },
-          { label: "Next 3 Actions", description: "Prioritized steps to improve your creator business" },
+          { label: "Recommended Actions", description: "Prioritized steps to improve your creator business" },
         ].map((section) => (
           <div
             key={section.label}
@@ -108,7 +108,7 @@ export function ReportFreeTeaser({ model }: ReportFreeTeaserProps) {
             </p>
             <p className="text-sm leading-relaxed text-brand-text-secondary">
               <span className="font-medium text-brand-text-primary">Unlock your full creator business report. </span>
-              See revenue breakdown, subscriber trends, platform concentration, and prioritized next actions in one place.
+              See revenue breakdown, subscriber trends, platform concentration, and recommended actions in one place.
             </p>
           </div>
           <Link

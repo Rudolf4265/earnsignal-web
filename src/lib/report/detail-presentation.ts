@@ -385,7 +385,7 @@ function buildDiagnosisPrimitives(
 
 function buildExecutiveSummary(input: {
   reportSummary: string;
-  reportPlatformsConnected: number | null;
+  reportSourceCount: number | null;
   netRevenue: number | null;
   stabilityIndex: number | null;
   artifactSummary: string[];
@@ -410,15 +410,14 @@ function buildExecutiveSummary(input: {
   if (input.stabilityIndex !== null) {
     fallback.push(`Creator stability is ${formatScore(input.stabilityIndex)} based on current report signals.`);
   }
-  if (input.reportPlatformsConnected !== null) {
-    const suffix = input.reportPlatformsConnected === 1 ? "" : "s";
-    fallback.push(`${formatNumber(input.reportPlatformsConnected)} platform${suffix} contributed data to this report.`);
+  if (input.reportSourceCount !== null) {
+    fallback.push(`This report includes data from ${formatNumber(input.reportSourceCount)} ${input.reportSourceCount === 1 ? "source" : "sources"}.`);
   }
   if (input.keySignals[0]) {
     fallback.push(input.keySignals[0]);
   }
 
-  return fallback.length > 0 ? fallback.slice(0, 3) : ["Summary details are limited for this report artifact."];
+  return fallback.length > 0 ? fallback.slice(0, 3) : ["Summary details are limited for this report."];
 }
 
 function buildReportTruthSummary(model: ReportViewModel | null): ReportDetailPresentationNotice | null {
@@ -705,7 +704,7 @@ function buildDiagnosisSection(
     metricIdPrefix: "diagnosis",
     supportingMetricLimit: 4,
     noticeFallbackBody: "Diagnosis is bounded by the available evidence in this report.",
-    missingDiagnosisBody: "Typed diagnosis is unavailable for this report artifact.",
+    missingDiagnosisBody: "Diagnosis details are not available in this report.",
     missingSummaryBody: "Diagnosis details are limited for this report.",
   });
 
@@ -727,7 +726,7 @@ function buildWhatChangedSection(
     itemLimit: 3,
     includeDirectionInDetail: true,
     noticeFallbackBody: "Comparison results are bounded by the comparable report evidence that was available.",
-    missingWhatChangedBody: "Typed report-over-report comparison is unavailable for this report artifact.",
+    missingWhatChangedBody: "Comparison details are not available in this report.",
     unavailableComparisonBody: "A prior comparable report is not available yet.",
   });
 }
@@ -774,7 +773,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
 
   const summary = buildExecutiveSummary({
     reportSummary: input.report.summary,
-    reportPlatformsConnected: input.report.metrics.platformsConnected,
+    reportSourceCount: input.report.sourceCount ?? input.report.metrics.platformsConnected,
     netRevenue: kpis.netRevenue,
     stabilityIndex: kpis.stabilityIndex,
     artifactSummary: dedupeText(input.artifactModel?.executiveSummaryParagraphs ?? []),

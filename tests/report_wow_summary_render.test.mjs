@@ -15,3 +15,10 @@ test("report wow summary renders the coverage and trust panel from report truth 
   assert.equal(source.includes("Limited by available business metrics"), true);
   assert.equal(source.includes("model.coverage.sectionStrength.map"), true);
 });
+
+test("report wow summary uses recommended actions wording", async () => {
+  const source = await readFile(wowSummaryPath, "utf8");
+
+  assert.equal(source.includes("Recommended Actions"), true);
+  assert.equal(source.includes("Recommended actions are not available in this report."), true);
+});

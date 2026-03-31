@@ -527,13 +527,14 @@ export default function ReportPage() {
   const isFounder = useMemo(() => isFounderFromEntitlement(entitlements), [entitlements]);
   const canAccessFullPdf = isFounder || canAccessFullReportPdf(pdfAccessMode);
   const canAccessDebugPayload = useMemo(() => isFounder || hasProEquivalentEntitlement(entitlements), [entitlements, isFounder]);
+  const showContinuityModules = canAccessDebugPayload;
 
   const wowSummary = useMemo(
     () =>
       presentation
-        ? buildReportWowSummaryViewModel(presentation, state.artifactModel, state.report)
+        ? buildReportWowSummaryViewModel(presentation, state.artifactModel, state.report, { includeContinuitySignals: showContinuityModules })
         : null,
-    [presentation, state.artifactModel, state.report],
+    [presentation, showContinuityModules, state.artifactModel, state.report],
   );
   const freeTeaserModel = useMemo(
     () => (presentation ? buildReportFreeTeaserViewModel(presentation) : null),
@@ -577,6 +578,10 @@ export default function ReportPage() {
   const showGrowthRecommendationsContent = isFounder || canRenderReportDetailProContent(proSectionGate.growthRecommendations);
   const showRevenueOutlookContent = isFounder || canRenderReportDetailProContent(proSectionGate.revenueOutlook);
   const showPlatformRiskExplanationContent = isFounder || canRenderReportDetailProContent(proSectionGate.platformRiskExplanation);
+  const revenueSectionTitle = showContinuityModules ? "Revenue and Trend" : "Revenue Snapshot";
+  const revenueSectionDescription = showContinuityModules
+    ? `${presentation?.displayContext.historyLabel} — net revenue across your report window.`
+    : "Net revenue across your purchased report window.";
 
   return (
     <FeatureGuard feature="report">
@@ -636,7 +641,7 @@ export default function ReportPage() {
                       ))}
                     </div>
                   ) : null}
-                  {presentation.displayContext.sourceContributionLine ? (
+                  {showContinuityModules && presentation.displayContext.sourceContributionLine ? (
                     <p className="text-xs text-brand-text-muted" data-testid="report-source-contribution">
                       {presentation.displayContext.sourceContributionLine}
                     </p>
@@ -689,6 +694,14 @@ export default function ReportPage() {
               </div>
 
               {presentation.heroNotice ? <TruthNotice notice={presentation.heroNotice} testId="report-hero-truth-notice" /> : null}
+              {showFullReportContent && !showContinuityModules ? (
+                <div
+                  className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/70 px-4 py-3 text-sm text-brand-text-secondary shadow-brand-card"
+                  data-testid="report-owned-snapshot-banner"
+                >
+                  This report is a purchased snapshot. Upgrade to Pro for history, comparisons, and ongoing intelligence.
+                </div>
+              ) : null}
 
               {showFullReportContent ? (
                 <div className="space-y-2">
@@ -757,7 +770,7 @@ export default function ReportPage() {
           </section>
 
           <section className="space-y-3">
-            <DashboardSectionHeader title="Revenue and Trend" description={`${presentation.displayContext.historyLabel} — net revenue across your report window.`} />
+            <DashboardSectionHeader title={revenueSectionTitle} description={revenueSectionDescription} />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               {revenueTrend.hasRenderableChart ? (
                 <div className="space-y-3">
@@ -804,44 +817,46 @@ export default function ReportPage() {
             </PanelCard>
           </section>
 
-          {presentation.whatChanged.comparisonAvailable ? (
-            <section className="space-y-3" data-testid="report-what-changed-section">
-              <DashboardSectionHeader title="What Changed" description="How business metrics changed versus the prior report period." />
-              <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-                <div className="space-y-4">
-                  {presentation.whatChanged.notice ? <TruthNotice notice={presentation.whatChanged.notice} testId="report-what-changed-notice" /> : null}
-                  {presentation.whatChanged.priorPeriodLabel ? (
-                    <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">{presentation.whatChanged.priorPeriodLabel}</p>
-                  ) : null}
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    <ComparisonBucket
-                      title="Improved"
-                      items={presentation.whatChanged.improved}
-                      emptyMessage="No improvements to report for this period."
-                      testId="report-what-changed-improved"
-                    />
-                    <ComparisonBucket
-                      title="Declined"
-                      items={presentation.whatChanged.worsened}
-                      emptyMessage="No notable declines for this period."
-                      testId="report-what-changed-worsened"
-                    />
-                    <ComparisonBucket
-                      title="Watch Next"
-                      items={presentation.whatChanged.watchNext}
-                      emptyMessage="Nothing to flag for the next period."
-                      testId="report-what-changed-watch-next"
-                    />
+          {showContinuityModules ? (
+            presentation.whatChanged.comparisonAvailable ? (
+              <section className="space-y-3" data-testid="report-what-changed-section">
+                <DashboardSectionHeader title="What Changed" description="How business metrics changed versus the prior report period." />
+                <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+                  <div className="space-y-4">
+                    {presentation.whatChanged.notice ? <TruthNotice notice={presentation.whatChanged.notice} testId="report-what-changed-notice" /> : null}
+                    {presentation.whatChanged.priorPeriodLabel ? (
+                      <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">{presentation.whatChanged.priorPeriodLabel}</p>
+                    ) : null}
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                      <ComparisonBucket
+                        title="Improved"
+                        items={presentation.whatChanged.improved}
+                        emptyMessage="No improvements to report for this period."
+                        testId="report-what-changed-improved"
+                      />
+                      <ComparisonBucket
+                        title="Declined"
+                        items={presentation.whatChanged.worsened}
+                        emptyMessage="No notable declines for this period."
+                        testId="report-what-changed-worsened"
+                      />
+                      <ComparisonBucket
+                        title="Watch Next"
+                        items={presentation.whatChanged.watchNext}
+                        emptyMessage="Nothing to flag for the next period."
+                        testId="report-what-changed-watch-next"
+                      />
+                    </div>
                   </div>
-                </div>
-              </PanelCard>
-            </section>
-          ) : (
-            <p className="text-xs text-brand-text-muted/70" data-testid="report-what-changed-section">
-              <span className="font-medium text-brand-text-muted">Period comparison:</span>{" "}
-              {presentation.whatChanged.unavailableBody ?? "A prior comparable report is not available yet."}
-            </p>
-          )}
+                </PanelCard>
+              </section>
+            ) : (
+              <p className="text-xs text-brand-text-muted/70" data-testid="report-what-changed-section">
+                <span className="font-medium text-brand-text-muted">Period comparison:</span>{" "}
+                {presentation.whatChanged.unavailableBody ?? "A prior comparable report is not available yet."}
+              </p>
+            )
+          ) : null}
 
           <section className="space-y-3">
             <DashboardSectionHeader title="Recommended Actions" description="Evidence-led actions from your report, ordered by priority." />

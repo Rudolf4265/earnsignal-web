@@ -21,14 +21,11 @@ test("report detail includes unlocked rendering branches for Pro-gated sections"
 
   assert.equal(source.includes("showPlatformRiskExplanationContent ? ("), true);
   assert.equal(source.includes('data-testid="report-platform-risk-explanation-unlocked"'), true);
-  assert.equal(source.includes('data-testid="report-diagnosis-section"'), true);
   assert.equal(source.includes('data-testid="report-what-changed-section"'), true);
   assert.equal(source.includes('testId="report-what-changed-notice"'), true);
   assert.equal(source.includes('testId="report-what-changed-improved"'), true);
   assert.equal(source.includes('testId="report-what-changed-worsened"'), true);
   assert.equal(source.includes('testId="report-what-changed-watch-next"'), true);
-  assert.equal(source.includes("Primary typed read"), true);
-  assert.equal(source.includes("No typed watch-next items were emitted for this comparison."), true);
 });
 
 test("report detail includes locked upsell rendering for Basic users", async () => {
@@ -38,7 +35,7 @@ test("report detail includes locked upsell rendering for Basic users", async () 
   assert.equal(source.includes("Unlock subscriber health insights"), true);
 
   assert.equal(source.includes('testId="report-growth-recommendations-locked"'), true);
-  assert.equal(source.includes("Unlock growth recommendations"), true);
+  assert.equal(source.includes("Unlock recommended actions"), true);
 
   assert.equal(source.includes('testId="report-revenue-outlook-locked"'), true);
   assert.equal(source.includes("Unlock revenue forecasts"), true);
@@ -62,10 +59,35 @@ test("report detail includes loading-safe placeholders for unresolved entitlemen
 test("report detail keeps Pro content conditional to avoid locked-state leaks", async () => {
   const source = await readFile(reportDetailPagePath, "utf8");
 
+  assert.equal(source.includes("const showContinuityModules = canAccessDebugPayload;"), true);
+  assert.equal(source.includes("includeContinuitySignals: showContinuityModules"), true);
   assert.equal(source.includes("const showSubscriberHealthContent = isFounder || canRenderReportDetailProContent(proSectionGate.subscriberHealth);"), true);
   assert.equal(source.includes("const showGrowthRecommendationsContent = isFounder || canRenderReportDetailProContent(proSectionGate.growthRecommendations);"), true);
   assert.equal(source.includes("const showRevenueOutlookContent = isFounder || canRenderReportDetailProContent(proSectionGate.revenueOutlook);"), true);
   assert.equal(source.includes("const showPlatformRiskExplanationContent = isFounder || canRenderReportDetailProContent(proSectionGate.platformRiskExplanation);"), true);
+});
+
+test("report detail adds a single owned snapshot explainer and hides continuity framing for Report users", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8");
+
+  assert.equal(source.includes('data-testid="report-owned-snapshot-banner"'), true);
+  assert.equal(
+    source.includes("This report is a purchased snapshot. Upgrade to Pro for history, comparisons, and ongoing intelligence."),
+    true,
+  );
+  assert.equal(source.includes("showFullReportContent && !showContinuityModules ? ("), true);
+  assert.equal(source.includes("showContinuityModules && presentation.displayContext.sourceContributionLine ? ("), true);
+  assert.equal(source.includes('const revenueSectionTitle = showContinuityModules ? "Revenue and Trend" : "Revenue Snapshot";'), true);
+  assert.equal(source.includes('const revenueSectionDescription = showContinuityModules'), true);
+});
+
+test("report detail keeps comparison modules behind continuity access", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8");
+
+  assert.equal(source.includes("{showContinuityModules ? ("), true);
+  assert.equal(source.includes("presentation.whatChanged.comparisonAvailable ? ("), true);
+  assert.equal(source.includes('data-testid="report-what-changed-section"'), true);
+  assert.equal(source.includes('<span className="font-medium text-brand-text-muted">Period comparison:</span>{" "}'), true);
 });
 
 test("report detail renders truth notices and metric badges for limited states", async () => {

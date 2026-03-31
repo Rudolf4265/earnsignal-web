@@ -330,6 +330,35 @@ test("recommended actions returns empty array when no recommendations", async ()
   assert.equal(result.nextActions.length, 0);
 });
 
+test("wow summary suppresses prior-period growth detail when continuity signals are disabled", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const pres = makePresentation({
+    diagnosis: {
+      diagnosisTypeLabel: null,
+      summary: null,
+      notice: null,
+      supportingMetrics: [],
+      primitives: [{ label: "Subscriber trend", value: "Growing" }],
+      unavailableBody: null,
+    },
+  });
+  const artifactModel = makeArtifactModel({
+    whatChanged: {
+      deltas: {
+        active_subscribers: {
+          percentDelta: 12,
+          direction: "up",
+        },
+      },
+    },
+  });
+
+  const result = buildReportWowSummaryViewModel(pres, artifactModel, null, { includeContinuitySignals: false });
+
+  assert.equal(result.kpiCards[2].value, "Growing");
+  assert.equal(result.kpiCards[2].detail, "subscriber trend");
+});
+
 test("strengths uses improved items from whatChanged when comparison is available", async () => {
   const { buildReportWowSummaryViewModel } = await loadModule();
   const pres = makePresentation({
@@ -355,6 +384,54 @@ test("strengths uses improved items from whatChanged when comparison is availabl
   assert.equal(result.strengthsRisks.strengths[0].text.includes("stability"), true);
   assert.equal(result.strengthsRisks.risks.length, 1);
   assert.equal(result.strengthsRisks.risks[0].text.includes("concentration"), true);
+});
+
+test("wow summary falls back to snapshot strengths and risks when continuity signals are disabled", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const pres = makePresentation({
+    whatChanged: {
+      comparisonAvailable: true,
+      priorPeriodLabel: "Prior period",
+      notice: null,
+      improved: [{ id: "i1", body: "Revenue stability improved month-over-month.", detail: null, stateLabel: "Improved", stateTone: "good" }],
+      worsened: [{ id: "w1", body: "Platform concentration increased.", detail: null, stateLabel: "Risk", stateTone: "warn" }],
+      watchNext: [],
+      unavailableBody: null,
+    },
+  });
+  const artifactModel = makeArtifactModel({
+    diagnosis: {
+      diagnosisType: "concentration_pressure",
+      summaryText: null,
+      supportingMetrics: [],
+      primitives: {
+        revenueTrendDirection: "up",
+        activeSubscribersDirection: "up",
+        churnPressureLevel: "low",
+        concentrationPressureLevel: "high",
+        monetizationEfficiencyLevel: "medium",
+        stabilityDirection: "up",
+        evidenceStrength: "moderate",
+        dataQualityLevel: null,
+        analysisMode: null,
+      },
+      availability: "available",
+      confidence: "medium",
+      confidenceAdjusted: false,
+      evidenceStrength: "moderate",
+      insufficientReason: null,
+      reasonCodes: [],
+      dataQualityLevel: null,
+      analysisMode: null,
+      recommendationMode: null,
+    },
+  });
+
+  const result = buildReportWowSummaryViewModel(pres, artifactModel, null, { includeContinuitySignals: false });
+
+  assert.equal(result.strengthsRisks.strengths.some((item) => item.text.includes("month-over-month")), false);
+  assert.equal(result.strengthsRisks.strengths.some((item) => item.text.toLowerCase().includes("revenue")), true);
+  assert.equal(result.strengthsRisks.risks.some((item) => item.text.toLowerCase().includes("concentration")), true);
 });
 
 test("strengths derives from diagnosis primitives when no comparison available", async () => {

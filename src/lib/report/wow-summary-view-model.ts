@@ -67,6 +67,10 @@ export type ReportWowSummaryViewModel = {
   nextActions: WowNextActionViewModel[];
 };
 
+export type BuildReportWowSummaryOptions = {
+  includeContinuitySignals?: boolean;
+};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const KNOWN_PLATFORMS = ["Patreon", "Substack", "YouTube", "Instagram", "TikTok"];
@@ -186,6 +190,7 @@ function formatSignedPercent(value: number): string {
 function buildKpiCards(
   presentation: ReportDetailPresentationModel,
   artifactModel: ReportViewModel | null,
+  options?: BuildReportWowSummaryOptions,
 ): [WowKpiCard, WowKpiCard, WowKpiCard, WowKpiCard] {
   // Card 1: Total Revenue
   const revenueMetric = presentation.heroMetrics.find((m) => m.id === "net_revenue");
@@ -208,7 +213,10 @@ function buildKpiCards(
   // Card 3: Net Growth — try delta, fall back to direction label
   let growthValue = "--";
   let growthDetail: string | null = null;
-  const subsDelta = artifactModel?.whatChanged?.deltas?.["active_subscribers"] ?? artifactModel?.whatChanged?.deltas?.["subscribers"] ?? null;
+  const includeContinuitySignals = options?.includeContinuitySignals ?? true;
+  const subsDelta = includeContinuitySignals
+    ? artifactModel?.whatChanged?.deltas?.["active_subscribers"] ?? artifactModel?.whatChanged?.deltas?.["subscribers"] ?? null
+    : null;
   if (subsDelta?.percentDelta !== null && subsDelta?.percentDelta !== undefined) {
     growthValue = formatSignedPercent(subsDelta.percentDelta);
     growthDetail = subsDelta.direction === "up" ? "vs prior period" : subsDelta.direction === "down" ? "vs prior period" : null;
@@ -348,8 +356,9 @@ function buildMomentum(
 function buildStrengthsRisks(
   presentation: ReportDetailPresentationModel,
   artifactModel: ReportViewModel | null,
+  options?: BuildReportWowSummaryOptions,
 ): WowStrengthsRisksViewModel {
-  const comparisonAvailable = presentation.whatChanged.comparisonAvailable;
+  const comparisonAvailable = (options?.includeContinuitySignals ?? true) && presentation.whatChanged.comparisonAvailable;
 
   if (comparisonAvailable) {
     const strengths: WowStrengthRiskItem[] = presentation.whatChanged.improved
@@ -422,9 +431,10 @@ export function buildReportWowSummaryViewModel(
   presentation: ReportDetailPresentationModel,
   artifactModel: ReportViewModel | null,
   reportDetail?: Pick<ReportDetail, "snapshotCoverageNote" | "reportHasBusinessMetrics" | "sectionStrength"> | null,
+  options?: BuildReportWowSummaryOptions,
 ): ReportWowSummaryViewModel {
   return {
-    kpiCards: buildKpiCards(presentation, artifactModel),
+    kpiCards: buildKpiCards(presentation, artifactModel, options),
     summarySentence: buildSummarySentence(presentation, artifactModel),
     coverage: {
       snapshotCoverageNote: reportDetail?.snapshotCoverageNote ?? null,
@@ -434,7 +444,7 @@ export function buildReportWowSummaryViewModel(
     opportunity: buildOpportunity(presentation, artifactModel),
     platformMix: buildPlatformMix(presentation),
     momentum: buildMomentum(presentation, artifactModel),
-    strengthsRisks: buildStrengthsRisks(presentation, artifactModel),
+    strengthsRisks: buildStrengthsRisks(presentation, artifactModel, options),
     nextActions: buildNextActions(presentation),
   };
 }

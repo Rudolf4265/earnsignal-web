@@ -236,6 +236,75 @@ const friendlyFailureMessage = (reasonCode: string | null) => {
   }
 };
 
+function buildUploadErrorPresentation(reasonCode: string | null, fallbackMessage: string | null): {
+  title: string;
+  message: string;
+} {
+  const normalizedCode = reasonCode?.toLowerCase() ?? null;
+
+  if (
+    normalizedCode === "invalid_upload_platform" ||
+    normalizedCode === "schema_mismatch" ||
+    normalizedCode === "schema_mismatch_or_missing_columns"
+  ) {
+    return {
+      title: "File mismatch",
+      message: "This file does not match the selected source. Choose the matching source and retry.",
+    };
+  }
+
+  if (
+    normalizedCode === "validation_failed" ||
+    normalizedCode === "csv_validation_failed"
+  ) {
+    return {
+      title: "File issue",
+      message: "We could not use this file for the selected source. Check the export and retry.",
+    };
+  }
+
+  if (
+    normalizedCode === "zip_not_importable" ||
+    normalizedCode === "candidate_zip_not_yet_supported" ||
+    normalizedCode === "ambiguous_archive_shape" ||
+    normalizedCode === "not_zip" ||
+    normalizedCode === "corrupt_archive" ||
+    normalizedCode === "encrypted_or_unreadable_archive" ||
+    normalizedCode === "unsupported_archive_shape"
+  ) {
+    return {
+      title: "ZIP issue",
+      message: "We could not use that ZIP export. Retry with the original download from the platform.",
+    };
+  }
+
+  if (normalizedCode === "session_expired") {
+    return {
+      title: "Session expired",
+      message: "Your session ended before we could finish the upload. Log in again and retry.",
+    };
+  }
+
+  if (normalizedCode === "timeout") {
+    return {
+      title: "Upload still processing",
+      message: "We could not confirm the upload finished yet. Retry the status check or start over.",
+    };
+  }
+
+  if (normalizedCode === "entitlement_required") {
+    return {
+      title: "Report access required",
+      message: "Upload validation completed, but running a report requires Report or Pro access.",
+    };
+  }
+
+  return {
+    title: "Upload issue",
+    message: fallbackMessage ?? "We could not complete your upload. Please retry.",
+  };
+}
+
 // Per-platform file guidance shown in the file upload step.
 // All steps map to official export flows — do not invent formats.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -556,8 +625,6 @@ export default function UploadStepper({
   const [error, setError] = useState<string | null>(null);
   const [reasonCode, setReasonCode] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
-  const [errorRequestId, setErrorRequestId] = useState<string | null>(null);
-  const [errorOperation, setErrorOperation] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<UploadUiStatus | null>(null);
@@ -658,8 +725,6 @@ export default function UploadStepper({
     setError(null);
     setReasonCode(null);
     setErrorDetails(null);
-    setErrorRequestId(null);
-    setErrorOperation(null);
     setWarnings([]);
     setBusy(false);
     setProcessingStatus(null);
@@ -718,8 +783,6 @@ export default function UploadStepper({
       setError(resolvedMessage);
       setReasonCode(params.reasonCode);
       setStatusMsg(resolvedMessage);
-      setErrorRequestId(params.requestId ?? null);
-      setErrorOperation(params.operation ?? null);
       setErrorDetails(
         buildUploadDiagnostics({
           uploadId: params.uploadId,
@@ -754,8 +817,6 @@ export default function UploadStepper({
         setError(null);
         setReasonCode(null);
         setErrorDetails(null);
-        setErrorRequestId(null);
-        setErrorOperation(null);
         return;
       }
 
@@ -766,8 +827,6 @@ export default function UploadStepper({
         setError(null);
         setReasonCode(null);
         setErrorDetails(null);
-        setErrorRequestId(null);
-        setErrorOperation(null);
         return;
       }
 
@@ -778,8 +837,6 @@ export default function UploadStepper({
         setError(null);
         setReasonCode(null);
         setErrorDetails(null);
-        setErrorRequestId(null);
-        setErrorOperation(null);
         return;
       }
 
@@ -804,8 +861,6 @@ export default function UploadStepper({
     setError(null);
     setReasonCode(null);
     setErrorDetails(null);
-    setErrorRequestId(null);
-    setErrorOperation(null);
     setWarnings([]);
     setBusy(false);
     setProcessingStatus(null);
@@ -832,8 +887,6 @@ export default function UploadStepper({
     setError(null);
     setReasonCode(null);
     setErrorDetails(null);
-    setErrorRequestId(null);
-    setErrorOperation(null);
     setRunReportBusy(false);
     setRunReportError(null);
     setStep("platform");
@@ -969,8 +1022,6 @@ export default function UploadStepper({
     setError(null);
     setReasonCode(null);
     setErrorDetails(null);
-    setErrorRequestId(null);
-    setErrorOperation(null);
     setWarnings([]);
     setRunReportError(null);
 
@@ -1258,6 +1309,11 @@ export default function UploadStepper({
     };
   }, [clearResumeCandidateState, resumeIfBackendActive, step, uploadId]);
 
+  const uploadErrorPresentation = useMemo(
+    () => buildUploadErrorPresentation(reasonCode, error),
+    [error, reasonCode],
+  );
+
   return (
     <section className="space-y-6 rounded-[1.75rem] border border-white/8 bg-[#081325]/95 p-5 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.95)] backdrop-blur md:p-6">
       <UploadFlowHeader />
@@ -1267,11 +1323,27 @@ export default function UploadStepper({
       {error ? (
         <ErrorBanner
           data-testid="upload-terminal-error"
-          title="Upload issue"
-          message="We couldn't complete your upload. This can happen if the connection was interrupted."
-          requestId={errorRequestId ?? undefined}
+          title={uploadErrorPresentation.title}
+          message={uploadErrorPresentation.message}
         >
           <div className="flex flex-wrap items-center gap-3 text-xs">
+            <button
+              type="button"
+              data-testid="upload-retry"
+              className="inline-flex rounded-lg border border-rose-200/60 px-3 py-1.5 font-medium text-rose-50 transition hover:bg-rose-300/10 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => void retryProcessing()}
+              disabled={!uploadId || busy}
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              data-testid="upload-reset"
+              className="inline-flex rounded-lg border border-rose-200/60 px-3 py-1.5 font-medium text-rose-50 transition hover:bg-rose-300/10"
+              onClick={resetFlow}
+            >
+              Start over
+            </button>
             <button
               type="button"
               data-testid="upload-copy-diagnostics"
@@ -1410,8 +1482,6 @@ export default function UploadStepper({
               setStep("file");
               setError(null);
               setErrorDetails(null);
-              setErrorRequestId(null);
-              setErrorOperation(null);
             }}
             onStartOver={resetFlow}
           />
@@ -1521,27 +1591,18 @@ export default function UploadStepper({
               </div>
             </>
           ) : null}
-          <div className="flex gap-2">
-            {error ? (
+          {!error ? (
+            <div className="flex gap-2">
               <button
                 type="button"
-                data-testid="upload-retry"
-                onClick={() => void retryProcessing()}
-                disabled={!uploadId || busy}
-                className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+                data-testid="upload-reset"
+                onClick={resetFlow}
+                className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/[0.05]"
               >
-                Retry status
+                Start over
               </button>
-            ) : null}
-            <button
-              type="button"
-              data-testid="upload-reset"
-              onClick={resetFlow}
-              className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/[0.05]"
-            >
-              Start over
-            </button>
-          </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

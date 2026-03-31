@@ -77,7 +77,7 @@ function ReadyToRunBanner({
   onRunReport,
   onViewReports,
 }: ReadyToRunBannerProps) {
-  const countLabel = `${connectedCount} ${connectedCount === 1 ? "source" : "sources"} connected`;
+  const countLabel = `${connectedCount} ${connectedCount === 1 ? "source" : "sources"} ready for this report`;
 
   return (
     <section className="rounded-[1.5rem] border border-white/10 bg-[linear-gradient(145deg,rgba(11,24,50,0.96),rgba(14,32,69,0.96),rgba(9,20,43,0.98))] p-5 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.95)] sm:p-6">
@@ -175,42 +175,32 @@ function renderAction(action: SourceListAction | undefined, onUploadAction: (pla
 }
 
 function SourceRow({ item, onUploadAction }: SourceRowProps) {
-  const compactMetaLabel = item.issueLabel
-    ? item.issueLabel
-    : item.lastUpdatedLabel
-      ? `Updated ${item.lastUpdatedLabel}`
-      : "No data yet";
-  const desktopMetaLabel =
+  const metaLabel =
     item.status === "fix_needed"
       ? item.issueLabel || "Needs review"
       : item.lastUpdatedLabel
-        ? `Updated ${item.lastUpdatedLabel}`
-        : "-";
+        ? `Last updated ${item.lastUpdatedLabel}`
+        : "No upload yet";
 
   return (
     <div
-      className="grid grid-cols-1 gap-3 px-4 py-4 transition-colors hover:bg-white/[0.02] md:grid-cols-[minmax(180px,1.2fr)_auto_minmax(140px,0.8fr)_auto] md:items-center md:gap-4"
+      className="flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-white/[0.02] md:flex-row md:items-center md:justify-between md:gap-4"
       data-testid={`workspace-source-row-${item.id}`}
     >
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.03] ring-1 ring-inset ring-white/8">
           <Image src={item.icon} alt="" width={18} height={18} className="h-[18px] w-[18px] object-contain" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 space-y-1">
           <h3 className="truncate text-sm font-semibold text-white">{item.name}</h3>
-          <p className="truncate text-xs text-slate-400">{compactMetaLabel}</p>
+          <p className="text-xs leading-5 text-slate-400">{metaLabel}</p>
         </div>
       </div>
 
-      <div className="md:justify-self-start">
+      <div className="flex flex-wrap items-center gap-3 md:justify-end">
         <StatusPill variant={getPrimarySourceStatusVariant(item.status)} className="text-[11px] tracking-wide">
           {getPrimarySourceStatusLabel(item.status)}
         </StatusPill>
-      </div>
-
-      <div className="hidden text-xs text-slate-400 md:block">{desktopMetaLabel}</div>
-
-      <div className="flex items-center gap-3 md:justify-self-end">
         {renderAction(item.primaryAction, onUploadAction, "primary")}
         {renderAction(item.secondaryAction, onUploadAction, "secondary")}
       </div>
@@ -222,17 +212,16 @@ function SourceRowsSkeleton() {
   return (
     <div className="divide-y divide-white/8">
       {Array.from({ length: 5 }, (_, index) => (
-        <div key={`workspace-source-skeleton-${index + 1}`} className="grid grid-cols-1 gap-3 px-4 py-4 md:grid-cols-[minmax(180px,1.2fr)_auto_minmax(140px,0.8fr)_auto] md:items-center md:gap-4">
-          <div className="flex items-center gap-3">
+        <div key={`workspace-source-skeleton-${index + 1}`} className="flex flex-col gap-3 px-4 py-4 md:flex-row md:items-center md:justify-between md:gap-4">
+          <div className="flex items-start gap-3">
             <SkeletonBlock className="h-9 w-9 rounded-xl bg-white/10" />
             <div className="space-y-2">
               <SkeletonBlock className="h-4 w-24 bg-white/10" />
               <SkeletonBlock className="h-3 w-32 bg-white/10" />
             </div>
           </div>
-          <SkeletonBlock className="h-6 w-24 rounded-full bg-white/10" />
-          <SkeletonBlock className="hidden h-4 w-28 bg-white/10 md:block" />
-          <div className="flex items-center gap-3 md:justify-self-end">
+          <div className="flex items-center gap-3 md:justify-end">
+            <SkeletonBlock className="h-6 w-24 rounded-full bg-white/10" />
             <SkeletonBlock className="h-9 w-24 rounded-xl bg-white/10" />
             <SkeletonBlock className="h-4 w-14 bg-white/10" />
           </div>
@@ -270,7 +259,7 @@ function SourceListSection({
       <div className="flex flex-col gap-3 border-b border-white/8 px-5 py-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-white">Your data sources</h2>
-          <p className="mt-1 text-sm text-slate-400">Manage connected sources and keep your next report up to date.</p>
+          <p className="mt-1 text-sm text-slate-400">Review what is uploaded and keep your next report ready.</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <Link href="/app/settings#data-sources" className="text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
@@ -282,7 +271,7 @@ function SourceListSection({
             disabled={!hasManifest}
             className="inline-flex h-10 items-center rounded-xl bg-brand-blue px-4 text-sm font-semibold text-white shadow-[0_0_24px_-10px_rgba(59,130,246,0.8)] transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-slate-500"
           >
-            Connect source
+            Add source
           </button>
         </div>
       </div>
@@ -686,14 +675,6 @@ export default function DataUploadPage() {
         </p>
       ) : null}
 
-      <SourceListSection
-        items={sourceListItems}
-        loading={workspaceDataSources === "loading" || sourceManifestLoading}
-        hasManifest={Boolean(sourceManifest && visiblePlatformCards)}
-        onAddSource={handleAddSource}
-        onUploadAction={handleUploadAction}
-      />
-
       <div id="workspace-uploader">
         {sourceManifestLoading ? (
           <UploadFlowSkeleton />
@@ -712,6 +693,14 @@ export default function DataUploadPage() {
           <ManifestUnavailableCard />
         )}
       </div>
+
+      <SourceListSection
+        items={sourceListItems}
+        loading={workspaceDataSources === "loading" || sourceManifestLoading}
+        hasManifest={Boolean(sourceManifest && visiblePlatformCards)}
+        onAddSource={handleAddSource}
+        onUploadAction={handleUploadAction}
+      />
 
       <HelpSection sourceManifestError={sourceManifestError} />
 

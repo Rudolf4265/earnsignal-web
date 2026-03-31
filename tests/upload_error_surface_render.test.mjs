@@ -8,11 +8,15 @@ const uploadStepperPath = path.resolve("app/(app)/app/_components/upload/upload-
 test("upload failure UI uses a single calmer error surface with secondary diagnostics", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
-  assert.equal(source.includes('title="Upload issue"'), true);
-  assert.equal(source.includes('message="We couldn\'t complete your upload. This can happen if the connection was interrupted."'), true);
+  assert.equal(source.includes("buildUploadErrorPresentation"), true);
+  assert.equal(source.includes('title: "Upload issue"'), true);
+  assert.equal(source.includes('title: "File mismatch"'), true);
+  assert.equal(source.includes('fallbackMessage ?? "We could not complete your upload. Please retry."'), true);
+  assert.equal(source.includes('message: "This file does not match the selected source. Choose the matching source and retry."'), true);
   assert.equal(source.includes("{!error ? ("), true);
   assert.equal(source.includes("Reason code:"), false);
   assert.equal(source.includes("Operation:"), false);
+  assert.equal(source.includes("requestId={errorRequestId ?? undefined}"), false);
   assert.equal(source.includes('data-testid="upload-copy-diagnostics"'), true);
   assert.equal(source.includes('data-testid="upload-retry"'), true);
   assert.equal(source.includes('data-testid="upload-reset"'), true);

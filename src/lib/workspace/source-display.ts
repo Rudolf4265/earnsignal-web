@@ -111,7 +111,7 @@ function resolvePrimaryAction(card: UploadPlatformCardMetadata, source?: Workspa
   if (!source || source.state === "missing") {
     return {
       kind: "upload",
-      label: "Connect",
+      label: "Upload",
       platform: card.id,
     };
   }
@@ -134,7 +134,7 @@ function resolvePrimaryAction(card: UploadPlatformCardMetadata, source?: Workspa
 
   return {
     kind: "upload",
-    label: "Update",
+    label: "Replace",
     platform: card.id,
   };
 }

@@ -46,21 +46,84 @@ const plans: Array<{ id: CheckoutPlan; label: string; priceLabel: string; summar
 ];
 
 const CHECKOUT_CONFIG_ERROR_CODES = new Set(["BILLING_NOT_CONFIGURED", "BILLING_INVALID_STRIPE_PRICE_ID"]);
+const CHECKOUT_UNAVAILABLE_MESSAGE = "Checkout is not available right now. Please try again later.";
 
 function isCheckoutConfigError(error: unknown): error is ApiError {
   return error instanceof ApiError && CHECKOUT_CONFIG_ERROR_CODES.has(error.code);
 }
 
-function extractMissingConfigKeys(details: unknown): string[] {
-  if (!details || typeof details !== "object" || Array.isArray(details)) {
-    return [];
+function formatAccessStateLabel(status: string | null | undefined, isActive: boolean): string {
+  if (isActive) {
+    return "Active";
   }
-  const record = details as Record<string, unknown>;
-  const rawMissing = record.missing;
-  if (!Array.isArray(rawMissing)) {
-    return [];
+
+  const normalized = String(status ?? "").trim().toLowerCase();
+  if (!normalized || normalized === "inactive") {
+    return "Inactive";
   }
-  return rawMissing.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+
+  if (normalized === "past_due") {
+    return "Past due";
+  }
+
+  if (normalized === "canceled" || normalized === "cancelled") {
+    return "Canceled";
+  }
+
+  return normalized.replace(/_/g, " ");
+}
+
+function formatAccessSourceLabel(source: string | null | undefined, accessReasonCode: string | null | undefined): string {
+  const normalizedSource = String(source ?? "").trim().toLowerCase();
+  const normalizedReason = String(accessReasonCode ?? "").trim().toLowerCase();
+
+  if (normalizedSource === "admin_override") {
+    return normalizedReason === "founder_protected" ? "Founder access" : "Admin-granted access";
+  }
+
+  if (normalizedSource === "stripe") {
+    return "Subscription access";
+  }
+
+  if (normalizedSource === "owned_report") {
+    return "Purchased report access";
+  }
+
+  if (normalizedSource === "trial") {
+    return "Trial access";
+  }
+
+  return "Premium access";
+}
+
+function formatInactiveAccessMessage(accessReasonCode: string | null | undefined): string | null {
+  const normalizedReason = String(accessReasonCode ?? "").trim().toLowerCase();
+
+  if (!normalizedReason || normalizedReason === "active_subscription") {
+    return null;
+  }
+
+  if (normalizedReason === "entitlement_required") {
+    return "Upgrade to Report or Pro to unlock report generation.";
+  }
+
+  if (normalizedReason === "override_revoked") {
+    return "This account no longer has admin-granted access.";
+  }
+
+  return "Premium access is not active on this account right now.";
+}
+
+function formatUsageSummary({
+  generated,
+  remaining,
+  limit,
+}: {
+  generated: number;
+  remaining: number;
+  limit: number;
+}): string {
+  return `${generated} of ${limit} reports used this period. ${remaining} remaining.`;
 }
 
 export default function BillingPage() {
@@ -85,7 +148,7 @@ export default function BillingPage() {
         setBillingStatus(nextStatus);
         if (!nextStatus.checkoutConfigured) {
           setCheckoutConfigError({
-            message: "Stripe checkout is not configured for this environment.",
+            message: CHECKOUT_UNAVAILABLE_MESSAGE,
           });
         } else {
           setCheckoutConfigError(null);
@@ -117,10 +180,8 @@ export default function BillingPage() {
       window.location.assign(checkout_url);
     } catch (err) {
       if (isCheckoutConfigError(err) && billingStatus?.checkoutConfigured !== true) {
-        const missingKeys = extractMissingConfigKeys(err.details);
-        const missingText = missingKeys.length > 0 ? ` Missing: ${missingKeys.join(", ")}.` : "";
         setCheckoutConfigError({
-          message: `Stripe checkout is not configured for this environment.${missingText}`,
+          message: CHECKOUT_UNAVAILABLE_MESSAGE,
           requestId: err.requestId,
         });
       } else {
@@ -152,7 +213,7 @@ export default function BillingPage() {
         setBillingStatus(nextStatus);
         if (!nextStatus.checkoutConfigured) {
           setCheckoutConfigError({
-            message: "Stripe checkout is not configured for this environment.",
+            message: CHECKOUT_UNAVAILABLE_MESSAGE,
           });
         } else {
           setCheckoutConfigError(null);
@@ -193,14 +254,17 @@ export default function BillingPage() {
       return null;
     }
 
-    return `${generated} generated this period, ${remaining} remaining of ${limit}.`;
+    return formatUsageSummary({ generated, remaining, limit });
   }, [entitlements?.monthlyReportLimit, entitlements?.reportsGeneratedThisPeriod, entitlements?.reportsRemainingThisPeriod]);
+  const accessStateLabel = formatAccessStateLabel(activeStatus, isActive);
+  const accessSourceLabel = isActive ? formatAccessSourceLabel(source, accessReasonCode) : "No premium access active";
+  const inactiveAccessMessage = !isActive ? formatInactiveAccessMessage(accessReasonCode) : null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold text-brand-text-primary">Billing</h1>
-        <p className="text-brand-text-secondary">Compare Free, Report, and Pro access, then manage current billing state.</p>
+        <p className="text-brand-text-secondary">Review your current access, compare plans, and manage billing.</p>
       </header>
 
       {state === "session_expired" ? <SessionExpiredCallout requestId={requestId} /> : null}
@@ -214,23 +278,20 @@ export default function BillingPage() {
             className={buttonClassName({ variant: "secondary", size: "sm" })}
             disabled={isRefreshing}
           >
-            {isRefreshing ? "Refreshing..." : "Refresh status"}
+            {isRefreshing ? "Refreshing..." : "Refresh access"}
           </button>
         </div>
 
-        <p className="mt-3 text-sm text-brand-text-secondary" data-testid="billing-current-plan">{`Plan: ${formatPlanLabel(activePlanTier)} - Status: ${activeStatus}`}</p>
-        <p className="mt-1 text-xs text-brand-text-muted">
-          Feature access: {isActive ? "Active" : "No paid access active"}
-          {source ? ` (${source})` : ""}
-        </p>
-        {!isActive && billingRequired ? <p className="mt-1 text-xs text-amber-100">Billing action is required to restore premium access.</p> : null}
-        {!isActive && accessReasonCode ? <p className="mt-1 text-xs text-brand-text-muted">{`Access reason: ${accessReasonCode}`}</p> : null}
+        <p className="mt-3 text-sm text-brand-text-secondary" data-testid="billing-current-plan">{`Current plan: ${formatPlanLabel(activePlanTier)} | ${accessStateLabel}`}</p>
+        <p className="mt-1 text-xs text-brand-text-muted">{`Access: ${accessSourceLabel}`}</p>
+        {!isActive && billingRequired ? <p className="mt-1 text-xs text-amber-100">Update billing to restore premium access.</p> : null}
+        {inactiveAccessMessage ? <p className="mt-1 text-xs text-brand-text-muted">{inactiveAccessMessage}</p> : null}
         {usageSummary ? <p className="mt-1 text-xs text-brand-text-muted">{usageSummary}</p> : null}
 
         {error ? (
           <ErrorBanner
             className="mt-4"
-            title="Could not refresh entitlements"
+            title="Access refresh delayed"
             message={error}
             requestId={errorRequestId}
             onRetry={() => void entitlementState.refresh()}
@@ -240,7 +301,7 @@ export default function BillingPage() {
         {billingStatusError ? (
           <ErrorBanner
             className="mt-4"
-            title="Could not load billing status"
+            title="Billing status unavailable"
             message={billingStatusError.message}
             requestId={billingStatusError.requestId}
             onRetry={() => void refreshBillingAndEntitlements()}
@@ -251,26 +312,26 @@ export default function BillingPage() {
           <ErrorBanner
             className="mt-4"
             data-testid="billing-config-error-banner"
-            title="Stripe checkout configuration required"
+            title="Checkout unavailable"
             message={checkoutConfigError.message}
             requestId={checkoutConfigError.requestId}
             onRetry={() => void refreshBillingAndEntitlements()}
-            retryLabel="Refresh status"
+            retryLabel="Refresh access"
           />
         ) : null}
 
         {portalUrl ? (
           <Link href={portalUrl} className={buttonClassName({ variant: "secondary", className: "mt-4" })}>
-            Manage subscription
+            Manage Pro subscription
           </Link>
         ) : (
-          <p className="mt-3 text-xs text-brand-text-muted">Manage subscription is unavailable when this account only has Free or one-time Report access.</p>
+          <p className="mt-3 text-xs text-brand-text-muted">Subscription management appears here when you have an active Pro subscription.</p>
         )}
       </section>
 
       {hasCheckoutMarker ? (
         <section className="rounded-xl border border-amber-300/35 bg-amber-500/10 p-4 text-sm text-amber-100">
-          <p>Checkout is already starting...</p>
+          <p>Checkout is already opening.</p>
           <button
             type="button"
             onClick={() => {
@@ -280,7 +341,7 @@ export default function BillingPage() {
             }}
             className="mt-3 inline-flex rounded-xl border border-amber-200/50 px-3 py-1.5 text-xs font-medium text-amber-100 transition hover:bg-amber-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70"
           >
-            Try again
+            Start again
           </button>
         </section>
       ) : null}
@@ -342,7 +403,7 @@ export default function BillingPage() {
       {checkoutError ? (
         <ErrorBanner
           data-testid="billing-error-banner"
-          title="Checkout failed"
+          title="Checkout unavailable"
           message={checkoutError.message}
           requestId={checkoutError.requestId}
           onRetry={() => setCheckoutError(null)}

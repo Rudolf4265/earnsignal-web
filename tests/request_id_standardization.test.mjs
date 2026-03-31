@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("critical surfaces pass requestId into ErrorBanner", async () => {
+test("request id rendering stays explicit on shared error surfaces without leaking into upload's primary error box", async () => {
   const report = await readFile("app/(app)/app/report/[id]/page.tsx", "utf8");
   const billing = await readFile("app/(app)/app/billing/page.tsx", "utf8");
   const upload = await readFile("app/(app)/app/_components/upload/upload-stepper.tsx", "utf8");
@@ -12,7 +12,8 @@ test("critical surfaces pass requestId into ErrorBanner", async () => {
 
   assert.equal(report.includes("requestId={state.requestId}"), true);
   assert.equal(billing.includes("requestId={errorRequestId}"), true);
-  assert.equal(upload.includes("requestId={errorRequestId ?? undefined}"), true);
+  assert.equal(upload.includes("requestId={errorRequestId ?? undefined}"), false);
+  assert.equal(upload.includes("buildUploadDiagnostics"), true);
   assert.equal(adminList.includes("requestId={error.requestId}"), true);
   assert.equal(adminDetail.includes("requestId={error.requestId}"), true);
   assert.equal(errorBanner.includes('data-testid="error-request-id"'), true);

@@ -26,11 +26,15 @@ test("data upload page keeps the main workspace simple while upload flow stays m
   assert.equal(source.includes("source-manifest-unavailable"), true);
   assert.equal(source.includes('data-testid={`workspace-source-row-${item.id}`}'), true);
   assert.equal(source.includes("Advanced details"), true);
-  assert.equal(source.includes("Connect source"), true);
+  assert.equal(source.includes("Add source"), true);
   assert.equal(source.includes("Ready to run"), true);
+  assert.equal(source.includes("ready for this report"), true);
   assert.equal(source.includes("View all reports"), true);
   assert.equal(source.includes("Your data sources"), true);
   assert.equal(source.includes("This report uses your staged sources."), true);
+  assert.equal(source.indexOf('<div id="workspace-uploader">') < source.indexOf("<SourceListSection"), true);
+  assert.equal(source.includes("md:flex-row md:items-center md:justify-between"), true);
+  assert.equal(source.includes("md:grid-cols-[minmax(180px,1.2fr)_auto_minmax(140px,0.8fr)_auto]"), false);
   assert.equal(source.includes("Contribution"), false);
   assert.equal(source.includes("Next run"), false);
   assert.equal(source.includes("report-driving"), false);
@@ -38,6 +42,7 @@ test("data upload page keeps the main workspace simple while upload flow stays m
   assert.equal(source.includes("Accepted format:"), false);
   assert.equal(source.includes("Manage details in Settings"), false);
   assert.equal(source.includes("What this report is based on"), false);
+  assert.equal(source.includes("connected sources"), false);
 
   assert.equal(uploadStepperSource.includes("UploadFlowHeader"), true);
   assert.equal(uploadStepperSource.includes("UploadPrivacyLine"), true);

@@ -13,7 +13,7 @@ import {
   resolveEffectivePlanTier,
   resolveEntitlementSource,
 } from "../entitlements/model";
-import type { EntitlementSnapshotLike } from "../entitlements/model";
+import type { CapabilityContract, EntitlementSnapshotLike } from "../entitlements/model";
 
 export type EntitlementFeatures = Record<string, boolean | undefined>;
 export type CanonicalPlanTier = "free" | "report" | "pro";
@@ -114,6 +114,8 @@ export type EntitlementsResponse = Omit<
   features: EntitlementFeatures;
   is_founder: boolean;
   portal_url?: string;
+  capabilityContract: CapabilityContract | null;
+  capability_contract: CapabilityContract | null;
 };
 
 export type CheckoutResponse = {
@@ -222,6 +224,11 @@ export function resetEntitlementsCache() {
     window.sessionStorage.removeItem(ENTITLEMENTS_CACHE_KEY);
     window.sessionStorage.removeItem(BILLING_STATUS_CACHE_KEY);
   }
+}
+
+/** Exported for testing only — do not call from application code. */
+export function normalizeEntitlementsResponse(value: EntitlementsResponseSchema | Record<string, unknown>): EntitlementsResponse {
+  return normalizeEntitlements(value);
 }
 
 function readStorageCache<T>(key: string): { value: T; fetchedAt: number } | null {
@@ -368,6 +375,34 @@ function resolveStatus(raw: Record<string, unknown>, isActive: boolean): string 
   return isActive ? "active" : DEFAULT_STATUS;
 }
 
+function normalizeCapabilityContract(raw: Record<string, unknown>): CapabilityContract | null {
+  const contractRaw = asRecord(raw.capability_contract ?? raw.capabilityContract ?? null);
+  if (!contractRaw || Object.keys(contractRaw).length === 0) {
+    return null;
+  }
+
+  const reportModeRaw = asNullableString(contractRaw.report_mode_allowed) ?? null;
+  const reportMode: CapabilityContract["report_mode_allowed"] =
+    reportModeRaw === "snapshot" || reportModeRaw === "continuous" ? reportModeRaw : "none";
+
+  const maxMonths = contractRaw.max_report_months;
+  const maxReportMonths: number | null =
+    maxMonths === null || maxMonths === undefined
+      ? null
+      : typeof maxMonths === "number"
+        ? maxMonths
+        : null;
+
+  return {
+    report_mode_allowed: reportMode,
+    max_report_months: maxReportMonths,
+    can_compare_reports: contractRaw.can_compare_reports === true,
+    can_view_report_history: contractRaw.can_view_report_history === true,
+    can_access_monitoring: contractRaw.can_access_monitoring === true,
+    can_use_full_history_window: contractRaw.can_use_full_history_window === true,
+  };
+}
+
 function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string, unknown>): EntitlementsResponse {
   const raw = asRecord(value);
   const features = normalizeFeatures(raw.features);
@@ -476,6 +511,7 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
     report: canGenerateReport,
   };
   const isFounder = isFounderFromEntitlement(raw as EntitlementSnapshotLike);
+  const capabilityContract = normalizeCapabilityContract(raw);
 
   return {
     effectivePlanTier,
@@ -547,6 +583,8 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
     features: legacyFeatures,
     is_founder: isFounder,
     portal_url: portalUrl,
+    capabilityContract,
+    capability_contract: capabilityContract,
   };
 }
 

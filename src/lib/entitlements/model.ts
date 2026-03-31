@@ -1,5 +1,21 @@
 export type CommercialTier = "free" | "report" | "pro";
 
+export type ReportModeAllowed = "none" | "snapshot" | "continuous";
+
+/**
+ * Explicit pricing-tier capability contract.
+ * These are tier-level static values — not per-user dynamic state.
+ * Use these to gate features by tier contract rather than inferring from plan labels.
+ */
+export type CapabilityContract = {
+  report_mode_allowed: ReportModeAllowed;
+  max_report_months: number | null;
+  can_compare_reports: boolean;
+  can_view_report_history: boolean;
+  can_access_monitoring: boolean;
+  can_use_full_history_window: boolean;
+};
+
 export type EntitlementSnapshotLike = {
   effectivePlanTier?: string | null;
   effective_plan_tier?: string | null;
@@ -57,6 +73,8 @@ export type EntitlementSnapshotLike = {
   reason_code?: string | null;
   billingRequired?: boolean | null;
   billing_required?: boolean | null;
+  capabilityContract?: CapabilityContract | null;
+  capability_contract?: CapabilityContract | null;
 };
 
 export type EntitlementCapabilityKey =

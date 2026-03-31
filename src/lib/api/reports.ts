@@ -14,6 +14,18 @@ export type CreateReportRunResponse = {
   reportId: string;
 };
 
+export type CreateReportRunAnalysisWindow =
+  | {
+      mode: "full_history";
+      startMonth?: null;
+      endMonth?: null;
+    }
+  | {
+      mode: "latest_3_months";
+      startMonth: string;
+      endMonth: string;
+    };
+
 export type ReportRunStatus = {
   reportId: string;
   status: string;
@@ -71,11 +83,41 @@ export async function fetchReportDetail(reportId: string): Promise<ReportDetail>
   return normalizeReportDetail(canonicalReportId, data as Record<string, unknown>);
 }
 
-export async function createReportRun(options?: { selectedPlatforms?: string[] }): Promise<CreateReportRunResponse> {
-  const body =
-    options?.selectedPlatforms && options.selectedPlatforms.length > 0
-      ? JSON.stringify({ selected_platforms: options.selectedPlatforms })
-      : undefined;
+function buildCreateReportRunBody(options?: {
+  selectedPlatforms?: string[];
+  analysisWindow?: CreateReportRunAnalysisWindow;
+}): string | undefined {
+  const payload: Record<string, unknown> = {};
+
+  if (options?.selectedPlatforms && options.selectedPlatforms.length > 0) {
+    payload.selected_platforms = options.selectedPlatforms;
+  }
+
+  if (options?.analysisWindow) {
+    payload.analysis_window = {
+      mode: options.analysisWindow.mode,
+      window_start: options.analysisWindow.startMonth ?? null,
+      window_end: options.analysisWindow.endMonth ?? null,
+    };
+    payload.analysis_window_mode = options.analysisWindow.mode;
+
+    if (options.analysisWindow.startMonth) {
+      payload.window_start = options.analysisWindow.startMonth;
+    }
+
+    if (options.analysisWindow.endMonth) {
+      payload.window_end = options.analysisWindow.endMonth;
+    }
+  }
+
+  return Object.keys(payload).length > 0 ? JSON.stringify(payload) : undefined;
+}
+
+export async function createReportRun(options?: {
+  selectedPlatforms?: string[];
+  analysisWindow?: CreateReportRunAnalysisWindow;
+}): Promise<CreateReportRunResponse> {
+  const body = buildCreateReportRunBody(options);
 
   const data = await apiFetchJson<Record<string, unknown>>("reports.run", "/v1/reports/run", {
     method: "POST",

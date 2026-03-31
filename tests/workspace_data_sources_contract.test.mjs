@@ -107,3 +107,33 @@ test("workspace readiness normalization falls back to legacy run_report_enabled 
   assert.equal(state.eligibleForReport, true);
   assert.equal(state.includedSources.map((source) => source.platform).join(","), "patreon");
 });
+
+test("workspace readiness normalization preserves staged coverage fields when present", async () => {
+  const [{ normalizeWorkspaceDataSourcesResponse }, { buildWorkspaceReportState }] = await Promise.all([
+    import(`${workspaceApiModuleUrl}?t=${Date.now() + 30}`),
+    import(`${workspaceStateModuleUrl}?t=${Date.now() + 31}`),
+  ]);
+
+  const normalized = normalizeWorkspaceDataSourcesResponse({
+    workspace_id: "creator-coverage-2",
+    supported_source_count: 5,
+    ready_source_count: 2,
+    processing_source_count: 0,
+    missing_source_count: 3,
+    failed_source_count: 0,
+    included_source_count: 2,
+    run_report_enabled: true,
+    eligible_for_report: true,
+    coverage_start: "2025-10",
+    coverage_end: "2026-03",
+    months_present: ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
+    sources: [],
+  });
+
+  assert.equal(normalized.coverageStart, "2025-10");
+  assert.equal(normalized.coverageEnd, "2026-03");
+  assert.deepEqual(normalized.monthsPresent, ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"]);
+
+  const state = buildWorkspaceReportState(normalized, { isLoading: false, currentReportId: null });
+  assert.equal(state.coverageMonths, 6);
+});

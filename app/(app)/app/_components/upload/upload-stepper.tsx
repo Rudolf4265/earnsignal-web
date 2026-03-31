@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createUploadPresign,
@@ -28,7 +27,6 @@ import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detect
 import { extractInstagramZipBufferToUploadArtifact } from "@/src/lib/upload/instagram-zip-extractor";
 import { extractTiktokZipBufferToUploadArtifact } from "@/src/lib/upload/tiktok-zip-extractor";
 import { inspectZipArchiveBuffer, isZipUploadCandidate, toZipUploadRejection } from "@/src/lib/upload/zip-intake";
-import { createReportRun, getReportErrorMessage } from "@/src/lib/api/reports";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import type { WorkspaceReportState } from "@/src/lib/workspace/report-run-state";
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
@@ -597,7 +595,11 @@ type UploadStepperProps = {
   workspaceReportState: WorkspaceReportState;
   refreshWorkspaceDataSources: () => Promise<void>;
   clearCurrentReport: () => void;
-  onReportCreated: (reportId: string) => void;
+  onRunReport: () => Promise<void> | void;
+  onClearRunReportError: () => void;
+  runReportBusy: boolean;
+  runReportError: string | null;
+  runReportLabel?: string;
   preferredPlatform?: UploadPlatform | null;
   preferredPlatformNonce?: number;
 };
@@ -608,11 +610,14 @@ export default function UploadStepper({
   workspaceReportState,
   refreshWorkspaceDataSources,
   clearCurrentReport,
-  onReportCreated,
+  onRunReport,
+  onClearRunReportError,
+  runReportBusy,
+  runReportError,
+  runReportLabel = "Run Report",
   preferredPlatform = null,
   preferredPlatformNonce = 0,
 }: UploadStepperProps) {
-  const router = useRouter();
   const entitlementState = useEntitlementState();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const pollAbortRef = useRef<AbortController | null>(null);
@@ -633,8 +638,6 @@ export default function UploadStepper({
     status: UploadUiStatus;
     uploadId: string;
   } | null>(null);
-  const [runReportBusy, setRunReportBusy] = useState(false);
-  const [runReportError, setRunReportError] = useState<string | null>(null);
 
   const activeStepIndex = stepOrder.indexOf(step);
   const steps = useMemo(
@@ -730,13 +733,12 @@ export default function UploadStepper({
     setProcessingStatus(null);
     setHasResumeCandidate(false);
     setLatestTerminalUpload(null);
-    setRunReportBusy(false);
-    setRunReportError(null);
+    onClearRunReportError();
 
     if (inputRef.current) {
       inputRef.current.value = "";
     }
-  }, [preferredPlatform, preferredPlatformNonce, stopPolling]);
+  }, [onClearRunReportError, preferredPlatform, preferredPlatformNonce, stopPolling]);
 
   const logUploadDiagnostic = useCallback((event: string, details: Record<string, unknown>) => {
     if (process.env.NODE_ENV === "production") {
@@ -745,25 +747,6 @@ export default function UploadStepper({
 
     console.info("[upload]", { event, ...details });
   }, []);
-
-  const runReport = useCallback(async () => {
-    if (runReportBusy) {
-      return;
-    }
-
-    setRunReportBusy(true);
-    setRunReportError(null);
-
-    try {
-      const result = await createReportRun();
-      onReportCreated(result.reportId);
-      router.push(buildReportDetailPathOrIndex(result.reportId));
-    } catch (error) {
-      setRunReportError(getReportErrorMessage(error));
-    } finally {
-      setRunReportBusy(false);
-    }
-  }, [onReportCreated, router, runReportBusy]);
 
 
   const setFailureState = useCallback(
@@ -866,15 +849,14 @@ export default function UploadStepper({
     setProcessingStatus(null);
     setHasResumeCandidate(false);
     setLatestTerminalUpload(null);
-    setRunReportBusy(false);
-    setRunReportError(null);
+    onClearRunReportError();
     if (typeof window !== "undefined") {
       clearUploadResume(window.localStorage);
     }
     if (inputRef.current) {
       inputRef.current.value = "";
     }
-  }, [stopPolling]);
+  }, [onClearRunReportError, stopPolling]);
 
   const clearResumeCandidateState = useCallback(() => {
     if (typeof window !== "undefined") {
@@ -887,10 +869,9 @@ export default function UploadStepper({
     setError(null);
     setReasonCode(null);
     setErrorDetails(null);
-    setRunReportBusy(false);
-    setRunReportError(null);
+    onClearRunReportError();
     setStep("platform");
-  }, []);
+  }, [onClearRunReportError]);
 
   const copyDiagnostics = async () => {
     if (!errorDetails || typeof navigator === "undefined" || !navigator.clipboard) {
@@ -1023,7 +1004,7 @@ export default function UploadStepper({
     setReasonCode(null);
     setErrorDetails(null);
     setWarnings([]);
-    setRunReportError(null);
+    onClearRunReportError();
 
     try {
       let uploadFile = file;
@@ -1431,11 +1412,11 @@ export default function UploadStepper({
                   <button
                     type="button"
                     data-testid="upload-completed-run-report"
-                    onClick={() => void runReport()}
+                    onClick={() => void onRunReport()}
                     disabled={runReportBusy || !workspaceReportState.canRunReport}
                     className="rounded-lg border border-emerald-200/60 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {runReportBusy ? "Running..." : "Run Report"}
+                    {runReportBusy ? "Running..." : runReportLabel}
                   </button>
                 ) : latestTerminalUpload.status === "validated" || reportAccessBlocked ? (
                   <Link
@@ -1449,7 +1430,7 @@ export default function UploadStepper({
                   type="button"
                   data-testid="upload-completed-dismiss"
                   onClick={() => {
-                    setRunReportError(null);
+                    onClearRunReportError();
                     setLatestTerminalUpload(null);
                   }}
                   className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-400 hover:bg-slate-100"
@@ -1626,11 +1607,11 @@ export default function UploadStepper({
                   <button
                     type="button"
                     data-testid="upload-run-report"
-                    onClick={() => void runReport()}
+                    onClick={() => void onRunReport()}
                     disabled={runReportBusy || !workspaceReportState.canRunReport}
                     className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {runReportBusy ? "Running..." : "Run Report"}
+                    {runReportBusy ? "Running..." : runReportLabel}
                   </button>
                 ) : reportAccessBlocked ? (
                   <Link href="/app/billing" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
@@ -1677,11 +1658,11 @@ export default function UploadStepper({
                   <button
                     type="button"
                     data-testid="upload-run-report"
-                    onClick={() => void runReport()}
+                    onClick={() => void onRunReport()}
                     disabled={runReportBusy || !workspaceReportState.canRunReport}
                     className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {runReportBusy ? "Running..." : "Run Report"}
+                    {runReportBusy ? "Running..." : runReportLabel}
                   </button>
                 ) : reportAccessBlocked ? (
                   <Link href="/app/billing" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">

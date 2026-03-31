@@ -130,6 +130,101 @@ test("workspace report state keeps Run Report disabled when backend says the wor
   assert.equal(result.reportDrivingSourcesReadyCount, 0);
 });
 
+test("workspace report state carries staged coverage metadata for window-policy UX", async () => {
+  const { buildWorkspaceReportState } = await loadModule(Date.now() + 21);
+
+  const result = buildWorkspaceReportState(
+    {
+      workspaceId: "creator-coverage-1",
+      supportedSourceCount: 5,
+      readySourceCount: 2,
+      processingSourceCount: 0,
+      missingSourceCount: 3,
+      failedSourceCount: 0,
+      includedSourceCount: 2,
+      runReportEnabled: true,
+      eligibleForReport: true,
+      blockingReason: null,
+      reportHasBusinessMetrics: true,
+      reportReadinessNote: "Ready to run from the staged workspace.",
+      coverageStart: "2025-10",
+      coverageEnd: "2026-03",
+      monthsPresent: ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"],
+      reportDrivingReadySourceCount: 2,
+      reportDrivingIncludedSourceCount: 2,
+      sources: [],
+    },
+    { isLoading: false, currentReportId: null },
+  );
+
+  assert.equal(result.coverageStart, "2025-10");
+  assert.equal(result.coverageEnd, "2026-03");
+  assert.deepEqual(result.monthsPresent, ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"]);
+  assert.equal(result.coverageMonths, 6);
+});
+
+test("workspace report state dedupes and sorts month tokens before counting coverage", async () => {
+  const { buildWorkspaceReportState } = await loadModule(Date.now() + 22);
+
+  const result = buildWorkspaceReportState(
+    {
+      workspaceId: "creator-coverage-duplicates",
+      supportedSourceCount: 5,
+      readySourceCount: 1,
+      processingSourceCount: 0,
+      missingSourceCount: 4,
+      failedSourceCount: 0,
+      includedSourceCount: 1,
+      runReportEnabled: true,
+      eligibleForReport: true,
+      blockingReason: null,
+      reportHasBusinessMetrics: true,
+      reportReadinessNote: "Ready to run from the staged workspace.",
+      coverageStart: "2026-01",
+      coverageEnd: "2026-03",
+      monthsPresent: ["2026-03", "2026-01", "2026-02", "2026-01", "invalid"],
+      reportDrivingReadySourceCount: 1,
+      reportDrivingIncludedSourceCount: 1,
+      sources: [],
+    },
+    { isLoading: false, currentReportId: null },
+  );
+
+  assert.deepEqual(result.monthsPresent, ["2026-01", "2026-02", "2026-03"]);
+  assert.equal(result.coverageMonths, 3);
+});
+
+test("workspace report state counts sparse unique months without inflating coverage span", async () => {
+  const { buildWorkspaceReportState } = await loadModule(Date.now() + 23);
+
+  const result = buildWorkspaceReportState(
+    {
+      workspaceId: "creator-coverage-sparse",
+      supportedSourceCount: 5,
+      readySourceCount: 1,
+      processingSourceCount: 0,
+      missingSourceCount: 4,
+      failedSourceCount: 0,
+      includedSourceCount: 1,
+      runReportEnabled: true,
+      eligibleForReport: true,
+      blockingReason: null,
+      reportHasBusinessMetrics: true,
+      reportReadinessNote: "Ready to run from the staged workspace.",
+      coverageStart: "2026-01",
+      coverageEnd: "2026-06",
+      monthsPresent: ["2026-06", "2026-01", "2026-03"],
+      reportDrivingReadySourceCount: 1,
+      reportDrivingIncludedSourceCount: 1,
+      sources: [],
+    },
+    { isLoading: false, currentReportId: null },
+  );
+
+  assert.deepEqual(result.monthsPresent, ["2026-01", "2026-03", "2026-06"]);
+  assert.equal(result.coverageMonths, 3);
+});
+
 test("workspace report state does not promote legacy runReportEnabled over canonical eligibility", async () => {
   const { buildWorkspaceReportState } = await loadModule(Date.now() + 3);
 

@@ -1,4 +1,5 @@
 import type { WorkspaceDataSource, WorkspaceDataSourcesResponse } from "../api/workspace";
+import { normalizeCoverageMonths } from "./coverage-months";
 
 export type WorkspaceReportState = {
   stagedSourcesReadyCount: number;
@@ -15,8 +16,21 @@ export type WorkspaceReportState = {
   blockingReason: string | null;
   reportReadinessNote: string | null;
   reportHasBusinessMetrics: boolean;
+  coverageStart: string | null;
+  coverageEnd: string | null;
+  monthsPresent: string[];
+  coverageMonths: number | null;
   includedSources: WorkspaceDataSource[];
 };
+
+function resolveCoverageMonths(
+  monthsPresent: string[],
+  coverageStart: string | null,
+  coverageEnd: string | null,
+): number | null {
+  const canonicalMonths = normalizeCoverageMonths(monthsPresent, coverageStart, coverageEnd);
+  return canonicalMonths.length > 0 ? canonicalMonths.length : null;
+}
 
 function toTimestamp(source: WorkspaceDataSource): number {
   const candidates = [source.lastUploadAt, source.lastReadyAt];
@@ -61,6 +75,11 @@ export function buildWorkspaceReportState(
     workspaceDataSources?.reportDrivingIncludedSourceCount ??
     includedSources.filter((source) => source.reportRole === "report_driving").length;
   const eligibleForReport = workspaceDataSources?.eligibleForReport ?? false;
+  const normalizedCoverageMonths = normalizeCoverageMonths(
+    workspaceDataSources?.monthsPresent ?? [],
+    workspaceDataSources?.coverageStart ?? null,
+    workspaceDataSources?.coverageEnd ?? null,
+  );
 
   return {
     stagedSourcesReadyCount: workspaceDataSources?.readySourceCount ?? 0,
@@ -77,6 +96,14 @@ export function buildWorkspaceReportState(
     blockingReason: workspaceDataSources?.blockingReason ?? null,
     reportReadinessNote: workspaceDataSources?.reportReadinessNote ?? null,
     reportHasBusinessMetrics: workspaceDataSources?.reportHasBusinessMetrics ?? false,
+    coverageStart: workspaceDataSources?.coverageStart ?? null,
+    coverageEnd: workspaceDataSources?.coverageEnd ?? null,
+    monthsPresent: normalizedCoverageMonths,
+    coverageMonths: resolveCoverageMonths(
+      workspaceDataSources?.monthsPresent ?? [],
+      workspaceDataSources?.coverageStart ?? null,
+      workspaceDataSources?.coverageEnd ?? null,
+    ),
     includedSources,
   };
 }

@@ -95,7 +95,7 @@ test("createReportRun uses only the staged workspace run path and returns a cano
   const requests = [];
 
   global.fetch = async (url, init = {}) => {
-    requests.push({ url: String(url), method: init.method ?? "GET" });
+    requests.push({ url: String(url), method: init.method ?? "GET", body: init.body ?? null });
     return {
       ok: true,
       status: 200,
@@ -108,8 +108,57 @@ test("createReportRun uses only the staged workspace run path and returns a cano
     const { createReportRun } = await loadReportsModule(Date.now() + 4);
     const result = await createReportRun();
 
-    assert.deepEqual(requests, [{ url: "https://api.example.test/v1/reports/run", method: "POST" }]);
+    assert.deepEqual(requests, [{ url: "https://api.example.test/v1/reports/run", method: "POST", body: null }]);
     assert.equal(result.reportId, "rep_run_123");
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("createReportRun submits explicit analysis-window payloads for latest 3-month runs", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  const requests = [];
+
+  global.fetch = async (url, init = {}) => {
+    requests.push({ url: String(url), method: init.method ?? "GET", body: init.body ?? null });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: (key) => (key === "content-type" ? "application/json" : null) },
+      text: async () => JSON.stringify({ report_id: "rep_run_window_123" }),
+    };
+  };
+
+  try {
+    const { createReportRun } = await loadReportsModule(Date.now() + 40);
+    const result = await createReportRun({
+      selectedPlatforms: ["patreon", "youtube"],
+      analysisWindow: {
+        mode: "latest_3_months",
+        startMonth: "2026-01",
+        endMonth: "2026-03",
+      },
+    });
+
+    assert.equal(result.reportId, "rep_run_window_123");
+    assert.deepEqual(requests, [
+      {
+        url: "https://api.example.test/v1/reports/run",
+        method: "POST",
+        body: JSON.stringify({
+          selected_platforms: ["patreon", "youtube"],
+          analysis_window: {
+            mode: "latest_3_months",
+            window_start: "2026-01",
+            window_end: "2026-03",
+          },
+          analysis_window_mode: "latest_3_months",
+          window_start: "2026-01",
+          window_end: "2026-03",
+        }),
+      },
+    ]);
   } finally {
     global.fetch = originalFetch;
   }
@@ -121,7 +170,7 @@ test("createReportRun fails explicitly when /v1/reports/run is unavailable inste
   const requests = [];
 
   global.fetch = async (url, init = {}) => {
-    requests.push({ url: String(url), method: init.method ?? "GET" });
+    requests.push({ url: String(url), method: init.method ?? "GET", body: init.body ?? null });
     return {
       ok: false,
       status: 404,
@@ -138,7 +187,7 @@ test("createReportRun fails explicitly when /v1/reports/run is unavailable inste
   try {
     const { createReportRun } = await loadReportsModule(Date.now() + 5);
     await assert.rejects(() => createReportRun(), /missing/i);
-    assert.deepEqual(requests, [{ url: "https://api.example.test/v1/reports/run", method: "POST" }]);
+    assert.deepEqual(requests, [{ url: "https://api.example.test/v1/reports/run", method: "POST", body: null }]);
   } finally {
     global.fetch = originalFetch;
   }

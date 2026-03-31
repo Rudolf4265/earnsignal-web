@@ -4,19 +4,24 @@ import { useMemo } from "react";
 import { useAppGate } from "./app-gate-provider";
 import {
   canAccessDashboardFromEntitlement,
+  canUseFullHistoryWindowFromEntitlement,
   canDownloadPdfFromEntitlement,
   canGenerateReportFromEntitlement,
   isFounderFromEntitlement,
   canViewOwnedReportFromEntitlement,
   canViewReportHistoryFromEntitlement,
   hasProEquivalentEntitlement,
+  resolveCapabilityContract,
   resolveCapability,
   resolveAccessGranted,
   resolveAccessReasonCode,
   resolveBillingRequired,
   resolveEffectivePlanTier,
   resolveEntitlementSource,
+  resolveMaxReportMonths,
+  resolveReportModeAllowed,
 } from "@/src/lib/entitlements/model";
+import type { CapabilityContract, ReportModeAllowed } from "@/src/lib/entitlements/model";
 
 export type EntitlementStateSnapshot = {
   loading: boolean;
@@ -36,6 +41,10 @@ export type EntitlementStateSnapshot = {
   canAccessDashboard: boolean;
   hasProAccess: boolean;
   isFounder: boolean;
+  capabilityContract: CapabilityContract | null;
+  reportModeAllowed: ReportModeAllowed;
+  maxReportMonths: number | null;
+  canUseFullHistoryWindow: boolean;
   refresh: () => Promise<void>;
 };
 
@@ -62,6 +71,10 @@ export function useEntitlementState(): EntitlementStateSnapshot {
       canAccessDashboard: canAccessDashboardFromEntitlement(snapshot),
       hasProAccess: hasProEquivalentEntitlement(snapshot),
       isFounder: isFounderFromEntitlement(snapshot),
+      capabilityContract: resolveCapabilityContract(snapshot),
+      reportModeAllowed: resolveReportModeAllowed(snapshot),
+      maxReportMonths: resolveMaxReportMonths(snapshot),
+      canUseFullHistoryWindow: canUseFullHistoryWindowFromEntitlement(snapshot),
       refresh: async () => {
         await gate.actions.refreshEntitlements({ forceRefresh: true });
       },

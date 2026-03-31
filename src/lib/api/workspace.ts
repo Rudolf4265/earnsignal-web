@@ -62,6 +62,12 @@ type RawWorkspaceDataSourcesResponse = {
   reportHasBusinessMetrics?: boolean | null;
   report_readiness_note?: NullableString;
   reportReadinessNote?: NullableString;
+  coverage_start?: NullableString;
+  coverageStart?: NullableString;
+  coverage_end?: NullableString;
+  coverageEnd?: NullableString;
+  months_present?: string[] | null;
+  monthsPresent?: string[] | null;
   sources?: RawWorkspaceDataSource[] | null;
 };
 
@@ -97,6 +103,9 @@ export type WorkspaceDataSourcesResponse = {
   blockingReason: string | null;
   reportHasBusinessMetrics: boolean;
   reportReadinessNote: string | null;
+  coverageStart: string | null;
+  coverageEnd: string | null;
+  monthsPresent: string[];
   reportDrivingReadySourceCount: number | null;
   reportDrivingIncludedSourceCount: number | null;
   sources: WorkspaceDataSource[];
@@ -141,6 +150,14 @@ function normalizeWorkspaceActionLabel(value: string | null | undefined): Worksp
 
 function normalizeWorkspaceSourceRole(value: string | null | undefined): WorkspaceSourceReportRole {
   return value === "report_driving" ? "report_driving" : "supporting";
+}
+
+function normalizeMonthsPresent(value: string[] | null | undefined): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((month): month is string => typeof month === "string" && month.trim().length > 0);
 }
 
 function normalizeWorkspaceDataSource(raw: RawWorkspaceDataSource): WorkspaceDataSource | null {
@@ -199,6 +216,9 @@ export function normalizeWorkspaceDataSourcesResponse(
       raw?.report_has_business_metrics === true || raw?.reportHasBusinessMetrics === true,
     reportReadinessNote:
       normalizeNullableString(raw?.report_readiness_note) ?? normalizeNullableString(raw?.reportReadinessNote),
+    coverageStart: normalizeNullableString(raw?.coverage_start) ?? normalizeNullableString(raw?.coverageStart),
+    coverageEnd: normalizeNullableString(raw?.coverage_end) ?? normalizeNullableString(raw?.coverageEnd),
+    monthsPresent: normalizeMonthsPresent(raw?.months_present ?? raw?.monthsPresent),
     reportDrivingReadySourceCount: normalizeOptionalCount(
       raw?.report_driving_ready_source_count ?? raw?.reportDrivingReadySourceCount,
     ),

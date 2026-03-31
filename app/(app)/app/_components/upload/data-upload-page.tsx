@@ -5,13 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import UploadStepper from "./upload-stepper";
+import ReportWindowChooserDialog from "./report-window-chooser-dialog";
 import { SkeletonBlock } from "../../../_components/ui/skeleton";
 import { buttonClassName } from "@/src/components/ui/button";
 import { StatusPill } from "@/src/components/ui/status-pill";
-import { createReportRun, getReportErrorMessage } from "@/src/lib/api/reports";
+import { createReportRun, getReportErrorMessage, type CreateReportRunAnalysisWindow } from "@/src/lib/api/reports";
 import { clearWorkspaceData, fetchWorkspaceDataSources, type WorkspaceDataSourcesResponse } from "@/src/lib/api/workspace";
 import { getSourceManifest, type UploadPlatform } from "@/src/lib/api/upload";
 import { buildWorkspaceReportState } from "@/src/lib/workspace/report-run-state";
+import { resolveWorkspaceReportWindowPolicy } from "@/src/lib/workspace/report-window-policy";
 import {
   buildSourceListItems,
   getPrimarySourceStatusLabel,
@@ -25,6 +27,7 @@ import {
   type NormalizedSourceManifest,
   type UploadPlatformCardMetadata,
 } from "@/src/lib/upload/platform-metadata";
+import { useEntitlementState } from "../../../_components/use-entitlement-state";
 
 type DataPageHeaderProps = {
   title?: string;
@@ -37,6 +40,7 @@ type ReadyToRunBannerProps = {
   statusLabel: string;
   connectedCount: number;
   note: string;
+  runLabel?: string;
   runDisabled?: boolean;
   onRunReport: () => void;
   onViewReports: () => void;
@@ -73,6 +77,7 @@ function ReadyToRunBanner({
   statusLabel,
   connectedCount,
   note,
+  runLabel = "Run Report",
   runDisabled = false,
   onRunReport,
   onViewReports,
@@ -112,7 +117,7 @@ function ReadyToRunBanner({
               disabled={runDisabled}
               className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-slate-400"
             >
-              Run Report
+              {runLabel}
             </button>
             <button
               type="button"
@@ -459,6 +464,8 @@ function buildReadyBannerStatus(
 
 export default function DataUploadPage() {
   const router = useRouter();
+  const entitlementState = useEntitlementState();
+  const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
   const [sourceManifest, setSourceManifest] = useState<NormalizedSourceManifest | null>(null);
   const [visiblePlatformCards, setVisiblePlatformCards] = useState<UploadPlatformCardMetadata[] | null>(null);
   const [sourceManifestLoading, setSourceManifestLoading] = useState(true);
@@ -470,6 +477,7 @@ export default function DataUploadPage() {
   const workspaceDataSourcesRef = useRef<WorkspaceDataSourcesResponse | null | "loading">("loading");
   const [runReportPending, setRunReportPending] = useState(false);
   const [runReportError, setRunReportError] = useState<string | null>(null);
+  const [analysisWindowDialogOpen, setAnalysisWindowDialogOpen] = useState(false);
 
   const workspaceReportState = useMemo(
     () =>
@@ -478,6 +486,28 @@ export default function DataUploadPage() {
         currentReportId,
       }),
     [currentReportId, workspaceDataSources],
+  );
+
+  const reportWindowPolicy = useMemo(
+    () =>
+      resolveWorkspaceReportWindowPolicy({
+        reportModeAllowed: entitlementState.reportModeAllowed,
+        maxReportMonths: entitlementState.maxReportMonths,
+        canUseFullHistoryWindow: entitlementState.canUseFullHistoryWindow,
+        coverageMonths: workspaceReportState.coverageMonths,
+        coverageStart: workspaceReportState.coverageStart,
+        coverageEnd: workspaceReportState.coverageEnd,
+        monthsPresent: workspaceReportState.monthsPresent,
+      }),
+    [
+      entitlementState.canUseFullHistoryWindow,
+      entitlementState.maxReportMonths,
+      entitlementState.reportModeAllowed,
+      workspaceReportState.coverageEnd,
+      workspaceReportState.coverageMonths,
+      workspaceReportState.coverageStart,
+      workspaceReportState.monthsPresent,
+    ],
   );
 
   const refreshWorkspaceDataSources = useCallback(async (options?: { preserveCurrent?: boolean }) => {
@@ -508,8 +538,12 @@ export default function DataUploadPage() {
     setCurrentReportId(reportId);
   }, []);
 
-  const handleRunReport = useCallback(async () => {
-    if (runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport) {
+  const clearRunReportError = useCallback(() => {
+    setRunReportError(null);
+  }, []);
+
+  const submitReportRun = useCallback(async (analysisWindow?: CreateReportRunAnalysisWindow | null) => {
+    if (runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport || reportAccessBlocked) {
       return;
     }
 
@@ -518,15 +552,43 @@ export default function DataUploadPage() {
 
     try {
       const selectedPlatforms = workspaceReportState.includedSources.map((source) => source.platform);
-      const result = await createReportRun({ selectedPlatforms });
+      const result = await createReportRun({ selectedPlatforms, analysisWindow: analysisWindow ?? undefined });
       handleReportCreated(result.reportId);
+      setAnalysisWindowDialogOpen(false);
       router.push(`/app/report/${result.reportId}`);
     } catch (error) {
       setRunReportError(getReportErrorMessage(error));
     } finally {
       setRunReportPending(false);
     }
-  }, [handleReportCreated, router, runReportPending, workspaceReportState]);
+  }, [handleReportCreated, reportAccessBlocked, router, runReportPending, workspaceReportState]);
+
+  const handleRunReport = useCallback(async () => {
+    if (runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport || reportAccessBlocked) {
+      return;
+    }
+
+    if (reportWindowPolicy.requiresWindowChooser) {
+      setRunReportError(null);
+      setAnalysisWindowDialogOpen(true);
+      return;
+    }
+
+    if (reportWindowPolicy.directRunMode === "full_history") {
+      await submitReportRun({ mode: "full_history", startMonth: null, endMonth: null });
+      return;
+    }
+
+    await submitReportRun();
+  }, [
+    reportWindowPolicy.directRunMode,
+    reportWindowPolicy.requiresWindowChooser,
+    runReportPending,
+    submitReportRun,
+    reportAccessBlocked,
+    workspaceReportState.canRunReport,
+    workspaceReportState.isLoading,
+  ]);
 
   const handleUploadAction = useCallback((platform: UploadPlatform) => {
     clearCurrentReport();
@@ -654,6 +716,8 @@ export default function DataUploadPage() {
     ],
   );
 
+  const readyBannerNote = workspaceReportState.canRunReport ? reportWindowPolicy.summaryNote ?? readyBanner.note : readyBanner.note;
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <DataPageHeader />
@@ -663,8 +727,9 @@ export default function DataUploadPage() {
         ready={workspaceReportState.canRunReport}
         statusLabel={readyBanner.statusLabel}
         connectedCount={connectedCount}
-        note={readyBanner.note}
-        runDisabled={runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport}
+        note={readyBannerNote}
+        runLabel={reportWindowPolicy.runCtaLabel}
+        runDisabled={runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport || reportAccessBlocked}
         onRunReport={handleRunReport}
         onViewReports={() => router.push("/app/report")}
       />
@@ -685,7 +750,11 @@ export default function DataUploadPage() {
             workspaceReportState={workspaceReportState}
             refreshWorkspaceDataSources={() => refreshWorkspaceDataSources({ preserveCurrent: true })}
             clearCurrentReport={clearCurrentReport}
-            onReportCreated={handleReportCreated}
+            onRunReport={handleRunReport}
+            onClearRunReportError={clearRunReportError}
+            runReportBusy={runReportPending}
+            runReportError={runReportError}
+            runReportLabel={reportWindowPolicy.runCtaLabel}
             preferredPlatform={preferredPlatform}
             preferredPlatformNonce={preferredPlatformNonce}
           />
@@ -693,6 +762,29 @@ export default function DataUploadPage() {
           <ManifestUnavailableCard />
         )}
       </div>
+
+      <ReportWindowChooserDialog
+        open={analysisWindowDialogOpen}
+        busy={runReportPending}
+        error={runReportError}
+        latestSnapshotWindow={reportWindowPolicy.latestSnapshotWindow}
+        onClose={() => {
+          if (!runReportPending) {
+            setAnalysisWindowDialogOpen(false);
+          }
+        }}
+        onRunLatestWindow={() =>
+          void submitReportRun(
+            reportWindowPolicy.latestSnapshotWindow
+              ? {
+                  mode: "latest_3_months",
+                  startMonth: reportWindowPolicy.latestSnapshotWindow.startMonth,
+                  endMonth: reportWindowPolicy.latestSnapshotWindow.endMonth,
+                }
+              : null,
+          )
+        }
+      />
 
       <SourceListSection
         items={sourceListItems}

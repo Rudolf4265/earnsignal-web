@@ -367,6 +367,49 @@ export function resolveBillingRequired(entitlements: EntitlementSnapshotLike | n
   return reasonCode ? BILLING_REQUIRED_REASON_CODES.has(reasonCode) : false;
 }
 
+export function resolveCapabilityContract(entitlements: EntitlementSnapshotLike | null | undefined): CapabilityContract | null {
+  if (!entitlements) {
+    return null;
+  }
+
+  const contract = entitlements.capabilityContract ?? entitlements.capability_contract ?? null;
+  if (!contract) {
+    return null;
+  }
+
+  const reportModeAllowed =
+    contract.report_mode_allowed === "snapshot" || contract.report_mode_allowed === "continuous"
+      ? contract.report_mode_allowed
+      : "none";
+  const maxReportMonths =
+    contract.max_report_months === null || contract.max_report_months === undefined
+      ? null
+      : typeof contract.max_report_months === "number" && Number.isFinite(contract.max_report_months)
+        ? Math.max(0, Math.trunc(contract.max_report_months))
+        : null;
+
+  return {
+    report_mode_allowed: reportModeAllowed,
+    max_report_months: maxReportMonths,
+    can_compare_reports: contract.can_compare_reports === true,
+    can_view_report_history: contract.can_view_report_history === true,
+    can_access_monitoring: contract.can_access_monitoring === true,
+    can_use_full_history_window: contract.can_use_full_history_window === true,
+  };
+}
+
+export function resolveReportModeAllowed(entitlements: EntitlementSnapshotLike | null | undefined): ReportModeAllowed {
+  return resolveCapabilityContract(entitlements)?.report_mode_allowed ?? "none";
+}
+
+export function resolveMaxReportMonths(entitlements: EntitlementSnapshotLike | null | undefined): number | null {
+  return resolveCapabilityContract(entitlements)?.max_report_months ?? null;
+}
+
+export function canUseFullHistoryWindowFromEntitlement(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
+  return resolveCapabilityContract(entitlements)?.can_use_full_history_window === true;
+}
+
 function resolveExplicitCapability(
   entitlements: EntitlementSnapshotLike,
   capability: EntitlementCapabilityKey,

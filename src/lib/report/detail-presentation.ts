@@ -72,6 +72,13 @@ export type ReportDetailDisplayContext = {
    * Null when there is no meaningful distinction to surface.
    */
   sourceContributionLine: string | null;
+  /**
+   * Plain-language business framing note for the coverage orientation block.
+   * Set when there is uneven source coverage (snapshot is a proper subset of history).
+   * Uses the backend-generated snapshotCoverageNote when available.
+   * Null when coverage is uniform or no note is available.
+   */
+  businessFramingNote: string | null;
 };
 
 export type ReportDetailPresentationModel = {
@@ -851,13 +858,16 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
     }
   }
 
+  const sourceContributionLine = buildReportSourceContributionLine({
+    platformsIncluded: input.report.platformsIncluded,
+    snapshotSources: snapshotSourcesFromProvenance,
+  });
+
   const displayContext: ReportDetailDisplayContext = {
-    snapshotLabel: displayLabels.snapshotLabel,
+    snapshotLabel: sourceContributionLine ? "Latest available — coverage varies by source" : displayLabels.snapshotLabel,
     historyLabel: displayLabels.historyLabel,
-    sourceContributionLine: buildReportSourceContributionLine({
-      platformsIncluded: input.report.platformsIncluded,
-      snapshotSources: snapshotSourcesFromProvenance,
-    }),
+    sourceContributionLine,
+    businessFramingNote: sourceContributionLine ? (input.report.snapshotCoverageNote ?? null) : null,
   };
 
   const heroTitle = readFriendlyReportTitle(input.report);

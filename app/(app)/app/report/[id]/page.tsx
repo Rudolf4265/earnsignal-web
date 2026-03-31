@@ -24,8 +24,6 @@ import {
   type ReportDetail,
 } from "@/src/lib/api/reports";
 import { hydrateDashboardFromArtifact } from "@/src/lib/dashboard/artifact-hydration";
-import { getInsightCardPresentation } from "@/src/lib/dashboard/insight-presentation";
-import { buildDashboardInsights } from "@/src/lib/dashboard/insights";
 import { buildDashboardRevenueTrendViewModel } from "@/src/lib/dashboard/revenue-trend";
 import {
   buildReportDetailSectionGatingModel,
@@ -503,15 +501,6 @@ export default function ReportPage() {
       artifactSignals: artifactSignals ?? null,
     });
   }, [artifactSignals, state.artifactModel, state.report]);
-  const insightCards = useMemo(
-    () =>
-      buildDashboardInsights({
-        keySignals: presentation?.keySignals ?? [],
-        signals: presentation?.signals ?? [],
-        maxCards: 3,
-      }),
-    [presentation?.keySignals, presentation?.signals],
-  );
   const revenueTrend = useMemo(
     () =>
       buildDashboardRevenueTrendViewModel({
@@ -752,7 +741,7 @@ export default function ReportPage() {
           {showFullReportContent ? <> {state.artifactError ? <ErrorBanner title="Artifact JSON unavailable" message={state.artifactError} /> : null}
 
           <section className="space-y-3">
-            <DashboardSectionHeader title="Executive Summary" description="A concise narrative from your latest completed report." />
+            <DashboardSectionHeader title="Executive Summary" description="What the report says about your creator business." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.92),rgba(19,41,80,0.84),rgba(16,32,67,0.94))]">
               <div className="space-y-2">
                 {presentation.executiveSummary.slice(0, 3).map((paragraph, index) => (
@@ -768,162 +757,7 @@ export default function ReportPage() {
           </section>
 
           <section className="space-y-3">
-            <DashboardSectionHeader title="Key Insights" description="Key signals translated into clear implications for the next planning cycle." />
-            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              {insightCards.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-5">
-                  <p className="text-sm text-brand-text-secondary">Not enough signal data is available to generate narrative insight cards yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {insightCards[0] ? (
-                    (() => {
-                      const insight = insightCards[0];
-                      const tone = getInsightCardPresentation(insight.variant);
-                      return (
-                        <article className={`relative overflow-hidden rounded-[1.2rem] border p-5 shadow-brand-card ${tone.cardClassName}`}>
-                          <div className={`absolute inset-x-0 top-0 h-0.5 ${tone.accentClassName}`} />
-                          <div className="relative flex flex-wrap items-center gap-2">
-                            <Badge variant={tone.badgeVariant} className={`px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${tone.badgeClassName}`}>
-                              {tone.badgeLabel}
-                            </Badge>
-                            {insight.stateLabel ? (
-                              <Badge variant={insight.stateTone ?? "neutral"} className="px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]">
-                                {insight.stateLabel}
-                              </Badge>
-                            ) : null}
-                          </div>
-                          <h3 className="mt-2.5 text-lg font-semibold leading-snug text-brand-text-primary break-words">{insight.title}</h3>
-                          <p className="mt-1.5 text-sm leading-relaxed text-brand-text-secondary break-words">{insight.body}</p>
-                          {insight.stateDetail ? <p className="mt-1.5 text-xs leading-relaxed text-brand-text-muted break-words">{insight.stateDetail}</p> : null}
-                          <p className="mt-2.5 text-xs leading-relaxed text-brand-text-muted/90 break-words">
-                            <span className="font-medium text-brand-text-secondary/60">Why it matters — </span>
-                            {insight.implication}
-                          </p>
-                        </article>
-                      );
-                    })()
-                  ) : null}
-                  {insightCards.length > 1 ? (
-                    <ul className="space-y-2">
-                      {insightCards.slice(1, 3).map((insight) => {
-                        const tone = getInsightCardPresentation(insight.variant);
-                        return (
-                          <li key={insight.id}>
-                            <article className={`relative overflow-hidden rounded-[1.2rem] border p-4 shadow-brand-card ${tone.cardClassName}`}>
-                              <div className={`absolute inset-x-0 top-0 h-0.5 ${tone.accentClassName}`} />
-                              <div className="relative flex flex-wrap items-center gap-2">
-                                <Badge variant={tone.badgeVariant} className={`px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] ${tone.badgeClassName}`}>
-                                  {tone.badgeLabel}
-                                </Badge>
-                                {insight.stateLabel ? (
-                                  <Badge variant={insight.stateTone ?? "neutral"} className="px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]">
-                                    {insight.stateLabel}
-                                  </Badge>
-                                ) : null}
-                              </div>
-                              <h3 className="mt-2 text-base font-semibold leading-snug text-brand-text-primary break-words">{insight.title}</h3>
-                              <p className="mt-1.5 text-sm leading-relaxed text-brand-text-secondary break-words">{insight.body}</p>
-                              {insight.stateDetail ? <p className="mt-1 text-xs leading-relaxed text-brand-text-muted break-words">{insight.stateDetail}</p> : null}
-                              <p className="mt-2 text-xs leading-relaxed text-brand-text-muted/90 break-words">
-                                <span className="font-medium text-brand-text-secondary/60">Why it matters — </span>
-                                {insight.implication}
-                              </p>
-                            </article>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : null}
-                </div>
-              )}
-            </PanelCard>
-          </section>
-
-          <section className="space-y-3" data-testid="report-diagnosis-section">
-            <DashboardSectionHeader title="Diagnosis" description="What the data says about your creator business health and growth constraints." />
-            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              <div className="space-y-4">
-                {presentation.diagnosis.notice ? (
-                  <p className="text-xs leading-relaxed text-brand-text-muted/80">
-                    <span className="font-medium text-amber-300/55">Confidence note:</span>{" "}
-                    {presentation.diagnosis.notice.body}
-                  </p>
-                ) : null}
-                {presentation.diagnosis.diagnosisTypeLabel || presentation.diagnosis.summary || presentation.diagnosis.unavailableBody ? (
-                  <article className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.78),rgba(16,32,67,0.9))] p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Primary typed read</p>
-                      {presentation.diagnosis.diagnosisTypeLabel ? (
-                        <span className="rounded-full border border-brand-border/70 bg-brand-panel/72 px-3 py-1 text-[11px] font-medium text-brand-text-primary">
-                          {presentation.diagnosis.diagnosisTypeLabel}
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">
-                      {presentation.diagnosis.summary ?? presentation.diagnosis.unavailableBody ?? "Diagnosis details are limited in this report artifact."}
-                    </p>
-                  </article>
-                ) : null}
-                {presentation.diagnosis.supportingMetrics.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {presentation.diagnosis.supportingMetrics.slice(0, 3).map((metric) => (
-                      <article key={metric.id} className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
-                          {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
-                        </div>
-                        <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
-                        {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
-                      </article>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </PanelCard>
-          </section>
-
-          {presentation.whatChanged.comparisonAvailable ? (
-            <section className="space-y-3" data-testid="report-what-changed-section">
-              <DashboardSectionHeader title="What Changed" description="Typed report-over-report changes." />
-              <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-                <div className="space-y-4">
-                  {presentation.whatChanged.notice ? <TruthNotice notice={presentation.whatChanged.notice} testId="report-what-changed-notice" /> : null}
-                  {presentation.whatChanged.priorPeriodLabel ? (
-                    <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">{presentation.whatChanged.priorPeriodLabel}</p>
-                  ) : null}
-                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                    <ComparisonBucket
-                      title="Improved"
-                      items={presentation.whatChanged.improved}
-                      emptyMessage="No typed improvements were material enough to highlight."
-                      testId="report-what-changed-improved"
-                    />
-                    <ComparisonBucket
-                      title="Worsened"
-                      items={presentation.whatChanged.worsened}
-                      emptyMessage="No typed deterioration was material enough to highlight."
-                      testId="report-what-changed-worsened"
-                    />
-                    <ComparisonBucket
-                      title="Watch Next"
-                      items={presentation.whatChanged.watchNext}
-                      emptyMessage="No typed watch-next items were emitted for this comparison."
-                      testId="report-what-changed-watch-next"
-                    />
-                  </div>
-                </div>
-              </PanelCard>
-            </section>
-          ) : (
-            <p className="text-xs text-brand-text-muted/70" data-testid="report-what-changed-section">
-              <span className="font-medium text-brand-text-muted">Period comparison:</span>{" "}
-              {presentation.whatChanged.unavailableBody ?? "A prior comparable report is not available yet."}
-            </p>
-          )}
-
-          <section className="space-y-3">
-            <DashboardSectionHeader title="Revenue History" description={`${presentation.displayContext.historyLabel} — net revenue movement across your report timeline.`} />
+            <DashboardSectionHeader title="Revenue and Trend" description={`${presentation.displayContext.historyLabel} — net revenue across your report window.`} />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               {revenueTrend.hasRenderableChart ? (
                 <div className="space-y-3">
@@ -958,7 +792,7 @@ export default function ReportPage() {
                 <div className="space-y-3">
                   {presentation.revenueTrend.narrative ? (
                     <div className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/76 p-4">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Latest narrative signal</p>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Revenue narrative</p>
                       <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{presentation.revenueTrend.narrative}</p>
                     </div>
                   ) : null}
@@ -970,8 +804,47 @@ export default function ReportPage() {
             </PanelCard>
           </section>
 
+          {presentation.whatChanged.comparisonAvailable ? (
+            <section className="space-y-3" data-testid="report-what-changed-section">
+              <DashboardSectionHeader title="What Changed" description="How business metrics changed versus the prior report period." />
+              <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+                <div className="space-y-4">
+                  {presentation.whatChanged.notice ? <TruthNotice notice={presentation.whatChanged.notice} testId="report-what-changed-notice" /> : null}
+                  {presentation.whatChanged.priorPeriodLabel ? (
+                    <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">{presentation.whatChanged.priorPeriodLabel}</p>
+                  ) : null}
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    <ComparisonBucket
+                      title="Improved"
+                      items={presentation.whatChanged.improved}
+                      emptyMessage="No improvements to report for this period."
+                      testId="report-what-changed-improved"
+                    />
+                    <ComparisonBucket
+                      title="Declined"
+                      items={presentation.whatChanged.worsened}
+                      emptyMessage="No notable declines for this period."
+                      testId="report-what-changed-worsened"
+                    />
+                    <ComparisonBucket
+                      title="Watch Next"
+                      items={presentation.whatChanged.watchNext}
+                      emptyMessage="Nothing to flag for the next period."
+                      testId="report-what-changed-watch-next"
+                    />
+                  </div>
+                </div>
+              </PanelCard>
+            </section>
+          ) : (
+            <p className="text-xs text-brand-text-muted/70" data-testid="report-what-changed-section">
+              <span className="font-medium text-brand-text-muted">Period comparison:</span>{" "}
+              {presentation.whatChanged.unavailableBody ?? "A prior comparable report is not available yet."}
+            </p>
+          )}
+
           <section className="space-y-3">
-            <DashboardSectionHeader title="Growth Recommendations" description="Recommended actions already captured in the report." />
+            <DashboardSectionHeader title="Recommended Actions" description="Evidence-led actions from your report, ordered by priority." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
               {showGrowthRecommendationsContent ? (
                 <div data-testid="report-growth-recommendations-unlocked">
@@ -1015,76 +888,41 @@ export default function ReportPage() {
               ) : proSectionGate.growthRecommendations === "pro-locked" ? (
                 <ProSectionLockedCard
                   testId="report-growth-recommendations-locked"
-                  title="Growth Recommendations"
-                  headline="Unlock growth recommendations"
-                  body="Get personalized actions based on your revenue and audience signals."
+                  title="Recommended Actions"
+                  headline="Unlock recommended actions"
+                  body="Get evidence-led actions based on your revenue and audience signals."
                 />
               ) : (
                 <ProSectionLoadingCard
                   testId="report-growth-recommendations-loading"
-                  message="Checking plan access for growth recommendations..."
+                  message="Checking plan access for recommended actions..."
                 />
               )}
             </PanelCard>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3">
+              <p className="text-xs leading-relaxed text-brand-text-secondary">
+                {presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1
+                  ? "Add a second source to deepen your analysis and sharpen these recommendations."
+                  : "Upload updated data to keep your report current."}
+              </p>
+              <Link
+                href="/app/data"
+                data-testid="report-return-to-workspace"
+                className="inline-flex shrink-0 rounded-xl border border-brand-border/60 bg-brand-panel/50 px-3 py-2 text-sm font-medium text-brand-text-secondary transition hover:bg-brand-panel/80 hover:text-brand-text-primary"
+              >
+                Return to workspace
+              </Link>
+            </div>
           </section>
 
           <section className="space-y-3">
-            <DashboardSectionHeader title="Subscriber Health" description="Retention, churn, and subscriber quality signals in one place." />
+            <DashboardSectionHeader title="Concentration and Business Health" description="Platform dependency and revenue concentration for this report period." />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              {showSubscriberHealthContent ? (
-                <div data-testid="report-subscriber-health-unlocked">
-                  {presentation.subscriberHealth.notice ? <TruthNotice notice={presentation.subscriberHealth.notice} testId="report-subscriber-health-notice" /> : null}
-                  {presentation.subscriberHealth.metrics.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      {presentation.subscriberHealth.metrics.map((metric) => (
-                        <article
-                          key={metric.id}
-                          className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
-                            {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
-                          </div>
-                          <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
-                          {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                      <p className="text-sm text-brand-text-secondary">Subscriber health metrics are unavailable in this report.</p>
-                    </div>
-                  )}
-                  {presentation.subscriberHealth.highlights.length > 0 ? (
-                    <div className="mt-3 rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3">
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Historical trend</p>
-                      <div className="mt-2 space-y-1.5">
-                        {presentation.subscriberHealth.highlights.map((line) => (
-                          <p key={line} className="text-xs leading-relaxed text-brand-text-secondary">{line}</p>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
+              {state.report.snapshotWindowMode !== "overlap" && state.report.snapshotWindowMode !== null && presentation.displayContext.businessFramingNote ? (
+                <div className="mb-4 rounded-xl border border-brand-border/60 bg-brand-panel/50 px-3 py-2.5">
+                  <p className="text-xs leading-relaxed text-brand-text-secondary">{presentation.displayContext.businessFramingNote}</p>
                 </div>
-              ) : proSectionGate.subscriberHealth === "pro-locked" ? (
-                <ProSectionLockedCard
-                  testId="report-subscriber-health-locked"
-                  title="Subscriber Health"
-                  headline="Unlock subscriber health insights"
-                  body="Understand churn risk, retention trends, and subscriber value."
-                />
-              ) : (
-                <ProSectionLoadingCard
-                  testId="report-subscriber-health-loading"
-                  message="Checking plan access for subscriber health insights..."
-                />
-              )}
-            </PanelCard>
-          </section>
-
-          <section className="space-y-3">
-            <DashboardSectionHeader title={state.report.snapshotWindowMode !== "overlap" && state.report.snapshotWindowMode !== null ? "Current Snapshot (Latest Available Data)" : "Current Revenue Mix"} description="Concentration and channel exposure based on the latest available snapshot." />
-            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+              ) : null}
               {presentation.platformMix.notice ? <TruthNotice notice={presentation.platformMix.notice} testId="report-platform-mix-notice" /> : null}
               {presentation.platformMix.concentrationScore !== null ||
               presentation.platformMix.platformsConnected !== null ||
@@ -1092,7 +930,7 @@ export default function ReportPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <article className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Platform Risk Score</p>
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Concentration Risk</p>
                       <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">
                         {presentation.platformMix.concentrationScore !== null
                           ? `${presentation.platformMix.concentrationScore % 1 === 0 ? presentation.platformMix.concentrationScore.toFixed(0) : presentation.platformMix.concentrationScore.toFixed(1)}%`
@@ -1123,7 +961,7 @@ export default function ReportPage() {
                     </article>
                   </div>
                   <p className="text-xs leading-relaxed text-brand-text-muted">
-                    A concentration score above 70% signals meaningful single-platform dependency. Track alongside connected platform count to monitor diversification over time.
+                    Revenue concentration above 70% signals meaningful single-platform dependency.
                   </p>
                   {presentation.platformMix.platformsConnected === 1 ? (
                     <p className="text-xs leading-relaxed text-brand-text-muted" data-testid="report-thin-source-notice">
@@ -1166,99 +1004,112 @@ export default function ReportPage() {
                   />
                 )}
               </section>
-            </PanelCard>
-          </section>
 
-          <section className="space-y-3">
-            <DashboardSectionHeader title="Revenue Outlook" description="Outlook scenarios based on available projection signals." />
-            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              {showRevenueOutlookContent ? (
-                <div data-testid="report-revenue-outlook-unlocked">
-                  {presentation.revenueOutlook.notice ? <TruthNotice notice={presentation.revenueOutlook.notice} testId="report-revenue-outlook-notice" /> : null}
-                  {presentation.revenueOutlook.cards.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                      {presentation.revenueOutlook.cards.map((card) => (
-                        <article
-                          key={card.id}
-                          className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-3.5"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{card.title}</p>
-                            {card.stateLabel ? <Badge variant={card.stateTone ?? "neutral"}>{card.stateLabel}</Badge> : null}
-                          </div>
-                          <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{card.body}</p>
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                      <p className="text-sm text-brand-text-secondary">Outlook scenarios are not available in this report artifact.</p>
-                    </div>
-                  )}
-                  {presentation.revenueOutlook.highlights.length > 0 ? (
-                    <div className="mt-3 space-y-1">
-                      {presentation.revenueOutlook.highlights.map((line) => (
-                        <p key={line} className="text-xs leading-relaxed text-brand-text-muted">{line}</p>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              ) : proSectionGate.revenueOutlook === "pro-locked" ? (
-                <ProSectionLockedCard
-                  testId="report-revenue-outlook-locked"
-                  title="Revenue Outlook"
-                  headline="Unlock revenue forecasts"
-                  body="See projected revenue scenarios for the months ahead."
-                />
-              ) : (
-                <ProSectionLoadingCard testId="report-revenue-outlook-loading" message="Checking plan access for revenue forecasts..." />
-              )}
-            </PanelCard>
-          </section>
-
-          <section className="space-y-3" data-testid="report-next-steps">
-            <DashboardSectionHeader title="What to do next" description="Suggested actions based on your current report. These recommendations are based on your current data." />
-            <div className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="space-y-1.5">
-                  {presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1 ? (
-                    <>
-                      <p className="text-sm font-medium text-brand-text-primary" data-testid="report-next-steps-single-source">
-                        Add another source to deepen your analysis.
-                      </p>
-                      <p className="text-xs leading-relaxed text-brand-text-secondary">
-                        This report was built from a single source. Adding a second report-driving source unlocks richer cross-platform comparisons and sharper recommendations.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-brand-text-primary" data-testid="report-next-steps-multi-source">
-                        Keep your workspace up to date to maintain accurate insights.
-                      </p>
-                      <p className="text-xs leading-relaxed text-brand-text-secondary">
-                        Upload updated data to your workspace to refresh your combined report with your latest numbers.
-                      </p>
-                    </>
-                  )}
-                </div>
-                <Link
-                  href="/app/data"
-                  data-testid="report-return-to-workspace"
-                  className="inline-flex shrink-0 rounded-xl border border-brand-border/60 bg-brand-panel/50 px-3 py-2 text-sm font-medium text-brand-text-secondary transition hover:bg-brand-panel/80 hover:text-brand-text-primary"
-                >
-                  Return to workspace
-                </Link>
+              <div className="mt-4 border-t border-brand-border/40 pt-4">
+                <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Subscriber Health</p>
+                {showSubscriberHealthContent ? (
+                  <div data-testid="report-subscriber-health-unlocked">
+                    {presentation.subscriberHealth.notice ? <TruthNotice notice={presentation.subscriberHealth.notice} testId="report-subscriber-health-notice" /> : null}
+                    {presentation.subscriberHealth.metrics.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        {presentation.subscriberHealth.metrics.map((metric) => (
+                          <article
+                            key={metric.id}
+                            className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
+                              {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
+                            </div>
+                            <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
+                            {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                        <p className="text-sm text-brand-text-secondary">Subscriber health metrics are unavailable in this report.</p>
+                      </div>
+                    )}
+                    {presentation.subscriberHealth.highlights.length > 0 ? (
+                      <div className="mt-3 rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Historical trend</p>
+                        <div className="mt-2 space-y-1.5">
+                          {presentation.subscriberHealth.highlights.map((line) => (
+                            <p key={line} className="text-xs leading-relaxed text-brand-text-secondary">{line}</p>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : proSectionGate.subscriberHealth === "pro-locked" ? (
+                  <ProSectionLockedCard
+                    testId="report-subscriber-health-locked"
+                    title="Subscriber Health"
+                    headline="Unlock subscriber health insights"
+                    body="Understand churn risk, retention trends, and subscriber value."
+                  />
+                ) : (
+                  <ProSectionLoadingCard
+                    testId="report-subscriber-health-loading"
+                    message="Checking plan access for subscriber health insights..."
+                  />
+                )}
               </div>
-            </div>
+            </PanelCard>
           </section>
 
           <section className="space-y-3">
-            <DashboardSectionHeader title="Appendix" description="Technical and verbose details from the artifact payload." />
+            <DashboardSectionHeader title="Supporting Detail" description="Outlook projections, assumptions, data coverage, and technical report details." />
             <details>
               <summary className="cursor-pointer rounded-xl border border-brand-border/55 bg-brand-panel/55 px-4 py-2.5 text-sm text-brand-text-muted hover:text-brand-text-secondary [list-style:none] [&::-webkit-details-marker]:hidden">
-                Show appendix details
+                Show supporting detail
               </summary>
-              <div className="mt-3">
+              <div className="mt-3 space-y-3">
+                <PanelCard className="border-brand-border/65 bg-brand-panel/72">
+                  <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Revenue Outlook</p>
+                  {showRevenueOutlookContent ? (
+                    <div data-testid="report-revenue-outlook-unlocked">
+                      {presentation.revenueOutlook.notice ? <TruthNotice notice={presentation.revenueOutlook.notice} testId="report-revenue-outlook-notice" /> : null}
+                      {presentation.revenueOutlook.cards.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                          {presentation.revenueOutlook.cards.map((card) => (
+                            <article
+                              key={card.id}
+                              className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-3.5"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{card.title}</p>
+                                {card.stateLabel ? <Badge variant={card.stateTone ?? "neutral"}>{card.stateLabel}</Badge> : null}
+                              </div>
+                              <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{card.body}</p>
+                            </article>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                          <p className="text-sm text-brand-text-secondary">Outlook projections are not available in this report artifact.</p>
+                        </div>
+                      )}
+                      {presentation.revenueOutlook.highlights.length > 0 ? (
+                        <div className="mt-3 space-y-1">
+                          {presentation.revenueOutlook.highlights.map((line) => (
+                            <p key={line} className="text-xs leading-relaxed text-brand-text-muted">{line}</p>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : proSectionGate.revenueOutlook === "pro-locked" ? (
+                    <ProSectionLockedCard
+                      testId="report-revenue-outlook-locked"
+                      title="Revenue Outlook"
+                      headline="Unlock revenue forecasts"
+                      body="See projected revenue scenarios for the months ahead."
+                    />
+                  ) : (
+                    <ProSectionLoadingCard testId="report-revenue-outlook-loading" message="Checking plan access for revenue forecasts..." />
+                  )}
+                </PanelCard>
                 <PanelCard className="border-brand-border/65 bg-brand-panel/72">
                   {presentation.appendixSections.length > 0 ? (
                     <div className="space-y-4">

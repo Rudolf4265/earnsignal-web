@@ -74,7 +74,7 @@ test("report list falls back to legacy reports when items key is present but inv
   assert.equal(page.items[0].reportId, "rep_legacy_fallback");
 });
 
-test("report list row mapping formats created_at, status badge, and source summaries", async () => {
+test("report list row mapping formats created_at, status badge, source summaries, and analysis window", async () => {
   const { normalizeReportsListResponse, toReportListRows } = await loadListModel(Date.now() + 3);
 
   const page = normalizeReportsListResponse({
@@ -85,6 +85,8 @@ test("report list row mapping formats created_at, status badge, and source summa
         created_at: "2026-03-01T18:00:00Z",
         artifact_url: "/v1/reports/rep_ready/artifact",
         platforms: ["substack", "patreon"],
+        coverage_start: "2025-12-01T00:00:00Z",
+        coverage_end: "2026-02-01T00:00:00Z",
       },
       {
         report_id: "rep_failed",
@@ -106,6 +108,7 @@ test("report list row mapping formats created_at, status badge, and source summa
   assert.equal(rows[0].canDownload, true);
   assert.equal(rows[0].sourceCountLabel, "2 sources included");
   assert.equal(rows[0].platformSummary, "Patreon / Substack");
+  assert.equal(rows[0].analysisWindowLabel, "Dec 2025 - Feb 2026");
 
   assert.equal(rows[1].title, "YouTube Report — Mar 2026");
   assert.equal(rows[1].statusLabel, "Validation Failed");
@@ -115,6 +118,7 @@ test("report list row mapping formats created_at, status badge, and source summa
   assert.equal(rows[1].canView, true);
   assert.equal(rows[1].sourceCountLabel, "1 source included");
   assert.equal(rows[1].platformSummary, "YouTube");
+  assert.equal(rows[1].analysisWindowLabel, "Mar 2026");
 });
 
 test("report list does not treat legacy id as canonical report_id", async () => {

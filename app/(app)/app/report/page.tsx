@@ -20,6 +20,7 @@ import {
   type ReportListItem,
 } from "@/src/lib/api/reports";
 import {
+  buildReportListExperienceModel,
   isInFlightReportStatus,
   overlayReportRunStatus,
   toReportListRows,
@@ -75,18 +76,6 @@ async function hydrateActiveReportItems(items: ReportListItem[]): Promise<Report
   return nextItems;
 }
 
-function reportCountLabel(count: number): string {
-  if (count === 0) {
-    return "No reports to display yet.";
-  }
-
-  if (count === 1) {
-    return "Showing 1 recent report.";
-  }
-
-  return `Showing ${count} recent reports.`;
-}
-
 export default function ReportsPage() {
   const entitlementState = useEntitlementState();
   const [state, setState] = useState<ReportsState>(initialState);
@@ -97,7 +86,10 @@ export default function ReportsPage() {
   const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
 
   const reportRows = useMemo(() => toReportListRows(state.items), [state.items]);
-  const listDescription = useMemo(() => reportCountLabel(reportRows.length), [reportRows.length]);
+  const reportListExperience = useMemo(
+    () => buildReportListExperienceModel({ entitlements: entitlementState, reportCount: reportRows.length }),
+    [entitlementState, reportRows.length],
+  );
   const hasInFlightReports = useMemo(
     () => state.items.some((item) => item.reportId && isInFlightReportStatus(item.status)),
     [state.items],
@@ -272,7 +264,7 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <PageHeader
           title="Reports"
-          subtitle="Review generated analyses, statuses, and report artifacts."
+          subtitle="Open purchased reports, review current runs, and access report artifacts."
           actions={
             <Link href="/app/data" className={buttonClassName({ variant: "primary" })}>
               Upload
@@ -316,20 +308,22 @@ export default function ReportsPage() {
           />
         ) : null}
 
-        <Panel title="Recent Reports" description={listDescription}>
+        <Panel title={reportListExperience.sectionTitle} description={reportListExperience.sectionDescription}>
           {state.loading ? (
             <div className="overflow-hidden rounded-2xl border border-brand-border" data-testid="report-list-loading">
-              <div className="grid grid-cols-[minmax(14rem,1.8fr)_9rem_minmax(15rem,1fr)] bg-brand-panel-muted/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-text-muted">
-                <span>Date</span>
+              <div className="grid grid-cols-[minmax(14rem,1.7fr)_10rem_9rem_minmax(15rem,1fr)] bg-brand-panel-muted/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-text-muted">
+                <span>Report</span>
+                <span>Analyzed window</span>
                 <span>Status</span>
                 <span className="text-right">Actions</span>
               </div>
               {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="grid grid-cols-[minmax(14rem,1.8fr)_9rem_minmax(15rem,1fr)] items-center border-t border-brand-border bg-brand-panel px-4 py-3">
+                <div key={index} className="grid grid-cols-[minmax(14rem,1.7fr)_10rem_9rem_minmax(15rem,1fr)] items-center border-t border-brand-border bg-brand-panel px-4 py-3">
                   <div className="space-y-2">
                     <SkeletonBlock className="h-4 w-40" />
                     <SkeletonBlock className="h-3 w-28" />
                   </div>
+                  <SkeletonBlock className="h-4 w-24" />
                   <SkeletonBlock className="h-6 w-20 rounded-full" />
                   <div className="ml-auto flex gap-2">
                     <SkeletonBlock className="h-8 w-16" />
@@ -340,13 +334,23 @@ export default function ReportsPage() {
             </div>
           ) : reportRows.length > 0 ? (
             <div className="space-y-3">
+              {reportListExperience.continuityBody ? (
+                <div
+                  className="rounded-2xl border border-brand-accent-blue/35 bg-brand-panel-muted/60 px-4 py-3 text-sm text-brand-text-secondary"
+                  data-testid="report-list-continuity-framing"
+                >
+                  {reportListExperience.continuityBody}
+                </div>
+              ) : null}
+
               <div
                 className="overflow-hidden rounded-2xl border border-brand-border"
                 data-testid="report-list"
                 aria-label="Report list table"
               >
-                <div className="grid grid-cols-[minmax(14rem,1.8fr)_9rem_minmax(15rem,1fr)] bg-brand-panel-muted/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-text-muted">
-                  <span>Date</span>
+                <div className="grid grid-cols-[minmax(14rem,1.7fr)_10rem_9rem_minmax(15rem,1fr)] bg-brand-panel-muted/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-brand-text-muted">
+                  <span>Report</span>
+                  <span>Analyzed window</span>
                   <span>Status</span>
                   <span className="text-right">Actions</span>
                 </div>
@@ -358,17 +362,23 @@ export default function ReportsPage() {
                   return (
                     <div
                       key={row.id}
-                      className="grid grid-cols-[minmax(14rem,1.8fr)_9rem_minmax(15rem,1fr)] items-center border-t border-brand-border bg-brand-panel px-4 py-3 transition hover:bg-brand-panel-muted/70"
+                      className="grid grid-cols-[minmax(14rem,1.7fr)_10rem_9rem_minmax(15rem,1fr)] items-center border-t border-brand-border bg-brand-panel px-4 py-3 transition hover:bg-brand-panel-muted/70"
                     >
                       <div className="min-w-[12rem] pr-4">
                         <p className="text-sm font-semibold text-brand-text-primary">{row.title}</p>
-                        {row.sourceCountLabel || row.platformSummary ? (
+                        {reportListExperience.showSourceSummary && (row.sourceCountLabel || row.platformSummary) ? (
                           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-brand-text-muted" data-testid="report-list-source-summary">
                             {row.sourceCountLabel ? <span>{row.sourceCountLabel}</span> : null}
                             {row.platformSummary ? <span>{row.platformSummary}</span> : null}
                           </div>
                         ) : null}
-                        <p className="mt-1 text-xs text-brand-text-muted">{row.createdAtLabel}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-brand-text-muted">
+                          <span>{`Created ${row.createdAtLabel}`}</span>
+                        </div>
+                      </div>
+
+                      <div className="pr-4">
+                        <p className="text-xs text-brand-text-muted">{row.analysisWindowLabel ?? "Latest available"}</p>
                       </div>
 
                       <div>
@@ -378,7 +388,7 @@ export default function ReportsPage() {
                       <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
                         {row.canView && row.viewHref ? (
                           <Link href={row.viewHref} className={buttonClassName({ variant: "primary", size: "sm" })}>
-                            View
+                            {reportListExperience.primaryActionLabel}
                           </Link>
                         ) : (
                           <span className="inline-flex rounded-full border border-amber-300/35 bg-amber-300/15 px-3 py-1.5 text-xs font-medium text-amber-100">
@@ -427,10 +437,22 @@ export default function ReportsPage() {
 
               {state.hasMore ? (
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs text-brand-text-muted">Showing the most recent page of reports.</p>
+                  <p className="text-xs text-brand-text-muted">
+                    {reportListExperience.kind === "report_history"
+                      ? "Showing the most recent page of report history."
+                      : reportListExperience.kind === "purchased_reports"
+                        ? "Showing the most recent page of purchased reports."
+                        : "Showing the most recent page of reports."}
+                  </p>
                   <Button type="button" variant="secondary" size="sm" onClick={() => void loadMore()} disabled={state.loadingMore}>
                     {state.loadingMore ? "Loading..." : "Load more"}
                   </Button>
+                </div>
+              ) : null}
+
+              {reportListExperience.upgradePrompt ? (
+                <div className="rounded-2xl border border-brand-border bg-brand-panel-muted/60 px-4 py-3 text-sm text-brand-text-secondary">
+                  <p>{reportListExperience.upgradePrompt}</p>
                 </div>
               ) : null}
             </div>

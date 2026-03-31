@@ -2,6 +2,13 @@ import { normalizeReportId } from "./id";
 import { buildReportDetailPath } from "./path";
 import { hasUsableReportArtifact } from "./artifact-availability";
 import {
+  canViewOwnedReportFromEntitlement,
+  canViewReportHistoryFromEntitlement,
+  hasProEquivalentEntitlement,
+  isFounderFromEntitlement,
+  type EntitlementSnapshotLike,
+} from "../entitlements/model";
+import {
   buildCanonicalReportTitle,
   formatIncludedSourceCountLabel,
   formatPlatformsSummaryLabel,
@@ -51,10 +58,28 @@ export type ReportListRow = {
   sourceCount: number | null;
   sourceCountLabel: string | null;
   platformSummary: string | null;
+  analysisWindowLabel: string | null;
   reportKind: ReportKind;
 };
 
+export type ReportListExperienceKind = "free" | "purchased_reports" | "report_history";
+
+export type ReportListExperienceModel = {
+  kind: ReportListExperienceKind;
+  sectionTitle: string;
+  sectionDescription: string;
+  continuityBody: string | null;
+  upgradePrompt: string | null;
+  primaryActionLabel: string;
+  showSourceSummary: boolean;
+};
+
 const IN_FLIGHT_REPORT_STATUSES = new Set(["queued", "running", "processing"]);
+const reportWindowFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  timeZone: "UTC",
+  year: "numeric",
+});
 
 function readString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -244,6 +269,35 @@ export function formatReportCreatedAt(value: string | null | undefined): string 
   }).format(date);
 }
 
+function formatReportWindowMonth(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return reportWindowFormatter.format(date);
+}
+
+export function formatReportAnalysisWindow(
+  coverageStart: string | null | undefined,
+  coverageEnd: string | null | undefined,
+  createdAt?: string | null | undefined,
+): string | null {
+  const start = formatReportWindowMonth(coverageStart);
+  const end = formatReportWindowMonth(coverageEnd);
+  const fallback = formatReportWindowMonth(createdAt);
+
+  if (start && end) {
+    return start === end ? start : `${start} - ${end}`;
+  }
+
+  return end ?? start ?? fallback;
+}
+
 export function toReportStatusVariant(status: string): "good" | "warn" | "neutral" {
   const normalized = status.toLowerCase();
   if (["ready", "completed", "complete", "success", "succeeded"].includes(normalized)) {
@@ -332,7 +386,88 @@ export function toReportListRows(items: ReportListItem[]): ReportListRow[] {
       sourceCount: item.sourceCount,
       sourceCountLabel: formatIncludedSourceCountLabel(item.sourceCount),
       platformSummary: formatPlatformsSummaryLabel(item.platformsIncluded),
+      analysisWindowLabel: formatReportAnalysisWindow(item.coverageStart, item.coverageEnd, item.createdAt),
       reportKind: item.reportKind,
     };
   });
+}
+
+function formatReportListSectionDescription(kind: ReportListExperienceKind, count: number): string {
+  if (kind === "purchased_reports") {
+    if (count === 0) {
+      return "No purchased reports to display yet.";
+    }
+
+    if (count === 1) {
+      return "Showing 1 purchased report.";
+    }
+
+    return `Showing ${count} purchased reports.`;
+  }
+
+  if (kind === "report_history") {
+    if (count === 0) {
+      return "No report history to display yet.";
+    }
+
+    if (count === 1) {
+      return "Showing 1 report in history.";
+    }
+
+    return `Showing ${count} reports in history.`;
+  }
+
+  if (count === 0) {
+    return "No reports to display yet.";
+  }
+
+  if (count === 1) {
+    return "Showing 1 recent report.";
+  }
+
+  return `Showing ${count} recent reports.`;
+}
+
+export function buildReportListExperienceModel(input: {
+  entitlements: EntitlementSnapshotLike | null | undefined;
+  reportCount: number;
+}): ReportListExperienceModel {
+  const isHistoryExperience =
+    isFounderFromEntitlement(input.entitlements) ||
+    canViewReportHistoryFromEntitlement(input.entitlements) ||
+    hasProEquivalentEntitlement(input.entitlements);
+
+  if (isHistoryExperience) {
+    return {
+      kind: "report_history",
+      sectionTitle: "Report History",
+      sectionDescription: formatReportListSectionDescription("report_history", input.reportCount),
+      continuityBody: "Connected history across eligible reports and fresh Pro runs, with room for comparisons and ongoing intelligence.",
+      upgradePrompt: null,
+      primaryActionLabel: "Open Report",
+      showSourceSummary: true,
+    };
+  }
+
+  if (canViewOwnedReportFromEntitlement(input.entitlements)) {
+    return {
+      kind: "purchased_reports",
+      sectionTitle: "Purchased Reports",
+      sectionDescription: formatReportListSectionDescription("purchased_reports", input.reportCount),
+      continuityBody: null,
+      upgradePrompt: "You own these reports. Pro connects them with history, comparisons, and ongoing intelligence.",
+      primaryActionLabel: "Open Report",
+      showSourceSummary: false,
+    };
+  }
+
+  return {
+    kind: "free",
+    sectionTitle: "Recent Reports",
+    sectionDescription: formatReportListSectionDescription("free", input.reportCount),
+    continuityBody: null,
+    upgradePrompt: null,
+    primaryActionLabel: "Open Report",
+    showSourceSummary: true,
+  };
 }

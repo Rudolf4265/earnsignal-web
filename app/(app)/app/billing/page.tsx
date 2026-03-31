@@ -23,9 +23,10 @@ const plans: Array<{ id: CheckoutPlan; label: string; priceLabel: string; summar
     id: "report",
     label: "Report",
     priceLabel: "$79 one-time",
-    summary: "One combined creator business report from your staged workspace sources. Full diagnosis, owned report access, and PDF download.",
+    summary: "One focused 3-month creator business diagnostic from your staged workspace sources. Full diagnosis, owned report access, and PDF download.",
     highlights: [
-      "Combined report from staged workspace sources",
+      "One combined report from staged workspace sources",
+      "Focused 3-month analysis window",
       "Biggest opportunity and platform risk",
       "Strengths, risks, and next 3 actions",
       "Owned report access and downloadable PDF",
@@ -35,14 +36,27 @@ const plans: Array<{ id: CheckoutPlan; label: string; priceLabel: string; summar
     id: "pro",
     label: "Pro",
     priceLabel: "$59 / month",
-    summary: "Everything in Report, plus report history, comparisons, and ongoing intelligence across fresh workspace runs.",
+    summary: "Everything in Report, plus full-history analysis, report history, comparisons, and ongoing intelligence across fresh workspace runs.",
     highlights: [
       "All Report features included",
-      "You keep purchased reports while Pro adds ongoing value",
-      "Recurring report history and period comparisons",
+      "Full-history analysis across eligible uploads",
+      "Report history and period comparisons",
       "Dashboard intelligence and monitoring",
+      "Continuous creator business tracking",
     ],
   },
+];
+
+const comparisonRows: Array<{ label: string; report: string; pro: string }> = [
+  { label: "Full report", report: "Included", pro: "Included" },
+  { label: "PDF download", report: "Included", pro: "Included" },
+  { label: "Owned purchased reports", report: "Included", pro: "Included" },
+  { label: "Focused 3-month analysis", report: "Included", pro: "Included" },
+  { label: "Full-history analysis", report: "-", pro: "Included" },
+  { label: "Report history", report: "-", pro: "Included" },
+  { label: "Comparisons", report: "-", pro: "Included" },
+  { label: "Monitoring", report: "-", pro: "Included" },
+  { label: "Ongoing dashboard intelligence", report: "-", pro: "Included" },
 ];
 
 const CHECKOUT_CONFIG_ERROR_CODES = new Set(["BILLING_NOT_CONFIGURED", "BILLING_INVALID_STRIPE_PRICE_ID"]);
@@ -392,12 +406,48 @@ export default function BillingPage() {
         })}
       </section>
 
-      <section className="rounded-2xl border border-brand-border bg-brand-panel p-5 text-sm text-brand-text-secondary">
-        <h2 className="text-base font-semibold text-brand-text-primary">Ownership and subscription value</h2>
-        <p className="mt-2">
-          You keep any report you purchase. Pro adds ongoing value across fresh workspace runs, including history,
-          comparisons, and continued dashboard intelligence.
-        </p>
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <div className="rounded-2xl border border-brand-border bg-brand-panel p-5 text-sm text-brand-text-secondary shadow-brand-card">
+          <h2 className="text-base font-semibold text-brand-text-primary">Report gives you ownership. Pro gives you continuity.</h2>
+          <p className="mt-2">
+            You keep any report you purchase. Pro adds full-history analysis, comparisons, and ongoing dashboard intelligence
+            across runs.
+          </p>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-brand-border bg-brand-panel shadow-brand-card">
+          <div className="border-b border-brand-border px-5 py-4">
+            <h2 className="text-base font-semibold text-brand-text-primary">Included at a glance</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-brand-panel-muted text-xs uppercase tracking-[0.14em] text-brand-text-muted">
+                <tr>
+                  <th scope="col" className="px-5 py-3 font-medium">
+                    Feature
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-medium text-brand-text-secondary">
+                    Report
+                  </th>
+                  <th scope="col" className="px-5 py-3 font-medium text-brand-text-primary">
+                    Pro
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-border text-xs text-brand-text-secondary">
+                {comparisonRows.map((row) => (
+                  <tr key={row.label}>
+                    <th scope="row" className="px-5 py-3 font-medium text-brand-text-primary">
+                      {row.label}
+                    </th>
+                    <td className="px-4 py-3">{row.report}</td>
+                    <td className="px-5 py-3">{row.pro}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
       {checkoutError ? (

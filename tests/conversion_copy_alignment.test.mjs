@@ -22,10 +22,22 @@ test("pricing config reflects the canonical Free / Report / Pro product ladder",
   const pro = pricingPlans.find((plan) => plan.key === "pro");
 
   assert.equal(free?.description.includes("No full report included."), true);
-  assert.equal(report?.description.includes("One combined creator business report from your staged data sources."), true);
+  assert.equal(
+    report?.description.includes(
+      "One focused 3-month creator business diagnostic from your staged workspace sources.",
+    ),
+    true,
+  );
+  assert.equal(report?.features.includes("Focused 3-month analysis window"), true);
   assert.equal(report?.features.includes("Owned report access and downloadable PDF"), true);
-  assert.equal(pro?.description.includes("Everything in Report, plus report history, comparisons, and ongoing intelligence across fresh workspace runs."), true);
-  assert.equal(pro?.features.includes("You keep purchased reports while Pro adds ongoing value"), true);
+  assert.equal(
+    pro?.description.includes(
+      "Everything in Report, plus full-history analysis, report history, comparisons, and ongoing intelligence across fresh workspace runs.",
+    ),
+    true,
+  );
+  assert.equal(pro?.features.includes("Full-history analysis across eligible uploads"), true);
+  assert.equal(pro?.features.includes("Continuous creator business tracking"), true);
 });
 
 test("marketing page leads with present-state product truth", async () => {
@@ -45,11 +57,22 @@ test("marketing page leads with present-state product truth", async () => {
 test("billing page explains workspace-based reports and ownership versus Pro value", async () => {
   const source = await readFile(billingPagePath, "utf8");
 
-  assert.equal(source.includes("One combined creator business report from your staged workspace sources."), true);
+  assert.equal(source.includes("One focused 3-month creator business diagnostic from your staged workspace sources."), true);
+  assert.equal(source.includes("Focused 3-month analysis window"), true);
   assert.equal(source.includes("Owned report access and downloadable PDF"), true);
-  assert.equal(source.includes("You keep purchased reports while Pro adds ongoing value"), true);
-  assert.equal(source.includes("Ownership and subscription value"), true);
-  assert.equal(source.includes("You keep any report you purchase."), true);
+  assert.equal(
+    source.includes(
+      "Everything in Report, plus full-history analysis, report history, comparisons, and ongoing intelligence across fresh workspace runs.",
+    ),
+    true,
+  );
+  assert.equal(source.includes("Full-history analysis across eligible uploads"), true);
+  assert.equal(source.includes("Report gives you ownership. Pro gives you continuity."), true);
+  assert.equal(source.includes("You keep any report you purchase. Pro adds full-history analysis, comparisons, and ongoing dashboard intelligence"), true);
+  assert.equal(source.includes("across runs."), true);
+  assert.equal(source.includes("Included at a glance"), true);
+  assert.equal(source.includes("Full report"), true);
+  assert.equal(source.includes("Ongoing dashboard intelligence"), true);
   assert.equal(source.includes("One complete creator business report for one upload"), false);
   assert.equal(source.includes("Full diagnosis for one upload"), false);
 });

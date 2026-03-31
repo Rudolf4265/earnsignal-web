@@ -6,6 +6,13 @@ type DashboardHeaderProps = {
   snapshotLabel?: string | null;
   note?: string | null;
   mode: DashboardMode;
+  planBadgeLabel?: string | null;
+  tierBanner?: {
+    variant: "snapshot" | "pro";
+    eyebrow?: string | null;
+    body: string;
+    testId: string;
+  } | null;
   refreshing?: boolean;
   refreshDisabled?: boolean;
   onModeChange: (mode: DashboardMode) => void;
@@ -16,6 +23,8 @@ export function DashboardHeader({
   snapshotLabel,
   note,
   mode,
+  planBadgeLabel,
+  tierBanner,
   refreshing = false,
   refreshDisabled = false,
   onModeChange,
@@ -24,7 +33,17 @@ export function DashboardHeader({
   return (
     <section className="flex flex-col gap-4 rounded-[1.6rem] border border-brand-border/75 bg-[linear-gradient(145deg,rgba(10,24,50,0.94),rgba(15,35,75,0.93),rgba(16,32,67,0.96))] px-5 py-5 shadow-brand-card md:flex-row md:items-start md:justify-between md:px-6">
       <div className="max-w-3xl space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-accent-teal">Dashboard</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-accent-teal">Dashboard</p>
+          {planBadgeLabel ? (
+            <span
+              className="inline-flex rounded-full border border-brand-accent-blue/45 bg-brand-accent-blue/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-text-primary"
+              data-testid="dashboard-pro-badge"
+            >
+              {planBadgeLabel}
+            </span>
+          ) : null}
+        </div>
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight text-brand-text-primary">Creator Operating Dashboard</h1>
           <p className="text-sm leading-relaxed text-brand-text-secondary">
@@ -32,6 +51,21 @@ export function DashboardHeader({
           </p>
           {note ? <p className="text-xs leading-relaxed text-brand-text-muted">{note}</p> : null}
         </div>
+        {tierBanner ? (
+          <div
+            className={`rounded-[1.1rem] border px-4 py-3 shadow-brand-card ${
+              tierBanner.variant === "pro"
+                ? "border-brand-accent-blue/45 bg-[linear-gradient(155deg,rgba(30,64,175,0.2),rgba(16,32,67,0.88),rgba(13,24,50,0.92))]"
+                : "border-brand-border-strong/70 bg-brand-panel/65"
+            }`}
+            data-testid={tierBanner.testId}
+          >
+            {tierBanner.eyebrow ? (
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">{tierBanner.eyebrow}</p>
+            ) : null}
+            <p className="text-sm leading-relaxed text-brand-text-secondary">{tierBanner.body}</p>
+          </div>
+        ) : null}
       </div>
 
       <div className="flex flex-col items-stretch gap-3 sm:items-end">

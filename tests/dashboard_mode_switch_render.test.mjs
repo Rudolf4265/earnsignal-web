@@ -14,6 +14,8 @@ test("dashboard page wires additive Earn and Grow mode branching without disturb
   assert.equal(source.includes("const dashboardMode = parseDashboardMode(searchParams.get(\"mode\"));"), true);
   assert.equal(source.includes("<DashboardHeader"), true);
   assert.equal(source.includes("mode={dashboardMode}"), true);
+  assert.equal(source.includes("planBadgeLabel={dashboardPlanBadgeLabel}"), true);
+  assert.equal(source.includes("tierBanner={dashboardTierBanner}"), true);
   assert.equal(source.includes("buildDashboardModeSearch(searchParams, nextMode)"), true);
   assert.equal(source.includes("{dashboardMode === \"earn\" ? ("), true);
   assert.equal(source.includes("<DashboardTopGrid"), true);
@@ -25,6 +27,19 @@ test("dashboard page wires additive Earn and Grow mode branching without disturb
   assert.equal(source.includes("const latestReportHref = useMemo(() => buildReportDetailPathOrIndex(state.latestReportRow?.id), [state.latestReportRow?.id]);"), true);
   assert.equal(source.includes("const showDashboardOnboarding = state.hasReports !== true || growGuidanceLimited;"), true);
   assert.equal(source.includes("<DashboardOnboardingSection"), true);
+});
+
+test("dashboard page derives report snapshot and Pro continuity header treatment from entitlements", async () => {
+  const source = await readFile(dashboardPagePath, "utf8");
+
+  assert.equal(source.includes("const hasProDashboardTreatment = entitlementState.hasProAccess || entitlementState.isFounder;"), true);
+  assert.equal(source.includes('const showReportSnapshotBanner = entitled && !hasProDashboardTreatment && planTier === "report";'), true);
+  assert.equal(source.includes('const dashboardPlanBadgeLabel = hasProDashboardTreatment ? "Pro" : null;'), true);
+  assert.equal(source.includes('body: "This dashboard reflects your purchased report snapshot. Upgrade to Pro for ongoing intelligence, comparisons, and monitoring."'), true);
+  assert.equal(source.includes('testId: "dashboard-report-snapshot-banner"'), true);
+  assert.equal(source.includes('eyebrow: "Pro command center"'), true);
+  assert.equal(source.includes('body: "Full-history intelligence, comparisons, and monitoring stay connected across fresh runs."'), true);
+  assert.equal(source.includes('testId: "dashboard-pro-continuity-card"'), true);
 });
 
 test("dashboard mode switch exposes explicit Earn and Grow tab controls", async () => {

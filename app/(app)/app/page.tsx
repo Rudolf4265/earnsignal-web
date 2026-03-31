@@ -408,6 +408,8 @@ export default function DashboardPage() {
   const planTier = entitlementState.effectivePlanTier;
   const planStatus = entitlements?.status ?? "inactive";
   const entitled = entitlementState.accessGranted;
+  const hasProDashboardTreatment = entitlementState.hasProAccess || entitlementState.isFounder;
+  const showReportSnapshotBanner = entitled && !hasProDashboardTreatment && planTier === "report";
 
   const primaryCta = useMemo(
     () =>
@@ -613,6 +615,22 @@ export default function DashboardPage() {
     (state.latestReport?.reportHasBusinessMetrics === false
       ? "Your latest report does not include strong business metrics. Connect a revenue or subscriber source to strengthen earnings analysis."
       : null);
+  const dashboardPlanBadgeLabel = hasProDashboardTreatment ? "Pro" : null;
+  const dashboardTierBanner = showReportSnapshotBanner
+    ? {
+        variant: "snapshot" as const,
+        eyebrow: "Snapshot companion",
+        body: "This dashboard reflects your purchased report snapshot. Upgrade to Pro for ongoing intelligence, comparisons, and monitoring.",
+        testId: "dashboard-report-snapshot-banner",
+      }
+    : hasProDashboardTreatment
+      ? {
+          variant: "pro" as const,
+          eyebrow: "Pro command center",
+          body: "Full-history intelligence, comparisons, and monitoring stay connected across fresh runs.",
+          testId: "dashboard-pro-continuity-card",
+        }
+      : null;
   const handleModeChange = useCallback(
     (nextMode: "earn" | "grow") => {
       const query = buildDashboardModeSearch(searchParams, nextMode);
@@ -627,6 +645,8 @@ export default function DashboardPage() {
         snapshotLabel={dashboardSnapshotLabel}
         note={dashboardHeaderNote}
         mode={dashboardMode}
+        planBadgeLabel={dashboardPlanBadgeLabel}
+        tierBanner={dashboardTierBanner}
         onModeChange={handleModeChange}
         refreshing={state.refreshing}
         refreshDisabled={state.loading || state.refreshing}

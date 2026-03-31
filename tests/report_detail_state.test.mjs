@@ -311,3 +311,24 @@ test("report detail maps 401 to session_expired", async () => {
 
   assert.equal(getReportViewState(error), "session_expired");
 });
+
+test("normalizeReportDetail passes through months_present as monthsPresent when present", async () => {
+  const { normalizeReportDetail } = await loadModules(Date.now() + 60);
+  const result = normalizeReportDetail("rep_months_present", {
+    id: "rep_months_present",
+    status: "ready",
+    months_present: ["2024-11", "2024-12", "2025-01", "2025-02", "2025-03"],
+  });
+
+  assert.deepEqual(result.monthsPresent, ["2024-11", "2024-12", "2025-01", "2025-02", "2025-03"]);
+});
+
+test("normalizeReportDetail sets monthsPresent to null when months_present is absent", async () => {
+  const { normalizeReportDetail } = await loadModules(Date.now() + 61);
+  const result = normalizeReportDetail("rep_no_months", {
+    id: "rep_no_months",
+    status: "ready",
+  });
+
+  assert.equal(result.monthsPresent, null);
+});

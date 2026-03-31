@@ -32,6 +32,7 @@ export type ReportDetail = {
   snapshotWindowMode: string | null;
   snapshotCoverageNote: string | null;
   youtubeContributionMode: string | null;
+  monthsPresent: string[] | null;
   reportHasBusinessMetrics: boolean;
   sectionStrength: Array<{
     id: string;
@@ -360,6 +361,17 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
   ]);
   const artifactUrl = findArtifactUrl(payload);
 
+  const monthsPresentRaw = (() => {
+    for (const key of ["months_present", "monthsPresent"]) {
+      const value = payload[key];
+      if (Array.isArray(value)) {
+        const filtered = value.filter((m): m is string => typeof m === "string" && m.trim().length > 0);
+        if (filtered.length > 0) return filtered;
+      }
+    }
+    return null;
+  })();
+
   return {
     id: normalizedReportId,
     title,
@@ -404,6 +416,7 @@ export function normalizeReportDetail(reportId: string, payload: Record<string, 
     snapshotWindowMode: readString(payload, ["snapshot_window_mode", "snapshotWindowMode", "report.snapshot_window_mode"]) || null,
     snapshotCoverageNote: readString(payload, ["snapshot_coverage_note", "snapshotCoverageNote", "report.snapshot_coverage_note"]) || null,
     youtubeContributionMode: readString(payload, ["youtube_contribution_mode", "youtubeContributionMode", "report.youtube_contribution_mode"]) || null,
+    monthsPresent: monthsPresentRaw,
     reportHasBusinessMetrics: (() => {
       const raw = payload["report_has_business_metrics"] ?? payload["reportHasBusinessMetrics"] ?? (payload["report"] as Record<string, unknown> | undefined)?.["report_has_business_metrics"];
       return raw === false ? false : true;

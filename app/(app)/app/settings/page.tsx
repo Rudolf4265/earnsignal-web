@@ -160,7 +160,7 @@ function AdvancedDataSourcesPanel() {
       ) : (
         <div className="space-y-4" data-testid="settings-data-sources-panel">
           {details.map((detail) => {
-            const canToggle = detail.statusLabel !== "Not added" && detail.statusLabel !== "Processing";
+            const canToggle = detail.statusLabel !== "Not uploaded" && detail.statusLabel !== "Processing";
             return (
               <AdvancedSourceDetailRow
                 key={detail.id}

@@ -32,6 +32,11 @@ test("data upload page keeps the main workspace simple while upload flow stays m
   assert.equal(source.includes("View all reports"), true);
   assert.equal(source.includes("Your data sources"), true);
   assert.equal(source.includes("This report uses your staged sources."), true);
+  assert.equal(source.includes("Review the sources you have already added and keep your next report ready."), true);
+  assert.equal(source.includes("No sources added yet"), true);
+  assert.equal(source.includes("Add your first source"), true);
+  assert.equal(source.includes("No sources yet"), true);
+  assert.equal(source.includes("Not connected"), false);
   assert.equal(source.indexOf('<div id="workspace-uploader">') < source.indexOf("<SourceListSection"), true);
   assert.equal(source.includes("md:flex-row md:items-center md:justify-between"), true);
   assert.equal(source.includes("md:grid-cols-[minmax(180px,1.2fr)_auto_minmax(140px,0.8fr)_auto]"), false);

@@ -31,6 +31,8 @@ test("manifest-driven platform cards expose canonical role, support, and accepte
   const manifest = getStaticSourceManifest();
   const cards = getUploadPlatformCardsByIds(["patreon", "youtube", "instagram", "tiktok"], manifest);
 
+  assert.equal(cards.find((item) => item.id === "youtube")?.subtitle, "Revenue and content performance");
+
   assert.deepEqual(
     cards.map((item) => ({
       id: item.id,
@@ -58,7 +60,7 @@ test("manifest-driven platform cards expose canonical role, support, and accepte
         fileTypeLabel: "Normalized CSV or YouTube Takeout ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: true,
-        contributionLabel: "Creator revenue or content data",
+        contributionLabel: "Revenue + subscriber data",
       },
       {
         id: "instagram",
@@ -67,7 +69,7 @@ test("manifest-driven platform cards expose canonical role, support, and accepte
         fileTypeLabel: "Normalized CSV or exact allowlisted ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: false,
-        contributionLabel: "Audience/context enrichment",
+        contributionLabel: "Audience/performance context",
       },
       {
         id: "tiktok",
@@ -76,7 +78,7 @@ test("manifest-driven platform cards expose canonical role, support, and accepte
         fileTypeLabel: "Normalized CSV or exact allowlisted ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: false,
-        contributionLabel: "Audience/context enrichment",
+        contributionLabel: "Audience/performance context",
       },
     ],
   );

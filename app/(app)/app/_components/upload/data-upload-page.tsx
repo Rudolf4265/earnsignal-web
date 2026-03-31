@@ -236,6 +236,23 @@ function SourceRowsSkeleton() {
   );
 }
 
+function EmptySourceListState({ onAddSource, hasManifest }: { onAddSource: () => void; hasManifest: boolean }) {
+  return (
+    <div className="px-5 py-8 text-center">
+      <p className="text-sm font-medium text-white">No sources added yet</p>
+      <p className="mt-2 text-sm leading-6 text-slate-400">Added and attempted uploads will appear here after you stage them.</p>
+      <button
+        type="button"
+        onClick={onAddSource}
+        disabled={!hasManifest}
+        className="mt-5 inline-flex h-10 items-center rounded-xl bg-brand-blue px-4 text-sm font-semibold text-white shadow-[0_0_24px_-10px_rgba(59,130,246,0.8)] transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:bg-white/[0.08] disabled:text-slate-500"
+      >
+        Add your first source
+      </button>
+    </div>
+  );
+}
+
 function ManifestUnavailableCard() {
   return (
     <section className="rounded-2xl border border-rose-400/20 bg-rose-400/5 p-5">
@@ -264,7 +281,7 @@ function SourceListSection({
       <div className="flex flex-col gap-3 border-b border-white/8 px-5 py-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-white">Your data sources</h2>
-          <p className="mt-1 text-sm text-slate-400">Review what is uploaded and keep your next report ready.</p>
+          <p className="mt-1 text-sm text-slate-400">Review the sources you have already added and keep your next report ready.</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <Link href="/app/settings#data-sources" className="text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
@@ -284,11 +301,15 @@ function SourceListSection({
       {loading ? (
         <SourceRowsSkeleton />
       ) : hasManifest ? (
-        <div className="divide-y divide-white/8">
-          {items.map((item) => (
-            <SourceRow key={item.id} item={item} onUploadAction={onUploadAction} />
-          ))}
-        </div>
+        items.length > 0 ? (
+          <div className="divide-y divide-white/8">
+            {items.map((item) => (
+              <SourceRow key={item.id} item={item} onUploadAction={onUploadAction} />
+            ))}
+          </div>
+        ) : (
+          <EmptySourceListState onAddSource={onAddSource} hasManifest={hasManifest} />
+        )
       ) : (
         <div className="p-5">
           <ManifestUnavailableCard />
@@ -457,8 +478,8 @@ function buildReadyBannerStatus(
   }
 
   return {
-    statusLabel: "Not connected",
-    note: "Connect your first source to start building a report workspace.",
+    statusLabel: "No sources yet",
+    note: "Add your first source to start building a report workspace.",
   };
 }
 

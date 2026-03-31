@@ -63,7 +63,7 @@ export const STATIC_SOURCE_MANIFEST_RESPONSE: SourceManifestResponse = {
     {
       "platform": "youtube",
       "label": "YouTube",
-      "descriptor": "Creator earnings",
+      "descriptor": "Revenue and content performance",
       "accepted_file_types_label": "Normalized CSV or YouTube Takeout ZIP",
       "upload_help_text": "Upload the supported YouTube normalized CSV template, or a Google Takeout ZIP containing YouTube watch history (Takeout/YouTube and YouTube Music/ folder structure).",
       "public_support_status": "supported_now",

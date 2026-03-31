@@ -40,6 +40,10 @@ export type AdvancedSourceDetail = {
 const SETTINGS_DATA_SOURCES_HREF = "/app/settings#data-sources";
 const UPLOAD_GUIDE_HREF = "/app/help#upload-guide";
 
+function hasAttemptedSource(source?: WorkspaceDataSource | null): source is WorkspaceDataSource {
+  return Boolean(source && source.state !== "missing");
+}
+
 function formatLastUpdated(value: string | null | undefined): string | null {
   if (!value) {
     return null;
@@ -80,7 +84,7 @@ export function getPrimarySourceStatusLabel(status: PrimarySourceStatus): string
     return "Fix needed";
   }
 
-  return "Not connected";
+  return "Not uploaded";
 }
 
 export function getPrimarySourceStatusVariant(status: PrimarySourceStatus): "good" | "warn" | "neutral" {
@@ -119,7 +123,7 @@ function resolvePrimaryAction(card: UploadPlatformCardMetadata, source?: Workspa
   if (source.state === "failed") {
     return {
       kind: "upload",
-      label: "Retry",
+      label: "Retry upload",
       platform: card.id,
     };
   }
@@ -153,7 +157,7 @@ function resolveAdvancedStatus(source?: WorkspaceDataSource | null): {
 } {
   if (!source || source.state === "missing") {
     return {
-      label: "Not connected",
+      label: "Not uploaded",
       variant: "neutral",
     };
   }
@@ -184,21 +188,25 @@ export function buildSourceListItems(
 ): SourceListItem[] {
   const sourceLookup = new Map((sources ?? []).map((source) => [source.platform, source]));
 
-  return cards.map((card) => {
+  return cards.flatMap((card) => {
     const source = sourceLookup.get(card.id) ?? null;
+    if (!hasAttemptedSource(source)) {
+      return [];
+    }
+
     const status = resolvePrimaryStatus(source);
     const lastUpdatedLabel = resolveLastUpdated(source);
 
-    return {
+    return [{
       id: card.id,
-      name: source?.label || card.label,
+      name: source.label || card.label,
       icon: card.icon,
       status,
       lastUpdatedLabel,
       issueLabel: resolveIssueLabel(status, source),
       primaryAction: resolvePrimaryAction(card, source),
       secondaryAction: resolveSecondaryAction(),
-    };
+    }];
   });
 }
 

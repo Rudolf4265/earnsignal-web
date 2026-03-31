@@ -17,6 +17,8 @@ test("workspace source rows stay scan-first while Settings keeps advanced source
   assert.equal(dataUploadPage.includes('data-testid={`workspace-source-row-${item.id}`}'), true);
   assert.equal(dataUploadPage.includes("Advanced details"), true);
   assert.equal(dataUploadPage.includes("Add source"), true);
+  assert.equal(dataUploadPage.includes("No sources added yet"), true);
+  assert.equal(dataUploadPage.includes("Add your first source"), true);
   assert.equal(dataUploadPage.includes("Last updated"), true);
   assert.equal(dataUploadPage.includes("md:flex-row md:items-center md:justify-between"), true);
   assert.equal(dataUploadPage.includes("Contribution"), false);
@@ -33,4 +35,5 @@ test("workspace source rows stay scan-first while Settings keeps advanced source
   assert.equal(settingsPage.includes("Included in next run"), true);
   assert.equal(settingsPage.includes("Report-driving"), true);
   assert.equal(settingsPage.includes("Optional context"), true);
+  assert.equal(settingsPage.includes("Not connected"), false);
 });

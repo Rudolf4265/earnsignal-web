@@ -325,6 +325,7 @@ export default function DemoDashboardPage() {
         <>
           <GrowDashboardSection
             model={workspace.dashboard.grow.model}
+            growthReport={null}
             loading={false}
             actionMode={actionCards.mode}
             ctaLabel={workspace.dashboard.primaryCtaLabel}

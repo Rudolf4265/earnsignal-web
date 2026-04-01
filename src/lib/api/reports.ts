@@ -453,6 +453,100 @@ export async function downloadReportArtifactPdf(report: Pick<ReportListItem, "re
   }
 }
 
+// ---------------------------------------------------------------------------
+// Growth Report
+// ---------------------------------------------------------------------------
+
+export type GrowthReportAudienceMonthEntry = {
+  month: string;
+  followers_gained: number;
+  followers_lost: number;
+  impressions?: number;
+  reach?: number;
+  engagements?: number;
+  video_views?: number;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  profile_views?: number;
+};
+
+export type GrowthReportYouTubeContent = {
+  total_views: number;
+  total_watch_time_hours: number;
+  avg_impressions_ctr_pct: number | null;
+  subscribers_gained_total: number | null;
+  subscribers_lost_total: number | null;
+  net_subscribers_change: number | null;
+  date_range_start: string | null;
+  date_range_end: string | null;
+  has_subscriber_data: boolean;
+  has_impressions_data: boolean;
+};
+
+export type GrowthReportConstraint = {
+  constraint_type: string;
+  severity: "high" | "medium" | "low";
+  description: string;
+  unlock_action: string;
+};
+
+export type GrowthReportUnlockItem = {
+  platform: string;
+  action: string;
+  value_unlocked: string;
+  priority: "high" | "medium" | "low";
+};
+
+export type GrowthReportAction = {
+  action: string;
+  reason: string;
+  confidence: "high" | "medium" | "low";
+  evidence_source: string;
+};
+
+export type GrowthReport = {
+  entitlement_tier: "report" | "pro";
+  growth_snapshot: {
+    sources_available: string[];
+    coverage_score: number;
+    latest_period: string | null;
+    has_audience_data: boolean;
+    has_content_data: boolean;
+  };
+  what_we_can_measure: {
+    audience_reach: boolean;
+    content_performance: boolean;
+    subscriber_trends: boolean;
+    business_metrics: boolean;
+    note: string;
+  };
+  audience_signals: {
+    instagram: GrowthReportAudienceMonthEntry[];
+    tiktok: GrowthReportAudienceMonthEntry[];
+  };
+  content_performance: {
+    youtube: GrowthReportYouTubeContent | null;
+    tiktok: GrowthReportAudienceMonthEntry[];
+  };
+  growth_constraints: GrowthReportConstraint[];
+  what_unlocks_next: GrowthReportUnlockItem[];
+  recommended_actions: GrowthReportAction[];
+  confidence_note: {
+    sources_used: string[];
+    months_coverage: number;
+    coverage_score: number;
+    honesty_statement: string;
+  };
+};
+
+export async function fetchGrowthReport(): Promise<GrowthReport> {
+  return apiFetchJson<GrowthReport>("growth-report.fetch", "/v1/growth-report", {
+    method: "GET",
+    cache: "no-store",
+  });
+}
+
 export function getReportErrorMessage(error: unknown): string {
   if (isEntitlementRequiredError(error)) {
     return "This action requires Report or Pro access. Continue in Billing to upgrade or restore access.";

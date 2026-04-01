@@ -506,7 +506,7 @@ export type GrowthReportAction = {
 };
 
 export type GrowthReport = {
-  entitlement_tier: "report" | "pro";
+  entitlement_tier: "free" | "report" | "pro";
   growth_snapshot: {
     sources_available: string[];
     coverage_score: number;

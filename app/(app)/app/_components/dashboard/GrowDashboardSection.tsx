@@ -6,9 +6,11 @@ import { buttonClassName } from "@/src/components/ui/button";
 import { PanelCard } from "@/src/components/ui/panel-card";
 import type { DashboardActionCardsMode } from "@/src/lib/dashboard/action-cards";
 import type { GrowDashboardModel, GrowDashboardTone } from "@/src/lib/dashboard/grow-model";
+import type { GrowthReport } from "@/src/lib/api/reports";
 
 type GrowDashboardSectionProps = {
   model: GrowDashboardModel | null;
+  growthReport: GrowthReport | null;
   loading: boolean;
   actionMode: DashboardActionCardsMode;
   ctaLabel: string;
@@ -72,6 +74,74 @@ function GrowMetricCard({ label, value, subtext, tone }: GrowMetricCardProps) {
       <p className="mt-4 text-3xl font-semibold tracking-tight text-brand-text-primary">{value}</p>
       <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">{subtext}</p>
     </article>
+  );
+}
+
+function renderSocialAnalyticsTeaser(growthReport: GrowthReport) {
+  const { growth_snapshot } = growthReport;
+  const sourceCount = growth_snapshot.sources_available.length;
+
+  return (
+    <div className="space-y-4" data-testid="grow-dashboard-social-teaser">
+      <PanelCard className="relative overflow-hidden border-brand-border-strong/80 bg-[linear-gradient(145deg,rgba(16,32,67,0.95),rgba(19,41,80,0.94),rgba(16,32,67,0.96))] p-0 shadow-brand-card">
+        <div className="pointer-events-none absolute -left-20 top-[-5rem] h-64 w-64 rounded-full bg-brand-accent-blue/20 blur-3xl" />
+        <div className="pointer-events-none absolute right-[-6rem] top-20 h-56 w-56 rounded-full bg-brand-accent-emerald/14 blur-3xl" />
+        <div className="relative p-6 md:p-7">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-brand-text-secondary">Growth Analytics</p>
+              <h3 className="mt-2 text-2xl font-semibold tracking-tight text-brand-text-primary">
+                {sourceCount === 1 ? "1 analytics source connected." : `${sourceCount} analytics sources connected.`}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
+                Social analytics are staged and available. View the Growth Report for audience signals, content performance, and growth constraints.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-3 gap-3">
+            <div className="rounded-[1.1rem] border border-brand-border/70 bg-brand-panel/60 px-4 py-3">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Coverage Score</p>
+              <p className="mt-1 text-2xl font-bold text-brand-text-primary">{growth_snapshot.coverage_score}%</p>
+              <p className="mt-0.5 text-xs text-brand-text-muted">of growth signals connected</p>
+            </div>
+            <div className="rounded-[1.1rem] border border-brand-border/70 bg-brand-panel/60 px-4 py-3">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Sources</p>
+              <p className="mt-1 text-2xl font-bold text-brand-text-primary">{sourceCount}</p>
+              <p className="mt-0.5 text-xs text-brand-text-muted">platforms with data</p>
+            </div>
+            <div className="rounded-[1.1rem] border border-brand-border/70 bg-brand-panel/60 px-4 py-3">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Latest Period</p>
+              <p className="mt-1 text-lg font-semibold text-brand-text-primary">{growth_snapshot.latest_period ?? "—"}</p>
+              <p className="mt-0.5 text-xs text-brand-text-muted">most recent data month</p>
+            </div>
+          </div>
+
+          {growth_snapshot.sources_available.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {growth_snapshot.sources_available.map((src) => (
+                <Badge key={src} variant="neutral">
+                  {src.replace(/_/g, " ")}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <Link
+              href="/app/report/growth"
+              className={buttonClassName({ variant: "primary", size: "sm", className: "px-4 shadow-brand-glow" })}
+              data-testid="grow-dashboard-view-growth-report-cta"
+            >
+              View Growth Report
+            </Link>
+            <p className="text-xs text-brand-text-muted">
+              Audience signals, content performance, and growth constraints are in the full report.
+            </p>
+          </div>
+        </div>
+      </PanelCard>
+    </div>
   );
 }
 
@@ -336,7 +406,7 @@ function renderPlaybookPanel(model: GrowDashboardModel, actionMode: DashboardAct
   );
 }
 
-export function GrowDashboardSection({ model, loading, actionMode, ctaLabel, ctaHref }: GrowDashboardSectionProps) {
+export function GrowDashboardSection({ model, growthReport, loading, actionMode, ctaLabel, ctaHref }: GrowDashboardSectionProps) {
   const metricCards: GrowMetricCardProps[] = [];
 
   if (model?.engagementHealth) {
@@ -387,6 +457,8 @@ export function GrowDashboardSection({ model, loading, actionMode, ctaLabel, cta
             {renderPlaybookPanel(model, actionMode)}
           </div>
         </>
+      ) : growthReport && growthReport.growth_snapshot.sources_available.length > 0 ? (
+        renderSocialAnalyticsTeaser(growthReport)
       ) : (
         <PanelCard className="relative overflow-hidden border-brand-border-strong/75 bg-[linear-gradient(145deg,rgba(16,32,67,0.95),rgba(19,41,80,0.92),rgba(16,32,67,0.96))]">
           <div className="pointer-events-none absolute -left-20 top-[-5rem] h-64 w-64 rounded-full bg-brand-accent-blue/18 blur-3xl" />

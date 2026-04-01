@@ -15,7 +15,7 @@ import { RevenueTrendSection } from "./_components/dashboard/RevenueTrendSection
 import { SignalsPanel, type SignalItem } from "./_components/dashboard/SignalsPanel";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
-import { fetchReportArtifactJson, fetchReportDetail, fetchReportsList, type ReportDetail, type ReportListResult } from "@/src/lib/api/reports";
+import { fetchGrowthReport, fetchReportArtifactJson, fetchReportDetail, fetchReportsList, type GrowthReport, type ReportDetail, type ReportListResult } from "@/src/lib/api/reports";
 import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
 import { hydrateDashboardFromArtifact, type DashboardArtifactHydrationResult } from "@/src/lib/dashboard/artifact-hydration";
 import { buildDashboardKpiItems } from "@/src/lib/dashboard/kpi-row";
@@ -58,6 +58,7 @@ type DashboardState = {
   latestArtifact: DashboardArtifactHydrationResult | null;
   latestReportRow: LatestReportRow | null;
   hasReports: boolean | null;
+  growthReport: GrowthReport | null;
 };
 
 const initialState: DashboardState = {
@@ -71,12 +72,13 @@ const initialState: DashboardState = {
   latestArtifact: null,
   latestReportRow: null,
   hasReports: null,
+  growthReport: null,
 };
 
 type DashboardLoadResult = Omit<DashboardState, "loading" | "refreshing" | "error">;
 type DashboardLastKnownGood = Pick<
   DashboardState,
-  "latestArtifactError" | "latestUpload" | "latestReport" | "latestArtifact" | "latestReportRow" | "hasReports"
+  "latestArtifactError" | "latestUpload" | "latestReport" | "latestArtifact" | "latestReportRow" | "hasReports" | "growthReport"
 >;
 
 let lastKnownGoodDashboardState: DashboardLastKnownGood | null = null;
@@ -87,7 +89,7 @@ function hasRenderableDashboardState(state: Pick<DashboardState, "latestUpload" 
 }
 
 function canPersistDashboardResult(result: DashboardLoadResult): boolean {
-  return hasRenderableDashboardState(result);
+  return hasRenderableDashboardState(result) || result.growthReport !== null;
 }
 
 function buildLatestReportRow(report: ReportDetail): LatestReportRow {
@@ -171,6 +173,13 @@ async function loadDashboardData(options?: { forceRefresh?: boolean }): Promise<
 
     const hasReports = reports ? computeHasReportsFromListResult(reports) : latestReport ? true : null;
 
+    let growthReport: GrowthReport | null = null;
+    try {
+      growthReport = await fetchGrowthReport();
+    } catch {
+      // Non-critical: growth report unavailability does not block the dashboard.
+    }
+
     return {
       latestArtifactError,
       reportsCheckError,
@@ -179,6 +188,7 @@ async function loadDashboardData(options?: { forceRefresh?: boolean }): Promise<
       latestArtifact,
       latestReportRow,
       hasReports,
+      growthReport,
     };
   })();
 
@@ -196,6 +206,7 @@ async function loadDashboardData(options?: { forceRefresh?: boolean }): Promise<
         latestArtifact: result.latestArtifact,
         latestReportRow: result.latestReportRow,
         hasReports: result.hasReports,
+        growthReport: result.growthReport,
       };
     }
     return result;
@@ -591,9 +602,17 @@ export default function DashboardPage() {
   }, [actionCardsSection.cards, actionCardsSection.mode]);
 
   const platformsConnected = kpis.platformsConnected ?? (state.latestUpload ? 1 : 0);
+  const hasSocialAnalytics =
+    (state.growthReport?.growth_snapshot.sources_available.length ?? 0) > 0;
   const growGuidanceLimited =
-    dashboardMode === "grow" && (!growDashboardModel || growDashboardModel.availability !== "structured" || !growDashboardModel.creatorScore);
-  const showDashboardOnboarding = state.hasReports !== true || growGuidanceLimited;
+    dashboardMode === "grow" &&
+    (!growDashboardModel || growDashboardModel.availability !== "structured" || !growDashboardModel.creatorScore) &&
+    !hasSocialAnalytics;
+  // Suppress onboarding in grow mode when social analytics are connected — the
+  // GrowDashboardSection renders a social analytics teaser instead.
+  const showDashboardOnboarding =
+    (state.hasReports !== true || growGuidanceLimited) &&
+    !(dashboardMode === "grow" && hasSocialAnalytics);
   const workspaceReadiness = state.latestUpload
     ? state.hasReports === true
       ? "Uploads are connected and at least one report is ready."
@@ -737,6 +756,7 @@ export default function DashboardPage() {
         <>
           <GrowDashboardSection
             model={growDashboardModel}
+            growthReport={state.growthReport}
             loading={state.loading}
             actionMode={actionCardsSection.mode}
             ctaLabel={primaryCta.label}

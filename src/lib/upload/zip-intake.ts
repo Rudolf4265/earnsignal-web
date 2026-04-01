@@ -2,8 +2,9 @@ export type ZipArchiveClassificationKind =
   | "not_zip"
   | "invalid_archive"
   | "unsupported_archive"
-  | "supported_shape_instagram_candidate"
-  | "supported_shape_tiktok_candidate"
+  | "supported_shape_tiktok_native_zip"
+  | "supported_shape_instagram_native_zip"
+  | "supported_shape_youtube_studio_zip"
   | "ambiguous_archive"
   | "security_rejected";
 
@@ -13,11 +14,13 @@ export type ZipArchiveReasonCode =
   | "encrypted_or_unreadable_archive"
   | "unsafe_archive_path"
   | "unsupported_archive_shape"
+  | "tiktok_content_export_not_supported"
+  | "youtube_takeout_not_supported"
   | "too_many_entries"
   | "archive_too_large"
   | "ambiguous_archive_shape";
 
-export type ZipCandidatePlatform = "instagram" | "tiktok" | null;
+export type ZipCandidatePlatform = "instagram" | "tiktok" | "youtube" | null;
 
 export type ZipArchiveEntry = {
   rawName: string;
@@ -72,44 +75,31 @@ const SPANNED_ARCHIVE_SIGNATURE = 0x08074b50;
 const ZIP_MAGIC_SIGNATURES = new Set([LOCAL_FILE_HEADER_SIGNATURE, EMPTY_ARCHIVE_SIGNATURE, SPANNED_ARCHIVE_SIGNATURE]);
 const ENCRYPTED_ENTRY_FLAG = 0x0001;
 
-export const ALLOWLISTED_INSTAGRAM_CONTENT_ZIP_ENTRY_PATHS = [
-  "instagram_content_export.csv",
-  "content/instagram_content_export.csv",
-] as const;
+// TikTok native ZIP shapes — exact entry sets that the backend accepts.
+// Content ZIP is explicitly not supported.
+const TIKTOK_FOLLOWERS_ZIP_ENTRIES = new Set([
+  "followerhistory.csv",
+  "followergender.csv",
+  "followertopterritories.csv",
+  "followeractivity.csv",
+]);
+const TIKTOK_VIEWERS_ZIP_ENTRIES = new Set(["viewers.csv"]);
+const TIKTOK_OVERVIEW_ZIP_ENTRIES = new Set(["overview.csv"]);
+const TIKTOK_CONTENT_ZIP_ENTRIES = new Set(["content.csv"]);
 
-export const ALLOWLISTED_TIKTOK_PERFORMANCE_ZIP_ENTRY_PATHS = [
-  "tiktok_performance_export.csv",
-  "tiktok data/tiktok_performance_export.csv",
-] as const;
+// YouTube Studio ZIP — all three files must be present.
+const YOUTUBE_STUDIO_ZIP_REQUIRED = new Set([
+  "table data.csv",
+  "chart data.csv",
+  "totals.csv",
+]);
+// Google Takeout ZIP sentinel path.
+const YOUTUBE_TAKEOUT_PATH_MARKER = "takeout/youtube";
 
-const INSTAGRAM_PATH_PREFIX_MARKERS = [
-  "content/",
+// Instagram native ZIP — require path prefixes from connections/ or logged_information/.
+const INSTAGRAM_NATIVE_PATH_PREFIXES = [
   "connections/",
-  "personal_information/",
-  "your_instagram_activity/",
-] as const;
-const INSTAGRAM_FILE_MARKERS = [
-  "posts_1.json",
-  "liked_posts.json",
-  "followers_1.json",
-  "following.json",
-  "comments_1.json",
-  "reels.json",
-] as const;
-
-const TIKTOK_PATH_PREFIX_MARKERS = [
-  "tiktok data/",
-  "tiktok data/activity/",
-  "tiktok data/comments/",
-  "tiktok data/profile/",
-  "tiktok data/video/",
-] as const;
-const TIKTOK_FILE_MARKERS = [
-  "user info.txt",
-  "profile information.txt",
-  "comment history.txt",
-  "video browsing history.txt",
-  "like list.txt",
+  "logged_information/",
 ] as const;
 
 const textDecoder = new TextDecoder("utf-8");
@@ -218,47 +208,79 @@ function collectExactPathMatches(paths: readonly string[], allowlistedPaths: rea
   return allowlistedPaths.filter((candidatePath) => paths.includes(candidatePath)).map((candidatePath) => `file:${candidatePath}`);
 }
 
+function setsEqual(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const item of a) if (!b.has(item)) return false;
+  return true;
+}
+
 function classifyArchiveShape(entries: ZipArchiveEntry[]): ZipArchiveInspectionResult {
-  const filePaths = entries.filter((entry) => !entry.isDirectory).map((entry) => entry.normalizedPath.toLowerCase());
+  const fileEntries = entries.filter((entry) => !entry.isDirectory);
+  const filePaths = fileEntries.map((entry) => entry.normalizedPath.toLowerCase());
+  const fileNameSet = new Set(filePaths.map((p) => p.split("/").pop() ?? p));
 
-  const instagramMatches = collectMatchingPatterns(filePaths, INSTAGRAM_PATH_PREFIX_MARKERS, INSTAGRAM_FILE_MARKERS);
-  const instagramCsvMatches = collectExactPathMatches(filePaths, ALLOWLISTED_INSTAGRAM_CONTENT_ZIP_ENTRY_PATHS);
-  const instagramCandidate =
-    instagramCsvMatches.length > 0 ||
-    INSTAGRAM_PATH_PREFIX_MARKERS.filter((prefix) => filePaths.some((path) => path.startsWith(prefix))).length >= 2 &&
-    INSTAGRAM_FILE_MARKERS.some((basename) => filePaths.some((path) => path.endsWith(`/${basename}`) || path === basename));
-
-  const tiktokMatches = collectMatchingPatterns(filePaths, TIKTOK_PATH_PREFIX_MARKERS, TIKTOK_FILE_MARKERS);
-  const tiktokCsvMatches = collectExactPathMatches(filePaths, ALLOWLISTED_TIKTOK_PERFORMANCE_ZIP_ENTRY_PATHS);
-  const tiktokCandidate =
-    tiktokCsvMatches.length > 0 ||
-    TIKTOK_PATH_PREFIX_MARKERS.filter((prefix) => filePaths.some((path) => path.startsWith(prefix))).length >= 2 &&
-    TIKTOK_FILE_MARKERS.filter((basename) => filePaths.some((path) => path.endsWith(`/${basename}`) || path === basename)).length >= 2;
-
-  if (instagramCandidate && tiktokCandidate) {
+  // ── YouTube Studio ZIP ─────────────────────────────────────────────────────
+  const studioMatches = [...YOUTUBE_STUDIO_ZIP_REQUIRED].filter((f) => fileNameSet.has(f));
+  if (setsEqual(YOUTUBE_STUDIO_ZIP_REQUIRED, new Set(studioMatches))) {
     return createResult(
-      "ambiguous_archive",
-      "ambiguous_archive_shape",
-      "ZIP archive matches multiple allowlisted candidate shapes.",
-      { entryCount: entries.length, matchedPatterns: [...instagramMatches, ...instagramCsvMatches, ...tiktokMatches, ...tiktokCsvMatches], entries },
+      "supported_shape_youtube_studio_zip",
+      null,
+      "ZIP archive matches the YouTube Studio content analytics export shape.",
+      { candidatePlatform: "youtube", entryCount: entries.length, matchedPatterns: studioMatches.map((f) => `file:${f}`), entries },
     );
   }
 
-  if (instagramCandidate) {
+  // Google Takeout ZIP — detected and explicitly rejected for youtube.
+  if (filePaths.some((p) => p.startsWith(YOUTUBE_TAKEOUT_PATH_MARKER))) {
     return createResult(
-      "supported_shape_instagram_candidate",
-      null,
-      "ZIP archive matches the bounded Instagram candidate shape.",
-      { candidatePlatform: "instagram", entryCount: entries.length, matchedPatterns: [...instagramMatches, ...instagramCsvMatches], entries },
+      "unsupported_archive",
+      "youtube_takeout_not_supported",
+      "Google Takeout ZIPs are not supported. Export from YouTube Studio → Analytics → Advanced mode → Export instead.",
+      { candidatePlatform: "youtube", entryCount: entries.length, entries },
     );
   }
 
-  if (tiktokCandidate) {
+  // ── TikTok native ZIPs — exact entry-set match ─────────────────────────────
+  const isTikTokFollowers = setsEqual(TIKTOK_FOLLOWERS_ZIP_ENTRIES, fileNameSet);
+  const isTikTokViewers = setsEqual(TIKTOK_VIEWERS_ZIP_ENTRIES, fileNameSet);
+  const isTikTokOverview = setsEqual(TIKTOK_OVERVIEW_ZIP_ENTRIES, fileNameSet);
+  const isTikTokContent = setsEqual(TIKTOK_CONTENT_ZIP_ENTRIES, fileNameSet);
+
+  if (isTikTokFollowers || isTikTokViewers || isTikTokOverview) {
+    const shapeId = isTikTokFollowers ? "followers_export_zip" : isTikTokViewers ? "viewers_export_zip" : "overview_export_zip";
     return createResult(
-      "supported_shape_tiktok_candidate",
+      "supported_shape_tiktok_native_zip",
       null,
-      "ZIP archive matches the bounded TikTok candidate shape.",
-      { candidatePlatform: "tiktok", entryCount: entries.length, matchedPatterns: [...tiktokMatches, ...tiktokCsvMatches], entries },
+      "ZIP archive matches a supported TikTok native export shape.",
+      { candidatePlatform: "tiktok", entryCount: entries.length, matchedPatterns: [`shape:${shapeId}`], entries },
+    );
+  }
+
+  // TikTok Content ZIP — detected and explicitly rejected.
+  if (isTikTokContent) {
+    return createResult(
+      "unsupported_archive",
+      "tiktok_content_export_not_supported",
+      "The TikTok Content ZIP is not supported. Upload the Followers, Viewers, or Overview ZIP instead.",
+      { candidatePlatform: "tiktok", entryCount: entries.length, entries },
+    );
+  }
+
+  // ── Instagram native ZIP — path-prefix detection ───────────────────────────
+  const instagramPrefixCount = INSTAGRAM_NATIVE_PATH_PREFIXES.filter(
+    (prefix) => filePaths.some((p) => p.startsWith(prefix)),
+  ).length;
+  if (instagramPrefixCount >= 1) {
+    return createResult(
+      "supported_shape_instagram_native_zip",
+      null,
+      "ZIP archive matches the Instagram native export shape.",
+      {
+        candidatePlatform: "instagram",
+        entryCount: entries.length,
+        matchedPatterns: INSTAGRAM_NATIVE_PATH_PREFIXES.filter((prefix) => filePaths.some((p) => p.startsWith(prefix))).map((prefix) => `path:${prefix}`),
+        entries,
+      },
     );
   }
 
@@ -444,10 +466,17 @@ export function toZipUploadRejection(result: ZipArchiveInspectionResult): ZipUpl
     };
   }
 
-  if (result.kind === "supported_shape_instagram_candidate" || result.kind === "supported_shape_tiktok_candidate") {
+  if (result.reasonCode === "tiktok_content_export_not_supported") {
     return {
-      reasonCode: "zip_not_importable",
-      message: "This ZIP format is not yet importable. Upload a supported CSV instead.",
+      reasonCode: "tiktok_content_export_not_supported",
+      message: "The TikTok Content ZIP is not supported. Upload the Followers, Viewers, or Overview ZIP instead.",
+    };
+  }
+
+  if (result.reasonCode === "youtube_takeout_not_supported") {
+    return {
+      reasonCode: "youtube_takeout_not_supported",
+      message: "Google Takeout ZIPs are not supported. Export from YouTube Studio → Analytics → Advanced mode → Export instead.",
     };
   }
 

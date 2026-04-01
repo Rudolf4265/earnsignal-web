@@ -1,7 +1,6 @@
 import { normalizeHeader, validateInstagramSchema } from "./instagram-csv-detector";
 import { normalizeInstagramContentRow, type InstagramContentExportRow } from "./instagram-content-model";
 import {
-  ALLOWLISTED_INSTAGRAM_CONTENT_ZIP_ENTRY_PATHS,
   extractZipArchiveEntryText,
   inspectZipArchiveBuffer,
   type ZipArchiveEntry,
@@ -171,8 +170,9 @@ function buildNormalizedInstagramCsv(rows: Record<string, string>[]): string {
 
 function findAllowlistedInstagramContentEntry(entries: ZipArchiveEntry[]): ZipArchiveEntry | null {
   const pathLookup = new Map(entries.map((entry) => [entry.normalizedPath.toLowerCase(), entry]));
+  const candidatePaths = ["instagram_content_export.csv", "content/instagram_content_export.csv"];
 
-  for (const candidatePath of ALLOWLISTED_INSTAGRAM_CONTENT_ZIP_ENTRY_PATHS) {
+  for (const candidatePath of candidatePaths) {
     const match = pathLookup.get(candidatePath);
     if (match) {
       return match;
@@ -197,7 +197,7 @@ export async function extractInstagramZipBufferToUploadArtifact(
 ): Promise<InstagramZipExtractionResult> {
   const inspection = options?.inspection ?? inspectZipArchiveBuffer(buffer, { name: options?.fileName ?? "instagram.zip", size: buffer.byteLength });
 
-  if (inspection.kind !== "supported_shape_instagram_candidate") {
+  if (inspection.kind !== "supported_shape_instagram_native_zip") {
     return createFailure(
       "instagram_supported_shape_but_unparseable",
       "ZIP archive was not eligible for the bounded Instagram extractor.",

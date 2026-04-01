@@ -24,8 +24,6 @@ import {
 import type { WorkspaceDataSource } from "@/src/lib/api/workspace";
 import { detectPatreonExportType } from "@/src/lib/upload/patreon-csv-detector";
 import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detector";
-import { extractInstagramZipBufferToUploadArtifact } from "@/src/lib/upload/instagram-zip-extractor";
-import { extractTiktokZipBufferToUploadArtifact } from "@/src/lib/upload/tiktok-zip-extractor";
 import { inspectZipArchiveBuffer, isZipUploadCandidate, toZipUploadRejection } from "@/src/lib/upload/zip-intake";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import type { WorkspaceReportState } from "@/src/lib/workspace/report-run-state";
@@ -1012,55 +1010,14 @@ export default function UploadStepper({
         setStatusMsg("Inspecting ZIP archive…");
         const zipBuffer = await file.arrayBuffer();
         const zipInspection = inspectZipArchiveBuffer(zipBuffer, file);
-        if (platform === "instagram" && zipInspection.kind === "supported_shape_instagram_candidate") {
-          setStatusMsg("Preparing Instagram ZIP…");
-          const instagramZipArtifact = await extractInstagramZipBufferToUploadArtifact(zipBuffer, {
-            inspection: zipInspection,
-            fileName: file.name,
-          });
 
-          if (!instagramZipArtifact.ok) {
-            setFailureState({
-              uploadId: null,
-              rawStatus: null,
-              reasonCode: instagramZipArtifact.reasonCode,
-              message: instagramZipArtifact.message,
-              operation: "uploads.instagram_zip_extract",
-              nextStep: "file",
-            });
-            return;
-          }
+        const isNativeZip =
+          (platform === "tiktok" && zipInspection.kind === "supported_shape_tiktok_native_zip") ||
+          (platform === "instagram" && zipInspection.kind === "supported_shape_instagram_native_zip") ||
+          (platform === "youtube" && zipInspection.kind === "supported_shape_youtube_studio_zip");
 
-          uploadFile = new File([instagramZipArtifact.normalizedCsvText], instagramZipArtifact.normalizedFilename, {
-            type: "text/csv",
-            lastModified: file.lastModified,
-          });
-        } else if (platform === "tiktok" && zipInspection.kind === "supported_shape_tiktok_candidate") {
-          setStatusMsg("Preparing TikTok ZIP…");
-          const tiktokZipArtifact = await extractTiktokZipBufferToUploadArtifact(zipBuffer, {
-            inspection: zipInspection,
-            fileName: file.name,
-          });
-
-          if (!tiktokZipArtifact.ok) {
-            setFailureState({
-              uploadId: null,
-              rawStatus: null,
-              reasonCode: tiktokZipArtifact.reasonCode,
-              message: tiktokZipArtifact.message,
-              operation: "uploads.tiktok_zip_extract",
-              nextStep: "file",
-            });
-            return;
-          }
-
-          uploadFile = new File([tiktokZipArtifact.normalizedCsvText], tiktokZipArtifact.normalizedFilename, {
-            type: "text/csv",
-            lastModified: file.lastModified,
-          });
-        } else if (platform === "youtube" && zipInspection.kind === "unsupported_archive") {
-          // YouTube Takeout ZIP — passes through directly to the backend without client-side extraction.
-          // The backend validates the YouTube Takeout archive shape.
+        if (isNativeZip) {
+          // Pass the native ZIP through to the backend without client-side extraction.
           uploadFile = file;
         } else {
           const zipRejection =
@@ -1070,9 +1027,9 @@ export default function UploadStepper({
                   message: "This ZIP format does not match the platform you selected. Check the platform and try again.",
                 }
               : toZipUploadRejection(zipInspection) ?? {
-            reasonCode: "unsupported_archive_shape",
-            message: "This ZIP export isn't in one of the currently supported formats for this platform.",
-          };
+                  reasonCode: "unsupported_archive_shape",
+                  message: "This ZIP export isn't in one of the currently supported formats for this platform.",
+                };
 
           setFailureState({
             uploadId: null,

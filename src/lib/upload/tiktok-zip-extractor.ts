@@ -1,5 +1,4 @@
 import {
-  ALLOWLISTED_TIKTOK_PERFORMANCE_ZIP_ENTRY_PATHS,
   extractZipArchiveEntryText,
   inspectZipArchiveBuffer,
   type ZipArchiveEntry,
@@ -255,8 +254,9 @@ function buildNormalizedTiktokCsv(rows: Record<string, string>[]): string {
 
 function findAllowlistedTiktokPerformanceEntry(entries: ZipArchiveEntry[]): ZipArchiveEntry | null {
   const pathLookup = new Map(entries.map((entry) => [entry.normalizedPath.toLowerCase(), entry]));
+  const candidatePaths = ["tiktok_performance_export.csv", "tiktok data/tiktok_performance_export.csv"];
 
-  for (const candidatePath of ALLOWLISTED_TIKTOK_PERFORMANCE_ZIP_ENTRY_PATHS) {
+  for (const candidatePath of candidatePaths) {
     const match = pathLookup.get(candidatePath);
     if (match) {
       return match;
@@ -298,7 +298,7 @@ export async function extractTiktokZipBufferToUploadArtifact(
 ): Promise<TiktokZipExtractionResult> {
   const inspection = options?.inspection ?? inspectZipArchiveBuffer(buffer, { name: options?.fileName ?? "tiktok.zip", size: buffer.byteLength });
 
-  if (inspection.kind !== "supported_shape_tiktok_candidate") {
+  if (inspection.kind !== "supported_shape_tiktok_native_zip") {
     return createFailure(
       "tiktok_supported_shape_but_unparseable",
       "ZIP archive was not eligible for the bounded TikTok extractor.",

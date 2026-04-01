@@ -64,8 +64,8 @@ export const STATIC_SOURCE_MANIFEST_RESPONSE: SourceManifestResponse = {
       "platform": "youtube",
       "label": "YouTube",
       "descriptor": "Revenue and content performance",
-      "accepted_file_types_label": "Normalized CSV or YouTube Takeout ZIP",
-      "upload_help_text": "Upload the supported YouTube normalized CSV template, or a Google Takeout ZIP containing YouTube watch history (Takeout/YouTube and YouTube Music/ folder structure).",
+      "accepted_file_types_label": "Normalized CSV or YouTube Studio content analytics ZIP",
+      "upload_help_text": "Upload the supported YouTube normalized CSV template, or a YouTube Studio content analytics ZIP. To export from YouTube Studio: go to Analytics → Advanced mode → Export → Download as ZIP. The ZIP must contain Table data.csv, Chart data.csv, and Totals.csv. Google Takeout ZIPs are not supported.",
       "public_support_status": "supported_now",
       "report_role": "report_driving",
       "standalone_report_eligible": true,
@@ -75,7 +75,8 @@ export const STATIC_SOURCE_MANIFEST_RESPONSE: SourceManifestResponse = {
         ".zip"
       ],
       "public_contract_ids": [
-        "youtube_normalized_csv"
+        "youtube_normalized_csv",
+        "youtube_studio_zip"
       ],
       "data_domains": [
         "revenue",
@@ -84,15 +85,17 @@ export const STATIC_SOURCE_MANIFEST_RESPONSE: SourceManifestResponse = {
       "role_summary": "Can generate a report. Revenue and subscriber depth depends on the YouTube file you upload.",
       "known_limitations": [
         "Exact normalized CSV template only",
-        "Not every YouTube CSV export matches this contract"
+        "Not every YouTube CSV export matches this contract",
+        "YouTube Studio ZIP must contain Table data.csv, Chart data.csv, and Totals.csv",
+        "Google Takeout ZIPs are not supported"
       ]
     },
     {
       "platform": "instagram",
       "label": "Instagram",
       "descriptor": "Social performance",
-      "accepted_file_types_label": "Normalized CSV or exact allowlisted ZIP",
-      "upload_help_text": "Upload either the supported Instagram normalized CSV template or the supported Instagram export ZIP in the exact allowed format. Not all Instagram ZIP exports are supported.",
+      "accepted_file_types_label": "Normalized CSV or native Instagram export ZIP",
+      "upload_help_text": "Upload either the supported Instagram normalized CSV template or your native Instagram data export ZIP (downloaded from Instagram Settings → Your activity → Download your information). Only the connections/ and logged_information/ folders are used.",
       "public_support_status": "supported_now",
       "report_role": "supporting",
       "standalone_report_eligible": false,
@@ -121,8 +124,8 @@ export const STATIC_SOURCE_MANIFEST_RESPONSE: SourceManifestResponse = {
       "platform": "tiktok",
       "label": "TikTok",
       "descriptor": "Social performance",
-      "accepted_file_types_label": "Normalized CSV or exact allowlisted ZIP",
-      "upload_help_text": "Upload either the supported TikTok normalized CSV template or the supported TikTok export ZIP in the exact allowed format. Not all TikTok ZIP exports are supported.",
+      "accepted_file_types_label": "Normalized CSV or native TikTok analytics ZIP",
+      "upload_help_text": "Upload either the supported TikTok normalized CSV template or one of the supported native TikTok analytics ZIPs: Followers, Viewers, or Overview. Export from TikTok Studio → Analytics → Export data. The Content ZIP is not supported.",
       "public_support_status": "supported_now",
       "report_role": "supporting",
       "standalone_report_eligible": false,

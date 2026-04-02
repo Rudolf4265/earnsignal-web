@@ -201,6 +201,7 @@ test("grow dashboard adapter only maps quantitative values from growth-native si
     latestArtifact,
     latestReport,
     latestUpload: null,
+    growthReport: null,
   });
 
   assert.equal(result?.hasStructuredGrowthEvidence, true);
@@ -299,6 +300,7 @@ test("grow dashboard adapter does not reuse revenue fields for growth metrics", 
     latestArtifact,
     latestReport,
     latestUpload: null,
+    growthReport: null,
   });
 
   assert.notEqual(result, null);
@@ -328,6 +330,7 @@ test("grow dashboard adapter returns null when no meaningful growth data exists"
       },
     }),
     latestUpload: null,
+    growthReport: null,
   });
 
   assert.equal(result, null);

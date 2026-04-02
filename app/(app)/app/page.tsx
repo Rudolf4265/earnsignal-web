@@ -469,10 +469,11 @@ export default function DashboardPage() {
       latestArtifact: state.latestArtifact,
       latestReport: state.latestReport,
       latestUpload: state.latestUpload,
+      growthReport: state.growthReport,
     });
 
     return growSource ? buildGrowDashboardModel(growSource) : null;
-  }, [state.latestArtifact, state.latestReport, state.latestUpload]);
+  }, [state.latestArtifact, state.latestReport, state.latestUpload, state.growthReport]);
 
   const insightCards = useMemo(
     () =>

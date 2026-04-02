@@ -249,11 +249,11 @@ function renderHero(model: GrowDashboardModel) {
               <Badge variant={toBadgeVariant(summaryTone)}>Limited view</Badge>
             </div>
             <h3 className="mt-5 text-2xl font-semibold tracking-tight text-brand-text-primary md:text-3xl">
-              Measured growth scores are not available yet.
+              Growth guidance is available.
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">
               {model.latestGrowthSummary?.body ??
-                "Grow can show guidance now. Measured scorecards will appear when supported audience and engagement analytics are available."}
+                "Grow can surface guidance now. A measured score will appear when supported audience and engagement analytics are connected."}
             </p>
             <p className="mt-4 text-xs uppercase tracking-[0.14em] text-brand-text-muted">{formatSourceUpdatedLabel(model.sourceUpdatedLabel)}</p>
           </article>
@@ -312,6 +312,62 @@ function renderHero(model: GrowDashboardModel) {
         )}
       </div>
     </PanelCard>
+  );
+}
+
+function renderAudienceSignals(growthReport: GrowthReport) {
+  const { growth_snapshot, audience_signals } = growthReport;
+  if (!growth_snapshot.has_audience_data) return null;
+
+  const igLatest = audience_signals.instagram.at(-1) ?? null;
+  const ttLatest = audience_signals.tiktok.at(-1) ?? null;
+  if (!igLatest && !ttLatest) return null;
+
+  return (
+    <div data-testid="grow-dashboard-audience-signals">
+      <PanelCard
+        title="Audience Signals"
+        description="Most recent audience data from connected social sources."
+        className="border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.8),rgba(16,32,67,0.92))]"
+      >
+        <div className="grid gap-6 sm:grid-cols-2">
+          {igLatest ? (
+            <div className="space-y-2">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Instagram</p>
+              <div className="flex items-end gap-1.5">
+                <p className="text-2xl font-semibold text-brand-text-primary">
+                  +{igLatest.followers_gained.toLocaleString()}
+                </p>
+                <p className="pb-0.5 text-sm text-brand-text-muted">followers</p>
+              </div>
+              {igLatest.engagements !== undefined ? (
+                <p className="text-sm text-brand-text-secondary">
+                  {igLatest.engagements.toLocaleString()} engagements
+                </p>
+              ) : null}
+              <p className="text-xs text-brand-text-muted">{igLatest.month}</p>
+            </div>
+          ) : null}
+          {ttLatest ? (
+            <div className="space-y-2">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">TikTok</p>
+              <div className="flex items-end gap-1.5">
+                <p className="text-2xl font-semibold text-brand-text-primary">
+                  +{ttLatest.followers_gained.toLocaleString()}
+                </p>
+                <p className="pb-0.5 text-sm text-brand-text-muted">followers</p>
+              </div>
+              {ttLatest.video_views !== undefined ? (
+                <p className="text-sm text-brand-text-secondary">
+                  {ttLatest.video_views.toLocaleString()} video views
+                </p>
+              ) : null}
+              <p className="text-xs text-brand-text-muted">{ttLatest.month}</p>
+            </div>
+          ) : null}
+        </div>
+      </PanelCard>
+    </div>
   );
 }
 
@@ -451,6 +507,8 @@ export function GrowDashboardSection({ model, growthReport, loading, actionMode,
               ))}
             </div>
           ) : null}
+
+          {growthReport ? renderAudienceSignals(growthReport) : null}
 
           <div className="grid gap-4 lg:grid-cols-[minmax(0,0.88fr),minmax(0,1.12fr)]">
             {renderPostingWindowPanel(model)}

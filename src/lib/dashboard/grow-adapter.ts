@@ -1,4 +1,4 @@
-import type { ReportDetail } from "../api/reports";
+import type { GrowthReport, ReportDetail } from "../api/reports";
 import type {
   ReportDiagnosisSupportingMetricViewModel,
   ReportRecommendationViewModel,
@@ -45,6 +45,7 @@ export type AdaptGrowDashboardSourceInput = {
   latestArtifact: DashboardArtifactHydrationResult | null;
   latestReport: ReportDetail | null;
   latestUpload: UploadStatusView | null;
+  growthReport: GrowthReport | null;
 };
 
 const GROWTH_TEXT_HINTS = [
@@ -410,14 +411,25 @@ function hasStructuredGrowthEvidence(data: {
 
 export function adaptGrowDashboardSource(input: AdaptGrowDashboardSourceInput): NormalizedGrowDashboardData | null {
   const supportingMetrics = collectSupportingMetrics(input);
-  const creatorScore = pickSupportingMetricScore(supportingMetrics, CREATOR_SCORE_METRIC_HINTS);
+  const creatorScoreFromEarn = pickSupportingMetricScore(supportingMetrics, CREATOR_SCORE_METRIC_HINTS);
+  const hasSocialSources = (input.growthReport?.growth_snapshot.sources_available.length ?? 0) > 0;
+  const coverageScoreFallback =
+    creatorScoreFromEarn === null &&
+    hasSocialSources &&
+    (input.growthReport?.growth_snapshot.coverage_score ?? 0) > 0
+      ? clampScore(input.growthReport!.growth_snapshot.coverage_score)
+      : null;
+  const creatorScore = creatorScoreFromEarn ?? coverageScoreFallback;
   const growthVelocityPercent = pickGrowthVelocityPercent(input);
   const engagementRate = pickSupportingMetricRate(supportingMetrics, ENGAGEMENT_RATE_METRIC_HINTS);
   const audienceValueScore = pickSupportingMetricScore(supportingMetrics, AUDIENCE_VALUE_METRIC_HINTS);
   const bestPostingWindow = extractPostingWindow(input);
-  const diagnosisSummary =
+  const diagnosisSummaryFromEarn =
     pickText(input.latestArtifact?.diagnosis?.summaryText) ??
     pickText(input.latestReport?.diagnosis?.summaryText);
+  const diagnosisSummary =
+    diagnosisSummaryFromEarn ??
+    (coverageScoreFallback !== null ? "Growth score based on your available audience data." : null);
   const trendSummary =
     pickText(input.latestArtifact?.trendPreview) ??
     pickText(input.latestReport?.summary);
@@ -473,6 +485,12 @@ export function adaptGrowDashboardSource(input: AdaptGrowDashboardSourceInput): 
     bestPostingWindow,
     topOpportunity,
     nextActions: fallbackActions,
-    sourceUpdatedAt: input.latestReport?.updatedAt ?? input.latestReport?.createdAt ?? input.latestUpload?.updatedAt ?? null,
+    sourceUpdatedAt:
+      input.latestReport?.updatedAt ??
+      input.latestReport?.createdAt ??
+      input.latestUpload?.updatedAt ??
+      (input.growthReport?.growth_snapshot.latest_period
+        ? `${input.growthReport.growth_snapshot.latest_period}-01`
+        : null),
   };
 }

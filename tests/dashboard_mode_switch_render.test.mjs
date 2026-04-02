@@ -25,7 +25,8 @@ test("dashboard page wires additive Earn and Grow mode branching without disturb
   assert.equal(source.includes("<GrowDashboardSection"), true);
   assert.equal(source.includes("const primaryCta = useMemo("), true);
   assert.equal(source.includes("const latestReportHref = useMemo(() => buildReportDetailPathOrIndex(state.latestReportRow?.id), [state.latestReportRow?.id]);"), true);
-  assert.equal(source.includes("const showDashboardOnboarding = state.hasReports !== true || growGuidanceLimited;"), true);
+  assert.equal(source.includes("const showDashboardOnboarding ="), true);
+  assert.equal(source.includes("state.hasReports !== true || growGuidanceLimited"), true);
   assert.equal(source.includes("<DashboardOnboardingSection"), true);
 });
 

@@ -94,17 +94,18 @@ function emptyGrowthReport(sourceOverrides = []) {
   };
 }
 
-test("adaptGrowDashboardSource returns null when no Earn report artifact exists", async () => {
+test("adaptGrowDashboardSource returns null when no Earn report artifact and no growthReport exists", async () => {
   const { adaptGrowDashboardSource } = await loadModules(Date.now() + 1);
 
-  // Simulate the case: only social uploads, no Earn report artifact
+  // Simulate the case: no social uploads, no Earn report artifact
   const result = adaptGrowDashboardSource({
     latestArtifact: null,
     latestReport: null,
     latestUpload: null,
+    growthReport: null,
   });
 
-  assert.equal(result, null, "Grow model must be null when there is no Earn report artifact.");
+  assert.equal(result, null, "Grow model must be null when there is no Earn report artifact and no growthReport.");
 });
 
 test("growthReport with Instagram source has has_audience_data = true", async () => {
@@ -208,4 +209,154 @@ test("partial data (Instagram only) yields audience signals but not content perf
   // No fake composite score present.
   assert.equal("creator_score" in growthReport, false);
   assert.equal("growth_score" in growthReport, false);
+});
+
+// ---------------------------------------------------------------------------
+// New tests: coverage_score fallback wired into adaptGrowDashboardSource
+// ---------------------------------------------------------------------------
+
+test("Instagram + TikTok social data → adapter returns non-null model with creatorScore from coverage_score", async () => {
+  const { adaptGrowDashboardSource } = await loadModules(Date.now() + 10);
+
+  const growthReport = emptyGrowthReport(["instagram", "tiktok"]);
+  // coverage_score = 2 * 33 = 66
+
+  const result = adaptGrowDashboardSource({
+    latestArtifact: null,
+    latestReport: null,
+    latestUpload: null,
+    growthReport,
+  });
+
+  assert.notEqual(result, null, "Adapter must return a model when growthReport has social sources.");
+  assert.equal(result?.creatorScore, 66, "creatorScore must equal the clamped coverage_score.");
+  assert.equal(result?.hasStructuredGrowthEvidence, true, "hasStructuredGrowthEvidence must be true when creatorScore is set.");
+  assert.equal(result?.diagnosisSummary, "Growth score based on your available audience data.");
+});
+
+test("YouTube-only social data → adapter returns non-null model with creatorScore from coverage_score", async () => {
+  const { adaptGrowDashboardSource } = await loadModules(Date.now() + 11);
+
+  const growthReport = emptyGrowthReport(["youtube_channel_analytics"]);
+  // coverage_score = 1 * 33 = 33
+
+  const result = adaptGrowDashboardSource({
+    latestArtifact: null,
+    latestReport: null,
+    latestUpload: null,
+    growthReport,
+  });
+
+  assert.notEqual(result, null, "Adapter must return a model for YouTube-only social data.");
+  assert.equal(result?.creatorScore, 33, "creatorScore must equal the clamped coverage_score.");
+  assert.equal(result?.hasStructuredGrowthEvidence, true);
+});
+
+test("no social data → adapter returns null (true empty state preserved)", async () => {
+  const { adaptGrowDashboardSource } = await loadModules(Date.now() + 12);
+
+  const growthReport = emptyGrowthReport([]);
+
+  const result = adaptGrowDashboardSource({
+    latestArtifact: null,
+    latestReport: null,
+    latestUpload: null,
+    growthReport,
+  });
+
+  assert.equal(result, null, "Adapter must return null when neither Earn artifact nor social sources exist.");
+});
+
+test("Earn artifact score takes precedence over coverage_score fallback", async () => {
+  const { adaptGrowDashboardSource } = await loadModules(Date.now() + 13);
+
+  // growthReport has coverage_score = 66, but Earn artifact has creator_score = 84
+  const growthReport = emptyGrowthReport(["instagram", "tiktok"]);
+
+  // Build a minimal artifact-like input with diagnosis.supportingMetrics
+  // We reuse the hydration fixture pattern from grow_dashboard_model.test.mjs
+  const hydrationModuleUrl = (await import("node:url")).pathToFileURL(
+    (await import("node:path")).resolve("src/lib/dashboard/artifact-hydration.ts"),
+  ).href;
+  const { hydrateDashboardFromArtifact } = await import(`${hydrationModuleUrl}?t=${Date.now() + 13}`);
+
+  const artifact = {
+    report: {
+      report_id: "rep_001",
+      created_at: "2026-03-10T12:00:00Z",
+      sections: { executive_summary: { summary: "Audience is growing." } },
+      diagnosis: {
+        diagnosis_type: "growth",
+        summary_text: "Audience engagement is improving.",
+        supporting_metrics: [
+          {
+            metric: "creator_score",
+            current_value: 84,
+            prior_value: 78,
+            direction: "up",
+            source: "observed",
+            availability: "available",
+            confidence: "high",
+            evidence_strength: "strong",
+          },
+        ],
+      },
+    },
+  };
+
+  const latestArtifact = hydrateDashboardFromArtifact(artifact);
+
+  const result = adaptGrowDashboardSource({
+    latestArtifact,
+    latestReport: null,
+    latestUpload: null,
+    growthReport,
+  });
+
+  assert.equal(result?.creatorScore, 84, "Earn artifact score (84) must take precedence over coverage_score fallback (66).");
+  assert.notEqual(result?.diagnosisSummary, "Growth score based on your available audience data.");
+});
+
+test("audience signals section shows when growthReport.has_audience_data is true (Instagram+TikTok)", async () => {
+  // This test validates the growthReport shape drives has_audience_data for the UI.
+  const growthReport = emptyGrowthReport(["instagram", "tiktok"]);
+
+  assert.equal(growthReport.growth_snapshot.has_audience_data, true);
+  // Both audience signal arrays populated.
+  assert.equal(growthReport.audience_signals.instagram.length, 1);
+  assert.equal(growthReport.audience_signals.tiktok.length, 1);
+
+  // The most-recent entry (used by renderAudienceSignals) is available via .at(-1).
+  const igLatest = growthReport.audience_signals.instagram.at(-1);
+  const ttLatest = growthReport.audience_signals.tiktok.at(-1);
+  assert.ok(igLatest, "Instagram latest entry must exist.");
+  assert.ok(ttLatest, "TikTok latest entry must exist.");
+  assert.equal(igLatest.followers_gained, 100);
+  assert.equal(ttLatest.followers_gained, 200);
+});
+
+test("audience signals NOT shown when has_audience_data is false (YouTube-only)", async () => {
+  const growthReport = emptyGrowthReport(["youtube_channel_analytics"]);
+
+  assert.equal(growthReport.growth_snapshot.has_audience_data, false, "YouTube-only must not set has_audience_data.");
+  assert.equal(growthReport.audience_signals.instagram.length, 0);
+  assert.equal(growthReport.audience_signals.tiktok.length, 0);
+  // YouTube content data is present, but audience signals are absent.
+  assert.notEqual(growthReport.content_performance.youtube, null);
+});
+
+test("sourceUpdatedAt falls back to growthReport.latest_period when no report date", async () => {
+  const { adaptGrowDashboardSource } = await loadModules(Date.now() + 14);
+
+  const growthReport = emptyGrowthReport(["instagram"]);
+  // latest_period = "2026-02" → expected sourceUpdatedAt = "2026-02-01"
+
+  const result = adaptGrowDashboardSource({
+    latestArtifact: null,
+    latestReport: null,
+    latestUpload: null,
+    growthReport,
+  });
+
+  assert.equal(result?.sourceUpdatedAt, "2026-02-01", "sourceUpdatedAt must be derived from growthReport.latest_period.");
 });

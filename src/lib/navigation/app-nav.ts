@@ -7,7 +7,7 @@ export function getAppNavTestId(id: AppNavLinkId): `nav-${AppNavLinkId}` {
 }
 
 export const APP_NAV_LINKS = [
-  { id: "dashboard", href: "/app", label: "Dashboard" },
+  { id: "dashboard", href: "/app/dashboard", label: "Dashboard" },
   { id: "data", href: "/app/data", label: "Data" },
   { id: "reports", href: "/app/report", label: "Reports" },
   { id: "billing", href: "/app/billing", label: "Billing" },

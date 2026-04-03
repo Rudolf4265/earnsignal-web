@@ -5,6 +5,14 @@ import { pathToFileURL } from "node:url";
 
 const moduleUrl = pathToFileURL(path.resolve("src/lib/navigation/app-nav.ts")).href;
 
+test("Dashboard nav link points to /app/dashboard not /app", async () => {
+  const { APP_NAV_LINKS } = await import(`${moduleUrl}?t=${Date.now()}`);
+  const dashboardLink = APP_NAV_LINKS.find((link) => link.label === "Dashboard");
+
+  assert.equal(dashboardLink?.href, "/app/dashboard",
+    "Dashboard must link to /app/dashboard; linking to /app causes a redirect to /app/data");
+});
+
 test("app navigation links route Data and Billing to distinct canonical paths", async () => {
   const { APP_NAV_LINKS } = await import(`${moduleUrl}?t=${Date.now()}`);
   const dataLink = APP_NAV_LINKS.find((link) => link.label === "Data");

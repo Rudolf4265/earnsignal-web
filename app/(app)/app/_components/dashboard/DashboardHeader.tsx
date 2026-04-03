@@ -13,6 +13,7 @@ type DashboardHeaderProps = {
     body: string;
     testId: string;
   } | null;
+  latestReportHref?: string;
   refreshing?: boolean;
   refreshDisabled?: boolean;
   onModeChange: (mode: DashboardMode) => void;
@@ -25,6 +26,7 @@ export function DashboardHeader({
   mode,
   planBadgeLabel,
   tierBanner,
+  latestReportHref,
   refreshing = false,
   refreshDisabled = false,
   onModeChange,
@@ -45,7 +47,7 @@ export function DashboardHeader({
           ) : null}
         </div>
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-brand-text-primary">Creator Operating Dashboard</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-brand-text-primary">Dashboard</h1>
           <p className="text-sm leading-relaxed text-brand-text-secondary">
             {snapshotLabel ?? "Track your latest report snapshot without digging through raw reporting detail."}
           </p>
@@ -105,13 +107,13 @@ export function DashboardHeader({
             {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
           <Link
-            href="/app/report"
+            href={latestReportHref ?? "/app/report"}
             className={buttonClassName({
               variant: "primary",
               className: "shadow-brand-glow",
             })}
           >
-            View reports
+            View latest report
           </Link>
         </div>
       </div>

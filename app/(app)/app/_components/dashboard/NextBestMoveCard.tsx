@@ -21,10 +21,7 @@ export function NextBestMoveCard({
 }: NextBestMoveCardProps) {
   return (
     <section className="space-y-3" data-testid="dashboard-next-best-move">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text-muted">Next best move</p>
-        <h2 className="mt-1 text-lg font-semibold tracking-tight text-brand-text-primary">One clear recommendation</h2>
-      </div>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text-muted">Next best move</p>
 
       <article className="rounded-[1.4rem] border border-brand-accent-teal/22 bg-[linear-gradient(155deg,rgba(18,40,82,0.92),rgba(14,30,60,0.94))] p-5 shadow-brand-glow">
         {loading ? (

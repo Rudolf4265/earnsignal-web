@@ -643,14 +643,7 @@ export default function DashboardPage() {
         body: "This dashboard reflects your purchased report snapshot. Upgrade to Pro for ongoing intelligence, comparisons, and monitoring.",
         testId: "dashboard-report-snapshot-banner",
       }
-    : hasProDashboardTreatment
-      ? {
-          variant: "pro" as const,
-          eyebrow: "Pro command center",
-          body: "Full-history intelligence, comparisons, and monitoring stay connected across fresh runs.",
-          testId: "dashboard-pro-continuity-card",
-        }
-      : null;
+    : null;
   const handleModeChange = useCallback(
     (nextMode: "earn" | "grow") => {
       const query = buildDashboardModeSearch(searchParams, nextMode);
@@ -667,6 +660,7 @@ export default function DashboardPage() {
         mode={dashboardMode}
         planBadgeLabel={dashboardPlanBadgeLabel}
         tierBanner={dashboardTierBanner}
+        latestReportHref={latestReportHref}
         onModeChange={handleModeChange}
         refreshing={state.refreshing}
         refreshDisabled={state.loading || state.refreshing}
@@ -715,8 +709,6 @@ export default function DashboardPage() {
             <SignalsPanel signals={signalItems} biggestConstraint={biggestConstraint} loading={state.loading} />
           </DashboardTopGrid>
 
-          <DashboardKpiRow items={dashboardKpis} loading={state.loading} />
-
           <NextBestMoveCard
             title={nextBestMove.title}
             description={nextBestMove.description}
@@ -725,6 +717,8 @@ export default function DashboardPage() {
             ctaHref={nextBestMove.ctaHref}
             loading={nextBestMove.loading}
           />
+
+          <DashboardKpiRow items={dashboardKpis} loading={state.loading} />
 
           <RevenueTrendSection
             trend={revenueTrend}

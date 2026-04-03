@@ -35,13 +35,9 @@ function toneToVariant(tone: SignalItem["tone"]): "good" | "warn" | "neutral" {
 function SignalRow({ item }: { item: SignalItem }) {
   return (
     <article className="rounded-[1.1rem] border border-brand-border/65 bg-brand-panel/55 p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={toneToVariant(item.tone)}>{item.label}</Badge>
-        {item.sourceLabel ? <span className="text-[11px] text-brand-text-muted">{item.sourceLabel}</span> : null}
-      </div>
+      <Badge variant={toneToVariant(item.tone)}>{item.label}</Badge>
       <h3 className="mt-3 text-base font-semibold leading-snug text-brand-text-primary">{item.title}</h3>
       <p className="mt-1.5 text-sm leading-relaxed text-brand-text-secondary">{item.body}</p>
-      {item.lowConfidence ? <p className="mt-2 text-xs text-brand-text-muted">Confidence is still limited.</p> : null}
     </article>
   );
 }
@@ -66,12 +62,11 @@ export function SignalsPanel({ signals, biggestConstraint, loading = false }: Si
 
   return (
     <article
-      className="flex min-h-[260px] h-full flex-col rounded-[1.5rem] border border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.92),rgba(19,41,80,0.86),rgba(16,32,67,0.93))] p-6 shadow-brand-card"
+      className="flex h-full flex-col rounded-[1.5rem] border border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.92),rgba(19,41,80,0.86),rgba(16,32,67,0.93))] p-6 shadow-brand-card"
       data-testid="dashboard-signals-panel"
     >
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text-secondary">Signals</p>
-        <h2 className="mt-2 text-xl font-semibold tracking-tight text-brand-text-primary">What changed in the latest report</h2>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text-secondary">What changed</p>
       </div>
 
       {loading ? (

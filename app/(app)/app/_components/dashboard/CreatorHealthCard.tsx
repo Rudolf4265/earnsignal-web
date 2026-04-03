@@ -19,14 +19,11 @@ export type CreatorHealthCardProps = {
 export function CreatorHealthCard({ score = null, trajectoryLabel, latestReport, reportHref, loading = false }: CreatorHealthCardProps) {
   return (
     <article
-      className="flex min-h-[260px] h-full flex-col rounded-[1.5rem] border border-brand-border-strong/80 bg-[linear-gradient(145deg,rgba(16,32,67,0.95),rgba(19,41,80,0.94),rgba(16,32,67,0.96))] p-6 shadow-brand-card"
+      className="flex h-full flex-col rounded-[1.5rem] border border-brand-border-strong/80 bg-[linear-gradient(145deg,rgba(16,32,67,0.95),rgba(19,41,80,0.94),rgba(16,32,67,0.96))] p-6 shadow-brand-card"
       data-testid="dashboard-creator-health-card"
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text-secondary">Creator health</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight text-brand-text-primary">Current score and latest report snapshot</h2>
-        </div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text-secondary">Business status</p>
         {latestReport?.statusLabel ? <Badge variant="neutral">{latestReport.statusLabel}</Badge> : null}
       </div>
 

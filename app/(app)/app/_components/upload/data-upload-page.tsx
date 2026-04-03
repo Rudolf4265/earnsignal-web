@@ -362,7 +362,7 @@ function HelpSection({ sourceManifestError }: { sourceManifestError: string | nu
           </span>
         </Link>
 
-        <Link href="/app/help#after-upload" className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 transition hover:bg-white/[0.04]">
+        <Link href="/app/help/troubleshooting" className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 transition hover:bg-white/[0.04]">
           <p className="text-sm font-semibold text-white">Troubleshooting</p>
           <p className="mt-2 text-sm leading-6 text-slate-400">What to check after a failed or slow upload.</p>
           <span className="mt-4 inline-flex text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">

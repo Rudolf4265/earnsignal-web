@@ -26,10 +26,7 @@ export function DashboardKpiRow({ items, loading = false }: DashboardKpiRowProps
 
   return (
     <section className="space-y-3" data-testid="dashboard-kpi-row">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text-muted">Key metrics</p>
-        <h2 className="mt-1 text-lg font-semibold tracking-tight text-brand-text-primary">Reliable KPI snapshot</h2>
-      </div>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text-muted">Key metrics</p>
 
       <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
         {loading

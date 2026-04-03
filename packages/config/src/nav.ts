@@ -7,7 +7,7 @@ export type SiteNavItem = {
 };
 
 export const siteNavItems: SiteNavItem[] = [
-  { key: "features", href: `${publicUrls.marketingHome}#features`, label: "Features" },
+  { key: "features", href: publicUrls.features, label: "Features" },
   { key: "pricing", href: publicUrls.pricing, label: "Pricing" },
   { key: "about", href: `${publicUrls.marketingHome}#about`, label: "About" },
 ];

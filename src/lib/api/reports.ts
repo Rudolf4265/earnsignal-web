@@ -475,6 +475,7 @@ export type GrowthReportYouTubeContent = {
   total_views: number;
   total_watch_time_hours: number;
   avg_impressions_ctr_pct: number | null;
+  avg_view_duration_seconds?: number | null;
   subscribers_gained_total: number | null;
   subscribers_lost_total: number | null;
   net_subscribers_change: number | null;
@@ -507,6 +508,23 @@ export type GrowthReportAction = {
 
 export type GrowthReport = {
   entitlement_tier: "free" | "report" | "pro";
+  creator_score_v1: number;
+  creator_score_mode: "full" | "partial" | "coverage_fallback";
+  creator_score_components: {
+    source_coverage_score: number;
+    audience_momentum_score: number | null;
+    engagement_signal_score: number | null;
+    volatility_penalty: number;
+    broad_decline_penalty: number;
+  };
+  creator_score_debug?: {
+    available_components?: Record<string, boolean>;
+    weights_used?: Record<string, number>;
+    momentum_sources?: Array<Record<string, unknown>>;
+    engagement_sources?: Array<Record<string, unknown>>;
+    volatility_reasons?: string[];
+    broad_decline_reason?: string | null;
+  };
   growth_snapshot: {
     sources_available: string[];
     coverage_score: number;

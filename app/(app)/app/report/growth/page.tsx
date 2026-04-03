@@ -55,15 +55,19 @@ function SectionLoadingCard({ testId }: { testId: string }) {
 
 function GrowthSnapshotSection({ report }: { report: GrowthReport }) {
   const { growth_snapshot } = report;
+  const creatorScore =
+    typeof report.creator_score_v1 === "number"
+      ? report.creator_score_v1
+      : growth_snapshot.coverage_score;
 
   return (
     <section data-testid="growth-snapshot-section">
       <DashboardSectionHeader title="Growth Snapshot" />
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <PanelCard>
-          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Coverage Score</p>
-          <p className="mt-1 text-2xl font-bold text-brand-text-primary">{growth_snapshot.coverage_score}%</p>
-          <p className="text-xs text-brand-text-muted">of growth signals connected</p>
+          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Creator Score</p>
+          <p className="mt-1 text-2xl font-bold text-brand-text-primary">{creatorScore}%</p>
+          <p className="text-xs text-brand-text-muted">Based on your available audience and engagement data.</p>
         </PanelCard>
         <PanelCard>
           <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Sources</p>

@@ -7,6 +7,7 @@ const dashboardPagePath = path.resolve("app/(app)/app/page.tsx");
 const dashboardOnboardingPath = path.resolve("app/(app)/app/_components/dashboard/DashboardOnboardingSection.tsx");
 const modeSwitchPath = path.resolve("src/components/dashboard/mode-switch.tsx");
 const growSectionPath = path.resolve("app/(app)/app/_components/dashboard/GrowDashboardSection.tsx");
+const growthReportPagePath = path.resolve("app/(app)/app/report/growth/page.tsx");
 
 test("dashboard page wires additive Earn and Grow mode branching without disturbing the existing earn path", async () => {
   const source = await readFile(dashboardPagePath, "utf8");
@@ -114,4 +115,16 @@ test("grow dashboard section uses truthful empty and partial states", async () =
   );
   assert.equal(source.includes("Upload Patreon and Substack analytics to unlock growth insights."), false);
   assert.equal(source.includes("Upload Instagram, TikTok, or YouTube analytics to unlock growth insights."), false);
+});
+
+test("Grow score cards label the preferred social score as Creator Score", async () => {
+  const [growSectionSource, growthReportSource] = await Promise.all([
+    readFile(growSectionPath, "utf8"),
+    readFile(growthReportPagePath, "utf8"),
+  ]);
+
+  assert.equal(growSectionSource.includes("Creator Score"), true);
+  assert.equal(growthReportSource.includes("Creator Score"), true);
+  assert.equal(growSectionSource.includes("Based on your available audience and engagement data."), true);
+  assert.equal(growthReportSource.includes("Based on your available audience and engagement data."), true);
 });

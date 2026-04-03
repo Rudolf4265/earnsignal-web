@@ -29,12 +29,23 @@ async function loadModules(seed = Date.now()) {
   return { ...adapter, ...model };
 }
 
-function emptyGrowthReport(sourceOverrides = []) {
+function emptyGrowthReport(sourceOverrides = [], options = {}) {
+  const coverageScore = sourceOverrides.length > 0 ? sourceOverrides.length * 33 : 0;
+  const hasCreatorScore = Object.prototype.hasOwnProperty.call(options, "creator_score_v1");
   return {
     entitlement_tier: "free",
+    ...(hasCreatorScore ? { creator_score_v1: options.creator_score_v1 } : { creator_score_v1: coverageScore }),
+    creator_score_mode: options.creator_score_mode ?? (sourceOverrides.length > 0 ? "full" : "coverage_fallback"),
+    creator_score_components: options.creator_score_components ?? {
+      source_coverage_score: coverageScore,
+      audience_momentum_score: sourceOverrides.length > 0 ? 70 : null,
+      engagement_signal_score: sourceOverrides.length > 0 ? 65 : null,
+      volatility_penalty: 0,
+      broad_decline_penalty: 0,
+    },
     growth_snapshot: {
       sources_available: sourceOverrides,
-      coverage_score: sourceOverrides.length > 0 ? sourceOverrides.length * 33 : 0,
+      coverage_score: coverageScore,
       latest_period: sourceOverrides.length > 0 ? "2026-02" : null,
       has_audience_data: sourceOverrides.some((s) =>
         ["instagram", "tiktok"].includes(s),
@@ -88,7 +99,7 @@ function emptyGrowthReport(sourceOverrides = []) {
     confidence_note: {
       sources_used: sourceOverrides,
       months_coverage: sourceOverrides.length > 0 ? 1 : 0,
-      coverage_score: sourceOverrides.length * 33,
+      coverage_score: coverageScore,
       honesty_statement: "Bounded to uploaded data.",
     },
   };
@@ -132,7 +143,7 @@ test("growthReport with TikTok source has both audience and content data", async
 });
 
 test("growthReport with YouTube source has content data, no audience data", async () => {
-  const growthReport = emptyGrowthReport(["youtube_channel_analytics"]);
+  const growthReport = emptyGrowthReport(["youtube_channel_analytics"], { creator_score_v1: undefined });
 
   assert.equal(growthReport.growth_snapshot.has_content_data, true);
   assert.equal(growthReport.growth_snapshot.has_audience_data, false);
@@ -212,14 +223,13 @@ test("partial data (Instagram only) yields audience signals but not content perf
 });
 
 // ---------------------------------------------------------------------------
-// New tests: coverage_score fallback wired into adaptGrowDashboardSource
+// New tests: creator_score_v1 preference with PR1 coverage fallback preserved
 // ---------------------------------------------------------------------------
 
-test("Instagram + TikTok social data → adapter returns non-null model with creatorScore from coverage_score", async () => {
+test("Instagram + TikTok social data → adapter prefers creator_score_v1 when present", async () => {
   const { adaptGrowDashboardSource } = await loadModules(Date.now() + 10);
 
-  const growthReport = emptyGrowthReport(["instagram", "tiktok"]);
-  // coverage_score = 2 * 33 = 66
+  const growthReport = emptyGrowthReport(["instagram", "tiktok"], { creator_score_v1: 79 });
 
   const result = adaptGrowDashboardSource({
     latestArtifact: null,
@@ -229,12 +239,12 @@ test("Instagram + TikTok social data → adapter returns non-null model with cre
   });
 
   assert.notEqual(result, null, "Adapter must return a model when growthReport has social sources.");
-  assert.equal(result?.creatorScore, 66, "creatorScore must equal the clamped coverage_score.");
+  assert.equal(result?.creatorScore, 79, "creatorScore must prefer creator_score_v1 over coverage_score.");
   assert.equal(result?.hasStructuredGrowthEvidence, true, "hasStructuredGrowthEvidence must be true when creatorScore is set.");
-  assert.equal(result?.diagnosisSummary, "Growth score based on your available audience data.");
+  assert.equal(result?.diagnosisSummary, "Based on your available audience and engagement data.");
 });
 
-test("YouTube-only social data → adapter returns non-null model with creatorScore from coverage_score", async () => {
+test("YouTube-only social data → adapter falls back to coverage_score when creator_score_v1 is absent", async () => {
   const { adaptGrowDashboardSource } = await loadModules(Date.now() + 11);
 
   const growthReport = emptyGrowthReport(["youtube_channel_analytics"]);
@@ -250,6 +260,7 @@ test("YouTube-only social data → adapter returns non-null model with creatorSc
   assert.notEqual(result, null, "Adapter must return a model for YouTube-only social data.");
   assert.equal(result?.creatorScore, 33, "creatorScore must equal the clamped coverage_score.");
   assert.equal(result?.hasStructuredGrowthEvidence, true);
+  assert.equal(result?.diagnosisSummary, "Based on your available audience and engagement data.");
 });
 
 test("no social data → adapter returns null (true empty state preserved)", async () => {
@@ -267,11 +278,11 @@ test("no social data → adapter returns null (true empty state preserved)", asy
   assert.equal(result, null, "Adapter must return null when neither Earn artifact nor social sources exist.");
 });
 
-test("Earn artifact score takes precedence over coverage_score fallback", async () => {
+test("growthReport creator_score_v1 takes precedence over legacy Earn artifact score", async () => {
   const { adaptGrowDashboardSource } = await loadModules(Date.now() + 13);
 
-  // growthReport has coverage_score = 66, but Earn artifact has creator_score = 84
-  const growthReport = emptyGrowthReport(["instagram", "tiktok"]);
+  // growthReport has creator_score_v1 = 79 and coverage_score = 66, while legacy artifact has creator_score = 84.
+  const growthReport = emptyGrowthReport(["instagram", "tiktok"], { creator_score_v1: 79 });
 
   // Build a minimal artifact-like input with diagnosis.supportingMetrics
   // We reuse the hydration fixture pattern from grow_dashboard_model.test.mjs
@@ -313,8 +324,52 @@ test("Earn artifact score takes precedence over coverage_score fallback", async 
     growthReport,
   });
 
-  assert.equal(result?.creatorScore, 84, "Earn artifact score (84) must take precedence over coverage_score fallback (66).");
-  assert.notEqual(result?.diagnosisSummary, "Growth score based on your available audience data.");
+  assert.equal(result?.creatorScore, 79, "growthReport creator_score_v1 (79) must take precedence over legacy artifact score (84).");
+  assert.notEqual(result?.diagnosisSummary, "Based on your available audience and engagement data.");
+});
+
+test("legacy Earn artifact score is used only as a last-resort fallback", async () => {
+  const { adaptGrowDashboardSource } = await loadModules(Date.now() + 15);
+
+  const hydrationModuleUrl = (await import("node:url")).pathToFileURL(
+    (await import("node:path")).resolve("src/lib/dashboard/artifact-hydration.ts"),
+  ).href;
+  const { hydrateDashboardFromArtifact } = await import(`${hydrationModuleUrl}?t=${Date.now() + 15}`);
+
+  const artifact = {
+    report: {
+      report_id: "rep_002",
+      created_at: "2026-03-10T12:00:00Z",
+      sections: { executive_summary: { summary: "Audience is growing." } },
+      diagnosis: {
+        diagnosis_type: "growth",
+        summary_text: "Audience engagement is improving.",
+        supporting_metrics: [
+          {
+            metric: "creator_score",
+            current_value: 84,
+            prior_value: 78,
+            direction: "up",
+            source: "observed",
+            availability: "available",
+            confidence: "high",
+            evidence_strength: "strong",
+          },
+        ],
+      },
+    },
+  };
+
+  const latestArtifact = hydrateDashboardFromArtifact(artifact);
+
+  const result = adaptGrowDashboardSource({
+    latestArtifact,
+    latestReport: null,
+    latestUpload: null,
+    growthReport: null,
+  });
+
+  assert.equal(result?.creatorScore, 84, "Legacy artifact score should still work when no Growth Report score is available.");
 });
 
 test("audience signals section shows when growthReport.has_audience_data is true (Instagram+TikTok)", async () => {

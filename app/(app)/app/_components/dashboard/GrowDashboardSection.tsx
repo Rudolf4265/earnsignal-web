@@ -80,6 +80,10 @@ function GrowMetricCard({ label, value, subtext, tone }: GrowMetricCardProps) {
 function renderSocialAnalyticsTeaser(growthReport: GrowthReport) {
   const { growth_snapshot } = growthReport;
   const sourceCount = growth_snapshot.sources_available.length;
+  const creatorScore =
+    typeof growthReport.creator_score_v1 === "number"
+      ? growthReport.creator_score_v1
+      : growth_snapshot.coverage_score;
 
   return (
     <div className="space-y-4" data-testid="grow-dashboard-social-teaser">
@@ -101,9 +105,9 @@ function renderSocialAnalyticsTeaser(growthReport: GrowthReport) {
 
           <div className="mt-5 grid grid-cols-3 gap-3">
             <div className="rounded-[1.1rem] border border-brand-border/70 bg-brand-panel/60 px-4 py-3">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Coverage Score</p>
-              <p className="mt-1 text-2xl font-bold text-brand-text-primary">{growth_snapshot.coverage_score}%</p>
-              <p className="mt-0.5 text-xs text-brand-text-muted">of growth signals connected</p>
+              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Creator Score</p>
+              <p className="mt-1 text-2xl font-bold text-brand-text-primary">{creatorScore}%</p>
+              <p className="mt-0.5 text-xs text-brand-text-muted">Based on your available audience and engagement data.</p>
             </div>
             <div className="rounded-[1.1rem] border border-brand-border/70 bg-brand-panel/60 px-4 py-3">
               <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Sources</p>

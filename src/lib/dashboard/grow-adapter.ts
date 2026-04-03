@@ -413,13 +413,18 @@ export function adaptGrowDashboardSource(input: AdaptGrowDashboardSourceInput): 
   const supportingMetrics = collectSupportingMetrics(input);
   const creatorScoreFromEarn = pickSupportingMetricScore(supportingMetrics, CREATOR_SCORE_METRIC_HINTS);
   const hasSocialSources = (input.growthReport?.growth_snapshot.sources_available.length ?? 0) > 0;
+  const growthReportCreatorScore =
+    hasSocialSources &&
+    typeof input.growthReport?.creator_score_v1 === "number"
+      ? clampScore(input.growthReport.creator_score_v1)
+      : null;
   const coverageScoreFallback =
-    creatorScoreFromEarn === null &&
+    growthReportCreatorScore === null &&
     hasSocialSources &&
     (input.growthReport?.growth_snapshot.coverage_score ?? 0) > 0
       ? clampScore(input.growthReport!.growth_snapshot.coverage_score)
       : null;
-  const creatorScore = creatorScoreFromEarn ?? coverageScoreFallback;
+  const creatorScore = growthReportCreatorScore ?? coverageScoreFallback ?? creatorScoreFromEarn;
   const growthVelocityPercent = pickGrowthVelocityPercent(input);
   const engagementRate = pickSupportingMetricRate(supportingMetrics, ENGAGEMENT_RATE_METRIC_HINTS);
   const audienceValueScore = pickSupportingMetricScore(supportingMetrics, AUDIENCE_VALUE_METRIC_HINTS);
@@ -429,7 +434,11 @@ export function adaptGrowDashboardSource(input: AdaptGrowDashboardSourceInput): 
     pickText(input.latestReport?.diagnosis?.summaryText);
   const diagnosisSummary =
     diagnosisSummaryFromEarn ??
-    (coverageScoreFallback !== null ? "Growth score based on your available audience data." : null);
+    (growthReportCreatorScore !== null
+      ? "Based on your available audience and engagement data."
+      : coverageScoreFallback !== null
+        ? "Based on your available audience and engagement data."
+        : null);
   const trendSummary =
     pickText(input.latestArtifact?.trendPreview) ??
     pickText(input.latestReport?.summary);

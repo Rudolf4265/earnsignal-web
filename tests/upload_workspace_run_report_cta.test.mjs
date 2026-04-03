@@ -18,6 +18,9 @@ test("workspace banner derives Run Report availability from canonical workspace 
   assert.equal(source.includes("workspaceReportState.reportHasBusinessMetrics"), true);
   assert.equal(source.includes("reportWindowPolicy.runCtaLabel"), true);
   assert.equal(source.includes('data-testid="staged-run-report"'), true);
+  assert.equal(source.includes('data-testid="workspace-run-report-section"'), true);
+  assert.equal(source.includes("min-h-14"), true);
+  assert.equal(source.includes("sm:min-w-52"), true);
   assert.equal(source.includes("Ready to run"), true);
   assert.equal(source.includes("View all reports"), true);
   assert.equal(source.includes("What this report is based on"), false);
@@ -41,24 +44,24 @@ test("workspace report flow includes the new analysis-window chooser with billin
   assert.equal(dialogSource.includes('data-testid="analysis-window-upgrade"'), true);
   assert.equal(dialogSource.includes('href="/app/billing"'), true);
   assert.equal(pageSource.includes("onClearRunReportError={clearRunReportError}"), true);
-  assert.equal(stepperSource.includes("runReportLabel"), true);
   assert.equal(stepperSource.includes("onClearRunReportError"), true);
   assert.equal(stepperSource.includes("setRunReportBusy("), false);
   assert.equal(stepperSource.includes("setRunReportError("), false);
-  assert.equal(stepperSource.includes('data-testid="upload-run-report"'), true);
-  assert.equal(stepperSource.includes('data-testid="upload-completed-run-report"'), true);
+  assert.equal(stepperSource.includes('data-testid="upload-run-report"'), false);
+  assert.equal(stepperSource.includes('data-testid="upload-completed-run-report"'), false);
+  assert.equal(stepperSource.includes("Review your staged sources below, then run the report from the final step."), true);
 });
 
-test("upload stepper keeps workspace CTA visibility and single-source gating structure intact", async () => {
+test("upload stepper keeps workspace source-status visibility while final report execution stays on the page banner", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
   assert.equal(source.includes("const showWorkspaceViewReport ="), true);
   assert.equal(source.includes("workspaceReportState.hasExistingReport"), true);
-  assert.equal(source.includes("const showWorkspaceRunReportCta ="), true);
+  assert.equal(source.includes("const showWorkspaceRunReportReminder ="), true);
   assert.equal(source.includes("!workspaceReportState.canRunReport"), true);
   assert.equal(source.includes("workspaceBlockingReason"), true);
-  assert.equal(source.includes('data-testid="upload-run-report"'), true);
-  assert.equal(source.includes('data-testid="upload-completed-run-report"'), true);
+  assert.equal(source.includes('data-testid="upload-run-report"'), false);
+  assert.equal(source.includes('data-testid="upload-completed-run-report"'), false);
   assert.equal(source.includes('data-testid="upload-completed-view-report"'), true);
   assert.equal(source.includes("Checking workspace..."), true);
 });

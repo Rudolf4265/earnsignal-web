@@ -15,8 +15,8 @@ export default function AuthCallbackPage() {
   const [loading, setLoading] = useState(true);
   const resolvedReturnTo =
     typeof window === "undefined"
-      ? "/app"
-      : resolveReturnTo(new URLSearchParams(window.location.search).get("returnTo")) ?? "/app";
+      ? "/app/data"
+      : resolveReturnTo(new URLSearchParams(window.location.search).get("returnTo")) ?? "/app/data";
 
   useEffect(() => {
     let isMounted = true;

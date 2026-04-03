@@ -14,13 +14,15 @@ test.describe("Help onboarding page", () => {
     await expect(page.getByTestId("help-platform-grid")).toBeVisible();
 
     await expect(page.getByTestId("help-platform-card-patreon")).toContainText("Patreon");
-    await expect(page.getByTestId("help-platform-card-patreon")).toContainText("Use the EarnSigma CSV template.");
-    await expect(page.getByTestId("help-platform-card-patreon-primary")).toHaveText("Download Patreon template");
+    await expect(page.getByTestId("help-platform-card-patreon-guide")).toHaveText("How to get your file");
+    await expect(page.getByTestId("help-platform-card-patreon-secondary")).toHaveText("Download Patreon template");
 
     await expect(page.getByTestId("help-platform-card-substack")).toContainText("Substack");
-    await expect(page.getByTestId("help-platform-card-youtube-primary")).toHaveText("Upload YouTube export");
-    await expect(page.getByTestId("help-platform-card-tiktok")).toContainText("Upload Overview, Viewers, or Followers export.");
-    await expect(page.getByTestId("help-platform-card-instagram")).toContainText("Upload your Instagram export.");
+    await expect(page.getByTestId("help-platform-card-substack-secondary")).toHaveText("Download Substack template");
+    await expect(page.getByTestId("help-platform-card-youtube-guide")).toHaveText("How to get your file");
+    await expect(page.getByTestId("help-platform-card-youtube-secondary")).toHaveCount(0);
+    await expect(page.getByTestId("help-platform-card-tiktok-secondary")).toHaveCount(0);
+    await expect(page.getByTestId("help-platform-card-instagram-secondary")).toHaveCount(0);
 
     await page.getByTestId("help-platform-card-youtube-guide").click();
 

@@ -8,10 +8,9 @@ import type { HelpPlatformAction } from "./help-platform-content";
 type PlatformCardProps = {
   platform: string;
   icon: string;
-  summary: string;
   badge: string;
   reportRoleLabel: string;
-  primaryAction: HelpPlatformAction;
+  secondaryAction?: HelpPlatformAction | null;
   onOpenGuide: () => void;
   cardTestId: string;
 };
@@ -55,10 +54,9 @@ function ActionCta({
 export default function PlatformCard({
   platform,
   icon,
-  summary,
   badge,
   reportRoleLabel,
-  primaryAction,
+  secondaryAction = null,
   onOpenGuide,
   cardTestId,
 }: PlatformCardProps) {
@@ -88,27 +86,32 @@ export default function PlatformCard({
           </span>
         </div>
 
-        <p className="truncate text-sm leading-6 text-brand-text-secondary">{summary}</p>
-
         <div className="mt-auto flex flex-col items-start gap-3">
-          <ActionCta
-            action={primaryAction}
-            testId={`${cardTestId}-primary`}
+          <button
+            type="button"
+            onClick={onOpenGuide}
+            data-testid={`${cardTestId}-guide`}
             className={buttonClassName({
               variant: "primary",
               size: "sm",
               className:
                 "min-h-10 rounded-xl px-4 shadow-brand-glow transition duration-200 ease-out hover:brightness-110",
             })}
-          />
-          <button
-            type="button"
-            onClick={onOpenGuide}
-            data-testid={`${cardTestId}-guide`}
-            className="inline-flex items-center rounded-full px-1 py-1 text-sm font-medium text-brand-text-secondary underline underline-offset-4 transition duration-200 ease-out hover:text-brand-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent-blue/55"
           >
             How to get your file
           </button>
+          {secondaryAction ? (
+            <ActionCta
+              action={secondaryAction}
+              testId={`${cardTestId}-secondary`}
+              className={buttonClassName({
+                variant: "secondary",
+                size: "sm",
+                className:
+                  "min-h-10 rounded-xl border-brand-border-strong/70 bg-brand-panel/80 px-4 text-brand-text-primary hover:bg-brand-panel-muted/92",
+              })}
+            />
+          ) : null}
         </div>
       </div>
     </article>

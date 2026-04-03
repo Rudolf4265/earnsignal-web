@@ -47,13 +47,14 @@ test("resetFlow clears latestTerminalUpload", () => {
 
 test("compact summary banner still exists for completed uploads", () => {
   assert.ok(source.includes('data-testid="upload-completed-summary"'));
-  assert.ok(source.includes('data-testid="upload-completed-run-report"'));
+  assert.equal(source.includes('data-testid="upload-completed-run-report"'), false);
   assert.ok(source.includes('data-testid="upload-completed-dismiss"'));
 });
 
-test("compact summary Run Report CTA is driven by workspaceReportState", () => {
+test("compact summary still reflects workspace report truth without duplicating the Run Report CTA", () => {
   assert.ok(source.includes("workspaceReportState.canRunReport"));
   assert.ok(source.includes("workspaceReportState.hasExistingReport"));
+  assert.ok(source.includes("Review your staged sources below, then run the report from the final step."));
   assert.equal(source.includes("latestTerminalUpload.reportId"), false);
 });
 

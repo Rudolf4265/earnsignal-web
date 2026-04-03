@@ -346,6 +346,10 @@ function buildFileInputAccept(card: UploadPlatformCardMetadata | null): string {
   return accepted.size > 0 ? [...accepted].join(",") : ".csv,text/csv";
 }
 
+function isFileDragPayload(dataTransfer?: DataTransfer | null): boolean {
+  return Array.from(dataTransfer?.types ?? []).includes("Files");
+}
+
 function buildUploadRecognitionMessage(
   source: WorkspaceDataSource | null | undefined,
   selectedPlatformCard: UploadPlatformCardMetadata | null,
@@ -598,11 +602,7 @@ type UploadStepperProps = {
   workspaceReportState: WorkspaceReportState;
   refreshWorkspaceDataSources: () => Promise<void>;
   clearCurrentReport: () => void;
-  onRunReport: () => Promise<void> | void;
   onClearRunReportError: () => void;
-  runReportBusy: boolean;
-  runReportError: string | null;
-  runReportLabel?: string;
   preferredPlatform?: UploadPlatform | null;
   preferredPlatformNonce?: number;
 };
@@ -613,21 +613,19 @@ export default function UploadStepper({
   workspaceReportState,
   refreshWorkspaceDataSources,
   clearCurrentReport,
-  onRunReport,
   onClearRunReportError,
-  runReportBusy,
-  runReportError,
-  runReportLabel = "Run Report",
   preferredPlatform = null,
   preferredPlatformNonce = 0,
 }: UploadStepperProps) {
   const entitlementState = useEntitlementState();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const pollAbortRef = useRef<AbortController | null>(null);
+  const dragDepthRef = useRef(0);
 
   const [step, setStep] = useState<Step>("platform");
   const [platform, setPlatform] = useState<UploadPlatform | null>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
   const [uploadId, setUploadId] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -671,12 +669,11 @@ export default function UploadStepper({
     !showWorkspaceLoadingGuard &&
     workspaceReportState.hasExistingReport &&
     Boolean(workspaceReportState.currentReportId);
-  const showWorkspaceRunReportCta =
+  const showWorkspaceRunReportReminder =
     !showWorkspaceLoadingGuard &&
     !showWorkspaceViewReport &&
-    !reportAccessBlocked;
-  const showWorkspaceRunReport =
-    showWorkspaceRunReportCta && workspaceReportState.canRunReport;
+    !reportAccessBlocked &&
+    workspaceReportState.canRunReport;
   const showWorkspaceNeedsReportDrivingSource =
     !showWorkspaceLoadingGuard &&
     !showWorkspaceViewReport &&
@@ -696,6 +693,15 @@ export default function UploadStepper({
   const workspaceBlockingReason = workspaceReportState.hasStagedSources
     ? "Add revenue + subscriber data before running a report."
     : "Add your first source to start.";
+
+  const attachSelectedFile = useCallback((nextFile: File | null) => {
+    setFile(nextFile);
+  }, []);
+
+  const clearDragState = useCallback(() => {
+    dragDepthRef.current = 0;
+    setIsDragActive(false);
+  }, []);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production") {
@@ -726,6 +732,7 @@ export default function UploadStepper({
     setPlatform(preferredPlatform);
     setStep("platform");
     setFile(null);
+    clearDragState();
     setUploadId(null);
     setStatusMsg(null);
     setError(null);
@@ -741,7 +748,34 @@ export default function UploadStepper({
     if (inputRef.current) {
       inputRef.current.value = "";
     }
-  }, [onClearRunReportError, preferredPlatform, preferredPlatformNonce, stopPolling]);
+  }, [clearDragState, onClearRunReportError, preferredPlatform, preferredPlatformNonce, stopPolling]);
+
+  useEffect(() => {
+    if (step !== "file") {
+      clearDragState();
+      return;
+    }
+
+    const preventBrowserFileDrop = (event: DragEvent) => {
+      if (!isFileDragPayload(event.dataTransfer)) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (event.type === "drop") {
+        clearDragState();
+      }
+    };
+
+    window.addEventListener("dragover", preventBrowserFileDrop);
+    window.addEventListener("drop", preventBrowserFileDrop);
+
+    return () => {
+      window.removeEventListener("dragover", preventBrowserFileDrop);
+      window.removeEventListener("drop", preventBrowserFileDrop);
+    };
+  }, [clearDragState, step]);
 
   const logUploadDiagnostic = useCallback((event: string, details: Record<string, unknown>) => {
     if (process.env.NODE_ENV === "production") {
@@ -839,6 +873,7 @@ export default function UploadStepper({
 
   const resetFlow = useCallback(() => {
     stopPolling();
+    clearDragState();
     setStep("platform");
     setPlatform(null);
     setFile(null);
@@ -859,7 +894,7 @@ export default function UploadStepper({
     if (inputRef.current) {
       inputRef.current.value = "";
     }
-  }, [onClearRunReportError, stopPolling]);
+  }, [clearDragState, onClearRunReportError, stopPolling]);
 
   const clearResumeCandidateState = useCallback(() => {
     if (typeof window !== "undefined") {
@@ -1370,16 +1405,6 @@ export default function UploadStepper({
                   >
                     View Report
                   </Link>
-                ) : showWorkspaceRunReportCta ? (
-                  <button
-                    type="button"
-                    data-testid="upload-completed-run-report"
-                    onClick={() => void onRunReport()}
-                    disabled={runReportBusy || !workspaceReportState.canRunReport}
-                    className="rounded-lg border border-emerald-200/60 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-300/10 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {runReportBusy ? "Running..." : runReportLabel}
-                  </button>
                 ) : latestTerminalUpload.status === "validated" || reportAccessBlocked ? (
                   <Link
                     href="/app/billing"
@@ -1400,10 +1425,8 @@ export default function UploadStepper({
                   Add another source
                 </button>
               </div>
-              {showWorkspaceRunReport && runReportError ? (
-                <p className="mt-2 text-xs text-rose-200" data-testid="upload-completed-run-report-error">
-                  {runReportError}
-                </p>
+              {showWorkspaceRunReportReminder ? (
+                <p className="mt-2 text-xs text-current/75">Review your staged sources below, then run the report from the final step.</p>
               ) : null}
               {showWorkspaceNeedsReportDrivingSource ? (
                 <p className="mt-2 text-xs text-current/75">
@@ -1433,20 +1456,15 @@ export default function UploadStepper({
 
       {step === "file" ? (
         <div className="space-y-5">
-          <StepHeader
-            title="Select file"
-            subtitle={
-              selectedPlatformCard ? `Upload a supported ${selectedPlatformCard.label} file.` : "Upload a supported file for this platform."
-            }
-          />
+          <StepHeader title="Select file" />
           <div
             className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-4 text-sm text-slate-400"
             data-testid="upload-file-guide"
           >
             <p className="text-slate-200">
               {selectedPlatformCard
-                ? `${selectedPlatformCard.label} selected. Accepted format: ${selectedPlatformCard.acceptedFileTypesLabel ?? "Supported file required"}.`
-                : "Upload a supported file for this platform."}
+                ? `${selectedPlatformCard.label} | ${selectedPlatformCard.acceptedFileTypesLabel ?? "Supported file required"}`
+                : "Supported file required"}
             </p>
             <p className="mt-2">Exact file rules, ZIP requirements, and troubleshooting live in the Upload Guide.</p>
             <Link href="/app/help#upload-guide" className="mt-3 inline-flex text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
@@ -1455,11 +1473,58 @@ export default function UploadStepper({
           </div>
           <button
             type="button"
-            className="w-full rounded-2xl border border-dashed border-white/12 bg-white/[0.02] px-5 py-8 text-center transition hover:border-blue-400/40 hover:bg-white/[0.03]"
+            data-testid="upload-drop-zone"
+            className={`w-full rounded-2xl border border-dashed px-5 py-8 text-center transition ${
+              isDragActive
+                ? "border-blue-400/60 bg-blue-500/[0.08] shadow-[0_0_0_1px_rgba(96,165,250,0.35)]"
+                : "border-white/12 bg-white/[0.02] hover:border-blue-400/40 hover:bg-white/[0.03]"
+            }`}
             onClick={() => inputRef.current?.click()}
+            onDragEnter={(event) => {
+              if (!isFileDragPayload(event.dataTransfer)) {
+                return;
+              }
+
+              event.preventDefault();
+              event.stopPropagation();
+              dragDepthRef.current += 1;
+              setIsDragActive(true);
+            }}
+            onDragOver={(event) => {
+              if (!isFileDragPayload(event.dataTransfer)) {
+                return;
+              }
+
+              event.preventDefault();
+              event.stopPropagation();
+              event.dataTransfer.dropEffect = "copy";
+              setIsDragActive(true);
+            }}
+            onDragLeave={(event) => {
+              if (!isFileDragPayload(event.dataTransfer)) {
+                return;
+              }
+
+              event.preventDefault();
+              event.stopPropagation();
+              dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+              if (dragDepthRef.current === 0) {
+                setIsDragActive(false);
+              }
+            }}
+            onDrop={(event) => {
+              if (!isFileDragPayload(event.dataTransfer)) {
+                return;
+              }
+
+              event.preventDefault();
+              event.stopPropagation();
+              clearDragState();
+              const selectedFile = event.dataTransfer.files?.[0] ?? null;
+              attachSelectedFile(selectedFile);
+            }}
           >
-            <p className="text-sm font-medium text-white">Click to choose a file</p>
-            <p className="mt-1 text-xs text-slate-400">Drag and drop is supported by your browser as well.</p>
+            <p className="text-sm font-medium text-white">Click or drop a file here</p>
           </button>
 
           <input
@@ -1469,7 +1534,7 @@ export default function UploadStepper({
             className="hidden"
             onChange={(event) => {
               const selectedFile = event.target.files?.[0] ?? null;
-              setFile(selectedFile);
+              attachSelectedFile(selectedFile);
             }}
           />
 
@@ -1565,16 +1630,6 @@ export default function UploadStepper({
                   <Link href={workspaceCurrentReportHref} data-testid="upload-view-report" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
                     View Report
                   </Link>
-                ) : showWorkspaceRunReportCta ? (
-                  <button
-                    type="button"
-                    data-testid="upload-run-report"
-                    onClick={() => void onRunReport()}
-                    disabled={runReportBusy || !workspaceReportState.canRunReport}
-                    className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {runReportBusy ? "Running..." : runReportLabel}
-                  </button>
                 ) : reportAccessBlocked ? (
                   <Link href="/app/billing" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
                     Unlock report
@@ -1588,10 +1643,8 @@ export default function UploadStepper({
                   Add another source
                 </button>
               </div>
-              {showWorkspaceRunReport && runReportError ? (
-                <p className="text-xs text-rose-600" data-testid="upload-run-report-error">
-                  {runReportError}
-                </p>
+              {showWorkspaceRunReportReminder ? (
+                <p className="text-xs text-slate-500">Review your staged sources below, then run the report from the final step.</p>
               ) : null}
               {showWorkspaceNeedsReportDrivingSource ? (
                 <p className="text-xs text-slate-500">
@@ -1616,16 +1669,6 @@ export default function UploadStepper({
                   <Link href={workspaceCurrentReportHref} data-testid="upload-view-report" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
                     View Report
                   </Link>
-                ) : showWorkspaceRunReportCta ? (
-                  <button
-                    type="button"
-                    data-testid="upload-run-report"
-                    onClick={() => void onRunReport()}
-                    disabled={runReportBusy || !workspaceReportState.canRunReport}
-                    className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {runReportBusy ? "Running..." : runReportLabel}
-                  </button>
                 ) : reportAccessBlocked ? (
                   <Link href="/app/billing" className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90">
                     Unlock report
@@ -1639,10 +1682,8 @@ export default function UploadStepper({
                   Add another source
                 </button>
               </div>
-              {showWorkspaceRunReport && runReportError ? (
-                <p className="text-xs text-rose-600" data-testid="upload-run-report-error">
-                  {runReportError}
-                </p>
+              {showWorkspaceRunReportReminder ? (
+                <p className="text-xs text-slate-500">Review your staged sources below, then run the report from the final step.</p>
               ) : null}
               {showWorkspaceNeedsReportDrivingSource ? (
                 <p className="text-xs text-slate-500">

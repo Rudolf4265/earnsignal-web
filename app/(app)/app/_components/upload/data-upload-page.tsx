@@ -85,7 +85,10 @@ function ReadyToRunBanner({
   const countLabel = `${connectedCount} ${connectedCount === 1 ? "source" : "sources"} ready for this report`;
 
   return (
-    <section className="rounded-[1.5rem] border border-white/10 bg-[linear-gradient(145deg,rgba(11,24,50,0.96),rgba(14,32,69,0.96),rgba(9,20,43,0.98))] p-5 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.95)] sm:p-6">
+    <section
+      className="rounded-[1.5rem] border border-white/10 bg-[linear-gradient(145deg,rgba(11,24,50,0.96),rgba(14,32,69,0.96),rgba(9,20,43,0.98))] p-5 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.95)] sm:p-6"
+      data-testid="workspace-run-report-section"
+    >
       {loading ? (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-3">
@@ -106,7 +109,7 @@ function ReadyToRunBanner({
               <h2 className="text-2xl font-semibold text-white">Ready to run</h2>
               <p className="mt-1 text-sm text-slate-300">{countLabel}</p>
             </div>
-            <p className="text-xs leading-5 text-slate-400">{note}</p>
+            {note ? <p className="text-xs leading-5 text-slate-400">{note}</p> : null}
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
@@ -115,7 +118,7 @@ function ReadyToRunBanner({
               data-testid="staged-run-report"
               onClick={() => void onRunReport()}
               disabled={runDisabled}
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-slate-400"
+              className="inline-flex min-h-14 items-center justify-center rounded-2xl bg-white px-7 py-3 text-base font-semibold text-slate-950 shadow-[0_18px_40px_-24px_rgba(255,255,255,0.85)] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-slate-400 sm:min-w-52"
             >
               {runLabel}
             </button>
@@ -277,7 +280,7 @@ function SourceListSection({
   onUploadAction,
 }: SourceListSectionProps) {
   return (
-    <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.02]">
+    <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.02]" data-testid="workspace-source-list-section">
       <div className="flex flex-col gap-3 border-b border-white/8 px-5 py-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-white">Your data sources</h2>
@@ -465,7 +468,7 @@ function buildReadyBannerStatus(
     return {
       statusLabel: "Ready",
       note: reportHasBusinessMetrics
-        ? "Your current staged sources are ready for a report."
+        ? ""
         : "Your sources are ready. Adding revenue + subscriber data will strengthen the report.",
     };
   }
@@ -743,24 +746,6 @@ export default function DataUploadPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       <DataPageHeader />
 
-      <ReadyToRunBanner
-        loading={workspaceReportState.isLoading}
-        ready={workspaceReportState.canRunReport}
-        statusLabel={readyBanner.statusLabel}
-        connectedCount={connectedCount}
-        note={readyBannerNote}
-        runLabel={reportWindowPolicy.runCtaLabel}
-        runDisabled={runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport || reportAccessBlocked}
-        onRunReport={handleRunReport}
-        onViewReports={() => router.push("/app/report")}
-      />
-
-      {runReportError ? (
-        <p className="text-sm text-rose-300" data-testid="staged-run-report-error">
-          {runReportError}
-        </p>
-      ) : null}
-
       <div id="workspace-uploader">
         {sourceManifestLoading ? (
           <UploadFlowSkeleton />
@@ -771,11 +756,7 @@ export default function DataUploadPage() {
             workspaceReportState={workspaceReportState}
             refreshWorkspaceDataSources={() => refreshWorkspaceDataSources({ preserveCurrent: true })}
             clearCurrentReport={clearCurrentReport}
-            onRunReport={handleRunReport}
             onClearRunReportError={clearRunReportError}
-            runReportBusy={runReportPending}
-            runReportError={runReportError}
-            runReportLabel={reportWindowPolicy.runCtaLabel}
             preferredPlatform={preferredPlatform}
             preferredPlatformNonce={preferredPlatformNonce}
           />
@@ -813,6 +794,24 @@ export default function DataUploadPage() {
         hasManifest={Boolean(sourceManifest && visiblePlatformCards)}
         onAddSource={handleAddSource}
         onUploadAction={handleUploadAction}
+      />
+
+      {runReportError ? (
+        <p className="text-sm text-rose-300" data-testid="staged-run-report-error">
+          {runReportError}
+        </p>
+      ) : null}
+
+      <ReadyToRunBanner
+        loading={workspaceReportState.isLoading}
+        ready={workspaceReportState.canRunReport}
+        statusLabel={readyBanner.statusLabel}
+        connectedCount={connectedCount}
+        note={readyBannerNote}
+        runLabel={reportWindowPolicy.runCtaLabel}
+        runDisabled={runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport || reportAccessBlocked}
+        onRunReport={handleRunReport}
+        onViewReports={() => router.push("/app/report")}
       />
 
       <HelpSection sourceManifestError={sourceManifestError} />

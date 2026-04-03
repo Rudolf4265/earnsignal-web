@@ -37,7 +37,10 @@ test("data upload page keeps the main workspace simple while upload flow stays m
   assert.equal(source.includes("Add your first source"), true);
   assert.equal(source.includes("No sources yet"), true);
   assert.equal(source.includes("Not connected"), false);
-  assert.equal(source.indexOf('<div id="workspace-uploader">') < source.indexOf("<SourceListSection"), true);
+  assert.equal(source.lastIndexOf('<div id="workspace-uploader">') < source.lastIndexOf("<SourceListSection"), true);
+  assert.equal(source.lastIndexOf("<SourceListSection") < source.lastIndexOf("<ReadyToRunBanner"), true);
+  assert.equal(source.includes('data-testid="workspace-source-list-section"'), true);
+  assert.equal(source.includes('data-testid="workspace-run-report-section"'), true);
   assert.equal(source.includes("md:flex-row md:items-center md:justify-between"), true);
   assert.equal(source.includes("md:grid-cols-[minmax(180px,1.2fr)_auto_minmax(140px,0.8fr)_auto]"), false);
   assert.equal(source.includes("Contribution"), false);
@@ -54,6 +57,11 @@ test("data upload page keeps the main workspace simple while upload flow stays m
   assert.equal(uploadStepperSource.includes("UploadPlatformPicker"), true);
   assert.equal(uploadStepperSource.includes("UploadPrimaryFooterBar"), true);
   assert.equal(uploadStepperSource.includes("Your data stays private"), true);
+  assert.equal(uploadStepperSource.includes('data-testid="upload-drop-zone"'), true);
+  assert.equal(uploadStepperSource.includes("Click or drop a file here"), true);
+  assert.equal(uploadStepperSource.includes("Drag and drop is supported by your browser as well."), false);
+  assert.equal(uploadStepperSource.includes("Upload a supported "), false);
+  assert.equal(uploadStepperSource.includes("selectedPlatformCard.label} |"), true);
   assert.equal(uploadStepperSource.includes("<TrustMicrocopy"), false);
   assert.equal(uploadStepperSource.includes('testId="upload-trust-strip"'), false);
 });

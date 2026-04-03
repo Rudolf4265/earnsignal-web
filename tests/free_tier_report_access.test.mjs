@@ -152,15 +152,16 @@ test("upload stepper no longer derives View report from upload status state", as
   const source = await readFile(uploadStepperPath, "utf8");
 
   assert.equal(source.includes("View report preview"), false);
-  assert.equal(source.includes('data-testid="upload-run-report"'), true);
+  assert.equal(source.includes('data-testid="upload-run-report"'), false);
   assert.equal(source.includes("latestTerminalUpload.reportId"), false);
 });
 
-test("upload stepper summary banner exposes Run Report from workspace staged-source truth", async () => {
+test("upload stepper summary banner defers report execution to the final workspace step", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
-  assert.equal(source.includes('data-testid="upload-completed-run-report"'), true);
+  assert.equal(source.includes('data-testid="upload-completed-run-report"'), false);
   assert.equal(source.includes("workspaceReportState.canRunReport"), true);
+  assert.equal(source.includes("Review your staged sources below, then run the report from the final step."), true);
 });
 
 test("upload stepper still shows billing link when validated and report generation is locked", async () => {

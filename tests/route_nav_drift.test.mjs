@@ -14,10 +14,33 @@ test("/app/data page is canonical and not a re-export", async () => {
   assert.equal(source.includes("DataUploadPage"), true);
 });
 
+test("/app landing redirects to /app/data and dashboard remains available on /app/dashboard", async () => {
+  const [landingSource, dashboardSource] = await Promise.all([
+    readSource("app/(app)/app/page.tsx"),
+    readSource("app/(app)/app/dashboard/page.tsx"),
+  ]);
+
+  assert.equal(landingSource.includes('redirect("/app/data")'), true);
+  assert.equal(dashboardSource.includes("export default function DashboardPage()"), true);
+  assert.equal(dashboardSource.includes("DashboardHeader"), true);
+});
+
 test("/app/upload page performs redirect to /app/data", async () => {
   const source = await readSource("app/(app)/app/upload/page.tsx");
 
   assert.equal(source.includes('redirect("/app/data")'), true);
+});
+
+test("auth entry points fall back to /app/data after successful sign-in", async () => {
+  const [loginSource, signupSource, callbackSource] = await Promise.all([
+    readSource("app/(auth)/login/page.tsx"),
+    readSource("app/(auth)/signup/page.tsx"),
+    readSource("app/(auth)/auth/callback/page.tsx"),
+  ]);
+
+  assert.equal(loginSource.includes('router.replace(resolvedReturnTo ?? "/app/data")'), true);
+  assert.equal(signupSource.includes('router.push("/app/data")'), true);
+  assert.equal(callbackSource.includes('resolveReturnTo(new URLSearchParams(window.location.search).get("returnTo")) ?? "/app/data"'), true);
 });
 
 test("workspace nav uses stable test IDs and active-route hook", async () => {

@@ -74,7 +74,7 @@ export default function SignupPage() {
       }
 
       if (data.session) {
-        router.push("/app");
+        router.push("/app/data");
         return;
       }
 

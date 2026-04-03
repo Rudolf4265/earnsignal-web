@@ -27,12 +27,20 @@ test("upload file step uses manifest card guidance without source-taxonomy copy"
   const source = await readFile(uploadStepperPath, "utf8");
 
   assert.equal(source.includes('data-testid="upload-file-guide"'), true);
+  assert.equal(source.includes('data-testid="upload-drop-zone"'), true);
   assert.equal(source.includes("selectedPlatformCard.contributionLabel"), false);
   assert.equal(source.includes("selectedPlatformCard.acceptedFileTypesLabel"), true);
   assert.equal(source.includes("selectedPlatformCard?.guidance"), false);
   assert.equal(source.includes("selectedPlatformCard?.roleSummary"), false);
   assert.equal(source.includes("Exact file rules, ZIP requirements, and troubleshooting live in the Upload Guide."), true);
   assert.equal(source.includes("Exact file rules are in Upload Guide."), true);
+  assert.equal(source.includes("Click or drop a file here"), true);
+  assert.equal(source.includes("Drag and drop is supported by your browser as well."), false);
+  assert.equal(source.includes("attachSelectedFile(selectedFile);"), true);
+  assert.equal(source.includes("onDrop={(event) => {"), true);
+  assert.equal(source.includes("onDragOver={(event) => {"), true);
+  assert.equal(source.includes("event.dataTransfer.dropEffect = \"copy\";"), true);
+  assert.equal(source.includes("isFileDragPayload"), true);
   assert.equal(source.includes("getPlatformRoleDetail(selectedPlatformCard.platformRole)"), false);
   assert.equal(source.includes("selectedPlatformCard?.importMode"), false);
   assert.equal(source.includes("supportedRevenueUploads"), false);

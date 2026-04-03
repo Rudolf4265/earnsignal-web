@@ -54,7 +54,7 @@ export default function LoginPage() {
       }
 
       const resolvedReturnTo = resolveReturnTo(new URLSearchParams(window.location.search).get("returnTo"));
-      router.replace(resolvedReturnTo ?? "/app");
+      router.replace(resolvedReturnTo ?? "/app/data");
     } catch (clientError) {
       setError(
         clientError instanceof Error

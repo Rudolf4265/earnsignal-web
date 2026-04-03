@@ -71,7 +71,7 @@ export default function HelpOnboardingSurface({
               Scan the right source, open precise export steps, then upload when ready. Detailed guidance stays in the drawer so the main page remains a compact control surface.
             </p>
             <p className="mt-4 text-sm leading-6 text-brand-text-muted">
-              Report-driving sources: {reportDrivingSummary}. Supporting context: {supportingSummary}.
+              Report-driving sources: {reportDrivingSummary}. Growth-enabled sources: {supportingSummary}.
             </p>
 
             <div className="mt-5 flex flex-wrap gap-3">

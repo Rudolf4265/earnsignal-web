@@ -111,7 +111,7 @@ export const STATIC_SOURCE_MANIFEST_RESPONSE: SourceManifestResponse = {
       "data_domains": [
         "performance"
       ],
-      "role_summary": "Performance data only. Supports a combined report but cannot generate one alone.",
+      "role_summary": "Used for growth insights and included in combined reports. Cannot generate a report on its own.",
       "known_limitations": [
         "Exact allowlisted ZIP shape only",
         "Generic Instagram archives and partial shards are rejected",
@@ -141,7 +141,7 @@ export const STATIC_SOURCE_MANIFEST_RESPONSE: SourceManifestResponse = {
       "data_domains": [
         "performance"
       ],
-      "role_summary": "Performance data only. Supports a combined report but cannot generate one alone.",
+      "role_summary": "Used for growth insights and included in combined reports. Cannot generate a report on its own.",
       "known_limitations": [
         "Exact allowlisted ZIP shape only",
         "Generic TikTok archives and partial shards are rejected",

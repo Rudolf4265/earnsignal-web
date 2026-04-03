@@ -241,7 +241,7 @@ test("Instagram + TikTok social data → adapter prefers creator_score_v1 when p
   assert.notEqual(result, null, "Adapter must return a model when growthReport has social sources.");
   assert.equal(result?.creatorScore, 79, "creatorScore must prefer creator_score_v1 over coverage_score.");
   assert.equal(result?.hasStructuredGrowthEvidence, true, "hasStructuredGrowthEvidence must be true when creatorScore is set.");
-  assert.equal(result?.diagnosisSummary, "Based on your available audience and engagement data.");
+  assert.equal(result?.diagnosisSummary, "Growth insights based on your available audience data.");
 });
 
 test("YouTube-only social data → adapter falls back to coverage_score when creator_score_v1 is absent", async () => {
@@ -260,7 +260,7 @@ test("YouTube-only social data → adapter falls back to coverage_score when cre
   assert.notEqual(result, null, "Adapter must return a model for YouTube-only social data.");
   assert.equal(result?.creatorScore, 33, "creatorScore must equal the clamped coverage_score.");
   assert.equal(result?.hasStructuredGrowthEvidence, true);
-  assert.equal(result?.diagnosisSummary, "Based on your available audience and engagement data.");
+  assert.equal(result?.diagnosisSummary, "Growth insights based on your available audience data.");
 });
 
 test("no social data → adapter returns null (true empty state preserved)", async () => {
@@ -325,7 +325,7 @@ test("growthReport creator_score_v1 takes precedence over legacy Earn artifact s
   });
 
   assert.equal(result?.creatorScore, 79, "growthReport creator_score_v1 (79) must take precedence over legacy artifact score (84).");
-  assert.notEqual(result?.diagnosisSummary, "Based on your available audience and engagement data.");
+  assert.notEqual(result?.diagnosisSummary, "Growth insights based on your available audience data.");
 });
 
 test("legacy Earn artifact score is used only as a last-resort fallback", async () => {

@@ -33,17 +33,24 @@ export function ReportAudienceGrowthSection({ model }: ReportAudienceGrowthSecti
       ) : null}
 
       {model.includedSources.length > 0 ? (
-        <div className="flex flex-wrap gap-2.5" data-testid="report-audience-growth-sources">
+        <div className="space-y-2" data-testid="report-audience-growth-sources">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">Included sources</p>
+          <div className="flex flex-wrap gap-2.5">
           {model.includedSources.map((source) => (
             <div
               key={source.id}
-              className="rounded-full border border-brand-border-strong/70 bg-brand-panel/70 px-3 py-2 text-xs text-brand-text-secondary"
+              className="cursor-default select-none rounded-2xl border border-brand-border/70 bg-brand-panel/55 px-3 py-2 text-xs text-brand-text-secondary shadow-none"
+              data-testid={`report-audience-growth-source-${source.id}`}
             >
-              <span className="font-semibold text-brand-text-primary">{source.label}</span>
-              {source.latestPeriodLabel ? <span className="ml-2 text-brand-text-muted">{source.latestPeriodLabel}</span> : null}
-              {source.dataType ? <span className="ml-2 text-brand-text-muted">{source.dataType}</span> : null}
+              <p className="font-semibold text-brand-text-primary">{source.label}</p>
+              {source.latestPeriodLabel || source.dataType ? (
+                <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">
+                  {[source.latestPeriodLabel, source.dataType].filter(Boolean).join(" | ")}
+                </p>
+              ) : null}
             </div>
           ))}
+          </div>
         </div>
       ) : null}
 

@@ -57,36 +57,36 @@ test("manifest-driven platform cards expose canonical role, support, and accepte
         id: "youtube",
         role: "report-driving",
         publicSupportStatus: "supported_now",
-        fileTypeLabel: "Normalized CSV or YouTube Takeout ZIP",
+        fileTypeLabel: "Normalized CSV or YouTube Studio content analytics ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: true,
-        contributionLabel: "Revenue + subscriber data",
+        contributionLabel: "Revenue + growth insights",
       },
       {
         id: "instagram",
         role: "supporting",
         publicSupportStatus: "supported_now",
-        fileTypeLabel: "Normalized CSV or exact allowlisted ZIP",
+        fileTypeLabel: "Normalized CSV or native Instagram export ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: false,
-        contributionLabel: "Audience/performance context",
+        contributionLabel: "Growth insights + report coverage",
       },
       {
         id: "tiktok",
         role: "supporting",
         publicSupportStatus: "supported_now",
-        fileTypeLabel: "Normalized CSV or exact allowlisted ZIP",
+        fileTypeLabel: "Normalized CSV or native TikTok analytics ZIP",
         acceptedExtensions: [".csv", ".zip"],
         businessMetricsCapable: false,
-        contributionLabel: "Audience/performance context",
+        contributionLabel: "Growth insights + report coverage",
       },
     ],
   );
 
   assert.equal(getPlatformRoleBadgeLabel("report-driving"), "Report-driving");
-  assert.equal(getPlatformRoleBadgeLabel("supporting"), "Optional context");
+  assert.equal(getPlatformRoleBadgeLabel("supporting"), "Growth + report");
   assert.equal(getPlatformRoleDetail("report-driving"), "Used for core revenue/subscriber analysis.");
-  assert.equal(getPlatformRoleDetail("supporting"), "Adds audience and performance context.");
+  assert.equal(getPlatformRoleDetail("supporting"), "Used in combined reports and growth insights.");
 });
 
 test("normalizeSourceManifestResponse accepts canonical backend fields", async () => {

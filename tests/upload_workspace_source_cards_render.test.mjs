@@ -27,13 +27,13 @@ test("workspace source rows stay scan-first while Settings keeps advanced source
   assert.equal(dataUploadPage.includes("optional context"), false);
   assert.equal(dataUploadPage.includes("Accepted format:"), false);
 
-  assert.equal(helpPage.includes("Exact file rules and edge cases stay here, not in the workspace cards."), true);
-  assert.equal(helpPage.includes("card.guidance"), true);
-  assert.equal(helpPage.includes("card.knownLimitations.map"), true);
+  assert.equal(helpPage.includes("HelpOnboardingSurface"), true);
+  assert.equal(helpPage.includes("buildHelpPlatformContent"), true);
+  assert.equal(helpPage.includes("supportingSummary={supportingSummary}"), true);
 
   assert.equal(settingsPage.includes("AdvancedDataSourcesPanel"), true);
   assert.equal(settingsPage.includes("Included in next run"), true);
   assert.equal(settingsPage.includes("Report-driving"), true);
-  assert.equal(settingsPage.includes("Optional context"), true);
+  assert.equal(settingsPage.includes("Growth + report"), true);
   assert.equal(settingsPage.includes("Not connected"), false);
 });

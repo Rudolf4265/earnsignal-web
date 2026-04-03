@@ -98,7 +98,7 @@ function renderSocialAnalyticsTeaser(growthReport: GrowthReport) {
                 {sourceCount === 1 ? "1 analytics source connected." : `${sourceCount} analytics sources connected.`}
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                Social analytics are staged and available. View the Growth Report for audience signals, content performance, and growth constraints.
+                Growth insights based on your available audience data.
               </p>
             </div>
           </div>
@@ -253,11 +253,10 @@ function renderHero(model: GrowDashboardModel) {
               <Badge variant={toBadgeVariant(summaryTone)}>Limited view</Badge>
             </div>
             <h3 className="mt-5 text-2xl font-semibold tracking-tight text-brand-text-primary md:text-3xl">
-              Growth guidance is available.
+              Growth insights based on your available audience data.
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">
-              {model.latestGrowthSummary?.body ??
-                "Grow can surface guidance now. A measured score will appear when supported audience and engagement analytics are connected."}
+              {model.latestGrowthSummary?.body ?? "Based on your available audience and engagement data."}
             </p>
             <p className="mt-4 text-xs uppercase tracking-[0.14em] text-brand-text-muted">{formatSourceUpdatedLabel(model.sourceUpdatedLabel)}</p>
           </article>
@@ -279,12 +278,12 @@ function renderHero(model: GrowDashboardModel) {
           <article className="rounded-[1.25rem] border border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.84),rgba(16,32,67,0.92))] p-5 shadow-brand-card">
             <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">What unlocks next</p>
             <h3 className="mt-4 text-2xl font-semibold tracking-tight text-brand-text-primary">
-              {model.availability === "structured" ? "More structured signals are available." : "Grow is waiting for measured analytics."}
+              {model.availability === "structured" ? "Growth insights are available." : "Add audience data to unlock growth insights."}
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">
               {model.availability === "structured"
                 ? "Supported audience and engagement inputs are present, but a clear top opportunity is not available in this workspace yet."
-                : "Grow will show measured scorecards when supported audience and engagement analytics are added."}
+                : "Add audience data to unlock growth insights."}
             </p>
           </article>
         )}
@@ -305,12 +304,12 @@ function renderHero(model: GrowDashboardModel) {
           <article className="rounded-[1.25rem] border border-brand-border/75 bg-[linear-gradient(160deg,rgba(19,41,80,0.82),rgba(16,32,67,0.92))] p-5 shadow-brand-card">
             <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Growth Readiness</p>
             <h3 className="mt-4 text-2xl font-semibold tracking-tight text-brand-text-primary">
-              {model.availability === "structured" ? "Structured signals are available." : "Grow is waiting for measured analytics."}
+              {model.availability === "structured" ? "Growth insights are available." : "Add audience data to unlock growth insights."}
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">
               {model.availability === "structured"
                 ? "Supported audience and engagement inputs are present, but an explicit creator score is not available in this workspace yet."
-                : "Grow will show measured scorecards when supported audience and engagement analytics are added."}
+                : "Add audience data to unlock growth insights."}
             </p>
           </article>
         )}
@@ -527,8 +526,8 @@ export function GrowDashboardSection({ model, growthReport, loading, actionMode,
           <div className="pointer-events-none absolute right-[-6rem] top-16 h-56 w-56 rounded-full bg-brand-accent-emerald/12 blur-3xl" />
           <div data-testid="grow-dashboard-empty">
             <EmptyState
-              title="Grow is not ready for this workspace yet."
-              body="Earn is available now. Grow will unlock when supported audience and engagement analytics are added."
+              title="Add audience data to unlock growth insights."
+              body="Add audience data to unlock growth insights."
               ctaLabel={ctaLabel}
               ctaHref={ctaHref}
               appearance="dashboard"

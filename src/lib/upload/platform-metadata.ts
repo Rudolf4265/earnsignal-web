@@ -155,8 +155,11 @@ function normalizeManifestPlatform(raw: SourceManifestPlatform | null | undefine
 }
 
 function buildContributionLabel(platform: NormalizedSourceManifestPlatform): string {
+  if (platform.platform === "youtube") {
+    return "Revenue + growth insights";
+  }
   if (platform.reportRole === "supporting") {
-    return "Audience/performance context";
+    return "Growth insights + report coverage";
   }
   return "Revenue + subscriber data";
 }
@@ -243,13 +246,13 @@ export function getStaticVisibleUploadPlatformCards(): UploadPlatformCardMetadat
 }
 
 export function getPlatformRoleBadgeLabel(platformRole: PlatformRole): string {
-  return platformRole === "report-driving" ? "Report-driving" : "Optional context";
+  return platformRole === "report-driving" ? "Report-driving" : "Growth + report";
 }
 
 export function getPlatformRoleDetail(platformRole: PlatformRole): string {
   return platformRole === "report-driving"
     ? "Used for core revenue/subscriber analysis."
-    : "Adds audience and performance context.";
+    : "Used in combined reports and growth insights.";
 }
 
 export function getUploadPlatformCardsByIds(

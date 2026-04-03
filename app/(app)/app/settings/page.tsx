@@ -26,7 +26,7 @@ function AdvancedSourceDetailRow({ detail, canToggle, toggleBusy, onToggle }: Ad
         <div>
           <h3 className="text-base font-semibold text-white">{detail.name}</h3>
           <p className="mt-1 text-sm text-slate-400">
-            {detail.sourceRole === "report_driving" ? "Report-driving" : "Optional context"}
+            {detail.sourceRole === "report_driving" ? "Report-driving" : "Growth + report"}
           </p>
         </div>
         <StatusPill variant={detail.statusVariant}>{detail.statusLabel}</StatusPill>

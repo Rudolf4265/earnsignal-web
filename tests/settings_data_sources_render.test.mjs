@@ -15,6 +15,6 @@ test("settings page exposes advanced data-source details and include-in-run cont
   assert.equal(source.includes("Advanced source details"), true);
   assert.equal(source.includes("Included in next run"), true);
   assert.equal(source.includes("Report-driving"), true);
-  assert.equal(source.includes("Optional context"), true);
+  assert.equal(source.includes("Growth + report"), true);
   assert.equal(source.includes("Exact format help"), true);
 });

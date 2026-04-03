@@ -221,7 +221,7 @@ const HELP_PLATFORM_OVERRIDES: Record<UploadPlatform, HelpPlatformOverride> = {
 };
 
 function buildReportRoleLabel(reportRole: PlatformRole): string {
-  return reportRole === "report-driving" ? "Can drive a report" : "Adds context only";
+  return reportRole === "report-driving" ? "Can drive a report" : "Included in reports + Grow";
 }
 
 export function buildHelpPlatformContent(cards: UploadPlatformCardMetadata[]): HelpPlatformContent[] {

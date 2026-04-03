@@ -770,16 +770,6 @@ export default function ReportPage() {
             </PanelCard>
           </section>
 
-          {presentation.audienceGrowth ? (
-            <section className="space-y-3">
-              <DashboardSectionHeader
-                title="Audience & Growth Signals"
-                description="Based on your available Instagram, TikTok, and YouTube audience data."
-              />
-              <ReportAudienceGrowthSection model={presentation.audienceGrowth} />
-            </section>
-          ) : null}
-
           <section className="space-y-3">
             <DashboardSectionHeader title={revenueSectionTitle} description={revenueSectionDescription} />
             <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
@@ -827,6 +817,16 @@ export default function ReportPage() {
               )}
             </PanelCard>
           </section>
+
+          {presentation.audienceGrowth ? (
+            <section className="space-y-3">
+              <DashboardSectionHeader
+                title="Audience & Growth Signals"
+                description="Based on your available Instagram, TikTok, and YouTube audience data."
+              />
+              <ReportAudienceGrowthSection model={presentation.audienceGrowth} />
+            </section>
+          ) : null}
 
           {showContinuityModules ? (
             presentation.whatChanged.comparisonAvailable ? (

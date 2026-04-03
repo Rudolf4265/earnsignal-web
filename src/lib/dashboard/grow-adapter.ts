@@ -435,9 +435,9 @@ export function adaptGrowDashboardSource(input: AdaptGrowDashboardSourceInput): 
   const diagnosisSummary =
     diagnosisSummaryFromEarn ??
     (growthReportCreatorScore !== null
-      ? "Based on your available audience and engagement data."
+      ? "Growth insights based on your available audience data."
       : coverageScoreFallback !== null
-        ? "Based on your available audience and engagement data."
+        ? "Growth insights based on your available audience data."
         : null);
   const trendSummary =
     pickText(input.latestArtifact?.trendPreview) ??

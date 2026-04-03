@@ -29,6 +29,11 @@ test("report detail includes unlocked rendering branches for Pro-gated sections"
   assert.equal(source.includes('title="Audience & Growth Signals"'), true);
   assert.equal(source.includes('description="Based on your available Instagram, TikTok, and YouTube audience data."'), true);
   assert.equal(source.includes("<ReportAudienceGrowthSection model={presentation.audienceGrowth} />"), true);
+  assert.equal(
+    source.indexOf('DashboardSectionHeader title={revenueSectionTitle} description={revenueSectionDescription}') <
+      source.indexOf('title="Audience & Growth Signals"'),
+    true,
+  );
 });
 
 test("report detail includes locked upsell rendering for Basic users", async () => {
@@ -113,6 +118,15 @@ test("report detail header renders source framing and included platform chips", 
   assert.equal(source.includes('data-testid={state.report.reportKind === "single-source" ? "report-single-source-framing" : "report-combined-framing"}'), true);
   assert.equal(source.includes('data-testid="report-platform-chips"'), true);
   assert.equal(source.includes("state.report.platformsIncluded.map((platform) => ("), true);
+});
+
+test("audience growth source chips stay muted and non-interactive", async () => {
+  const source = await readFile(path.resolve("app/(app)/app/report/[id]/_components/ReportAudienceGrowthSection.tsx"), "utf8");
+
+  assert.equal(source.includes('data-testid="report-audience-growth-sources"'), true);
+  assert.equal(source.includes("cursor-default"), true);
+  assert.equal(source.includes("select-none"), true);
+  assert.equal(source.includes("Included sources"), true);
 });
 
 test("report detail keeps active PDF actions in the Pro-only branch", async () => {

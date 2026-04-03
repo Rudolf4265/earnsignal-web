@@ -138,7 +138,7 @@ function toEngagementLabel(rate: number): string {
 }
 
 function toGrowthVelocityLabel(value: number): string {
-  return formatSignedPercent(value) ?? "Comparable audience-growth evidence is not available yet.";
+  return formatSignedPercent(value) ?? "Growth insights based on your available audience data.";
 }
 
 function toAudienceValueLabel(score: number): string {
@@ -182,9 +182,7 @@ export function buildGrowDashboardModel(data: NormalizedGrowDashboardData): Grow
       ? null
       : {
           score: data.creatorScore,
-          label:
-            data.diagnosisSummary ??
-            "Measured creator score from the latest supported audience and engagement analytics.",
+          label: "Based on your available audience and engagement data.",
         };
   const growthHealth =
     creatorScore === null
@@ -248,7 +246,7 @@ export function buildGrowDashboardModel(data: NormalizedGrowDashboardData): Grow
     })),
     latestGrowthSummary: summaryBody
       ? {
-          label: data.hasStructuredGrowthEvidence ? "Latest growth summary" : "Available guidance",
+          label: data.hasStructuredGrowthEvidence ? "Growth insights" : "Available guidance",
           body: summaryBody,
           tone: normalizeSummaryTone(data),
         }

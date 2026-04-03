@@ -108,11 +108,8 @@ test("grow dashboard section uses truthful empty and partial states", async () =
   assert.equal(source.includes('data-testid="grow-dashboard-playbook-locked"'), true);
   assert.equal(source.includes('data-testid="grow-dashboard-playbook-loading"'), true);
   assert.equal(source.includes("model.creatorScore ? ("), true);
-  assert.equal(source.includes("Grow is not ready for this workspace yet."), true);
-  assert.equal(
-    source.includes("Earn is available now. Grow will unlock when supported audience and engagement analytics are added."),
-    true,
-  );
+  assert.equal(source.includes("Add audience data to unlock growth insights."), true);
+  assert.equal(source.includes("Growth insights based on your available audience data."), true);
   assert.equal(source.includes("Upload Patreon and Substack analytics to unlock growth insights."), false);
   assert.equal(source.includes("Upload Instagram, TikTok, or YouTube analytics to unlock growth insights."), false);
 });

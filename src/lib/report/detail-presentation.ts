@@ -276,6 +276,21 @@ function formatPercent(value: number): string {
   return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)}%`;
 }
 
+function formatAudienceGrowthSourceType(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  if (value === "audience") {
+    return "audience";
+  }
+  if (value === "audience_and_content") {
+    return "audience + content";
+  }
+
+  return toLabel(value).toLowerCase();
+}
+
 function readPercentFromText(value: string): number | null {
   const match = value.match(/(-?\d+(?:\.\d+)?)\s*%/);
   if (!match) {
@@ -795,7 +810,7 @@ function buildAudienceGrowthSection(
       id: source.platform ?? `${index}`,
       label: source.label,
       latestPeriodLabel: source.latestPeriodLabel,
-      dataType: source.dataType ? toLabel(source.dataType) : null,
+      dataType: formatAudienceGrowthSourceType(source.dataType),
     }));
 
   const platformCards = audienceGrowth.platformCards

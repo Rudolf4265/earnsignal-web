@@ -350,14 +350,19 @@ function buildUploadRecognitionMessage(
   source: WorkspaceDataSource | null | undefined,
   selectedPlatformCard: UploadPlatformCardMetadata | null,
 ): string {
+  const platformId = source?.platform ?? selectedPlatformCard?.id ?? null;
+  if (platformId === "instagram" || platformId === "tiktok") {
+    return "Included in your next report and used to generate growth insights.";
+  }
+  if (platformId === "youtube") {
+    return "Included in both revenue and growth insights.";
+  }
   if (source) {
-    return `${source.label} recognized. ${source.roleSummary} ${
-      source.includedInNextReport ? "Included in your next combined report." : "Ready for review in the workspace."
-    }`;
+    return `${source.label} recognized. Included in your next report.`;
   }
 
   if (selectedPlatformCard) {
-    return `${selectedPlatformCard.label} recognized. ${selectedPlatformCard.roleSummary}`;
+    return `${selectedPlatformCard.label} recognized. Included in your next report.`;
   }
 
   return "Your source was recognized and added to the workspace.";
@@ -813,7 +818,7 @@ export default function UploadStepper({
 
       if (mapped.status === "ready") {
         clearCurrentReport();
-        setStatusMsg(mapped.message ?? "This source is staged and ready for your next report.");
+        setStatusMsg(mapped.message ?? buildUploadRecognitionMessage(selectedWorkspaceSource, selectedPlatformCard));
         setStep("done");
         setError(null);
         setReasonCode(null);
@@ -829,7 +834,7 @@ export default function UploadStepper({
         updatedAt: mapped.updatedAt,
       });
     },
-    [clearCurrentReport, setFailureState, uploadId],
+    [clearCurrentReport, selectedPlatformCard, selectedWorkspaceSource, setFailureState, uploadId],
   );
 
   const resetFlow = useCallback(() => {

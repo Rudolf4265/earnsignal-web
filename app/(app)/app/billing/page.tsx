@@ -23,26 +23,26 @@ const plans: Array<{ id: CheckoutPlan; label: string; priceLabel: string; summar
     id: "report",
     label: "Report",
     priceLabel: "$79 one-time",
-    summary: "One focused 3-month creator business diagnostic from your staged workspace sources. Full diagnosis, owned report access, and PDF download.",
+    summary: "One complete business diagnosis from your workspace data — full report, downloadable PDF, yours to keep.",
     highlights: [
-      "One combined report from staged workspace sources",
+      "One complete report from your workspace data",
       "Focused 3-month analysis window",
       "Biggest opportunity and platform risk",
       "Strengths, risks, and next 3 actions",
-      "Owned report access and downloadable PDF",
+      "Owned access and downloadable PDF",
     ],
   },
   {
     id: "pro",
     label: "Pro",
     priceLabel: "$59 / month",
-    summary: "Everything in Report, plus full-history analysis, report history, comparisons, and ongoing intelligence across fresh workspace runs.",
+    summary: "Everything in Report, plus ongoing access to track how your business changes — full history, period comparisons, and continuous monitoring.",
     highlights: [
       "All Report features included",
       "Full-history analysis across eligible uploads",
       "Report history and period comparisons",
-      "Dashboard intelligence and monitoring",
-      "Continuous creator business tracking",
+      "Ongoing dashboard monitoring",
+      "Track how your business evolves over time",
     ],
   },
 ];
@@ -56,7 +56,7 @@ const comparisonRows: Array<{ label: string; report: string; pro: string }> = [
   { label: "Report history", report: "-", pro: "Included" },
   { label: "Comparisons", report: "-", pro: "Included" },
   { label: "Monitoring", report: "-", pro: "Included" },
-  { label: "Ongoing dashboard intelligence", report: "-", pro: "Included" },
+  { label: "Ongoing monitoring", report: "-", pro: "Included" },
 ];
 
 const CHECKOUT_CONFIG_ERROR_CODES = new Set(["BILLING_NOT_CONFIGURED", "BILLING_INVALID_STRIPE_PRICE_ID"]);
@@ -410,8 +410,7 @@ export default function BillingPage() {
         <div className="rounded-2xl border border-brand-border bg-brand-panel p-5 text-sm text-brand-text-secondary shadow-brand-card">
           <h2 className="text-base font-semibold text-brand-text-primary">Report gives you ownership. Pro gives you continuity.</h2>
           <p className="mt-2">
-            You keep any report you purchase. Pro adds full-history analysis, comparisons, and ongoing dashboard intelligence
-            across runs.
+            A Report gives you a point-in-time diagnosis you keep. Pro keeps your business health visible as it evolves — full history, comparisons, and ongoing monitoring.
           </p>
         </div>
 

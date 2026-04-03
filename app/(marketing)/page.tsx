@@ -35,7 +35,7 @@ type DiscoverInsight = {
 
 const reportSignals: ReportSignal[] = [
   {
-    label: "Revenue Stability Score",
+    label: "Income Stability",
     value: "74 / 100",
     detail: "Healthy baseline with moderate volatility in weekly earnings.",
     meterWidth: "74%",
@@ -45,7 +45,7 @@ const reportSignals: ReportSignal[] = [
     tone: "positive",
   },
   {
-    label: "Platform Dependence",
+    label: "Platform Risk",
     value: "71% of revenue depends on Patreon",
     detail: "Concentration above target leaves monthly revenue exposed.",
     meterWidth: "71%",
@@ -55,7 +55,7 @@ const reportSignals: ReportSignal[] = [
     tone: "warning",
   },
   {
-    label: "Churn Risk",
+    label: "Subscriber Loss Risk",
     value: "42% of subscriber churn comes from your $8 tier",
     detail: "Most cancellations happen in the first 21 days after join.",
     meterWidth: "42%",
@@ -104,8 +104,8 @@ const discoverInsights: DiscoverInsight[] = [
     bucket: "monetization",
   },
   {
-    title: "Revenue Stability Score",
-    description: "Understand how resilient your revenue is over time and how volatile it may be.",
+    title: "Income Stability",
+    description: "Understand how predictable your income is over time — and where volatility is highest.",
     signal: "74/100 with moderate week-to-week variance",
     indicator: "Stability",
     bars: [42, 48, 56, 66, 74, 78],
@@ -113,8 +113,8 @@ const discoverInsights: DiscoverInsight[] = [
     bucket: "growth",
   },
   {
-    title: "Platform Dependence",
-    description: "See whether your revenue relies too heavily on a single platform or is diversifying.",
+    title: "Platform Risk",
+    description: "See how exposed your income is to a single platform — and what that means for your business.",
     signal: "71% of revenue is currently tied to Patreon",
     indicator: "Platform Risk",
     bars: [78, 72, 67, 55, 40, 28],
@@ -260,15 +260,15 @@ export default function MarketingHomePage() {
               </Badge>
 
               <h1 className="relative mt-7 max-w-[22ch] text-4xl font-semibold leading-[1.06] tracking-[-0.025em] text-white sm:mt-8 sm:text-5xl lg:max-w-[20ch] lg:text-[3.45rem] xl:text-[3.85rem]">
-                <span className="block">Turn your creator exports</span>
-                <span className="block">into one clear business report.</span>
+                <span className="block">Know what&apos;s driving your income,</span>
+                <span className="block">what&apos;s hurting it — and what to do next.</span>
               </h1>
 
               <p className="mt-7 max-w-2xl text-base leading-7 text-brand-text-secondary sm:text-lg sm:leading-8">
-                Upload supported exports from{" "}
+                Upload your creator data from{" "}
                 <strong className="font-semibold text-white">Patreon, Substack, YouTube, Instagram, and TikTok</strong>.{" "}
-                EarnSigma combines them into{" "}
-                <strong className="font-semibold text-white">one report</strong> covering revenue, subscriber growth, platform mix, risk, and growth opportunities.
+                EarnSigma turns it into a{" "}
+                <strong className="font-semibold text-white">clear, private business diagnosis</strong> — not just charts.
               </p>
 
               <div className="mt-11 flex flex-wrap items-center gap-3.5 sm:gap-4">
@@ -298,7 +298,7 @@ export default function MarketingHomePage() {
                 Free validation • $79 Report • $59/month Pro
               </p>
               <p className="mt-2.5 text-[11px] tracking-[0.06em] text-brand-text-muted/60">
-                No spreadsheet stitching · Upload real exports · One combined report
+                No spreadsheet stitching · No public estimates · Your data stays private
               </p>
               <TrustMicrocopy
                 body={MARKETING_TRUST_MICROCOPY_BODY}
@@ -325,7 +325,7 @@ export default function MarketingHomePage() {
                       Sample Output
                     </span>
                   </div>
-                  <h2 className="mt-3 text-xl font-semibold tracking-tight text-white sm:text-[1.35rem]">Revenue Diagnostics Snapshot</h2>
+                  <h2 className="mt-3 text-xl font-semibold tracking-tight text-white sm:text-[1.35rem]">Business Diagnostics Snapshot</h2>
                   <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
                     Generated from the past 90 days of creator earnings activity.
                   </p>
@@ -417,7 +417,7 @@ export default function MarketingHomePage() {
               Upload your real platform exports
             </h2>
             <p className="mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
-              No templates. No reformatting. Upload the exports your platforms already generate.
+              EarnSigma works from your own platform exports — the data only you can access.
             </p>
           </div>
 
@@ -452,7 +452,7 @@ export default function MarketingHomePage() {
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {[
               "Upload real exports from the platforms you already use",
-              "See revenue, subscriber trends, and platform mix in one report",
+              "See income drivers, subscriber health, and platform risk in one report",
               "Spot concentration risk and growth opportunities faster",
             ].map((bullet) => (
               <div key={bullet} className="flex items-start gap-3">
@@ -525,11 +525,11 @@ export default function MarketingHomePage() {
               <ul className="mt-5 space-y-3">
                 <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
-                  <span><strong className="font-semibold text-white">Private diagnostics</strong> from your real exports</span>
+                  <span><strong className="font-semibold text-white">Built from your real data</strong>, not public estimates</span>
                 </li>
                 <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
-                  Concentration, churn, and monetization health
+                  Income risk, subscriber loss, and monetization health
                 </li>
                 <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
@@ -547,7 +547,7 @@ export default function MarketingHomePage() {
           <div className="max-w-3xl">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">WHAT YOUR DATA REVEALS</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
-              What your business data reveals
+              What your data reveals about your business
             </h2>
             <p className="mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
               Upload your exports. See the patterns public tools can&apos;t.
@@ -617,8 +617,8 @@ export default function MarketingHomePage() {
           <div className="mt-10 grid gap-5 sm:grid-cols-3">
             {[
               {
-                title: "Upload your real exports",
-                body: <>Upload CSV or ZIP exports from Patreon, Substack, YouTube, Instagram, and TikTok — <strong className="font-medium text-brand-text-primary">your actual data</strong>, not third-party estimates.</>,
+                title: "Upload your data",
+                body: <>Connect your creator data from Patreon, Substack, YouTube, Instagram, and TikTok — <strong className="font-medium text-brand-text-primary">exports you already have</strong>, from platforms you already use.</>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -628,8 +628,8 @@ export default function MarketingHomePage() {
                 ),
               },
               {
-                title: "Validate free, then buy a report",
-                body: <>Free validation confirms your data is readable. When you&apos;re ready, buy a <strong className="font-medium text-brand-text-primary">$79 one-time Report</strong> or start Pro for ongoing access.</>,
+                title: "Validate free",
+                body: <>EarnSigma confirms your data is usable at no cost. When you&apos;re ready, a <strong className="font-medium text-brand-text-primary">$79 one-time Report</strong> gives you a full diagnosis — or start Pro for ongoing access.</>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <circle cx="11" cy="11" r="8" />
@@ -640,8 +640,8 @@ export default function MarketingHomePage() {
                 ),
               },
               {
-                title: "Get your full diagnosis",
-                body: <>Your report covers <strong className="font-medium text-brand-text-primary">biggest opportunity, platform risk, subscriber momentum, strengths, risks, and 3 next actions</strong> — private to your workspace.</>,
+                title: "Get your business diagnosis",
+                body: <>Your private report covers <strong className="font-medium text-brand-text-primary">income health, subscriber momentum, platform risk, and what to do next</strong> — built from your data alone.</>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <path d="M9 11l3 3L22 4" />
@@ -687,15 +687,15 @@ export default function MarketingHomePage() {
               </div>
               <h3 className="relative mt-5 text-lg font-semibold tracking-tight text-white">Revenue health</h3>
               <p className="relative mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                Deep diagnostics on your subscription and revenue business — powered by real membership and earnings exports.
+                Your income health, in full — subscription revenue, subscriber trends, concentration risk, and clear next actions.
               </p>
               <ul className="relative mt-5 space-y-2.5">
                 {[
-                  "Revenue concentration and stability",
-                  "Churn risk by tier and timeline",
+                  "Income concentration and stability",
+                  "Subscriber loss by tier and timeline",
                   "Monetization health score",
                   "Tier migration flow analysis",
-                  "Platform dependence risk",
+                  "Platform income risk",
                 ].map((point) => (
                   <li key={point} className="flex items-center gap-2.5 text-sm text-brand-text-secondary">
                     <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-blue/80" aria-hidden="true" />
@@ -718,7 +718,7 @@ export default function MarketingHomePage() {
               </div>
               <h3 className="relative mt-5 text-lg font-semibold tracking-tight text-white">Audience health</h3>
               <p className="relative mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                Richer audience diagnostics as growth analytics expand — see revenue and audience health together in one workspace.
+                See your audience growth alongside revenue health — with richer signals as analytics expand.
               </p>
               <ul className="relative mt-5 space-y-2.5">
                 {[
@@ -847,7 +847,7 @@ export default function MarketingHomePage() {
                       </div>
 
                       <div className="rounded-lg border border-brand-border/65 bg-brand-panel-muted/35 p-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Platform Dependence</p>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Platform Risk</p>
                         <div className="mt-3 flex items-center gap-3">
                           <div
                             className="h-16 w-16 rounded-full border border-brand-border-strong/65"
@@ -889,8 +889,8 @@ export default function MarketingHomePage() {
                 body: "You earn from Patreon, memberships, or recurring multi-channel income — and you need to understand that business.",
               },
               {
-                title: "Private diagnostics from your data",
-                body: "You want insights from your own exports, not scraped public estimates or platform averages.",
+                title: "Your data, your answers",
+                body: "You want insights built from your own data — not estimated from someone else's.",
               },
               {
                 title: "Decisions, not just dashboards",
@@ -911,27 +911,31 @@ export default function MarketingHomePage() {
             ))}
           </div>
 
-          <div className="mt-12 flex flex-wrap items-center gap-4">
-            <a
-              href={primaryCtaHref}
-              className={buttonClassName({
-                variant: "primary",
-                className:
-                  "rounded-xl border-brand-accent-emerald/50 bg-[linear-gradient(120deg,rgba(29,78,216,0.98),rgba(47,217,197,0.9))] px-6 py-3 text-sm font-semibold text-white shadow-brand-glow hover:border-brand-accent-emerald/70 hover:brightness-110 sm:px-7 sm:py-3.5",
-              })}
-            >
-              Generate My Private Report
-            </a>
-            <a
-              href={secondaryCtaHref}
-              className={buttonClassName({
-                variant: "secondary",
-                className:
-                  "rounded-xl border-brand-border-strong/70 bg-brand-panel/70 px-5 py-3 text-sm text-brand-text-secondary hover:bg-brand-panel hover:text-white sm:px-6",
-              })}
-            >
-              See Sample Diagnostics
-            </a>
+          <div className="mt-12">
+            <p className="text-lg font-semibold text-white">Understand your creator business like a business.</p>
+            <p className="mt-1.5 text-sm text-brand-text-secondary">No guesswork. No public estimates. Just your data — clearly explained.</p>
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <a
+                href={primaryCtaHref}
+                className={buttonClassName({
+                  variant: "primary",
+                  className:
+                    "rounded-xl border-brand-accent-emerald/50 bg-[linear-gradient(120deg,rgba(29,78,216,0.98),rgba(47,217,197,0.9))] px-6 py-3 text-sm font-semibold text-white shadow-brand-glow hover:border-brand-accent-emerald/70 hover:brightness-110 sm:px-7 sm:py-3.5",
+                })}
+              >
+                Generate My Private Report
+              </a>
+              <a
+                href={secondaryCtaHref}
+                className={buttonClassName({
+                  variant: "secondary",
+                  className:
+                    "rounded-xl border-brand-border-strong/70 bg-brand-panel/70 px-5 py-3 text-sm text-brand-text-secondary hover:bg-brand-panel hover:text-white sm:px-6",
+                })}
+              >
+                See Sample Diagnostics
+              </a>
+            </div>
           </div>
         </Container>
       </Section>

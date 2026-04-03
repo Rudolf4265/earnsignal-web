@@ -135,7 +135,7 @@ function PlatformMixPanel({ model }: { model: ReportWowSummaryViewModel }) {
       className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
       data-testid="wow-platform-mix"
     >
-      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Current Revenue Mix</p>
+      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Income Mix</p>
       {platformMix.available ? (
         <div className="mt-3 space-y-3">
           {platformMix.concentrationScore !== null ? (

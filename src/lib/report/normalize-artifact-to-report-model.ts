@@ -161,6 +161,51 @@ export type ReportStabilityViewModel = ReportTruthMetadata & {
   components: Record<string, number> | null;
 };
 
+export type ReportAudienceGrowthSummaryViewModel = {
+  creatorScore: number | null;
+  sourceCoverage: number | null;
+  audienceMomentum: number | null;
+  engagementSignal: number | null;
+};
+
+export type ReportAudienceGrowthIncludedSourceViewModel = {
+  platform: string | null;
+  label: string;
+  included: boolean;
+  latestPeriodLabel: string | null;
+  dataType: string | null;
+};
+
+export type ReportAudienceGrowthMetricViewModel = {
+  id: string;
+  label: string;
+  value: string;
+};
+
+export type ReportAudienceGrowthPlatformCardViewModel = {
+  platform: string | null;
+  label: string;
+  included: boolean;
+  metrics: ReportAudienceGrowthMetricViewModel[];
+  insight: string | null;
+};
+
+export type ReportAudienceGrowthDiagnosisViewModel = {
+  strongestSignal: string | null;
+  watchout: string | null;
+  nextBestMove: string | null;
+};
+
+export type ReportAudienceGrowthSignalsViewModel = {
+  title: string;
+  subtitle: string | null;
+  summary: ReportAudienceGrowthSummaryViewModel;
+  includedSources: ReportAudienceGrowthIncludedSourceViewModel[];
+  platformCards: ReportAudienceGrowthPlatformCardViewModel[];
+  diagnosis: ReportAudienceGrowthDiagnosisViewModel | null;
+  trustNote: string | null;
+};
+
 export type ReportViewModel = {
   reportId: string | null;
   schemaVersion: string | null;
@@ -178,6 +223,7 @@ export type ReportViewModel = {
   recommendations: ReportRecommendationViewModel[];
   outlook: ReportOutlookViewModel | null;
   stability: ReportStabilityViewModel | null;
+  audienceGrowthSignals: ReportAudienceGrowthSignalsViewModel | null;
 };
 
 export type NormalizeArtifactResult = {
@@ -215,7 +261,7 @@ const SECTION_TITLE_BY_KEY: Partial<Record<(typeof SECTION_KEY_ORDER)[number], s
   appendix: "Appendix",
 };
 
-const EXCLUDED_TYPED_SECTION_KEYS = new Set(["diagnosis", "what_changed"]);
+const EXCLUDED_TYPED_SECTION_KEYS = new Set(["diagnosis", "what_changed", "audience_growth_signals"]);
 
 const TREND_KEY_HINTS = ["series", "trend", "timeline", "history", "points", "data"];
 const SERIES_LABEL_KEYS = ["period", "date", "month", "week", "day", "label", "name", "x"];
@@ -1235,6 +1281,133 @@ function readOutlook(value: unknown, defaults: Partial<ReportTruthMetadata>): Re
   };
 }
 
+function readAudienceGrowthSignals(records: Record<string, unknown>[]): ReportAudienceGrowthSignalsViewModel | null {
+  const raw = readRecordFromPaths(records, [
+    "sections.audience_growth_signals",
+    "audience_growth_signals",
+    "report.sections.audience_growth_signals",
+    "report.audience_growth_signals",
+  ]);
+  if (!raw) {
+    return null;
+  }
+
+  const summaryRecord = isRecord(raw.summary) ? raw.summary : null;
+  const includedSources = Array.isArray(raw.included_sources)
+    ? raw.included_sources
+        .map((entry) => {
+          if (!isRecord(entry)) {
+            return null;
+          }
+
+          const label = readStringFromRecord(entry, ["label", "title", "name"]);
+          if (!label) {
+            return null;
+          }
+
+          return {
+            platform: readString(entry.platform),
+            label,
+            included: entry.included !== false,
+            latestPeriodLabel: readString(entry.latest_period_label ?? entry.latestPeriodLabel),
+            dataType: readString(entry.data_type ?? entry.dataType),
+          };
+        })
+        .filter((entry): entry is ReportAudienceGrowthIncludedSourceViewModel => entry !== null)
+    : [];
+
+  const metricLabels: Record<string, string> = {
+    followers_trend: "Followers Trend",
+    reach_trend: "Reach Trend",
+    interaction_trend: "Interaction Trend",
+    video_views_trend: "Video Views Trend",
+    engagement_trend: "Engagement Trend",
+    subscribers_trend: "Subscribers Trend",
+    views_or_watch_time_trend: "Views / Watch Time Trend",
+    ctr_trend: "CTR Trend",
+  };
+
+  const platformCards = Array.isArray(raw.platform_cards)
+    ? raw.platform_cards
+        .map((entry) => {
+          if (!isRecord(entry)) {
+            return null;
+          }
+
+          const label = readStringFromRecord(entry, ["label", "title", "name"]);
+          if (!label) {
+            return null;
+          }
+
+          const metricsRecord = isRecord(entry.metrics) ? entry.metrics : null;
+          const metrics = metricsRecord
+            ? Object.entries(metricsRecord)
+                .map(([id, value]) => {
+                  const text = readString(value);
+                  if (!text) {
+                    return null;
+                  }
+
+                  return {
+                    id,
+                    label: metricLabels[id] ?? toLabel(id),
+                    value: text,
+                  };
+                })
+                .filter((metric): metric is ReportAudienceGrowthMetricViewModel => metric !== null)
+                .slice(0, 3)
+            : [];
+
+          return {
+            platform: readString(entry.platform),
+            label,
+            included: entry.included !== false,
+            metrics,
+            insight: readStringFromRecord(entry, ["insight", "summary", "description", "text"]),
+          };
+        })
+        .filter((entry): entry is ReportAudienceGrowthPlatformCardViewModel => entry !== null)
+    : [];
+
+  const diagnosisRecord = isRecord(raw.diagnosis) ? raw.diagnosis : null;
+  const diagnosis = diagnosisRecord
+    ? {
+        strongestSignal: readString(diagnosisRecord.strongest_signal ?? diagnosisRecord.strongestSignal),
+        watchout: readString(diagnosisRecord.watchout),
+        nextBestMove: readString(diagnosisRecord.next_best_move ?? diagnosisRecord.nextBestMove),
+      }
+    : null;
+
+  const hasRenderableSummary =
+    readNumber(summaryRecord?.creator_score ?? summaryRecord?.creatorScore) !== null ||
+    readNumber(summaryRecord?.source_coverage ?? summaryRecord?.sourceCoverage) !== null ||
+    readNumber(summaryRecord?.audience_momentum ?? summaryRecord?.audienceMomentum) !== null ||
+    readNumber(summaryRecord?.engagement_signal ?? summaryRecord?.engagementSignal) !== null;
+  const trustNote = readString(raw.trust_note ?? raw.trustNote);
+
+  if (!hasRenderableSummary && includedSources.length === 0 && platformCards.length === 0 && !diagnosis && !trustNote) {
+    return null;
+  }
+
+  return {
+    title: readStringFromRecord(raw, ["title", "heading", "name"]) ?? "Audience & Growth Signals",
+    subtitle: readStringFromRecord(raw, ["subtitle", "description", "overview"]),
+    summary: {
+      creatorScore: readNumber(summaryRecord?.creator_score ?? summaryRecord?.creatorScore),
+      sourceCoverage: readNumber(summaryRecord?.source_coverage ?? summaryRecord?.sourceCoverage),
+      audienceMomentum: readNumber(summaryRecord?.audience_momentum ?? summaryRecord?.audienceMomentum),
+      engagementSignal: readNumber(summaryRecord?.engagement_signal ?? summaryRecord?.engagementSignal),
+    },
+    includedSources,
+    platformCards,
+    diagnosis:
+      diagnosis && (diagnosis.strongestSignal || diagnosis.watchout || diagnosis.nextBestMove)
+        ? diagnosis
+        : null,
+    trustNote,
+  };
+}
+
 function toComponentNumbers(value: unknown): Record<string, number> | null {
   if (!isRecord(value)) {
     return null;
@@ -1545,6 +1718,7 @@ function emptyModel(): ReportViewModel {
     recommendations: [],
     outlook: null,
     stability: null,
+    audienceGrowthSignals: null,
   };
 }
 
@@ -1618,6 +1792,7 @@ export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArti
       recommendations: readRecommendations(namedSections?.ranked_recommendations ?? namedSections?.recommendations, truthDefaults),
       outlook: readOutlook(namedSections?.outlook, truthDefaults),
       stability: readStability(namedSections?.stability, truthDefaults),
+      audienceGrowthSignals: readAudienceGrowthSignals(records),
     },
     warnings,
   };

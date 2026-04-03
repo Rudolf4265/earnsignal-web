@@ -446,6 +446,80 @@ test("normalizeArtifactToReportModel keeps older artifacts conservative when typ
   assert.equal(result.model.outlook?.summary[0], "Outlook remains limited without additional history.");
 });
 
+test("normalizeArtifactToReportModel extracts audience growth signals as a typed section without flattening into appendix content", async () => {
+  const { normalizeArtifactToReportModel } = await loadArtifactNormalizer(Date.now() + 51);
+  const audienceGrowth = {
+    title: "Audience & Growth Signals",
+    subtitle: "Based on your available Instagram, TikTok, and YouTube audience data.",
+    summary: {
+      creator_score: 78,
+      source_coverage: 66,
+      audience_momentum: 72,
+      engagement_signal: 64,
+    },
+    included_sources: [
+      {
+        platform: "instagram",
+        label: "Instagram",
+        included: true,
+        latest_period_label: "Mar 2026",
+        data_type: "audience",
+      },
+    ],
+    platform_cards: [
+      {
+        platform: "instagram",
+        label: "Instagram",
+        included: true,
+        metrics: {
+          followers_trend: "+8.4%",
+          reach_trend: "+12.1%",
+          interaction_trend: "+6.7%",
+        },
+        insight: "Audience growth is positive and supported by improving reach.",
+      },
+    ],
+    diagnosis: {
+      strongest_signal: "Instagram has the strongest improving audience momentum.",
+      watchout: "Shallow engagement is trailing reach growth on Instagram.",
+      next_best_move: "Double down on formats that are increasing reach while improving repeat engagement.",
+    },
+    trust_note: "Growth signals are based on available audience and engagement data and do not change your revenue totals.",
+  };
+
+  const result = normalizeArtifactToReportModel({
+    schema_version: "v1",
+    report: {
+      report_id: "rep_growth_typed_001",
+      sections: {
+        executive_summary: {
+          summary: "Revenue quality improved while volatility eased.",
+        },
+        revenue_snapshot: {
+          series: [{ period: "2026-02", net_revenue: 9400 }],
+        },
+        stability: {
+          stability_index: 57,
+        },
+        prioritized_insights: ["Retention pressure remains elevated."],
+        ranked_recommendations: ["Audit churn drivers before expanding acquisition spend."],
+        outlook: {
+          summary: "Outlook remains cautious while churn is elevated.",
+        },
+        audience_growth_signals: audienceGrowth,
+      },
+      audience_growth_signals: audienceGrowth,
+    },
+  });
+
+  assert.equal(result.model.audienceGrowthSignals?.title, "Audience & Growth Signals");
+  assert.equal(result.model.audienceGrowthSignals?.summary.creatorScore, 78);
+  assert.equal(result.model.audienceGrowthSignals?.includedSources[0]?.label, "Instagram");
+  assert.equal(result.model.audienceGrowthSignals?.platformCards[0]?.metrics[0]?.label, "Followers Trend");
+  assert.equal(result.model.audienceGrowthSignals?.diagnosis?.nextBestMove, "Double down on formats that are increasing reach while improving repeat engagement.");
+  assert.equal(result.model.sections.some((section) => section.title === "Audience & Growth Signals"), false);
+});
+
 test("report debug accordion stays collapsed by default", async () => {
   const page = await readFile("app/(app)/app/report/[id]/page.tsx", "utf8");
 

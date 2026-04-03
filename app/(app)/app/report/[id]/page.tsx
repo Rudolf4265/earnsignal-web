@@ -42,6 +42,7 @@ import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/
 import { formatReportArtifactContractErrors, validateReportArtifactContract } from "@/src/lib/report/artifact-contract";
 import { buildReportFraming, formatIncludedSourceCountLabel } from "@/src/lib/report/source-labeling";
 import { buildReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
+import { ReportAudienceGrowthSection } from "./_components/ReportAudienceGrowthSection";
 import { ReportWowSummary } from "./_components/ReportWowSummary";
 import { buildReportFreeTeaserViewModel, ReportFreeTeaser } from "./_components/ReportFreeTeaser";
 
@@ -768,6 +769,16 @@ export default function ReportPage() {
               </div>
             </PanelCard>
           </section>
+
+          {presentation.audienceGrowth ? (
+            <section className="space-y-3">
+              <DashboardSectionHeader
+                title="Audience & Growth Signals"
+                description="Based on your available Instagram, TikTok, and YouTube audience data."
+              />
+              <ReportAudienceGrowthSection model={presentation.audienceGrowth} />
+            </section>
+          ) : null}
 
           <section className="space-y-3">
             <DashboardSectionHeader title={revenueSectionTitle} description={revenueSectionDescription} />

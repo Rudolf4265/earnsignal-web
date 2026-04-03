@@ -26,6 +26,9 @@ test("report detail includes unlocked rendering branches for Pro-gated sections"
   assert.equal(source.includes('testId="report-what-changed-improved"'), true);
   assert.equal(source.includes('testId="report-what-changed-worsened"'), true);
   assert.equal(source.includes('testId="report-what-changed-watch-next"'), true);
+  assert.equal(source.includes('title="Audience & Growth Signals"'), true);
+  assert.equal(source.includes('description="Based on your available Instagram, TikTok, and YouTube audience data."'), true);
+  assert.equal(source.includes("<ReportAudienceGrowthSection model={presentation.audienceGrowth} />"), true);
 });
 
 test("report detail includes locked upsell rendering for Basic users", async () => {

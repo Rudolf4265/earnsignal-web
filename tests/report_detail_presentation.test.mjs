@@ -165,6 +165,74 @@ test("buildReportDetailPresentationModel degrades gracefully for sparse report d
   assert.equal(model.heroMetrics.find((metric) => metric.id === "net_revenue")?.value, "$--");
 });
 
+test("buildReportDetailPresentationModel maps typed audience growth signals into a dedicated render model", async () => {
+  const { buildReportDetailPresentationModel } = await loadModule(Date.now() + 61);
+
+  const model = buildReportDetailPresentationModel({
+    report: makeReport(),
+    artifactModel: {
+      reportId: "rep_growth_section_001",
+      schemaVersion: "v1",
+      createdAt: "2026-03-01T10:00:00Z",
+      executiveSummaryParagraphs: [],
+      kpis: {
+        netRevenue: null,
+        subscribers: null,
+        stabilityIndex: null,
+        churnVelocity: null,
+      },
+      sections: [],
+      audienceGrowthSignals: {
+        title: "Audience & Growth Signals",
+        subtitle: "Based on your available Instagram, TikTok, and YouTube audience data.",
+        summary: {
+          creatorScore: 78,
+          sourceCoverage: 66,
+          audienceMomentum: 72,
+          engagementSignal: 64,
+        },
+        includedSources: [
+          {
+            platform: "instagram",
+            label: "Instagram",
+            included: true,
+            latestPeriodLabel: "Mar 2026",
+            dataType: "audience",
+          },
+        ],
+        platformCards: [
+          {
+            platform: "instagram",
+            label: "Instagram",
+            included: true,
+            metrics: [
+              { id: "followers_trend", label: "Followers Trend", value: "+8.4%" },
+              { id: "reach_trend", label: "Reach Trend", value: "+12.1%" },
+              { id: "interaction_trend", label: "Interaction Trend", value: "+6.7%" },
+            ],
+            insight: "Audience growth is positive and supported by improving reach.",
+          },
+        ],
+        diagnosis: {
+          strongestSignal: "Instagram has the strongest improving audience momentum.",
+          watchout: "Shallow engagement is trailing reach growth on Instagram.",
+          nextBestMove: "Double down on formats that are increasing reach while improving repeat engagement.",
+        },
+        trustNote: "Growth signals are based on available audience and engagement data and do not change your revenue totals.",
+      },
+    },
+    artifactSignals: null,
+  });
+
+  assert.equal(model.audienceGrowth?.title, "Audience & Growth Signals");
+  assert.equal(model.audienceGrowth?.summaryTiles.length, 4);
+  assert.equal(model.audienceGrowth?.summaryTiles[0]?.label, "Creator Score");
+  assert.equal(model.audienceGrowth?.includedSources[0]?.label, "Instagram");
+  assert.equal(model.audienceGrowth?.platformCards[0]?.metrics.length, 3);
+  assert.equal(model.audienceGrowth?.diagnosis?.strongestSignal, "Instagram has the strongest improving audience momentum.");
+  assert.equal(model.audienceGrowth?.trustNote, "Growth signals are based on available audience and engagement data and do not change your revenue totals.");
+});
+
 test("buildReportDetailPresentationModel uses source-based fallback summary wording", async () => {
   const { buildReportDetailPresentationModel } = await loadModule(Date.now() + 22);
 

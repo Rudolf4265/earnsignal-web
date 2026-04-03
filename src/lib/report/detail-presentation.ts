@@ -60,6 +60,40 @@ export type ReportDetailPresentationAppendixSection = {
   bullets: string[];
 };
 
+export type ReportDetailAudienceGrowthSummaryTile = {
+  id: "creator_score" | "source_coverage" | "audience_momentum" | "engagement_signal";
+  label: string;
+  value: string;
+};
+
+export type ReportDetailAudienceGrowthSourceChip = {
+  id: string;
+  label: string;
+  latestPeriodLabel: string | null;
+  dataType: string | null;
+};
+
+export type ReportDetailAudienceGrowthPlatformCard = {
+  id: string;
+  label: string;
+  metrics: Array<{ id: string; label: string; value: string }>;
+  insight: string | null;
+};
+
+export type ReportDetailAudienceGrowthPresentation = {
+  title: string;
+  subtitle: string | null;
+  summaryTiles: ReportDetailAudienceGrowthSummaryTile[];
+  includedSources: ReportDetailAudienceGrowthSourceChip[];
+  platformCards: ReportDetailAudienceGrowthPlatformCard[];
+  diagnosis: {
+    strongestSignal: string | null;
+    watchout: string | null;
+    nextBestMove: string | null;
+  } | null;
+  trustNote: string | null;
+};
+
 export type ReportDetailDisplayContext = {
   /** Eyebrow label for the hero metrics grid — e.g. "Latest available snapshot" */
   snapshotLabel: string;
@@ -128,6 +162,7 @@ export type ReportDetailPresentationModel = {
     watchNext: ReportDetailPresentationComparisonItem[];
     unavailableBody: string | null;
   };
+  audienceGrowth: ReportDetailAudienceGrowthPresentation | null;
   appendixSections: ReportDetailPresentationAppendixSection[];
 };
 
@@ -150,6 +185,14 @@ function isSummaryPlaceholder(value: string): boolean {
 
 function normalizeTitle(value: string | null): string {
   return (value ?? "").trim().toLowerCase();
+}
+
+function toLabel(value: string): string {
+  return value
+    .split("_")
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function matchesSectionTitle(title: string | null, keywords: string[]): boolean {
@@ -704,6 +747,87 @@ function readPlatformRiskSignalTone(lines: string[]): { tone: "Warning" | "Posit
   return { tone: "Neutral", body: platformLine };
 }
 
+function buildAudienceGrowthSection(
+  audienceGrowth: ReportViewModel["audienceGrowthSignals"],
+): ReportDetailPresentationModel["audienceGrowth"] {
+  if (!audienceGrowth) {
+    return null;
+  }
+
+  const rawSummaryTiles: Array<{
+    id: ReportDetailAudienceGrowthSummaryTile["id"];
+    label: string;
+    rawValue: number | null;
+  }> = [
+    {
+      id: "creator_score",
+      label: "Creator Score",
+      rawValue: audienceGrowth.summary.creatorScore,
+    },
+    {
+      id: "source_coverage",
+      label: "Source Coverage",
+      rawValue: audienceGrowth.summary.sourceCoverage,
+    },
+    {
+      id: "audience_momentum",
+      label: "Audience Momentum",
+      rawValue: audienceGrowth.summary.audienceMomentum,
+    },
+    {
+      id: "engagement_signal",
+      label: "Engagement Signal",
+      rawValue: audienceGrowth.summary.engagementSignal,
+    },
+  ];
+
+  const summaryTiles: ReportDetailAudienceGrowthSummaryTile[] = rawSummaryTiles
+    .filter((tile) => tile.rawValue !== null)
+    .map(({ id, label, rawValue }) => ({
+      id,
+      label,
+      value: formatScore(rawValue),
+    }));
+
+  const includedSources = audienceGrowth.includedSources
+    .filter((source) => source.included)
+    .map((source, index) => ({
+      id: source.platform ?? `${index}`,
+      label: source.label,
+      latestPeriodLabel: source.latestPeriodLabel,
+      dataType: source.dataType ? toLabel(source.dataType) : null,
+    }));
+
+  const platformCards = audienceGrowth.platformCards
+    .filter((card) => card.included)
+    .map((card, index) => ({
+      id: card.platform ?? `${index}`,
+      label: card.label,
+      metrics: card.metrics.slice(0, 3),
+      insight: card.insight,
+    }));
+
+  const diagnosis =
+    audienceGrowth.diagnosis &&
+    (audienceGrowth.diagnosis.strongestSignal || audienceGrowth.diagnosis.watchout || audienceGrowth.diagnosis.nextBestMove)
+      ? audienceGrowth.diagnosis
+      : null;
+
+  if (summaryTiles.length === 0 && includedSources.length === 0 && platformCards.length === 0 && !diagnosis && !audienceGrowth.trustNote) {
+    return null;
+  }
+
+  return {
+    title: audienceGrowth.title,
+    subtitle: audienceGrowth.subtitle,
+    summaryTiles,
+    includedSources,
+    platformCards,
+    diagnosis,
+    trustNote: audienceGrowth.trustNote,
+  };
+}
+
 function buildDiagnosisSection(
   diagnosis: ReportViewModel["diagnosis"],
 ): ReportDetailPresentationModel["diagnosis"] {
@@ -742,6 +866,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
   const sectionEntries = toIndexedSections(input.artifactModel?.sections);
   const diagnosis = buildDiagnosisSection(input.artifactModel?.diagnosis ?? null);
   const whatChanged = buildWhatChangedSection(input.artifactModel?.whatChanged ?? null);
+  const audienceGrowth = buildAudienceGrowthSection(input.artifactModel?.audienceGrowthSignals ?? null);
 
   const revenueSections = selectSections(sectionEntries, ["revenue snapshot", "revenue trend"]);
   const subscriberSections = selectSections(sectionEntries, ["subscribers retention", "subscriber", "retention", "tier health", "churn", "arpu"]);
@@ -953,6 +1078,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
     revenueOutlook,
     diagnosis,
     whatChanged,
+    audienceGrowth,
     appendixSections,
   };
 }

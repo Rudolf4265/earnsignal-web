@@ -578,7 +578,6 @@ export default function ReportPage() {
   const showSubscriberHealthContent = isFounder || canRenderReportDetailProContent(proSectionGate.subscriberHealth);
   const showGrowthRecommendationsContent = isFounder || canRenderReportDetailProContent(proSectionGate.growthRecommendations);
   const showRevenueOutlookContent = isFounder || canRenderReportDetailProContent(proSectionGate.revenueOutlook);
-  const showPlatformRiskExplanationContent = isFounder || canRenderReportDetailProContent(proSectionGate.platformRiskExplanation);
   const revenueSectionTitle = showContinuityModules ? "Revenue and Trend" : "Revenue Snapshot";
   const revenueSectionDescription = showContinuityModules
     ? `${presentation?.displayContext.historyLabel} — net revenue across your report window.`
@@ -942,156 +941,63 @@ export default function ReportPage() {
           </section>
 
           <section className="space-y-3">
-            <DashboardSectionHeader title="Concentration and Business Health" description="Platform dependency and revenue concentration for this report period." />
-            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              {state.report.snapshotWindowMode !== "overlap" && state.report.snapshotWindowMode !== null && presentation.displayContext.businessFramingNote ? (
-                <div className="mb-4 rounded-xl border border-brand-border/60 bg-brand-panel/50 px-3 py-2.5">
-                  <p className="text-xs leading-relaxed text-brand-text-secondary">{presentation.displayContext.businessFramingNote}</p>
-                </div>
-              ) : null}
-              {presentation.platformMix.notice ? <TruthNotice notice={presentation.platformMix.notice} testId="report-platform-mix-notice" /> : null}
-              {presentation.platformMix.concentrationScore !== null ||
-              presentation.platformMix.platformsConnected !== null ||
-              presentation.platformMix.highlights.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <article className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Concentration Risk</p>
-                      <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">
-                        {presentation.platformMix.concentrationScore !== null
-                          ? `${presentation.platformMix.concentrationScore % 1 === 0 ? presentation.platformMix.concentrationScore.toFixed(0) : presentation.platformMix.concentrationScore.toFixed(1)}%`
-                          : "--"}
-                      </p>
-                      {presentation.platformMix.concentrationScore !== null ? (
-                        <div className="mt-3 h-2 rounded-full bg-brand-panel-muted">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-brand-accent-blue via-brand-accent-blue to-brand-accent-emerald"
-                            style={{
-                              width: `${Math.max(8, Math.min(100, Math.round(presentation.platformMix.concentrationScore)))}%`,
-                            }}
-                          />
-                        </div>
-                      ) : null}
-                    </article>
-
-                    <article className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Sources Included</p>
-                      <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">
-                        {presentation.platformMix.platformsConnected !== null ? presentation.platformMix.platformsConnected : "--"}
-                      </p>
-                      <p className="mt-2 text-xs text-brand-text-muted">
-                        {presentation.platformMix.platformsConnected === 1
-                          ? "Built from a single source. Add another to strengthen cross-platform analysis."
-                          : "Data contributing to this report."}
-                      </p>
-                    </article>
-                  </div>
-                  <p className="text-xs leading-relaxed text-brand-text-muted">
-                    Revenue concentration above 70% signals meaningful single-platform dependency.
-                  </p>
-                  {presentation.platformMix.platformsConnected === 1 ? (
-                    <p className="text-xs leading-relaxed text-brand-text-muted" data-testid="report-thin-source-notice">
-                      <span className="font-medium text-brand-text-secondary">This is a single-source report.</span>{" "}
-                      Add another data source to your workspace for a fuller cross-platform picture and stronger recommendations.
-                    </p>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                  <p className="text-sm text-brand-text-secondary">Platform mix details are not available in this report artifact.</p>
-                </div>
-              )}
-
-              <section className="mt-4 space-y-2" data-testid="report-platform-risk-explanation">
-                <h3 className="text-sm font-semibold text-brand-text-primary">Platform Risk Explanation</h3>
-                {showPlatformRiskExplanationContent ? (
-                  <div data-testid="report-platform-risk-explanation-unlocked">
-                    {presentation.platformMix.highlights.length > 0 ? (
-                      <div className="space-y-1.5">
-                        {presentation.platformMix.highlights.map((line) => (
-                          <p key={line} className="text-sm leading-relaxed text-brand-text-secondary">{line}</p>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-brand-text-muted">Platform concentration analysis is not available for this report period.</p>
-                    )}
-                  </div>
-                ) : proSectionGate.platformRiskExplanation === "pro-locked" ? (
-                  <ProSectionLockedCard
-                    testId="report-platform-risk-explanation-locked"
-                    title="Platform Risk Explanation"
-                    headline="Unlock platform risk analysis"
-                    body="See why concentration risk is elevated and what it means for your business."
-                  />
-                ) : (
-                  <ProSectionLoadingCard
-                    testId="report-platform-risk-explanation-loading"
-                    message="Checking plan access for platform risk analysis..."
-                  />
-                )}
-              </section>
-
-              <div className="mt-4 border-t border-brand-border/40 pt-4">
-                <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Subscriber Health</p>
-                {showSubscriberHealthContent ? (
-                  <div data-testid="report-subscriber-health-unlocked">
-                    {presentation.subscriberHealth.notice ? <TruthNotice notice={presentation.subscriberHealth.notice} testId="report-subscriber-health-notice" /> : null}
-                    {presentation.subscriberHealth.metrics.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        {presentation.subscriberHealth.metrics.map((metric) => (
-                          <article
-                            key={metric.id}
-                            className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
-                              {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
-                            </div>
-                            <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
-                            {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
-                          </article>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                        <p className="text-sm text-brand-text-secondary">Subscriber health metrics are unavailable in this report.</p>
-                      </div>
-                    )}
-                    {presentation.subscriberHealth.highlights.length > 0 ? (
-                      <div className="mt-3 rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Historical trend</p>
-                        <div className="mt-2 space-y-1.5">
-                          {presentation.subscriberHealth.highlights.map((line) => (
-                            <p key={line} className="text-xs leading-relaxed text-brand-text-secondary">{line}</p>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : proSectionGate.subscriberHealth === "pro-locked" ? (
-                  <ProSectionLockedCard
-                    testId="report-subscriber-health-locked"
-                    title="Subscriber Health"
-                    headline="Unlock subscriber health insights"
-                    body="Understand churn risk, retention trends, and subscriber value."
-                  />
-                ) : (
-                  <ProSectionLoadingCard
-                    testId="report-subscriber-health-loading"
-                    message="Checking plan access for subscriber health insights..."
-                  />
-                )}
-              </div>
-            </PanelCard>
-          </section>
-
-          <section className="space-y-3">
-            <DashboardSectionHeader title="Supporting Detail" description="Outlook projections, assumptions, data coverage, and technical report details." />
+            <DashboardSectionHeader title="Supporting Detail" description="Subscriber health, outlook projections, and technical report details." />
             <details>
               <summary className="cursor-pointer rounded-xl border border-brand-border/55 bg-brand-panel/55 px-4 py-2.5 text-sm text-brand-text-muted hover:text-brand-text-secondary [list-style:none] [&::-webkit-details-marker]:hidden">
                 Show supporting detail
               </summary>
               <div className="mt-3 space-y-3">
+                <PanelCard className="border-brand-border/65 bg-brand-panel/72">
+                  <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Subscriber Health</p>
+                  {showSubscriberHealthContent ? (
+                    <div data-testid="report-subscriber-health-unlocked">
+                      {presentation.subscriberHealth.notice ? <TruthNotice notice={presentation.subscriberHealth.notice} testId="report-subscriber-health-notice" /> : null}
+                      {presentation.subscriberHealth.metrics.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                          {presentation.subscriberHealth.metrics.map((metric) => (
+                            <article
+                              key={metric.id}
+                              className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
+                                {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
+                              </div>
+                              <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
+                              {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
+                            </article>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
+                          <p className="text-sm text-brand-text-secondary">Subscriber health metrics are unavailable in this report.</p>
+                        </div>
+                      )}
+                      {presentation.subscriberHealth.highlights.length > 0 ? (
+                        <div className="mt-3 rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3">
+                          <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Historical trend</p>
+                          <div className="mt-2 space-y-1.5">
+                            {presentation.subscriberHealth.highlights.map((line) => (
+                              <p key={line} className="text-xs leading-relaxed text-brand-text-secondary">{line}</p>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : proSectionGate.subscriberHealth === "pro-locked" ? (
+                    <ProSectionLockedCard
+                      testId="report-subscriber-health-locked"
+                      title="Subscriber Health"
+                      headline="Unlock subscriber health insights"
+                      body="Understand churn risk, retention trends, and subscriber value."
+                    />
+                  ) : (
+                    <ProSectionLoadingCard
+                      testId="report-subscriber-health-loading"
+                      message="Checking plan access for subscriber health insights..."
+                    />
+                  )}
+                </PanelCard>
                 <PanelCard className="border-brand-border/65 bg-brand-panel/72">
                   <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Revenue Outlook</p>
                   {showRevenueOutlookContent ? (

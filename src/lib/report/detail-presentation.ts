@@ -212,6 +212,26 @@ function toIndexedSections(sections: ReportSectionViewModel[] | null | undefined
   return sections.map((section, index) => ({ ...section, index }));
 }
 
+// ── Banned phrase guard ───────────────────────────────────────────────────────
+// Prevents internal/system language from surfacing in any user-facing text.
+
+const BANNED_PHRASE_PATTERNS: RegExp[] = [
+  /churn_not_primary/i,
+  /acquisition_pressure_primary/i,
+  /mixed[_\s]pressure/i,
+  /coverage is grounded in/i,
+  /analysis coverage/i,
+  /\b(insufficient_evidence|concentration_pressure|churn_pressure|monetization_pressure|acquisition_pressure)\b/,
+];
+
+function containsBannedPhrase(text: string): boolean {
+  return BANNED_PHRASE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function filterBannedPhrases(values: string[]): string[] {
+  return values.filter((value) => !containsBannedPhrase(value));
+}
+
 function dedupeText(values: string[]): string[] {
   const result: string[] = [];
   const seen = new Set<string>();
@@ -458,13 +478,15 @@ function buildExecutiveSummary(input: {
   diagnosisSummary?: string | null;
   comparisonHighlights?: string[];
 }): string[] {
-  const typedHighlights = dedupeText([input.diagnosisSummary ?? "", ...(input.comparisonHighlights ?? [])]);
+  const typedHighlights = dedupeText(
+    filterBannedPhrases([input.diagnosisSummary ?? "", ...(input.comparisonHighlights ?? [])]),
+  );
   if (input.artifactSummary.length > 0) {
-    return dedupeText([...input.artifactSummary, ...typedHighlights]).slice(0, 3);
+    return dedupeText(filterBannedPhrases([...input.artifactSummary, ...typedHighlights])).slice(0, 3);
   }
 
   if (input.reportSummary && !isSummaryPlaceholder(input.reportSummary)) {
-    return dedupeText([input.reportSummary, ...typedHighlights]).slice(0, 3);
+    return dedupeText(filterBannedPhrases([input.reportSummary, ...typedHighlights])).slice(0, 3);
   }
 
   const fallback: string[] = [];
@@ -905,12 +927,12 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
   }
 
   const typedSignals = input.artifactModel?.signals ?? [];
-  const rawKeySignals = dedupeText([
+  const rawKeySignals = dedupeText(filterBannedPhrases([
     ...typedSignals.map((signal) => signal.description ?? signal.title),
     ...(input.artifactSignals?.keySignals ?? []),
     ...input.report.keySignals,
     ...collectSectionText(keySignalSections),
-  ]);
+  ]));
 
   const kpis = {
     netRevenue: input.artifactModel?.kpis.netRevenue ?? input.report.metrics.netRevenue ?? null,

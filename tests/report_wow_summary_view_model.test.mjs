@@ -244,7 +244,8 @@ test("platform mix interpretation reflects concentration level correctly", async
 
   const lowConc = makePresentation({ platformMix: { notice: null, concentrationScore: 30, platformsConnected: 3, highlights: [] } });
   const lowResult = buildReportWowSummaryViewModel(lowConc, makeArtifactModel());
-  assert.equal(lowResult.platformMix.interpretationText.toLowerCase().includes("diversified"), true);
+  // Copy changed from "well-diversified" to "spread across platforms"
+  assert.equal(lowResult.platformMix.interpretationText.toLowerCase().includes("spread"), true);
 });
 
 test("platform mix shows unavailable copy when no data", async () => {
@@ -431,7 +432,9 @@ test("wow summary falls back to snapshot strengths and risks when continuity sig
 
   assert.equal(result.strengthsRisks.strengths.some((item) => item.text.includes("month-over-month")), false);
   assert.equal(result.strengthsRisks.strengths.some((item) => item.text.toLowerCase().includes("revenue")), true);
-  assert.equal(result.strengthsRisks.risks.some((item) => item.text.toLowerCase().includes("concentration")), true);
+  // concentration risk is now surfaced in biggestRisk, not in strengthsRisks
+  assert.equal(result.biggestRisk.available, true);
+  assert.ok(result.biggestRisk.headline.length > 0, "biggestRisk should have a headline when concentration is high");
 });
 
 test("strengths derives from diagnosis primitives when no comparison available", async () => {
@@ -468,8 +471,9 @@ test("strengths derives from diagnosis primitives when no comparison available",
   // Revenue and subscribers both up → two strengths
   assert.equal(result.strengthsRisks.strengths.some((s) => s.text.toLowerCase().includes("revenue")), true);
   assert.equal(result.strengthsRisks.strengths.some((s) => s.text.toLowerCase().includes("subscriber")), true);
-  // High concentration → risk present
-  assert.equal(result.strengthsRisks.risks.some((r) => r.text.toLowerCase().includes("concentration")), true);
+  // High concentration → surfaced in biggestRisk, NOT in strengthsRisks (deduplication rule)
+  assert.equal(result.biggestRisk.available, true);
+  assert.equal(result.strengthsRisks.risks.some((r) => r.id === "concentration_high"), false);
 });
 
 test("report renders gracefully with fully null/empty artifact model", async () => {

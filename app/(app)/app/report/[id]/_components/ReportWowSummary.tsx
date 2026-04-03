@@ -3,6 +3,7 @@
 import { PanelCard } from "@/src/components/ui/panel-card";
 import type {
   ReportWowSummaryViewModel,
+  WowBiggestRiskViewModel,
   WowKpiCard,
   WowTrendDirection,
 } from "@/src/lib/report/wow-summary-view-model";
@@ -47,65 +48,13 @@ function KpiCard({ card }: { card: WowKpiCard }) {
   );
 }
 
-function ExecutiveSummaryStrip({ model }: { model: ReportWowSummaryViewModel }) {
+function KeyMetricsStrip({ model }: { model: ReportWowSummaryViewModel }) {
   return (
-    <div className="space-y-4" data-testid="wow-executive-strip">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {model.kpiCards.map((card) => (
-          <KpiCard key={card.id} card={card} />
-        ))}
-      </div>
-      {model.summarySentence ? (
-        <p className="rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3 text-sm leading-relaxed text-brand-text-secondary">
-          {model.summarySentence}
-        </p>
-      ) : null}
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="wow-executive-strip">
+      {model.kpiCards.map((card) => (
+        <KpiCard key={card.id} card={card} />
+      ))}
     </div>
-  );
-}
-
-function CoverageTrustPanel({ model }: { model: ReportWowSummaryViewModel }) {
-  const hasCoverageCopy =
-    Boolean(model.coverage.snapshotCoverageNote) ||
-    model.coverage.reportHasBusinessMetrics === false ||
-    model.coverage.sectionStrength.length > 0;
-
-  if (!hasCoverageCopy) {
-    return null;
-  }
-
-  return (
-    <article
-      className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-      data-testid="wow-coverage-trust"
-    >
-      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Coverage</p>
-      {model.coverage.snapshotCoverageNote ? (
-        <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">{model.coverage.snapshotCoverageNote}</p>
-      ) : null}
-      {model.coverage.reportHasBusinessMetrics === false ? (
-        <p className="mt-3 text-sm leading-relaxed text-amber-200">
-          Limited by available business metrics. Revenue and subscriber insight is weaker in this snapshot.
-        </p>
-      ) : null}
-      {model.coverage.sectionStrength.length > 0 ? (
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {model.coverage.sectionStrength.map((section) => (
-            <div key={section.id} className="rounded-xl border border-brand-border/60 bg-brand-panel/60 p-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-brand-text-primary">{section.label}</p>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-text-muted">
-                  {section.level}
-                </span>
-              </div>
-              {section.reason ? (
-                <p className="mt-2 text-xs leading-relaxed text-brand-text-secondary">{section.reason}</p>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </article>
   );
 }
 
@@ -149,6 +98,31 @@ function BiggestOpportunityCard({ model }: { model: ReportWowSummaryViewModel })
         </div>
       )}
     </div>
+  );
+}
+
+// ── Biggest Risk ─────────────────────────────────────────────────────────────
+
+function BiggestRiskCard({ risk }: { risk: WowBiggestRiskViewModel }) {
+  if (!risk.available) return null;
+  return (
+    <article
+      className="relative overflow-hidden rounded-[1.2rem] border border-amber-400/30 bg-[linear-gradient(155deg,rgba(30,20,10,0.96),rgba(40,24,10,0.92),rgba(28,18,8,0.97))] p-5 shadow-brand-card"
+      data-testid="wow-biggest-risk"
+    >
+      <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-amber-500/10 blur-3xl" />
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-amber-400/55 via-amber-400/22 to-transparent" />
+      <div className="relative flex items-center gap-2.5">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-amber-400/35 bg-amber-500/10 text-amber-400">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true">
+            <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          </svg>
+        </span>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-400">Biggest risk</p>
+      </div>
+      <p className="relative mt-3 text-base font-semibold leading-snug text-brand-text-primary">{risk.headline}</p>
+      <p className="relative mt-2 text-sm leading-relaxed text-brand-text-secondary">{risk.body}</p>
+    </article>
   );
 }
 
@@ -325,12 +299,12 @@ export function ReportWowSummary({ model }: ReportWowSummaryProps) {
   return (
     <section className="space-y-4" data-testid="report-wow-summary">
       <PanelCard className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.88),rgba(16,32,67,0.95))]">
-        <ExecutiveSummaryStrip model={model} />
+        <KeyMetricsStrip model={model} />
       </PanelCard>
 
-      <CoverageTrustPanel model={model} />
-
       <BiggestOpportunityCard model={model} />
+
+      <BiggestRiskCard risk={model.biggestRisk} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <PlatformMixPanel model={model} />
@@ -339,10 +313,6 @@ export function ReportWowSummary({ model }: ReportWowSummaryProps) {
 
       <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.88),rgba(16,32,67,0.95))]">
         <StrengthsRisksSection model={model} />
-      </PanelCard>
-
-      <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.88),rgba(16,32,67,0.95))]">
-        <NextActionsSection model={model} />
       </PanelCard>
     </section>
   );

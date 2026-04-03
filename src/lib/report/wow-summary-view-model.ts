@@ -52,6 +52,12 @@ export type WowNextActionViewModel = {
   detail: string | null;
 };
 
+export type WowBiggestRiskViewModel = {
+  available: boolean;
+  headline: string;
+  body: string;
+};
+
 export type ReportWowSummaryViewModel = {
   kpiCards: [WowKpiCard, WowKpiCard, WowKpiCard, WowKpiCard];
   summarySentence: string | null;
@@ -61,6 +67,7 @@ export type ReportWowSummaryViewModel = {
     sectionStrength: ReportDetail["sectionStrength"];
   };
   opportunity: WowOpportunityViewModel;
+  biggestRisk: WowBiggestRiskViewModel;
   platformMix: WowPlatformMixViewModel;
   momentum: WowMomentumViewModel;
   strengthsRisks: WowStrengthsRisksViewModel;
@@ -129,7 +136,7 @@ function buildPlatformInterpretation(
   if (concentrationScore >= 40) {
     return `Revenue is reasonably distributed. ${platformLabel} leads at ${Math.round(concentrationScore)}%.`;
   }
-  return `Revenue is well-diversified across platforms at ${Math.round(concentrationScore)}% peak concentration.`;
+  return `Revenue is spread across platforms. Highest concentration is ${Math.round(concentrationScore)}%.`;
 }
 
 function buildOpportunityFromDiagnosisType(
@@ -142,33 +149,33 @@ function buildOpportunityFromDiagnosisType(
     const scoreLabel = concentrationScore !== null ? ` (${Math.round(concentrationScore)}%)` : "";
     return {
       available: true,
-      finding: `Revenue is over-concentrated in ${platformLabel}${scoreLabel}, creating fragility if that platform changes.`,
-      upsideLabel: "Diversifying could reduce single-platform exposure and improve revenue resilience.",
-      action: `Activate a second revenue channel to reduce ${platformLabel} dependency.`,
+      finding: `Revenue is fully concentrated in ${platformLabel}${scoreLabel} — any drop on that platform directly reduces your income with no buffer from other sources.`,
+      upsideLabel: "Building a second revenue channel reduces single-platform risk and stabilizes income even if one platform underperforms.",
+      action: `Within the next 2 weeks, activate a second revenue channel — email list, paid membership, or a second platform — to reduce dependence on ${platformLabel}.`,
     };
   }
   if (diagnosisType === "churn_pressure") {
     return {
       available: true,
-      finding: "Subscriber churn is outpacing new subscriber acquisition, slowly compressing revenue.",
-      upsideLabel: "Reducing churn by 10% could meaningfully extend revenue runway.",
-      action: "Identify the tier with the highest cancellation rate and test a targeted re-engagement offer.",
+      finding: "Subscriber churn is outpacing new subscriber acquisition, which will compress revenue unless addressed.",
+      upsideLabel: "Cutting churn by 10% extends your revenue runway and reduces the pressure to constantly acquire new subscribers.",
+      action: "Within the next 2 weeks, identify the tier with the highest cancellation rate and test a targeted re-engagement offer to recover at-risk subscribers.",
     };
   }
   if (diagnosisType === "monetization_pressure") {
     return {
       available: true,
-      finding: "Audience size or reach is strong, but conversion to paid revenue is underperforming.",
-      upsideLabel: "Improving paid conversion from existing audience could grow revenue without new followers.",
-      action: "Launch a direct paid offer or upgrade prompt targeting your most engaged non-paying audience.",
+      finding: "Audience size and reach are strong, but paid conversion is not keeping pace — revenue is being left on the table.",
+      upsideLabel: "Converting even a small percentage of your existing audience to paid could grow revenue without needing more followers.",
+      action: "This month, launch a direct paid offer or upgrade prompt targeting your most engaged non-paying audience members.",
     };
   }
   if (diagnosisType === "acquisition_pressure") {
     return {
       available: true,
-      finding: "New subscriber acquisition has slowed, which will eventually compress revenue growth.",
-      upsideLabel: "Improving top-of-funnel reach could restore sustainable subscriber growth.",
-      action: "Increase content reach on your fastest-growing channel to widen the acquisition funnel.",
+      finding: "New subscriber acquisition has slowed, which will reduce revenue growth unless the top of your funnel is widened.",
+      upsideLabel: "Restoring subscriber growth creates compounding revenue momentum and reduces dependence on retaining the current base alone.",
+      action: "This month, increase content output on your fastest-growing channel to widen the acquisition funnel and restore subscriber growth.",
     };
   }
   return {
@@ -389,9 +396,7 @@ function buildStrengthsRisks(
     if (primitives.churnPressureLevel === "high") {
       risks.push({ id: "churn_high", text: "Churn pressure is elevated — retention needs attention." });
     }
-    if (primitives.concentrationPressureLevel === "high") {
-      risks.push({ id: "concentration_high", text: "Revenue concentration in one platform creates fragility." });
-    }
+    // concentration_high is surfaced in BiggestRiskCard; omit here to avoid duplication
     if (primitives.monetizationEfficiencyLevel === "high") {
       risks.push({ id: "monetization_weak", text: "Monetization efficiency is low relative to audience size." });
     }
@@ -410,6 +415,55 @@ function buildStrengthsRisks(
 
   const available = strengths.length > 0 || risks.length > 0;
   return { strengths: strengths.slice(0, 3), risks: risks.slice(0, 3), available };
+}
+
+// ── Biggest Risk ──────────────────────────────────────────────────────────────
+
+function buildBiggestRisk(
+  presentation: ReportDetailPresentationModel,
+  artifactModel: ReportViewModel | null,
+): WowBiggestRiskViewModel {
+  const concentrationScore = presentation.platformMix.concentrationScore;
+  const topPlatform = extractTopPlatformFromHighlights(presentation.platformMix.highlights);
+  const platformLabel = topPlatform ?? "a single platform";
+
+  // High concentration is the most actionable risk to surface first
+  if (concentrationScore !== null && concentrationScore >= 80) {
+    return {
+      available: true,
+      headline: `Revenue is entirely dependent on ${platformLabel}.`,
+      body: "Any drop in performance, algorithm change, or audience shift on that platform will directly reduce your income — with no buffer from other sources.",
+    };
+  }
+
+  const primitives = artifactModel?.diagnosis?.primitives;
+  if (primitives?.churnPressureLevel === "high") {
+    return {
+      available: true,
+      headline: "Subscriber churn is elevated and exceeding new acquisition.",
+      body: "Without intervention, continued churn will steadily compress revenue even if no other conditions change.",
+    };
+  }
+
+  if (concentrationScore !== null && concentrationScore >= 60) {
+    return {
+      available: true,
+      headline: `${Math.round(concentrationScore)}% of revenue is tied to ${platformLabel}.`,
+      body: "Platform dependency at this level creates meaningful exposure. A shift in that platform's performance or policy would have outsized impact on your business.",
+    };
+  }
+
+  // Fall back to first explicitly surfaced risk from the report
+  const firstRisk = presentation.signals.find((s) => (s.severity ?? 0) >= 4);
+  if (firstRisk) {
+    return {
+      available: true,
+      headline: firstRisk.title,
+      body: firstRisk.description ?? "Review the full report for detail on this risk and recommended actions.",
+    };
+  }
+
+  return { available: false, headline: "", body: "" };
 }
 
 // ── Next Actions ──────────────────────────────────────────────────────────────
@@ -442,6 +496,7 @@ export function buildReportWowSummaryViewModel(
       sectionStrength: reportDetail?.sectionStrength ?? [],
     },
     opportunity: buildOpportunity(presentation, artifactModel),
+    biggestRisk: buildBiggestRisk(presentation, artifactModel),
     platformMix: buildPlatformMix(presentation),
     momentum: buildMomentum(presentation, artifactModel),
     strengthsRisks: buildStrengthsRisks(presentation, artifactModel, options),

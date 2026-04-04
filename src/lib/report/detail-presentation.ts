@@ -537,8 +537,8 @@ function buildReportTruthSummary(model: ReportViewModel | null): ReportDetailPre
 
   if (model.analysisMode === "reduced" || model.dataQualityLevel === "limited" || model.dataQualityLevel === "sparse") {
     return {
-      label: "Limited evidence",
-      body: "Heuristic signal based on available monthly data.",
+      label: "Partial business read",
+      body: "The latest period only reflects part of your data, so treat this report as directional until the missing source catches up.",
       tone: "warn",
     };
   }
@@ -803,7 +803,7 @@ function buildAudienceGrowthSection(
     },
     {
       id: "source_coverage",
-      label: "Source Coverage",
+      label: "Sources Used",
       rawValue: audienceGrowth.summary.sourceCoverage,
     },
     {
@@ -813,7 +813,7 @@ function buildAudienceGrowthSection(
     },
     {
       id: "engagement_signal",
-      label: "Engagement Signal",
+      label: "Engagement",
       rawValue: audienceGrowth.summary.engagementSignal,
     },
   ];
@@ -855,8 +855,8 @@ function buildAudienceGrowthSection(
   }
 
   return {
-    title: audienceGrowth.title,
-    subtitle: audienceGrowth.subtitle,
+    title: /signals/i.test(audienceGrowth.title) ? "Audience Growth" : audienceGrowth.title,
+    subtitle: audienceGrowth.subtitle ? "Where attention is building, what to watch, and where to lean next." : null,
     summaryTiles,
     includedSources,
     platformCards,
@@ -1026,7 +1026,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
   });
 
   const displayContext: ReportDetailDisplayContext = {
-    snapshotLabel: sourceContributionLine ? "Latest available — coverage varies by source" : displayLabels.snapshotLabel,
+    snapshotLabel: sourceContributionLine ? "Current business read — sources vary" : displayLabels.snapshotLabel,
     historyLabel: displayLabels.historyLabel,
     sourceContributionLine,
     businessFramingNote: sourceContributionLine ? (input.report.snapshotCoverageNote ?? null) : null,
@@ -1063,7 +1063,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
           : platformRiskSignal?.tone ?? "--",
       truth: platformTruth,
       source: concentrationRisk?.source ?? null,
-      detail: platformRiskSignal?.body ?? platformMix.highlights[0] ?? null,
+      detail: (platformRiskSignal?.body ?? platformMix.highlights[0] ?? null)?.replace(/\bsnapshot\b/gi, "read") ?? null,
     }),
   ];
 

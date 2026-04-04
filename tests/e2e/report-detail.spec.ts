@@ -179,11 +179,10 @@ test.describe("Report detail route", () => {
     await page.goto("/app/report/rep_sections_prod");
 
     await expect(page.getByTestId("report-content")).toBeVisible();
-    await expect(page.getByText("Executive Summary")).toBeVisible();
+    await expect(page.getByTestId("report-executive-summary-card")).toBeVisible();
     await expect(page.getByText("Net Revenue")).toBeVisible();
-    await expect(page.getByText("Key Signals")).toBeVisible();
-    await expect(page.getByText("Recommended Actions")).toBeVisible();
-    await expect(page.getByText("Outlook")).toBeVisible();
+    await expect(page.getByText("Revenue Trend")).toBeVisible();
+    await expect(page.getByText("What to do next")).toBeVisible();
     await expect.poll(async () => page.locator("article").count()).toBeGreaterThan(0);
   });
 
@@ -326,7 +325,7 @@ test.describe("Report detail route", () => {
     await expect(page.getByTestId("report-content")).toBeVisible();
     // Source contribution line must appear and distinguish snapshot from history
     await expect(page.getByTestId("report-source-contribution")).toBeVisible();
-    await expect(page.getByTestId("report-source-contribution")).toContainText("Current snapshot: Patreon");
+    await expect(page.getByTestId("report-source-contribution")).toContainText("Current read: Patreon");
     await expect(page.getByTestId("report-source-contribution")).toContainText("Combined history:");
     await expect(page.getByTestId("report-source-contribution")).toContainText("Substack");
   });
@@ -515,10 +514,9 @@ test.describe("Report detail route", () => {
     await page.goto("/app/report/rep_no_debug");
 
     await expect(page.getByTestId("report-content")).toBeVisible();
-    // Debug accordion must not appear for standard entitled users
-    await expect(page.getByTestId("report-debug-accordion")).not.toBeVisible();
-    // No raw JSON pre tag either
-    await expect(page.getByTestId("report-debug-json")).not.toBeVisible();
+    // Debug surface must not appear on the creator-facing page
+    await expect(page.getByTestId("report-debug-accordion")).toHaveCount(0);
+    await expect(page.getByTestId("report-debug-json")).toHaveCount(0);
     // The old leak message must be gone
     await expect(page.getByText("Debug payload view is available with Pro access.")).not.toBeVisible();
   });

@@ -1,0 +1,90 @@
+[
+  {
+    "testId": "nav-dashboard",
+    "text": "Dashboard"
+  },
+  {
+    "testId": "nav-data",
+    "text": "Data"
+  },
+  {
+    "testId": "nav-reports",
+    "text": "Reports"
+  },
+  {
+    "testId": "nav-billing",
+    "text": "Billing"
+  },
+  {
+    "testId": "nav-settings",
+    "text": "Settings"
+  },
+  {
+    "testId": "report-content",
+    "text": "Single-Source ReportPatreon Report — Mar 2026Created Mar 01, 2026|1 source included|Add another source to deepen your analysis.PatreonReadyReport AccessFull PDF Export. Report or Pro access is required to open and download this creator earnings report PDF.View plansCurrent business readNet Revenue$9,1002026-01: 11,200Creator Health49/100Platform Risk--Income is spread across a few sources, but each one is softening at the same time.Executive SummarySupporters are leaving faster than they are being replaced right now. That usually puts revenue under pressure even when audience growth is still happening elsewhere. Next, refresh your offer and publishing cadence over the next 2 weeks to re-engage existing buyers.Total Revenue$9,100Paid Subscribers510Net GrowthDownTop Platform--Use these numbers to sanity-check revenue, subscriber health, growth, and concentration at a glance.Biggest RiskYou are losing supporters faster than you want to be.When retention slips, revenue usually gets tighter even before other parts of the business change.Biggest OpportunityRefresh your offer and publishing cadence over the next 2 weeks to re-engage existing buyers.Small retention wins usually improve revenue stability faster than chasing brand-new customers.Income RiskYour income is coming from more than one place.No single source appears to be carrying the whole business right now.MomentumYour growth slowed this period.When both income and subscribers soften together, the business usually needs a sharper offer or a steadier publishing rhythm.Revenue TrendReport historyLatest revenue$9,100Down 18.8% vs startJan 2026 to Mar 2026Jan 2026Feb 2026Mar 2026What this meansWhat happenedRevenue is down 18.8% from the start of this period.Why it mattersWhen revenue starts slipping, the business usually needs a clearer retention, offer, or growth focus before income gets less predictable.What to watch nextWatch whether your next period stabilizes or keeps sliding, then prioritize the action that most directly supports revenue.What to do nextStart with the clearest move, then use the second action to reinforce it.Primary ActionNext 2 weeksRefresh your offer and publishing cadence over the next 2 weeks to re-engage existing buyers.Secondary ActionThis monthFind the recent drop-off point in your funnel and fix that before pushing more top-of-funnel traffic.Adding one more source or owned channel will make the next report more useful and less fragile.Return to workspace"
+  },
+  {
+    "testId": "report-source-count",
+    "text": "1 source included"
+  },
+  {
+    "testId": "report-single-source-framing",
+    "text": "Add another source to deepen your analysis."
+  },
+  {
+    "testId": "report-platform-chips",
+    "text": "Patreon"
+  },
+  {
+    "testId": "report-pdf-locked",
+    "text": "Report AccessFull PDF Export. Report or Pro access is required to open and download this creator earnings report PDF.View plans"
+  },
+  {
+    "testId": "report-snapshot-label",
+    "text": "Current business read"
+  },
+  {
+    "testId": "report-wow-summary",
+    "text": "Executive SummarySupporters are leaving faster than they are being replaced right now. That usually puts revenue under pressure even when audience growth is still happening elsewhere. Next, refresh your offer and publishing cadence over the next 2 weeks to re-engage existing buyers.Total Revenue$9,100Paid Subscribers510Net GrowthDownTop Platform--Use these numbers to sanity-check revenue, subscriber health, growth, and concentration at a glance.Biggest RiskYou are losing supporters faster than you want to be.When retention slips, revenue usually gets tighter even before other parts of the business change.Biggest OpportunityRefresh your offer and publishing cadence over the next 2 weeks to re-engage existing buyers.Small retention wins usually improve revenue stability faster than chasing brand-new customers.Income RiskYour income is coming from more than one place.No single source appears to be carrying the whole business right now.MomentumYour growth slowed this period.When both income and subscribers soften together, the business usually needs a sharper offer or a steadier publishing rhythm."
+  },
+  {
+    "testId": "wow-executive-strip",
+    "text": "Total Revenue$9,100Paid Subscribers510Net GrowthDownTop Platform--"
+  },
+  {
+    "testId": "wow-kpi-context",
+    "text": "Use these numbers to sanity-check revenue, subscriber health, growth, and concentration at a glance."
+  },
+  {
+    "testId": "wow-biggest-risk",
+    "text": "Biggest RiskYou are losing supporters faster than you want to be.When retention slips, revenue usually gets tighter even before other parts of the business change."
+  },
+  {
+    "testId": "wow-biggest-opportunity",
+    "text": "Biggest OpportunityRefresh your offer and publishing cadence over the next 2 weeks to re-engage existing buyers.Small retention wins usually improve revenue stability faster than chasing brand-new customers."
+  },
+  {
+    "testId": "wow-income-risk",
+    "text": "Income RiskYour income is coming from more than one place.No single source appears to be carrying the whole business right now."
+  },
+  {
+    "testId": "wow-momentum",
+    "text": "MomentumYour growth slowed this period.When both income and subscribers soften together, the business usually needs a sharper offer or a steadier publishing rhythm."
+  },
+  {
+    "testId": "dashboard-revenue-trend-chart",
+    "text": "Jan 2026Feb 2026Mar 2026"
+  },
+  {
+    "testId": "report-revenue-interpretation",
+    "text": "What this meansWhat happenedRevenue is down 18.8% from the start of this period.Why it mattersWhen revenue starts slipping, the business usually needs a clearer retention, offer, or growth focus before income gets less predictable.What to watch nextWatch whether your next period stabilizes or keeps sliding, then prioritize the action that most directly supports revenue."
+  },
+  {
+    "testId": "report-what-to-do-next",
+    "text": "What to do nextStart with the clearest move, then use the second action to reinforce it.Primary ActionNext 2 weeksRefresh your offer and publishing cadence over the next 2 weeks to re-engage existing buyers.Secondary ActionThis monthFind the recent drop-off point in your funnel and fix that before pushing more top-of-funnel traffic.Adding one more source or owned channel will make the next report more useful and less fragile.Return to workspace"
+  },
+  {
+    "testId": "report-return-to-workspace",
+    "text": "Return to workspace"
+  }
+]

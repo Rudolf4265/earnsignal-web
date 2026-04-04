@@ -135,7 +135,7 @@ test.describe("Reports smoke", () => {
     await expect(page.getByTestId("report-not-found")).toHaveCount(0);
 
     const kpiVisible = await page.getByText("Net Revenue").isVisible().catch(() => false);
-    const executiveSummaryVisible = await page.getByText("Executive Summary").isVisible().catch(() => false);
+    const executiveSummaryVisible = await page.getByTestId("report-executive-summary-card").isVisible().catch(() => false);
     expect(kpiVisible || executiveSummaryVisible).toBeTruthy();
 
     const pdfResponsePromise = page.waitForResponse((response) => {

@@ -224,9 +224,10 @@ test("buildReportDetailPresentationModel maps typed audience growth signals into
     artifactSignals: null,
   });
 
-  assert.equal(model.audienceGrowth?.title, "Audience & Growth Signals");
+  assert.equal(model.audienceGrowth?.title, "Audience Growth");
   assert.equal(model.audienceGrowth?.summaryTiles.length, 4);
   assert.equal(model.audienceGrowth?.summaryTiles[0]?.label, "Creator Score");
+  assert.equal(model.audienceGrowth?.summaryTiles[1]?.label, "Sources Used");
   assert.equal(model.audienceGrowth?.includedSources[0]?.label, "Instagram");
   assert.equal(model.audienceGrowth?.platformCards[0]?.metrics.length, 3);
   assert.equal(model.audienceGrowth?.diagnosis?.strongestSignal, "Instagram has the strongest improving audience momentum.");

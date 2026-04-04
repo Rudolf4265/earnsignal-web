@@ -5,24 +5,24 @@ import { readFile } from "node:fs/promises";
 
 const wowSummaryPath = path.resolve("app/(app)/app/report/[id]/_components/ReportWowSummary.tsx");
 
-test("report wow summary does not render a coverage/trust panel (removed as redundant system output)", async () => {
+test("report wow summary leads with executive summary before the KPI strip", async () => {
   const source = await readFile(wowSummaryPath, "utf8");
 
-  assert.equal(source.includes('data-testid="wow-coverage-trust"'), false);
-  assert.equal(source.includes("CoverageTrustPanel"), false);
+  assert.equal(source.includes('data-testid="report-executive-summary-card"'), true);
+  assert.equal(source.includes('data-testid="report-kpi-strip"'), true);
+  assert.equal(source.indexOf("ExecutiveSummaryCard") < source.indexOf("KpiStripSection"), true);
 });
 
-test("report wow summary renders the biggest risk card", async () => {
+test("report wow summary renders the biggest risk and opportunity cards", async () => {
   const source = await readFile(wowSummaryPath, "utf8");
 
   assert.equal(source.includes('data-testid="wow-biggest-risk"'), true);
-  assert.equal(source.includes("BiggestRiskCard"), true);
-  assert.equal(source.includes("Biggest risk"), true);
+  assert.equal(source.includes('data-testid="wow-biggest-opportunity"'), true);
 });
 
-test("report wow summary uses recommended actions wording", async () => {
+test("report wow summary renders compact income risk and momentum tiles", async () => {
   const source = await readFile(wowSummaryPath, "utf8");
 
-  assert.equal(source.includes("Recommended Actions"), true);
-  assert.equal(source.includes("Recommended actions are not available in this report."), true);
+  assert.equal(source.includes('testId="wow-income-risk"'), true);
+  assert.equal(source.includes('testId="wow-momentum"'), true);
 });

@@ -1,109 +1,64 @@
 "use client";
 
 import { PanelCard } from "@/src/components/ui/panel-card";
-import type {
-  ReportWowSummaryViewModel,
-  WowBiggestRiskViewModel,
-  WowKpiCard,
-  WowTrendDirection,
-} from "@/src/lib/report/wow-summary-view-model";
+import type { ReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
 
-// ── Trend arrow glyph ─────────────────────────────────────────────────────────
-
-function TrendArrow({ direction, className }: { direction: WowTrendDirection; className?: string }) {
-  const base = `inline-block ${className ?? ""}`;
-  if (direction === "up") {
-    return (
-      <svg viewBox="0 0 16 16" fill="none" className={`${base} h-4 w-4 text-brand-accent-teal`} aria-hidden="true">
-        <path d="M8 13V3M3 8l5-5 5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (direction === "down") {
-    return (
-      <svg viewBox="0 0 16 16" fill="none" className={`${base} h-4 w-4 text-amber-400`} aria-hidden="true">
-        <path d="M8 3v10M3 8l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (direction === "flat") {
-    return (
-      <svg viewBox="0 0 16 16" fill="none" className={`${base} h-4 w-4 text-brand-text-muted`} aria-hidden="true">
-        <path d="M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  return null;
-}
-
-// ── KPI Strip ─────────────────────────────────────────────────────────────────
-
-function KpiCard({ card }: { card: WowKpiCard }) {
+function KpiCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
-    <article className="rounded-[1.1rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(19,41,80,0.9),rgba(16,32,67,0.95))] p-4">
-      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{card.label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-brand-text-primary sm:text-3xl">{card.value}</p>
-      {card.detail ? <p className="mt-1.5 text-[11px] uppercase tracking-[0.1em] text-brand-text-muted">{card.detail}</p> : null}
+    <article className="rounded-[1.05rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(19,41,80,0.9),rgba(16,32,67,0.95))] p-4">
+      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-brand-text-primary sm:text-3xl">{value}</p>
     </article>
   );
 }
 
-function KeyMetricsStrip({ model }: { model: ReportWowSummaryViewModel }) {
+function ExecutiveSummaryCard({ summarySentence }: { summarySentence: string | null }) {
+  if (!summarySentence) {
+    return null;
+  }
+
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="wow-executive-strip">
-      {model.kpiCards.map((card) => (
-        <KpiCard key={card.id} card={card} />
-      ))}
-    </div>
+    <PanelCard
+      className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(23,49,117,0.84),rgba(15,118,110,0.22))]"
+      data-testid="report-executive-summary-card"
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-teal">Executive Summary</p>
+      <p className="mt-3 max-w-4xl text-base leading-8 text-brand-text-primary sm:text-[1.02rem]">{summarySentence}</p>
+    </PanelCard>
   );
 }
 
-// ── Biggest Opportunity ───────────────────────────────────────────────────────
-
-function BiggestOpportunityCard({ model }: { model: ReportWowSummaryViewModel }) {
-  const { opportunity } = model;
+function KpiStripSection({ model }: { model: ReportWowSummaryViewModel }) {
   return (
-    <div data-testid="wow-biggest-opportunity">
-      {opportunity.available ? (
-        <article className="relative overflow-hidden rounded-[1.2rem] border border-brand-accent-emerald/35 bg-[linear-gradient(155deg,rgba(14,42,65,0.96),rgba(16,50,68,0.92),rgba(11,34,55,0.97))] p-5 shadow-brand-card">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-brand-accent-teal/12 blur-3xl" />
-          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-accent-teal/60 via-brand-accent-teal/25 to-transparent" />
-          <div className="relative flex items-center gap-2.5">
-            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-brand-accent-emerald/40 bg-brand-accent-emerald/12 text-brand-accent-teal">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true">
-                <path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z" />
-                <path d="m18.5 14.5.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9.9-2.3Z" />
-              </svg>
-            </span>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-teal">Your biggest opportunity</p>
-          </div>
-          <p className="relative mt-3 text-base font-semibold leading-snug text-brand-text-primary">{opportunity.finding}</p>
-          {opportunity.upsideLabel ? (
-            <p className="relative mt-2 text-sm leading-relaxed text-brand-text-secondary">{opportunity.upsideLabel}</p>
-          ) : null}
-          <div className="relative mt-4 flex items-start gap-2.5 rounded-xl border border-brand-border/50 bg-brand-panel/40 px-3.5 py-2.5">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-accent-teal/70" aria-hidden="true">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-            <p className="text-sm leading-relaxed text-brand-text-secondary">
-              {opportunity.action}
-            </p>
-          </div>
-        </article>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/70 p-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">Your biggest opportunity</p>
-          <p className="mt-2 text-sm text-brand-text-secondary">{opportunity.finding}</p>
-        </div>
-      )}
-    </div>
+    <PanelCard
+      className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.88),rgba(16,32,67,0.95))]"
+      data-testid="report-kpi-strip"
+    >
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="wow-executive-strip">
+        {model.kpiCards.map((card) => (
+          <KpiCard key={card.id} label={card.label} value={card.value} />
+        ))}
+      </div>
+      {model.kpiContext ? (
+        <p className="mt-3 border-t border-brand-border/40 pt-3 text-sm leading-relaxed text-brand-text-secondary" data-testid="wow-kpi-context">
+          {model.kpiContext}
+        </p>
+      ) : null}
+    </PanelCard>
   );
 }
 
-// ── Biggest Risk ─────────────────────────────────────────────────────────────
+function BiggestRiskCard({ model }: { model: ReportWowSummaryViewModel }) {
+  if (!model.biggestRisk.available) {
+    return null;
+  }
 
-function BiggestRiskCard({ risk }: { risk: WowBiggestRiskViewModel }) {
-  if (!risk.available) return null;
   return (
     <article
       className="relative overflow-hidden rounded-[1.2rem] border border-amber-400/30 bg-[linear-gradient(155deg,rgba(30,20,10,0.96),rgba(40,24,10,0.92),rgba(28,18,8,0.97))] p-5 shadow-brand-card"
@@ -111,208 +66,83 @@ function BiggestRiskCard({ risk }: { risk: WowBiggestRiskViewModel }) {
     >
       <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-amber-500/10 blur-3xl" />
       <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-amber-400/55 via-amber-400/22 to-transparent" />
-      <div className="relative flex items-center gap-2.5">
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-amber-400/35 bg-amber-500/10 text-amber-400">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true">
-            <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          </svg>
-        </span>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-400">Biggest risk</p>
-      </div>
-      <p className="relative mt-3 text-base font-semibold leading-snug text-brand-text-primary">{risk.headline}</p>
-      <p className="relative mt-2 text-sm leading-relaxed text-brand-text-secondary">{risk.body}</p>
+      <p className="relative text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-400">Biggest Risk</p>
+      <p className="relative mt-3 text-lg font-semibold leading-snug text-brand-text-primary">{model.biggestRisk.headline}</p>
+      <p className="relative mt-2 text-sm leading-relaxed text-brand-text-secondary">{model.biggestRisk.body}</p>
     </article>
   );
 }
 
-// ── Platform Mix ──────────────────────────────────────────────────────────────
+function BiggestOpportunityCard({ model }: { model: ReportWowSummaryViewModel }) {
+  const { opportunity } = model;
 
-function PlatformMixPanel({ model }: { model: ReportWowSummaryViewModel }) {
-  const { platformMix } = model;
   return (
     <article
-      className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-      data-testid="wow-platform-mix"
+      className="relative overflow-hidden rounded-[1.2rem] border border-brand-accent-emerald/35 bg-[linear-gradient(155deg,rgba(14,42,65,0.96),rgba(16,50,68,0.92),rgba(11,34,55,0.97))] p-5 shadow-brand-card"
+      data-testid="wow-biggest-opportunity"
     >
-      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Income Mix</p>
-      {platformMix.available ? (
-        <div className="mt-3 space-y-3">
-          {platformMix.concentrationScore !== null ? (
-            <div>
-              <div className="flex items-end justify-between gap-2">
-                <p className="text-2xl font-semibold tracking-tight text-brand-text-primary">
-                  {Math.round(platformMix.concentrationScore)}%
-                </p>
-                <p className="mb-0.5 text-xs text-brand-text-muted">concentration</p>
-              </div>
-              <div className="mt-2 h-2 rounded-full bg-brand-panel-muted">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-brand-accent-blue to-brand-accent-emerald/70"
-                  style={{ width: `${Math.max(8, Math.min(100, Math.round(platformMix.concentrationScore)))}%` }}
-                  aria-hidden="true"
-                />
-              </div>
-            </div>
-          ) : null}
-          <p className="text-sm leading-relaxed text-brand-text-secondary">{platformMix.interpretationText}</p>
-          {platformMix.highlights.slice(0, 2).map((line) => (
-            <p key={line} className="text-xs leading-relaxed text-brand-text-muted">{line}</p>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-3 text-sm text-brand-text-secondary">{platformMix.interpretationText}</p>
-      )}
+      <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-brand-accent-teal/12 blur-3xl" />
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-accent-teal/60 via-brand-accent-teal/25 to-transparent" />
+      <p className="relative text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-teal">Biggest Opportunity</p>
+      <p className="relative mt-3 text-lg font-semibold leading-snug text-brand-text-primary">{opportunity.finding}</p>
+      <p className="relative mt-2 text-sm leading-relaxed text-brand-text-secondary">{opportunity.action}</p>
+      {opportunity.upsideLabel ? (
+        <p className="relative mt-3 text-xs leading-relaxed text-brand-text-muted">{opportunity.upsideLabel}</p>
+      ) : null}
     </article>
   );
 }
 
-// ── Momentum ──────────────────────────────────────────────────────────────────
-
-function MomentumPanel({ model }: { model: ReportWowSummaryViewModel }) {
-  const { momentum } = model;
+function CompactSignalTile({
+  title,
+  headline,
+  body,
+  testId,
+}: {
+  title: string;
+  headline: string;
+  body: string | null;
+  testId: string;
+}) {
   return (
     <article
-      className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-      data-testid="wow-momentum"
+      className="rounded-[1.05rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
+      data-testid={testId}
     >
-      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Momentum</p>
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <div className="rounded-xl border border-brand-border/60 bg-brand-panel/60 p-3">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Revenue</p>
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <TrendArrow direction={momentum.revenueTrend} />
-            <p className="text-sm font-semibold capitalize text-brand-text-primary">
-              {momentum.revenueTrend === "unknown" ? "Limited data" : momentum.revenueTrend}
-            </p>
-          </div>
-        </div>
-        <div className="rounded-xl border border-brand-border/60 bg-brand-panel/60 p-3">
-          <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Subscribers</p>
-          <div className="mt-1.5 flex items-center gap-1.5">
-            <TrendArrow direction={momentum.subscriberTrend} />
-            <p className="text-sm font-semibold capitalize text-brand-text-primary">
-              {momentum.subscriberTrend === "unknown" ? "Limited data" : momentum.subscriberTrend}
-            </p>
-          </div>
-        </div>
-      </div>
-      <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">{momentum.summaryText}</p>
+      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{title}</p>
+      <p className="mt-2 text-base font-semibold leading-snug text-brand-text-primary">{headline}</p>
+      {body ? <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{body}</p> : null}
     </article>
   );
 }
-
-// ── Strengths vs Risks ────────────────────────────────────────────────────────
-
-function StrengthsRisksSection({ model }: { model: ReportWowSummaryViewModel }) {
-  const { strengthsRisks } = model;
-  if (strengthsRisks.strengths.length === 0 && strengthsRisks.risks.length === 0) {
-    return null;
-  }
-  return (
-    <div className="grid gap-4 sm:grid-cols-2" data-testid="wow-strengths-risks">
-      {strengthsRisks.strengths.length > 0 ? (
-        <article className="rounded-[1.15rem] border border-brand-border/65 bg-[linear-gradient(155deg,rgba(14,34,60,0.9),rgba(11,28,52,0.94))] p-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-accent-teal/80">Strengths</p>
-          <ul className="mt-3 space-y-2">
-            {strengthsRisks.strengths.map((item) => (
-              <li key={item.id} className="flex items-start gap-2.5 text-sm leading-relaxed text-brand-text-secondary">
-                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal/70" aria-hidden="true" />
-                {item.text}
-              </li>
-            ))}
-          </ul>
-        </article>
-      ) : null}
-
-      {strengthsRisks.risks.length > 0 ? (
-        <article className="rounded-[1.15rem] border border-brand-border/65 bg-[linear-gradient(155deg,rgba(24,22,40,0.9),rgba(18,18,38,0.94))] p-4">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-amber-400/80">Risks</p>
-          <ul className="mt-3 space-y-2">
-            {strengthsRisks.risks.map((item) => (
-              <li key={item.id} className="flex items-start gap-2.5 text-sm leading-relaxed text-brand-text-secondary">
-                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400/60" aria-hidden="true" />
-                {item.text}
-              </li>
-            ))}
-          </ul>
-        </article>
-      ) : null}
-    </div>
-  );
-}
-
-// ── Recommended Actions ──────────────────────────────────────────────────────
-
-function NextActionsSection({ model }: { model: ReportWowSummaryViewModel }) {
-  const { nextActions } = model;
-  return (
-    <div data-testid="wow-next-actions">
-      <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">Recommended Actions</p>
-      {nextActions.length > 0 ? (
-        <ol className="space-y-2.5">
-          {nextActions.map((action, index) => (
-            <li
-              key={action.id}
-              className={`relative flex items-start gap-3.5 overflow-hidden rounded-[1.1rem] border p-4 ${
-                index === 0
-                  ? "border-brand-accent-teal/22 bg-[linear-gradient(155deg,rgba(18,40,82,0.92),rgba(14,30,60,0.94))] shadow-brand-glow"
-                  : "border-brand-border/45 bg-brand-panel/40"
-              }`}
-            >
-              {index === 0 ? (
-                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-accent-teal/55 via-brand-accent-teal/22 to-transparent" />
-              ) : null}
-              <span className="relative mt-0.5 flex-shrink-0 text-[11px] font-semibold tabular-nums text-brand-text-muted">
-                {index + 1}.
-              </span>
-              <div className="relative min-w-0">
-                <p className="text-sm leading-relaxed text-brand-text-secondary">{action.title}</p>
-                {action.detail ? (
-                  <p className="mt-1 text-xs leading-relaxed text-brand-text-muted">{action.detail}</p>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/70 p-4">
-          <p className="text-sm text-brand-text-secondary">Recommended actions are not available in this report.</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
 
 type ReportWowSummaryProps = {
   model: ReportWowSummaryViewModel;
 };
 
 export function ReportWowSummary({ model }: ReportWowSummaryProps) {
+  const incomeRiskBody = model.platformMix.highlights[0] ?? null;
+
   return (
     <section className="space-y-4" data-testid="report-wow-summary">
-      <PanelCard className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.88),rgba(16,32,67,0.95))]">
-        <KeyMetricsStrip model={model} />
-        {model.coverage.snapshotCoverageNote ? (
-          <p className="mt-3 border-t border-brand-border/40 pt-3 text-xs leading-relaxed text-brand-text-muted/80">
-            {model.coverage.snapshotCoverageNote}
-          </p>
-        ) : null}
-      </PanelCard>
-
+      <ExecutiveSummaryCard summarySentence={model.summarySentence} />
+      <KpiStripSection model={model} />
+      <BiggestRiskCard model={model} />
       <BiggestOpportunityCard model={model} />
-
-      <BiggestRiskCard risk={model.biggestRisk} />
-
       <div className="grid gap-4 sm:grid-cols-2">
-        <PlatformMixPanel model={model} />
-        <MomentumPanel model={model} />
+        <CompactSignalTile
+          title="Income Risk"
+          headline={model.platformMix.interpretationText}
+          body={incomeRiskBody}
+          testId="wow-income-risk"
+        />
+        <CompactSignalTile
+          title="Momentum"
+          headline={model.momentum.headline}
+          body={model.momentum.summaryText}
+          testId="wow-momentum"
+        />
       </div>
-
-      <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.88),rgba(16,32,67,0.95))]">
-        <StrengthsRisksSection model={model} />
-      </PanelCard>
     </section>
   );
 }

@@ -13,10 +13,35 @@ export function ReportAudienceGrowthSection({ model }: ReportAudienceGrowthSecti
       className="space-y-4 border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]"
       data-testid="report-audience-growth-section"
     >
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-accent-teal/80">{model.title}</p>
-        {model.subtitle ? <p className="mt-1.5 text-sm leading-relaxed text-brand-text-secondary">{model.subtitle}</p> : null}
-      </div>
+      {model.diagnosis ? (
+        <article
+          className="relative overflow-hidden rounded-[1.15rem] border border-brand-accent-teal/25 bg-[linear-gradient(155deg,rgba(18,40,82,0.92),rgba(14,30,60,0.94))] p-5 shadow-brand-glow"
+          data-testid="report-audience-growth-hero"
+        >
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-accent-teal/55 via-brand-accent-teal/22 to-transparent" />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-teal">Where your audience is growing</p>
+          <div className="mt-3 space-y-3">
+            {model.diagnosis.strongestSignal ? (
+              <div>
+                <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">What&apos;s growing</p>
+                <p className="mt-1 text-base font-semibold leading-snug text-brand-text-primary">{model.diagnosis.strongestSignal}</p>
+              </div>
+            ) : null}
+            {model.diagnosis.watchout ? (
+              <div>
+                <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">Watch out for</p>
+                <p className="mt-1 text-sm leading-relaxed text-brand-text-secondary">{model.diagnosis.watchout}</p>
+              </div>
+            ) : null}
+            {model.diagnosis.nextBestMove ? (
+              <div>
+                <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">What to do next</p>
+                <p className="mt-1 text-sm leading-relaxed text-brand-text-secondary">{model.diagnosis.nextBestMove}</p>
+              </div>
+            ) : null}
+          </div>
+        </article>
+      ) : null}
 
       {model.summaryTiles.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-testid="report-audience-growth-summary">
@@ -36,20 +61,20 @@ export function ReportAudienceGrowthSection({ model }: ReportAudienceGrowthSecti
         <div className="space-y-2" data-testid="report-audience-growth-sources">
           <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">Included sources</p>
           <div className="flex flex-wrap gap-2.5">
-          {model.includedSources.map((source) => (
-            <div
-              key={source.id}
-              className="cursor-default select-none rounded-2xl border border-brand-border/70 bg-brand-panel/55 px-3 py-2 text-xs text-brand-text-secondary shadow-none"
-              data-testid={`report-audience-growth-source-${source.id}`}
-            >
-              <p className="font-semibold text-brand-text-primary">{source.label}</p>
-              {source.latestPeriodLabel || source.dataType ? (
-                <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">
-                  {[source.latestPeriodLabel, source.dataType].filter(Boolean).join(" | ")}
-                </p>
-              ) : null}
-            </div>
-          ))}
+            {model.includedSources.map((source) => (
+              <div
+                key={source.id}
+                className="cursor-default select-none rounded-2xl border border-brand-border/70 bg-brand-panel/55 px-3 py-2 text-xs text-brand-text-secondary shadow-none"
+                data-testid={`report-audience-growth-source-${source.id}`}
+              >
+                <p className="font-semibold text-brand-text-primary">{source.label}</p>
+                {source.latestPeriodLabel || source.dataType ? (
+                  <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">
+                    {[source.latestPeriodLabel, source.dataType].filter(Boolean).join(" | ")}
+                  </p>
+                ) : null}
+              </div>
+            ))}
           </div>
         </div>
       ) : null}
@@ -76,32 +101,6 @@ export function ReportAudienceGrowthSection({ model }: ReportAudienceGrowthSecti
             </article>
           ))}
         </div>
-      ) : null}
-
-      {model.diagnosis ? (
-        <article
-          className="rounded-[1.05rem] border border-brand-border-strong/70 bg-brand-panel/72 p-4"
-          data-testid="report-audience-growth-diagnosis"
-        >
-          <p className="text-sm font-semibold text-brand-text-primary">What your audience data suggests</p>
-          <div className="mt-3 space-y-2">
-            {model.diagnosis.strongestSignal ? (
-              <p className="text-sm leading-relaxed text-brand-text-secondary">
-                <span className="font-medium text-brand-text-primary">Strongest signal:</span> {model.diagnosis.strongestSignal}
-              </p>
-            ) : null}
-            {model.diagnosis.watchout ? (
-              <p className="text-sm leading-relaxed text-brand-text-secondary">
-                <span className="font-medium text-brand-text-primary">Watchout:</span> {model.diagnosis.watchout}
-              </p>
-            ) : null}
-            {model.diagnosis.nextBestMove ? (
-              <p className="text-sm leading-relaxed text-brand-text-secondary">
-                <span className="font-medium text-brand-text-primary">Next best move:</span> {model.diagnosis.nextBestMove}
-              </p>
-            ) : null}
-          </div>
-        </article>
       ) : null}
 
       {model.trustNote ? (

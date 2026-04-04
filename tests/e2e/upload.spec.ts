@@ -222,7 +222,7 @@ test.describe("Upload deep flows", () => {
     await expect(page).toHaveURL("/app/report/rep_123");
     await expect(page.getByTestId("report-content")).toBeVisible();
     await expect(page.getByText("Upload Generated Report")).toBeVisible();
-    await expect(page.getByText("Recommended Actions")).toBeVisible();
+    await expect(page.getByText("What to do next")).toBeVisible();
   });
 
   test("validation failure shows terminal error + retry", async ({ page }) => {

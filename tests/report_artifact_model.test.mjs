@@ -520,19 +520,18 @@ test("normalizeArtifactToReportModel extracts audience growth signals as a typed
   assert.equal(result.model.sections.some((section) => section.title === "Audience & Growth Signals"), false);
 });
 
-test("report debug accordion stays collapsed by default", async () => {
+test("report creator page no longer renders the debug accordion", async () => {
   const page = await readFile("app/(app)/app/report/[id]/page.tsx", "utf8");
 
-  assert.equal(page.includes('data-testid="report-debug-accordion"'), true);
-  assert.equal(/<details[^>]*data-testid="report-debug-accordion"[^>]*\bopen\b/.test(page), false);
+  assert.equal(page.includes('data-testid="report-debug-accordion"'), false);
 });
 
-test("report debug JSON serialization is gated behind accordion open state", async () => {
+test("report creator page no longer keeps debug-open state locally", async () => {
   const page = await readFile("app/(app)/app/report/[id]/page.tsx", "utf8");
 
-  assert.equal(page.includes("const [debugOpen, setDebugOpen] = useState(false);"), true);
-  assert.equal(page.includes("if (!debugOpen || !state.artifactRaw)"), true);
-  assert.equal(page.includes("onToggle={(event) => setDebugOpen(event.currentTarget.open)}"), true);
+  assert.equal(page.includes("const [debugOpen, setDebugOpen] = useState(false);"), false);
+  assert.equal(page.includes("if (!debugOpen || !state.artifactRaw)"), false);
+  assert.equal(page.includes("onToggle={(event) => setDebugOpen(event.currentTarget.open)}"), false);
 });
 
 test("report detail keeps PDF actions visible in the page UI", async () => {

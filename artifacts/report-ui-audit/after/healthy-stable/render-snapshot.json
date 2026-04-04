@@ -1,0 +1,86 @@
+[
+  {
+    "testId": "nav-dashboard",
+    "text": "Dashboard"
+  },
+  {
+    "testId": "nav-data",
+    "text": "Data"
+  },
+  {
+    "testId": "nav-reports",
+    "text": "Reports"
+  },
+  {
+    "testId": "nav-billing",
+    "text": "Billing"
+  },
+  {
+    "testId": "nav-settings",
+    "text": "Settings"
+  },
+  {
+    "testId": "report-content",
+    "text": "Combined ReportCombined Report — Patreon + SubstackCreated Mar 01, 2026|2 sources included|Built from multiple creator data sources.PatreonSubstackReadyReport AccessFull PDF Export. Report or Pro access is required to open and download this creator earnings report PDF.View plansCurrent business readNet Revenue$26,8002026-01: 25,400Creator Health84/100Platform Risk--Revenue is more balanced across Patreon and Substack than it was last period.Executive SummaryYour business is moving in a healthier direction this period. That usually means your audience and income are moving together instead of fighting each other. Next, protect the formats and offers already driving repeat revenue over the next month.Total Revenue$26,800Paid Subscribers1,620Net GrowthUpTop PlatformPatreonUse these numbers to sanity-check revenue, subscriber health, growth, and concentration at a glance.Biggest OpportunityProtect the formats and offers already driving repeat revenue over the next month.This should make the business easier to grow without adding more fragility.Income RiskYour income is coming from more than one place.No single source appears to be carrying the whole business right now.MomentumYour business is building momentum this period.More of your audience and income are moving in the same direction, which is a healthy sign.Revenue TrendCombined historyLatest revenue$26,800Up 5.5% vs startJan 2026 to Mar 2026Jan 2026Feb 2026Mar 2026What this meansWhat happenedRevenue is up 5.5% from the start of this period.Why it mattersAn improving trend is a good sign, but it is strongest when that growth comes from more than one repeatable source.What to watch nextKeep an eye on whether the improvement holds long enough to become a pattern instead of a one-period spike.What to do nextStart with the clearest move, then use the second action to reinforce it.Primary ActionNext 2 weeksProtect the formats and offers already driving repeat revenue over the next month.Secondary ActionThis monthUse this stable period to test one new owned-channel growth path without disrupting your core engine.Upload a fresh data pull after your next cycle so this diagnosis stays current.Return to workspace"
+  },
+  {
+    "testId": "report-source-count",
+    "text": "2 sources included"
+  },
+  {
+    "testId": "report-combined-framing",
+    "text": "Built from multiple creator data sources."
+  },
+  {
+    "testId": "report-platform-chips",
+    "text": "PatreonSubstack"
+  },
+  {
+    "testId": "report-pdf-locked",
+    "text": "Report AccessFull PDF Export. Report or Pro access is required to open and download this creator earnings report PDF.View plans"
+  },
+  {
+    "testId": "report-snapshot-label",
+    "text": "Current business read"
+  },
+  {
+    "testId": "report-wow-summary",
+    "text": "Executive SummaryYour business is moving in a healthier direction this period. That usually means your audience and income are moving together instead of fighting each other. Next, protect the formats and offers already driving repeat revenue over the next month.Total Revenue$26,800Paid Subscribers1,620Net GrowthUpTop PlatformPatreonUse these numbers to sanity-check revenue, subscriber health, growth, and concentration at a glance.Biggest OpportunityProtect the formats and offers already driving repeat revenue over the next month.This should make the business easier to grow without adding more fragility.Income RiskYour income is coming from more than one place.No single source appears to be carrying the whole business right now.MomentumYour business is building momentum this period.More of your audience and income are moving in the same direction, which is a healthy sign."
+  },
+  {
+    "testId": "wow-executive-strip",
+    "text": "Total Revenue$26,800Paid Subscribers1,620Net GrowthUpTop PlatformPatreon"
+  },
+  {
+    "testId": "wow-kpi-context",
+    "text": "Use these numbers to sanity-check revenue, subscriber health, growth, and concentration at a glance."
+  },
+  {
+    "testId": "wow-biggest-opportunity",
+    "text": "Biggest OpportunityProtect the formats and offers already driving repeat revenue over the next month.This should make the business easier to grow without adding more fragility."
+  },
+  {
+    "testId": "wow-income-risk",
+    "text": "Income RiskYour income is coming from more than one place.No single source appears to be carrying the whole business right now."
+  },
+  {
+    "testId": "wow-momentum",
+    "text": "MomentumYour business is building momentum this period.More of your audience and income are moving in the same direction, which is a healthy sign."
+  },
+  {
+    "testId": "dashboard-revenue-trend-chart",
+    "text": "Jan 2026Feb 2026Mar 2026"
+  },
+  {
+    "testId": "report-revenue-interpretation",
+    "text": "What this meansWhat happenedRevenue is up 5.5% from the start of this period.Why it mattersAn improving trend is a good sign, but it is strongest when that growth comes from more than one repeatable source.What to watch nextKeep an eye on whether the improvement holds long enough to become a pattern instead of a one-period spike."
+  },
+  {
+    "testId": "report-what-to-do-next",
+    "text": "What to do nextStart with the clearest move, then use the second action to reinforce it.Primary ActionNext 2 weeksProtect the formats and offers already driving repeat revenue over the next month.Secondary ActionThis monthUse this stable period to test one new owned-channel growth path without disrupting your core engine.Upload a fresh data pull after your next cycle so this diagnosis stays current.Return to workspace"
+  },
+  {
+    "testId": "report-return-to-workspace",
+    "text": "Return to workspace"
+  }
+]

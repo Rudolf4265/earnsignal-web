@@ -544,10 +544,10 @@ test.describe("Entitlement lifecycle (backend fixtures)", () => {
     ]);
 
     await expect(page.getByTestId("report-content")).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByTestId("report-growth-recommendations-unlocked")).toBeVisible();
-    await expect(page.getByTestId("report-platform-risk-explanation-unlocked")).toBeVisible();
-    await expect(page.getByTestId("report-revenue-outlook-unlocked")).toBeVisible();
-    await expect(page.getByTestId("report-debug-accordion")).toBeVisible();
+    await expect(page.getByTestId("report-revenue-interpretation")).toBeVisible();
+    await expect(page.getByTestId("report-audience-growth-hero")).toBeVisible();
+    await expect(page.getByTestId("report-what-to-do-next")).toBeVisible();
+    await expect(page.getByTestId("report-debug-accordion")).toHaveCount(0);
     await expect(page.getByTestId("report-pdf-locked")).toHaveCount(0);
 
     const downloadButton = page.getByRole("button", { name: "Download PDF" }).first();

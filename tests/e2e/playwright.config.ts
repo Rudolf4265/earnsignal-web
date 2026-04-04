@@ -23,7 +23,7 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: `npm run dev -- --port ${port}`,
+    command: `npm run dev -- --port ${port} --webpack`,
     cwd: appWorkspaceRoot,
     url: webServerUrl,
     timeout: 120_000,

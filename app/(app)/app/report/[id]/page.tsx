@@ -28,11 +28,10 @@ import { buildDashboardRevenueTrendViewModel } from "@/src/lib/dashboard/revenue
 import {
   buildReportDetailSectionGatingModel,
   canAccessFullReportPdf,
-  canRenderReportDetailProContent,
   canRenderReportDetailReportContent,
   resolveReportDetailPdfAccessMode,
 } from "@/src/lib/report/detail-gating";
-import { hasProEquivalentEntitlement, isFounderFromEntitlement } from "@/src/lib/entitlements/model";
+import { isFounderFromEntitlement } from "@/src/lib/entitlements/model";
 import { buildReportDetailPresentationModel, type ReportDetailPresentationNotice } from "@/src/lib/report/detail-presentation";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability";
@@ -82,53 +81,6 @@ function toArtifactErrorMessage(error: unknown): string {
   return getReportErrorMessage(error);
 }
 
-type ProSectionLockedCardProps = {
-  title: string;
-  headline: string;
-  body: string;
-  testId: string;
-};
-
-function ProSectionLockedCard({ title, headline, body, testId }: ProSectionLockedCardProps) {
-  return (
-    <div
-      className="relative flex flex-wrap items-end justify-between gap-4 overflow-hidden rounded-2xl border border-brand-border-strong/80 bg-[linear-gradient(155deg,rgba(16,32,67,0.95),rgba(23,49,117,0.78),rgba(15,118,110,0.32))] p-5 shadow-brand-card"
-      data-testid={testId}
-    >
-      <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-brand-accent-blue/20 blur-3xl" />
-      <div className="pointer-events-none absolute -left-14 bottom-[-4.5rem] h-36 w-36 rounded-full bg-brand-accent-emerald/16 blur-3xl" />
-      <div className="relative space-y-2">
-        <p className="inline-flex rounded-full border border-brand-border-strong/80 bg-brand-panel/72 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
-          PRO FEATURE
-        </p>
-        <h3 className="text-base font-semibold text-brand-text-primary">{title}</h3>
-        <p className="text-sm leading-relaxed text-brand-text-secondary">
-          <span className="block font-medium text-brand-text-primary">{headline}</span>
-          {body}
-        </p>
-      </div>
-      <Link href="/app/billing" className={buttonClassName({ variant: "primary", size: "sm", className: "relative z-10 px-4 shadow-brand-glow" })}>
-        Upgrade to Pro
-      </Link>
-    </div>
-  );
-}
-
-function ProSectionLoadingCard({ message, testId }: { message: string; testId: string }) {
-  return (
-    <div
-      className="rounded-2xl border border-brand-border/75 bg-[linear-gradient(155deg,rgba(19,41,80,0.74),rgba(16,32,67,0.86))] p-4"
-      data-testid={testId}
-    >
-      <p className="text-sm text-brand-text-secondary">{message}</p>
-      <div className="mt-3 space-y-2">
-        <div className="h-2.5 w-full animate-pulse rounded-full bg-brand-border/70" />
-        <div className="h-2.5 w-4/5 animate-pulse rounded-full bg-brand-border/55" />
-      </div>
-    </div>
-  );
-}
-
 function TruthNotice({ notice, testId }: { notice: ReportDetailPresentationNotice; testId?: string }) {
   const toneClassName =
     notice.tone === "warn"
@@ -144,49 +96,6 @@ function TruthNotice({ notice, testId }: { notice: ReportDetailPresentationNotic
       </div>
       <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{notice.body}</p>
     </div>
-  );
-}
-
-function ComparisonBucket({
-  title,
-  items,
-  emptyMessage,
-  testId,
-}: {
-  title: string;
-  items: Array<{ id: string; body: string; detail: string | null; stateLabel: string | null; stateTone: "good" | "warn" | "neutral" | null }>;
-  emptyMessage: string;
-  testId: string;
-}) {
-  return (
-    <article
-      className="rounded-[1.15rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-      data-testid={testId}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{title}</p>
-        <span className="rounded-full border border-brand-border/70 bg-brand-panel/70 px-2.5 py-1 text-[11px] text-brand-text-muted">
-          {items.length}
-        </span>
-      </div>
-      {items.length > 0 ? (
-        <ul className="mt-3 space-y-3">
-          {items.map((item) => (
-            <li key={item.id} className="rounded-xl border border-brand-border/70 bg-brand-panel/72 p-3.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm leading-relaxed text-brand-text-primary">{item.body}</p>
-                {item.stateLabel ? <Badge variant={item.stateTone ?? "neutral"}>{item.stateLabel}</Badge> : null}
-              </div>
-              {item.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{item.detail}</p> : null}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="mt-3 rounded-xl border border-dashed border-brand-border/70 bg-brand-panel-muted/70 p-3.5">
-          <p className="text-sm text-brand-text-secondary">{emptyMessage}</p>
-        </div>
-      )}
-    </article>
   );
 }
 
@@ -225,6 +134,55 @@ function PdfExportLoadingState() {
   );
 }
 
+function buildRevenueExplanation({
+  movementLabel,
+  narrative,
+  snapshotCoverageNote,
+}: {
+  movementLabel: string | null;
+  narrative: string | null;
+  snapshotCoverageNote: string | null;
+}) {
+  const normalizedMovement = movementLabel?.toLowerCase() ?? "";
+  const normalizedNarrative = narrative?.toLowerCase() ?? "";
+  const movementSentence =
+    movementLabel && normalizedMovement.includes("down")
+      ? `Revenue is ${movementLabel.replace(/vs start/i, "from the start of this period").toLowerCase()}.`
+      : movementLabel && normalizedMovement.includes("up")
+        ? `Revenue is ${movementLabel.replace(/vs start/i, "from the start of this period").toLowerCase()}.`
+        : movementLabel && normalizedMovement.includes("flat")
+          ? "Revenue held mostly steady across this report window."
+          : null;
+
+  const whatHappened = narrative
+    ? normalizedNarrative.includes("directional guidance")
+      ? movementSentence ?? "Revenue trend data is limited in this report."
+      : narrative
+    : movementSentence ?? "Revenue trend data is limited in this report.";
+
+  const whyItMatters = snapshotCoverageNote
+    ? "The latest period only reflects part of your source mix, so read the newest swing as directional instead of assuming the whole business changed equally."
+    : normalizedMovement.includes("down")
+      ? "When revenue starts slipping, the business usually needs a clearer retention, offer, or growth focus before income gets less predictable."
+      : normalizedMovement.includes("up")
+        ? "An improving trend is a good sign, but it is strongest when that growth comes from more than one repeatable source."
+        : "A flat trend can feel calm, but it often means the next growth lever has not fully clicked yet.";
+
+  const whatToWatch = snapshotCoverageNote
+    ? "Watch the next full period before treating this as a business-wide drop, then act on the clearest pattern that holds."
+    : normalizedMovement.includes("down")
+      ? "Watch whether your next period stabilizes or keeps sliding, then prioritize the action that most directly supports revenue."
+      : normalizedMovement.includes("up")
+        ? "Keep an eye on whether the improvement holds long enough to become a pattern instead of a one-period spike."
+        : "Use the next period to confirm whether this steadiness is healthy consistency or early slowing momentum.";
+
+  return {
+    whatHappened,
+    whyItMatters,
+    whatToWatch,
+  };
+}
+
 export default function ReportPage() {
   const { state: gateState, entitlements } = useAppGate();
   const params = useParams<{ id?: string | string[] }>();
@@ -242,7 +200,6 @@ export default function ReportPage() {
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
-  const [debugOpen, setDebugOpen] = useState(false);
   const canAccessPdf = useMemo(
     () =>
       state.report
@@ -527,15 +484,13 @@ export default function ReportPage() {
   );
   const isFounder = useMemo(() => isFounderFromEntitlement(entitlements), [entitlements]);
   const canAccessFullPdf = isFounder || canAccessFullReportPdf(pdfAccessMode);
-  const canAccessDebugPayload = useMemo(() => isFounder || hasProEquivalentEntitlement(entitlements), [entitlements, isFounder]);
-  const showContinuityModules = canAccessDebugPayload;
 
   const wowSummary = useMemo(
     () =>
       presentation
-        ? buildReportWowSummaryViewModel(presentation, state.artifactModel, state.report, { includeContinuitySignals: showContinuityModules })
+        ? buildReportWowSummaryViewModel(presentation, state.artifactModel, state.report, { includeContinuitySignals: false })
         : null,
-    [presentation, showContinuityModules, state.artifactModel, state.report],
+    [presentation, state.artifactModel, state.report],
   );
   const freeTeaserModel = useMemo(
     () => (presentation ? buildReportFreeTeaserViewModel(presentation) : null),
@@ -564,24 +519,15 @@ export default function ReportPage() {
     typeof legacyPlatformCount === "number" && legacyPlatformCount > 0
       ? `${legacyPlatformCount} ${legacyPlatformCount === 1 ? "source" : "sources"} included`
       : null;
-  const debugJson = useMemo(() => {
-    if (!debugOpen || !state.artifactRaw) {
-      return null;
-    }
-
-    try {
-      return JSON.stringify(state.artifactRaw, null, 2);
-    } catch {
-      return "Unable to serialize artifact JSON.";
-    }
-  }, [debugOpen, state.artifactRaw]);
-  const showSubscriberHealthContent = isFounder || canRenderReportDetailProContent(proSectionGate.subscriberHealth);
-  const showGrowthRecommendationsContent = isFounder || canRenderReportDetailProContent(proSectionGate.growthRecommendations);
-  const showRevenueOutlookContent = isFounder || canRenderReportDetailProContent(proSectionGate.revenueOutlook);
-  const revenueSectionTitle = showContinuityModules ? "Revenue and Trend" : "Revenue Snapshot";
-  const revenueSectionDescription = showContinuityModules
-    ? `${presentation?.displayContext.historyLabel} — net revenue across your report window.`
-    : "Net revenue across your purchased report window.";
+  const revenueExplanation = useMemo(
+    () =>
+      buildRevenueExplanation({
+        movementLabel: revenueTrend.movementLabel ?? null,
+        narrative: presentation?.revenueTrend.narrative ?? null,
+        snapshotCoverageNote: state.report?.snapshotCoverageNote ?? null,
+      }),
+    [presentation?.revenueTrend.narrative, revenueTrend.movementLabel, state.report?.snapshotCoverageNote],
+  );
 
   return (
     <FeatureGuard feature="report">
@@ -641,7 +587,7 @@ export default function ReportPage() {
                       ))}
                     </div>
                   ) : null}
-                  {showContinuityModules && presentation.displayContext.sourceContributionLine ? (
+                  {presentation.displayContext.sourceContributionLine ? (
                     <p className="text-xs text-brand-text-muted" data-testid="report-source-contribution">
                       {presentation.displayContext.sourceContributionLine}
                     </p>
@@ -694,15 +640,6 @@ export default function ReportPage() {
               </div>
 
               {presentation.heroNotice ? <TruthNotice notice={presentation.heroNotice} testId="report-hero-truth-notice" /> : null}
-              {showFullReportContent && !showContinuityModules ? (
-                <div
-                  className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/70 px-4 py-3 text-sm text-brand-text-secondary shadow-brand-card"
-                  data-testid="report-owned-snapshot-banner"
-                >
-                  This report is a purchased snapshot. Upgrade to Pro for history, comparisons, and ongoing intelligence.
-                </div>
-              ) : null}
-
               {showFullReportContent ? (
                 <div className="space-y-2">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-brand-text-muted" data-testid="report-snapshot-label">
@@ -751,370 +688,138 @@ export default function ReportPage() {
             </Panel>
           ) : null}
 
-          {showFullReportContent ? <> {state.artifactError ? <ErrorBanner title="Artifact JSON unavailable" message={state.artifactError} /> : null}
+          {showFullReportContent ? (
+            <>
+              {state.artifactError ? <ErrorBanner title="Artifact JSON unavailable" message={state.artifactError} /> : null}
 
-          <section className="space-y-3">
-            <DashboardSectionHeader title="Executive Summary" description="What the report says about your creator business." />
-            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.92),rgba(19,41,80,0.84),rgba(16,32,67,0.94))]">
-              <div className="space-y-2">
-                {presentation.executiveSummary.slice(0, 3).map((paragraph, index) => (
-                  <p
-                    key={`${index}-${paragraph.slice(0, 24)}`}
-                    className={`text-sm leading-relaxed ${index === 0 ? "font-medium text-brand-text-primary" : "text-brand-text-secondary"}`}
-                  >
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </PanelCard>
-          </section>
-
-          <section className="space-y-3">
-            <DashboardSectionHeader title={revenueSectionTitle} description={revenueSectionDescription} />
-            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              {revenueTrend.hasRenderableChart ? (
-                <div className="space-y-3">
-                  <div className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/70 px-4 py-3 shadow-brand-card">
-                    <div className="flex flex-wrap items-end justify-between gap-2">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Latest revenue</p>
-                        <p className="mt-1 text-2xl font-semibold tracking-tight text-brand-text-primary md:text-3xl">
-                          {revenueTrend.latestValueDisplay ?? "$--"}
-                        </p>
-                      </div>
-                      <div className="space-y-0.5 text-right">
-                        {revenueTrend.movementLabel ? (
-                          <p className="inline-flex rounded-full border border-brand-border-strong/75 bg-brand-panel/70 px-3 py-0.5 text-xs font-semibold tracking-[0.08em] text-brand-text-secondary">
-                            {revenueTrend.movementLabel}
-                          </p>
-                        ) : null}
-                        {revenueTrend.periodLabel ? (
-                          <p className="text-xs text-brand-text-muted">{revenueTrend.periodLabel}</p>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                  <RevenueTrendChart points={revenueTrend.points} />
-                  {presentation.revenueTrend.narrative ? (
-                    <p className="rounded-xl border border-brand-border/70 bg-brand-panel/72 px-3 py-2.5 text-sm leading-relaxed text-brand-text-secondary">
-                      {presentation.revenueTrend.narrative}
-                    </p>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {presentation.revenueTrend.narrative ? (
-                    <div className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/76 p-4">
-                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Revenue narrative</p>
-                      <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{presentation.revenueTrend.narrative}</p>
-                    </div>
-                  ) : null}
-                  <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/70 p-4">
-                    <p className="text-sm text-brand-text-secondary">Trend chart data is not available in this report artifact.</p>
-                  </div>
-                </div>
-              )}
-            </PanelCard>
-          </section>
-
-          {presentation.audienceGrowth ? (
-            <section className="space-y-3">
-              <DashboardSectionHeader
-                title="Audience & Growth Signals"
-                description="Based on your available Instagram, TikTok, and YouTube audience data."
-              />
-              <ReportAudienceGrowthSection model={presentation.audienceGrowth} />
-            </section>
-          ) : null}
-
-          {showContinuityModules ? (() => {
-            const wc = presentation.whatChanged;
-            const hasItems = wc.improved.length > 0 || wc.worsened.length > 0 || wc.watchNext.length > 0;
-            if (!wc.comparisonAvailable) {
-              return (
-                <p className="text-xs text-brand-text-muted/70" data-testid="report-what-changed-section">
-                  <span className="font-medium text-brand-text-muted">Period comparison:</span>{" "}
-                  {wc.unavailableBody ?? "A prior comparable report is not available yet."}
-                </p>
-              );
-            }
-            if (!hasItems) {
-              // Comparison was attempted but produced no items — hide the section entirely
-              return null;
-            }
-            return (
-              <section className="space-y-3" data-testid="report-what-changed-section">
-                <DashboardSectionHeader title="What Changed" description="How business metrics changed versus the prior report period." />
+              <section className="space-y-3">
+                <DashboardSectionHeader
+                  title="Revenue Trend"
+                  description={presentation.displayContext.historyLabel || "How income moved across your report window."}
+                />
                 <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-                  <div className="space-y-4">
-                    {wc.notice ? <TruthNotice notice={wc.notice} testId="report-what-changed-notice" /> : null}
-                    {wc.priorPeriodLabel ? (
-                      <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">{wc.priorPeriodLabel}</p>
-                    ) : null}
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                      <ComparisonBucket
-                        title="Improved"
-                        items={wc.improved}
-                        emptyMessage="No improvements to report for this period."
-                        testId="report-what-changed-improved"
-                      />
-                      <ComparisonBucket
-                        title="Declined"
-                        items={wc.worsened}
-                        emptyMessage="No notable declines for this period."
-                        testId="report-what-changed-worsened"
-                      />
-                      <ComparisonBucket
-                        title="Watch Next"
-                        items={wc.watchNext}
-                        emptyMessage="Nothing to flag for the next period."
-                        testId="report-what-changed-watch-next"
-                      />
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)]">
+                    <div className="space-y-3">
+                      <div className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/70 px-4 py-3 shadow-brand-card">
+                        <div className="flex flex-wrap items-end justify-between gap-2">
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Latest revenue</p>
+                            <p className="mt-1 text-2xl font-semibold tracking-tight text-brand-text-primary md:text-3xl">
+                              {revenueTrend.latestValueDisplay ?? "$--"}
+                            </p>
+                          </div>
+                          <div className="space-y-0.5 text-right">
+                            {revenueTrend.movementLabel ? (
+                              <p className="inline-flex rounded-full border border-brand-border-strong/75 bg-brand-panel/70 px-3 py-0.5 text-xs font-semibold tracking-[0.08em] text-brand-text-secondary">
+                                {revenueTrend.movementLabel}
+                              </p>
+                            ) : null}
+                            {revenueTrend.periodLabel ? <p className="text-xs text-brand-text-muted">{revenueTrend.periodLabel}</p> : null}
+                          </div>
+                        </div>
+                      </div>
+                      {revenueTrend.hasRenderableChart ? (
+                        <div className="rounded-2xl border border-brand-border-strong/70 bg-brand-panel/60 p-3">
+                          <RevenueTrendChart points={revenueTrend.points} />
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/70 p-4">
+                          <p className="text-sm text-brand-text-secondary">Trend chart data is not available in this report artifact.</p>
+                        </div>
+                      )}
                     </div>
+
+                    <article
+                      className="rounded-[1.1rem] border border-brand-border-strong/70 bg-brand-panel/72 p-4"
+                      data-testid="report-revenue-interpretation"
+                    >
+                      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-accent-blue">What this means</p>
+                      <div className="mt-3 space-y-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">What happened</p>
+                          <p className="mt-1 text-sm leading-relaxed text-brand-text-primary">{revenueExplanation.whatHappened}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">Why it matters</p>
+                          <p className="mt-1 text-sm leading-relaxed text-brand-text-secondary">{revenueExplanation.whyItMatters}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">What to watch next</p>
+                          <p className="mt-1 text-sm leading-relaxed text-brand-text-secondary">{revenueExplanation.whatToWatch}</p>
+                        </div>
+                      </div>
+                    </article>
                   </div>
                 </PanelCard>
               </section>
-            );
-          })() : null}
 
-          <section className="space-y-3">
-            <DashboardSectionHeader title="Recommended Actions" description="Evidence-led actions from your report, ordered by priority." />
-            <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-              {showGrowthRecommendationsContent ? (
-                <div data-testid="report-growth-recommendations-unlocked">
-                  {presentation.recommendations.length > 0 ? (
-                    <div className="space-y-3">
-                      <article className="relative overflow-hidden rounded-[1.2rem] border border-brand-accent-teal/22 bg-[linear-gradient(155deg,rgba(18,40,82,0.92),rgba(14,30,60,0.94))] p-4 shadow-brand-glow">
-                        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-accent-teal/55 via-brand-accent-teal/22 to-transparent" />
-                        <p className="text-[10px] uppercase tracking-[0.14em] text-brand-accent-teal/70">
-                          {presentation.recommendations[0].label || "Recommended action"}
-                        </p>
-                        <p className="mt-2 text-base font-semibold leading-snug text-brand-text-primary">{presentation.recommendations[0].body}</p>
-                        {presentation.recommendations[0].detail ? (
-                          <p className="mt-1.5 text-sm leading-relaxed text-brand-text-secondary">{presentation.recommendations[0].detail}</p>
-                        ) : null}
-                        {presentation.recommendations[0].stateLabel ? (
-                          <div className="mt-2.5">
-                            <Badge variant={presentation.recommendations[0].stateTone ?? "neutral"}>{presentation.recommendations[0].stateLabel}</Badge>
-                          </div>
-                        ) : null}
-                      </article>
-                      {presentation.recommendations.length > 1 ? (
-                        <ul className="space-y-1.5">
-                          {presentation.recommendations.slice(1).map((recommendation, index) => (
-                            <li key={recommendation.id} className="flex items-start gap-3 rounded-[0.9rem] border border-brand-border/45 bg-brand-panel/40 px-4 py-2.5">
-                              <span className="mt-px shrink-0 text-[11px] font-semibold tabular-nums text-brand-text-muted">{index + 2}.</span>
-                              <div className="min-w-0">
-                                <p className="text-sm leading-relaxed text-brand-text-secondary">{recommendation.body}</p>
-                                {recommendation.detail ? <p className="mt-1 text-xs leading-relaxed text-brand-text-muted">{recommendation.detail}</p> : null}
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                      <p className="text-sm text-brand-text-secondary">No explicit recommendation list is available for this report.</p>
-                    </div>
-                  )}
-                </div>
-              ) : proSectionGate.growthRecommendations === "pro-locked" ? (
-                <ProSectionLockedCard
-                  testId="report-growth-recommendations-locked"
-                  title="Recommended Actions"
-                  headline="Unlock recommended actions"
-                  body="Get evidence-led actions based on your revenue and audience signals."
-                />
-              ) : (
-                <ProSectionLoadingCard
-                  testId="report-growth-recommendations-loading"
-                  message="Checking plan access for recommended actions..."
-                />
-              )}
-            </PanelCard>
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3">
-              <p className="text-xs leading-relaxed text-brand-text-secondary">
-                {presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1
-                  ? "Add a second source to deepen your analysis and sharpen these recommendations."
-                  : "Upload updated data to keep your report current."}
-              </p>
-              <Link
-                href="/app/data"
-                data-testid="report-return-to-workspace"
-                className="inline-flex shrink-0 rounded-xl border border-brand-border/60 bg-brand-panel/50 px-3 py-2 text-sm font-medium text-brand-text-secondary transition hover:bg-brand-panel/80 hover:text-brand-text-primary"
-              >
-                Return to workspace
-              </Link>
-            </div>
-          </section>
+              {presentation.audienceGrowth ? (
+                <section className="space-y-3">
+                  <DashboardSectionHeader
+                    title="Audience Growth"
+                    description="Where attention is growing, what to watch, and where to lean next."
+                  />
+                  <ReportAudienceGrowthSection model={presentation.audienceGrowth} />
+                </section>
+              ) : null}
 
-          <section className="space-y-3">
-            <DashboardSectionHeader title="Supporting Detail" description="Subscriber health, outlook projections, and technical report details." />
-            <details>
-              <summary className="cursor-pointer rounded-xl border border-brand-border/55 bg-brand-panel/55 px-4 py-2.5 text-sm text-brand-text-muted hover:text-brand-text-secondary [list-style:none] [&::-webkit-details-marker]:hidden">
-                Show supporting detail
-              </summary>
-              <div className="mt-3 space-y-3">
-                <PanelCard className="border-brand-border/65 bg-brand-panel/72">
-                  <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Subscriber Health</p>
-                  {showSubscriberHealthContent ? (
-                    <div data-testid="report-subscriber-health-unlocked">
-                      {presentation.subscriberHealth.notice ? <TruthNotice notice={presentation.subscriberHealth.notice} testId="report-subscriber-health-notice" /> : null}
-                      {presentation.subscriberHealth.metrics.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                          {presentation.subscriberHealth.metrics.map((metric) => (
-                            <article
-                              key={metric.id}
-                              className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-4"
-                            >
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
-                                {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
-                              </div>
-                              <p className="mt-1.5 text-2xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
-                              {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}
-                            </article>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                          <p className="text-sm text-brand-text-secondary">Subscriber health metrics are unavailable in this report.</p>
-                        </div>
-                      )}
-                      {presentation.subscriberHealth.highlights.length > 0 ? (
-                        <div className="mt-3 rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3">
-                          <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Historical trend</p>
-                          <div className="mt-2 space-y-1.5">
-                            {presentation.subscriberHealth.highlights.map((line) => (
-                              <p key={line} className="text-xs leading-relaxed text-brand-text-secondary">{line}</p>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : proSectionGate.subscriberHealth === "pro-locked" ? (
-                    <ProSectionLockedCard
-                      testId="report-subscriber-health-locked"
-                      title="Subscriber Health"
-                      headline="Unlock subscriber health insights"
-                      body="Understand churn risk, retention trends, and subscriber value."
-                    />
-                  ) : (
-                    <ProSectionLoadingCard
-                      testId="report-subscriber-health-loading"
-                      message="Checking plan access for subscriber health insights..."
-                    />
-                  )}
-                </PanelCard>
-                <PanelCard className="border-brand-border/65 bg-brand-panel/72">
-                  <p className="mb-3 text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">Revenue Outlook</p>
-                  {showRevenueOutlookContent ? (
-                    <div data-testid="report-revenue-outlook-unlocked">
-                      {presentation.revenueOutlook.notice ? <TruthNotice notice={presentation.revenueOutlook.notice} testId="report-revenue-outlook-notice" /> : null}
-                      {presentation.revenueOutlook.cards.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                          {presentation.revenueOutlook.cards.map((card) => (
-                            <article
-                              key={card.id}
-                              className="rounded-xl border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(19,41,80,0.8),rgba(16,32,67,0.9))] p-3.5"
-                            >
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{card.title}</p>
-                                {card.stateLabel ? <Badge variant={card.stateTone ?? "neutral"}>{card.stateLabel}</Badge> : null}
-                              </div>
-                              <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{card.body}</p>
-                            </article>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/75 p-4">
-                          <p className="text-sm text-brand-text-secondary">Outlook projections are not available in this report artifact.</p>
-                        </div>
-                      )}
-                      {presentation.revenueOutlook.highlights.length > 0 ? (
-                        <div className="mt-3 space-y-1">
-                          {presentation.revenueOutlook.highlights.map((line) => (
-                            <p key={line} className="text-xs leading-relaxed text-brand-text-muted">{line}</p>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : proSectionGate.revenueOutlook === "pro-locked" ? (
-                    <ProSectionLockedCard
-                      testId="report-revenue-outlook-locked"
-                      title="Revenue Outlook"
-                      headline="Unlock revenue forecasts"
-                      body="See projected revenue scenarios for the months ahead."
-                    />
-                  ) : (
-                    <ProSectionLoadingCard testId="report-revenue-outlook-loading" message="Checking plan access for revenue forecasts..." />
-                  )}
-                </PanelCard>
-                <PanelCard className="border-brand-border/65 bg-brand-panel/72">
-                  {presentation.appendixSections.length > 0 ? (
-                    <div className="space-y-4">
-                      {presentation.appendixSections.map((section) => (
-                        <article key={section.id} className="rounded-xl border border-brand-border/60 bg-brand-panel-muted/50 p-4">
-                          <h3 className="text-sm font-semibold text-brand-text-secondary">{section.title}</h3>
-                          {section.paragraphs.length > 0 ? (
-                            <div className="mt-2 space-y-2">
-                              {section.paragraphs.map((paragraph, index) => (
-                                <p key={`${section.id}-paragraph-${index}`} className="text-xs leading-relaxed text-brand-text-muted">
-                                  {paragraph}
-                                </p>
-                              ))}
+              {wowSummary ? (
+                <section className="space-y-3" data-testid="report-what-to-do-next">
+                  <DashboardSectionHeader title="What to do next" description="Start with the clearest move, then use the second action to reinforce it." />
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {wowSummary.nextActions.length > 0 ? (
+                      wowSummary.nextActions.map((action, index) => (
+                        <PanelCard
+                          key={action.id}
+                          className={`border-brand-border/75 ${
+                            index === 0
+                              ? "bg-[linear-gradient(155deg,rgba(18,40,82,0.92),rgba(14,30,60,0.94))] shadow-brand-glow"
+                              : "bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]"
+                          }`}
+                          data-testid={index === 0 ? "report-next-action-primary" : "report-next-action-secondary"}
+                        >
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-teal">
+                                {index === 0 ? "Primary Action" : "Secondary Action"}
+                              </p>
+                              {action.timeframe ? (
+                                <span className="rounded-full border border-brand-border/70 bg-brand-panel/60 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-brand-text-muted">
+                                  {action.timeframe}
+                                </span>
+                              ) : null}
                             </div>
-                          ) : null}
-                          {section.bullets.length > 0 ? (
-                            <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-brand-text-muted">
-                              {section.bullets.map((bullet, index) => (
-                                <li key={`${section.id}-bullet-${index}`}>{bullet}</li>
-                              ))}
-                            </ul>
-                          ) : null}
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-brand-text-secondary">No appendix sections were provided in this report artifact.</p>
-                  )}
-
-                  {canAccessDebugPayload ? (
-                    <details
-                      data-testid="report-debug-accordion"
-                      className="mt-4 rounded-2xl border border-brand-border/70 bg-brand-bg-elevated/72 p-4"
-                      onToggle={(event) => setDebugOpen(event.currentTarget.open)}
-                    >
-                      <summary className="cursor-pointer text-sm font-semibold text-brand-text-primary">Debug + Raw JSON</summary>
-                      <div className="mt-3 space-y-3">
-                        {state.artifactWarnings.length > 0 ? (
-                          <div className="rounded-xl border border-amber-300/40 bg-amber-500/[0.08] p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-amber-100">Normalization warnings</p>
-                            <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-amber-100">
-                              {state.artifactWarnings.map((warning) => (
-                                <li key={warning}>{warning}</li>
-                              ))}
-                            </ul>
+                            <p className="text-lg font-semibold leading-snug text-brand-text-primary">{action.title}</p>
+                            {action.detail ? <p className="text-sm leading-relaxed text-brand-text-secondary">{action.detail}</p> : null}
                           </div>
-                        ) : null}
-                        {state.artifactRaw && debugJson ? (
-                          <pre data-testid="report-debug-json" className="overflow-x-auto rounded-xl border border-brand-border bg-slate-950 p-3 text-xs text-slate-100">
-                            {debugJson}
-                          </pre>
-                        ) : state.artifactRaw ? (
-                          <p className="text-xs text-brand-text-muted">Expand Debug to render artifact JSON.</p>
-                        ) : (
-                          <p className="text-xs text-brand-text-muted">Artifact JSON is unavailable.</p>
-                        )}
-                      </div>
-                    </details>
-                  ) : null}
-                </PanelCard>
-              </div>
-            </details>
-          </section>
-          </> : null}
+                        </PanelCard>
+                      ))
+                    ) : (
+                      <PanelCard className="border-brand-border/75 bg-brand-panel/72">
+                        <p className="text-sm leading-relaxed text-brand-text-secondary">
+                          The report does not include a clear next-step list yet. Use the biggest opportunity and audience sections to choose the next move.
+                        </p>
+                      </PanelCard>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3">
+                    <p className="text-xs leading-relaxed text-brand-text-secondary">
+                      {presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1
+                        ? "Adding one more source or owned channel will make the next report more useful and less fragile."
+                        : "Upload a fresh data pull after your next cycle so this diagnosis stays current."}
+                    </p>
+                    <Link
+                      href="/app/data"
+                      data-testid="report-return-to-workspace"
+                      className="inline-flex shrink-0 rounded-xl border border-brand-border/60 bg-brand-panel/50 px-3 py-2 text-sm font-medium text-brand-text-secondary transition hover:bg-brand-panel/80 hover:text-brand-text-primary"
+                    >
+                      Return to workspace
+                    </Link>
+                  </div>
+                </section>
+              ) : null}
+            </>
+          ) : null}
         </section>
       ) : null}
 

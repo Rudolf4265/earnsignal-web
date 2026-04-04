@@ -236,7 +236,7 @@ export function buildReportDisplayLabels(input: { sourceCount: number | null }):
 } {
   const isCombined = input.sourceCount !== null && input.sourceCount >= 2;
   return {
-    snapshotLabel: "Latest available snapshot",
+    snapshotLabel: "Current business read",
     historyLabel: isCombined ? "Combined history" : "Report history",
   };
 }
@@ -271,5 +271,5 @@ export function buildReportSourceContributionLine(input: {
 
   const snapshotLabel = snapshotPlatforms.join(", ");
   const historyLabel = historyPlatforms.join(", ");
-  return `Current snapshot: ${snapshotLabel} · Combined history: ${historyLabel}`;
+  return `Current read: ${snapshotLabel} | Combined history: ${historyLabel}`;
 }

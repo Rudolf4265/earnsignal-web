@@ -134,8 +134,8 @@ test("report page gates hero metrics behind showFullReportContent", async () => 
 test("report page gates content sections (executive summary through appendix) behind showFullReportContent", async () => {
   const source = await readFile(reportPagePath, "utf8");
 
-  assert.equal(source.includes("showFullReportContent ? <>"), true);
-  assert.equal(source.includes("Executive Summary"), true);
+  assert.equal(source.includes("showFullReportContent ? ("), true);
+  assert.equal(source.includes('data-testid="report-what-to-do-next"'), true);
 });
 
 test("report page gates PDF download behind pdfAccessMode", async () => {

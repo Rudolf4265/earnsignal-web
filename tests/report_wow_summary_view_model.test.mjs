@@ -539,3 +539,58 @@ test("coverage metadata flows through to the wow summary model", async () => {
     },
   ]);
 });
+
+test("opportunity action text does not use a generic label phrase", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const pres = makePresentation({
+    recommendations: [
+      {
+        id: "rec1",
+        label: "Recommended action",
+        body: "Launching a $15 tier could capture mid-range supporters who are currently upgrading to cancel.",
+        detail: "Estimated 12–18% revenue uplift based on tier migration data.",
+        stateLabel: null,
+        stateTone: null,
+      },
+    ],
+  });
+  const result = buildReportWowSummaryViewModel(pres, makeArtifactModel());
+
+  // Generic label must not leak into action text
+  assert.equal(result.opportunity.action.toLowerCase().includes("recommended action"), false);
+  // Should use body or detail text instead
+  assert.equal(
+    result.opportunity.action.includes("Launching") || result.opportunity.action.includes("12–18%"),
+    true,
+  );
+});
+
+test("strengthsRisks has empty arrays and available false when no comparison data and no artifact signals", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  // Default presentation: no whatChanged items, no signals in artifact
+  const result = buildReportWowSummaryViewModel(makePresentation(), makeArtifactModel());
+
+  assert.equal(result.strengthsRisks.available, false);
+  assert.equal(result.strengthsRisks.strengths.length, 0);
+  assert.equal(result.strengthsRisks.risks.length, 0);
+});
+
+test("strengthsRisks has empty arrays when comparisonAvailable is true but all buckets are empty", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const pres = makePresentation({
+    whatChanged: {
+      comparisonAvailable: true,
+      priorPeriodLabel: "Feb 2026",
+      notice: null,
+      improved: [],
+      worsened: [],
+      watchNext: [],
+      unavailableBody: null,
+    },
+  });
+  const result = buildReportWowSummaryViewModel(pres, makeArtifactModel());
+
+  // Comparison was attempted but returned no items — arrays should still be empty (no placeholder injected)
+  assert.equal(result.strengthsRisks.strengths.length, 0);
+  assert.equal(result.strengthsRisks.risks.length, 0);
+});

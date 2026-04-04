@@ -86,7 +86,6 @@ function BiggestOpportunityCard({ model }: { model: ReportWowSummaryViewModel })
               <path d="m9 18 6-6-6-6" />
             </svg>
             <p className="text-sm leading-relaxed text-brand-text-secondary">
-              <span className="font-medium text-brand-text-primary">Recommended action — </span>
               {opportunity.action}
             </p>
           </div>
@@ -206,11 +205,14 @@ function MomentumPanel({ model }: { model: ReportWowSummaryViewModel }) {
 
 function StrengthsRisksSection({ model }: { model: ReportWowSummaryViewModel }) {
   const { strengthsRisks } = model;
+  if (strengthsRisks.strengths.length === 0 && strengthsRisks.risks.length === 0) {
+    return null;
+  }
   return (
     <div className="grid gap-4 sm:grid-cols-2" data-testid="wow-strengths-risks">
-      <article className="rounded-[1.15rem] border border-brand-border/65 bg-[linear-gradient(155deg,rgba(14,34,60,0.9),rgba(11,28,52,0.94))] p-4">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-accent-teal/80">Strengths</p>
-        {strengthsRisks.strengths.length > 0 ? (
+      {strengthsRisks.strengths.length > 0 ? (
+        <article className="rounded-[1.15rem] border border-brand-border/65 bg-[linear-gradient(155deg,rgba(14,34,60,0.9),rgba(11,28,52,0.94))] p-4">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-brand-accent-teal/80">Strengths</p>
           <ul className="mt-3 space-y-2">
             {strengthsRisks.strengths.map((item) => (
               <li key={item.id} className="flex items-start gap-2.5 text-sm leading-relaxed text-brand-text-secondary">
@@ -219,16 +221,12 @@ function StrengthsRisksSection({ model }: { model: ReportWowSummaryViewModel }) 
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="mt-3 text-sm text-brand-text-secondary">
-            Not enough comparative data to surface specific strengths yet.
-          </p>
-        )}
-      </article>
+        </article>
+      ) : null}
 
-      <article className="rounded-[1.15rem] border border-brand-border/65 bg-[linear-gradient(155deg,rgba(24,22,40,0.9),rgba(18,18,38,0.94))] p-4">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-amber-400/80">Risks</p>
-        {strengthsRisks.risks.length > 0 ? (
+      {strengthsRisks.risks.length > 0 ? (
+        <article className="rounded-[1.15rem] border border-brand-border/65 bg-[linear-gradient(155deg,rgba(24,22,40,0.9),rgba(18,18,38,0.94))] p-4">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-amber-400/80">Risks</p>
           <ul className="mt-3 space-y-2">
             {strengthsRisks.risks.map((item) => (
               <li key={item.id} className="flex items-start gap-2.5 text-sm leading-relaxed text-brand-text-secondary">
@@ -237,12 +235,8 @@ function StrengthsRisksSection({ model }: { model: ReportWowSummaryViewModel }) 
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="mt-3 text-sm text-brand-text-secondary">
-            No specific risks were identified in this report period.
-          </p>
-        )}
-      </article>
+        </article>
+      ) : null}
     </div>
   );
 }
@@ -300,6 +294,11 @@ export function ReportWowSummary({ model }: ReportWowSummaryProps) {
     <section className="space-y-4" data-testid="report-wow-summary">
       <PanelCard className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.88),rgba(16,32,67,0.95))]">
         <KeyMetricsStrip model={model} />
+        {model.coverage.snapshotCoverageNote ? (
+          <p className="mt-3 border-t border-brand-border/40 pt-3 text-xs leading-relaxed text-brand-text-muted/80">
+            {model.coverage.snapshotCoverageNote}
+          </p>
+        ) : null}
       </PanelCard>
 
       <BiggestOpportunityCard model={model} />

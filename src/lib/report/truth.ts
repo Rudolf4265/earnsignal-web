@@ -188,7 +188,7 @@ export function getTruthStateDescription(truth: ReportTruthMetadata, options?: T
     return reason ? `Reduced confidence because ${reason}.` : "Reduced confidence because evidence is limited.";
   }
   if (availability === "limited") {
-    return reason ? `Limited evidence because ${reason}.` : "Limited evidence in this report.";
+    return reason ? `Coverage is limited because ${reason}.` : "Coverage is limited for this report period.";
   }
   if (truth.confidence === "low") {
     return "Low-confidence signal.";

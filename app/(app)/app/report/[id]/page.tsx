@@ -827,32 +827,46 @@ export default function ReportPage() {
             </section>
           ) : null}
 
-          {showContinuityModules ? (
-            presentation.whatChanged.comparisonAvailable ? (
+          {showContinuityModules ? (() => {
+            const wc = presentation.whatChanged;
+            const hasItems = wc.improved.length > 0 || wc.worsened.length > 0 || wc.watchNext.length > 0;
+            if (!wc.comparisonAvailable) {
+              return (
+                <p className="text-xs text-brand-text-muted/70" data-testid="report-what-changed-section">
+                  <span className="font-medium text-brand-text-muted">Period comparison:</span>{" "}
+                  {wc.unavailableBody ?? "A prior comparable report is not available yet."}
+                </p>
+              );
+            }
+            if (!hasItems) {
+              // Comparison was attempted but produced no items — hide the section entirely
+              return null;
+            }
+            return (
               <section className="space-y-3" data-testid="report-what-changed-section">
                 <DashboardSectionHeader title="What Changed" description="How business metrics changed versus the prior report period." />
                 <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
                   <div className="space-y-4">
-                    {presentation.whatChanged.notice ? <TruthNotice notice={presentation.whatChanged.notice} testId="report-what-changed-notice" /> : null}
-                    {presentation.whatChanged.priorPeriodLabel ? (
-                      <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">{presentation.whatChanged.priorPeriodLabel}</p>
+                    {wc.notice ? <TruthNotice notice={wc.notice} testId="report-what-changed-notice" /> : null}
+                    {wc.priorPeriodLabel ? (
+                      <p className="text-xs uppercase tracking-[0.14em] text-brand-text-muted">{wc.priorPeriodLabel}</p>
                     ) : null}
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                       <ComparisonBucket
                         title="Improved"
-                        items={presentation.whatChanged.improved}
+                        items={wc.improved}
                         emptyMessage="No improvements to report for this period."
                         testId="report-what-changed-improved"
                       />
                       <ComparisonBucket
                         title="Declined"
-                        items={presentation.whatChanged.worsened}
+                        items={wc.worsened}
                         emptyMessage="No notable declines for this period."
                         testId="report-what-changed-worsened"
                       />
                       <ComparisonBucket
                         title="Watch Next"
-                        items={presentation.whatChanged.watchNext}
+                        items={wc.watchNext}
                         emptyMessage="Nothing to flag for the next period."
                         testId="report-what-changed-watch-next"
                       />
@@ -860,13 +874,8 @@ export default function ReportPage() {
                   </div>
                 </PanelCard>
               </section>
-            ) : (
-              <p className="text-xs text-brand-text-muted/70" data-testid="report-what-changed-section">
-                <span className="font-medium text-brand-text-muted">Period comparison:</span>{" "}
-                {presentation.whatChanged.unavailableBody ?? "A prior comparable report is not available yet."}
-              </p>
-            )
-          ) : null}
+            );
+          })() : null}
 
           <section className="space-y-3">
             <DashboardSectionHeader title="Recommended Actions" description="Evidence-led actions from your report, ordered by priority." />

@@ -287,13 +287,19 @@ function buildOpportunity(
   artifactModel: ReportViewModel | null,
 ): WowOpportunityViewModel {
   // Priority 1: use the top recommendation if it has a meaningful body
+  const GENERIC_ACTION_LABELS = new Set(["recommended action", "action", "recommendation"]);
   const topRec = presentation.recommendations[0];
   if (topRec && topRec.body.length > 20) {
+    const labelIsUseful =
+      topRec.label != null &&
+      topRec.label.length > 20 &&
+      !GENERIC_ACTION_LABELS.has(topRec.label.toLowerCase().trim());
     return {
       available: true,
       finding: topRec.body,
       upsideLabel: topRec.detail && topRec.detail.length > 10 ? topRec.detail : null,
-      action: topRec.label && topRec.label.length > 10 ? topRec.label : topRec.body,
+      // When label is a generic placeholder, fall back to detail or body so action is never a duplicate of the label bug
+      action: labelIsUseful ? topRec.label : (topRec.detail && topRec.detail.length > 20 ? topRec.detail : topRec.body),
     };
   }
 

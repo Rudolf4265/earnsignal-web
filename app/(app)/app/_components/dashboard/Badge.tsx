@@ -5,8 +5,9 @@ type BadgeProps = {
   variant: "good" | "warn" | "neutral";
   children: ReactNode;
   className?: string;
+  tooltip?: string | null;
 };
 
-export function Badge({ variant, children, className }: BadgeProps) {
-  return <StatusPill variant={variant} className={className}>{children}</StatusPill>;
+export function Badge({ variant, children, className, tooltip }: BadgeProps) {
+  return <StatusPill variant={variant} className={className} tooltip={tooltip}>{children}</StatusPill>;
 }

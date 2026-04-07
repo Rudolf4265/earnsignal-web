@@ -23,6 +23,7 @@ import {
   getTruthStateDescription,
   getTruthStateLabel,
   getTruthStateTone,
+  inferAvailabilityFromTruth,
   type ReportTruthMetadata,
   type ReportTruthTone,
 } from "./truth";
@@ -271,6 +272,34 @@ function formatCurrency(value: number | null): string {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+/**
+ * Revenue-specific formatter that distinguishes between "truly $0" and
+ * "we don't have enough data to estimate revenue."
+ *
+ * If the value is 0 and truth metadata indicates the metric is unavailable
+ * or at low/reduced confidence, we surface "Unavailable" so users don't
+ * misread a sparse-mode placeholder as a confirmed revenue figure.
+ */
+function formatRevenueDisplay(value: number | null, truth: ReportTruthMetadata | null): string {
+  if (value === null) {
+    return "$--";
+  }
+
+  if (value === 0 && truth) {
+    const availability = inferAvailabilityFromTruth(truth);
+    if (availability === "unavailable" || truth.confidence === "low" || truth.confidenceAdjusted) {
+      return "Unavailable";
+    }
+  }
+
+  // Treat an unexplained $0 (no truth metadata, no trend data) as unknown.
+  if (value === 0 && !truth) {
+    return "$--";
+  }
+
+  return formatCurrency(value);
 }
 
 function formatNumber(value: number | null): string {
@@ -1042,7 +1071,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
     createMetric({
       id: "net_revenue",
       label: "Net Revenue",
-      value: formatCurrency(kpis.netRevenue),
+      value: formatRevenueDisplay(kpis.netRevenue, netRevenueTruth),
       truth: netRevenueTruth,
       source: netRevenueTruth?.source ?? null,
       detail: revenueLines[0] ?? null,

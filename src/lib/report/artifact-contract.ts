@@ -340,6 +340,81 @@ export function validateReportArtifactContract(artifact: unknown): ReportArtifac
   };
 }
 
+const FALLBACK_INSIGHT = {
+  title: "Build more complete data coverage",
+  description:
+    "This report is using a partial business snapshot. Upload additional periods of subscriber or revenue data to unlock higher-confidence diagnostics.",
+  confidence: "low",
+  theme: "general",
+};
+
+const FALLBACK_RECOMMENDATION = {
+  title: "Upload a fresh multi-period export",
+  description: "A broader export window will improve confidence and unlock stronger recommendations.",
+  timeframe: "next 2 weeks",
+  priority: "medium",
+};
+
+function injectFallbackIfEmpty(section: unknown, fallbackItem: Record<string, unknown>): unknown {
+  if (Array.isArray(section)) {
+    if (section.some((entry) => hasRenderableValue(entry))) {
+      return section;
+    }
+    return [fallbackItem];
+  }
+
+  if (isRecord(section)) {
+    if (sectionHasNarrativeList(section)) {
+      return section;
+    }
+    // Try to inject into the first list-like key that exists, or create an `items` key.
+    for (const key of ["items", "signals", "insights", "recommendations", "actions", "bullets"]) {
+      if (Array.isArray(section[key])) {
+        return { ...section, [key]: [fallbackItem] };
+      }
+    }
+    return { ...section, items: [fallbackItem] };
+  }
+
+  return section;
+}
+
+/**
+ * Returns a patched copy of the artifact ensuring `prioritized_insights` and
+ * `ranked_recommendations` always contain at least one renderable item.
+ *
+ * Call this before `validateReportArtifactContract` so sparse reports never
+ * produce a hard schema failure on these optional-but-required-non-empty sections.
+ */
+export function patchSparseArtifact(artifact: unknown): unknown {
+  if (!isRecord(artifact)) {
+    return artifact;
+  }
+
+  // Support both artifact.report.sections and artifact.sections layouts.
+  const root = isRecord(artifact.report) ? artifact.report : artifact;
+  if (!isRecord(root.sections)) {
+    return artifact;
+  }
+
+  const sections = root.sections as Record<string, unknown>;
+  const patchedSections: Record<string, unknown> = { ...sections };
+
+  if (patchedSections.prioritized_insights !== undefined && patchedSections.prioritized_insights !== null) {
+    patchedSections.prioritized_insights = injectFallbackIfEmpty(patchedSections.prioritized_insights, FALLBACK_INSIGHT);
+  }
+
+  if (patchedSections.ranked_recommendations !== undefined && patchedSections.ranked_recommendations !== null) {
+    patchedSections.ranked_recommendations = injectFallbackIfEmpty(patchedSections.ranked_recommendations, FALLBACK_RECOMMENDATION);
+  }
+
+  if (isRecord(artifact.report)) {
+    return { ...artifact, report: { ...artifact.report, sections: patchedSections } };
+  }
+
+  return { ...artifact, sections: patchedSections };
+}
+
 export function formatReportArtifactContractErrors(errors: string[]): string {
   const unique = Array.from(new Set(errors.map((error) => error.trim()).filter((error) => error.length > 0)));
   if (unique.length === 0) {

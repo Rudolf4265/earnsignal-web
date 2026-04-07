@@ -32,6 +32,7 @@ import {
   canRenderReportDetailReportContent,
   resolveReportDetailPdfAccessMode,
 } from "@/src/lib/report/detail-gating";
+import { getConfidenceLabelTooltip } from "@/src/lib/report/truth";
 import { isFounderFromEntitlement } from "@/src/lib/entitlements/model";
 import { buildReportDetailPresentationModel, type ReportDetailPresentationNotice } from "@/src/lib/report/detail-presentation";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
@@ -39,7 +40,7 @@ import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability"
 import { formatReportCreatedAt, isInFlightReportStatus, toReportStatusLabel, toReportStatusVariant } from "@/src/lib/report/list-model";
 import { readReportRouteParamId } from "@/src/lib/report/route-id";
 import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/report/normalize-artifact-to-report-model";
-import { formatReportArtifactContractErrors, validateReportArtifactContract } from "@/src/lib/report/artifact-contract";
+import { formatReportArtifactContractErrors, patchSparseArtifact, validateReportArtifactContract } from "@/src/lib/report/artifact-contract";
 import { buildReportFraming, formatIncludedSourceCountLabel } from "@/src/lib/report/source-labeling";
 import { buildReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
 import { ReportAudienceGrowthSection } from "./_components/ReportAudienceGrowthSection";
@@ -264,15 +265,16 @@ export default function ReportPage() {
             return;
           }
 
-          const contract = validateReportArtifactContract(artifactRaw);
-          const normalized = normalizeArtifactToReportModel(artifactRaw);
+          const artifactPatched = patchSparseArtifact(artifactRaw);
+          const contract = validateReportArtifactContract(artifactPatched);
+          const normalized = normalizeArtifactToReportModel(artifactPatched);
           if (!contract.valid) {
             setState({
               view: "success",
               report,
               artifactModel: normalized.model,
               artifactWarnings: [...contract.errors, ...normalized.warnings],
-              artifactRaw,
+              artifactRaw: artifactPatched,
               artifactError: formatReportArtifactContractErrors(contract.errors),
               artifactJsonMissing: false,
             });
@@ -284,7 +286,7 @@ export default function ReportPage() {
             report,
             artifactModel: normalized.model,
             artifactWarnings: normalized.warnings,
-            artifactRaw,
+            artifactRaw: artifactPatched,
             artifactError: null,
             artifactJsonMissing: false,
           });
@@ -655,7 +657,7 @@ export default function ReportPage() {
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{metric.label}</p>
-                        {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"}>{metric.stateLabel}</Badge> : null}
+                        {metric.stateLabel ? <Badge variant={metric.stateTone ?? "neutral"} tooltip={getConfidenceLabelTooltip(metric.stateLabel)}>{metric.stateLabel}</Badge> : null}
                       </div>
                       <p className="mt-2 text-3xl font-semibold tracking-tight text-brand-text-primary">{metric.value}</p>
                       {metric.detail ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{metric.detail}</p> : null}

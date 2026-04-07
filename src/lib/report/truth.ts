@@ -167,6 +167,35 @@ export function getTruthStateTone(truth: ReportTruthMetadata, options?: TruthDes
   return "good";
 }
 
+const CONFIDENCE_LABEL_TOOLTIPS: Record<string, string> = {
+  "Low confidence":
+    "This estimate is based on incomplete or limited source coverage and should be treated as directional.",
+  "Reduced confidence":
+    "This result is usable, but confidence is lowered because one or more key source signals are incomplete.",
+  "Heuristic signal":
+    "This is a lightweight directional signal based on the data available, not a fully confirmed business metric.",
+  "Limited evidence":
+    "This result is based on limited evidence. Treat it as a starting signal until more source data is available.",
+  Unavailable:
+    "This metric could not be calculated for this report period because the required source data is missing.",
+  "Validate first":
+    "Review this signal before acting on it — the underlying evidence needs further confirmation.",
+  "Watch next cycle":
+    "This signal is worth monitoring but is not yet strong enough to act on. Check it again after your next data upload.",
+};
+
+/**
+ * Returns a concise tooltip string for a known confidence/availability label,
+ * or null if the label doesn't warrant extra explanation.
+ */
+export function getConfidenceLabelTooltip(label: string | null): string | null {
+  if (!label) {
+    return null;
+  }
+
+  return CONFIDENCE_LABEL_TOOLTIPS[label] ?? null;
+}
+
 export function getTruthStateDescription(truth: ReportTruthMetadata, options?: TruthDescriptorOptions): string | null {
   const availability = inferAvailabilityFromTruth(truth);
   const reason = describeInsufficientReason(truth.insufficientReason);

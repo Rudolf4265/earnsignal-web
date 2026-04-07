@@ -4,7 +4,7 @@ import { footerLinks, marketingCtas, siteNavItems } from "@earnsigma/config";
 import { Container, Logo } from "@earnsigma/ui";
 import { appBaseUrl } from "@/src/lib/urls";
 
-const SHOW_PRELAUNCH_AUTH_ACTIONS = false;
+const SHOW_PRELAUNCH_AUTH_ACTIONS = true;
 
 function resolveAppHref(path: string): string {
   return `${appBaseUrl}${path}`;

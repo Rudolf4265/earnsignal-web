@@ -4,6 +4,7 @@ type StatusPillProps = {
   variant: "good" | "warn" | "neutral";
   children: ReactNode;
   className?: string;
+  tooltip?: string | null;
 };
 
 function joinClassNames(values: Array<string | null | undefined>): string {
@@ -16,9 +17,12 @@ const variantClasses: Record<StatusPillProps["variant"], string> = {
   neutral: "border-brand-border bg-brand-panel-muted/80 text-brand-text-secondary",
 };
 
-export function StatusPill({ variant, children, className }: StatusPillProps) {
+export function StatusPill({ variant, children, className, tooltip }: StatusPillProps) {
   return (
-    <span className={joinClassNames(["inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium", variantClasses[variant], className])}>
+    <span
+      className={joinClassNames(["inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium", variantClasses[variant], tooltip ? "cursor-help" : undefined, className])}
+      title={tooltip ?? undefined}
+    >
       {children}
     </span>
   );

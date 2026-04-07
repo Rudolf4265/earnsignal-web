@@ -7,7 +7,7 @@ import {
   type ReportViewModel,
   type ReportWhatChangedViewModel,
 } from "../report/normalize-artifact-to-report-model";
-import { validateReportArtifactContract } from "../report/artifact-contract";
+import { patchSparseArtifact, validateReportArtifactContract } from "../report/artifact-contract";
 
 export type DashboardRevenueTrendPoint = {
   label: string;
@@ -290,8 +290,9 @@ function pickRevenueTrend(artifact: unknown): DashboardRevenueTrendPoint[] {
 }
 
 export function hydrateDashboardFromArtifact(artifact: unknown): DashboardArtifactHydrationResult {
-  const contract = validateReportArtifactContract(artifact);
-  const normalized = normalizeArtifactToReportModel(artifact);
+  const patched = patchSparseArtifact(artifact);
+  const contract = validateReportArtifactContract(patched);
+  const normalized = normalizeArtifactToReportModel(patched);
   const keySignalsSection = findSectionByTitles(normalized.model.sections, ["Key Signals"]);
   const recommendationsSection = findSectionByTitles(normalized.model.sections, ["Recommended Actions"]);
   const typedKeySignals = normalized.model.signals.map((signal: ReportSignalViewModel) => signal.description ?? signal.title).filter(Boolean);
@@ -317,6 +318,6 @@ export function hydrateDashboardFromArtifact(artifact: unknown): DashboardArtifa
     revenueDeltaText: buildMetricDeltaText(normalized.model.whatChanged, "latest_net_revenue", formatSignedPercent, { preferPercent: true }),
     subscriberDeltaText: buildMetricDeltaText(normalized.model.whatChanged, "active_subscribers", formatSignedCount),
     trendPreview: normalized.model.outlook?.summary[0] ?? pickTrendPreview(normalized.model.sections, normalized.model.executiveSummaryParagraphs[0] ?? null),
-    revenueTrend: pickRevenueTrend(artifact),
+    revenueTrend: pickRevenueTrend(patched),
   };
 }

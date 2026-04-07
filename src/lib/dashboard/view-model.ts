@@ -33,7 +33,10 @@ export type BuildDashboardViewModelInput = {
 };
 
 function formatCurrency(value: number | null): string {
-  if (value === null) {
+  if (value === null || value === 0) {
+    // Treat 0 as unknown — dashboard KPI cards have no truth-metadata context to
+    // confirm a genuine $0. A real zero is extremely rare; showing "$--" is safer
+    // than surfacing a misleading "$0" for sparse-mode reports.
     return "$--";
   }
 

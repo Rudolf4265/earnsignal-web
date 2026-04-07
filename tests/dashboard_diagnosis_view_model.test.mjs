@@ -172,7 +172,7 @@ test("dashboard diagnosis view-model stays conservative for older artifacts with
   assert.equal(result.hasTypedDiagnosis, false);
   assert.equal(result.notice, null);
   assert.equal(result.comparisonContext, null);
-  assert.equal(result.unavailableBody, "This snapshot does not contain enough structured evidence to identify a primary growth constraint yet.");
+  assert.equal(result.unavailableBody, "Growth signals are present, but not yet specific enough to identify one clear primary constraint.");
 });
 
 test("dashboard diagnosis view-model keeps the no-report empty state unchanged", async () => {

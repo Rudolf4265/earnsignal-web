@@ -33,7 +33,9 @@ function clampMaxItems(value: number | null | undefined): number {
 }
 
 function formatCurrency(value: number | null): string | null {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  // Skip null and 0 — 0 is treated as "unavailable" in the KPI row since we
+  // have no truth-metadata context here to confirm a genuine $0 figure.
+  if (typeof value !== "number" || !Number.isFinite(value) || value === 0) {
     return null;
   }
 
@@ -45,7 +47,8 @@ function formatCurrency(value: number | null): string | null {
 }
 
 function formatWholeNumber(value: number | null): string | null {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
+  // Skip null and 0 — same reasoning as formatCurrency above.
+  if (typeof value !== "number" || !Number.isFinite(value) || value === 0) {
     return null;
   }
 

@@ -338,7 +338,7 @@ test("older artifacts without typed diagnosis or comparison stay conservative th
   assert.equal(dashboard.hasTypedDiagnosis, false);
   assert.equal(dashboard.notice, null);
   assert.equal(dashboard.comparisonContext, null);
-  assert.equal(dashboard.unavailableBody, "This snapshot does not contain enough structured evidence to identify a primary growth constraint yet.");
+  assert.equal(dashboard.unavailableBody, "Growth signals are present, but not yet specific enough to identify one clear primary constraint.");
   assert.equal(report.diagnosis.notice, null);
   assert.equal(report.diagnosis.unavailableBody, "Diagnosis details are not available in this report.");
   assert.equal(report.whatChanged.notice, null);

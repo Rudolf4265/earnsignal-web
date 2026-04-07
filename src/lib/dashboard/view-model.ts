@@ -48,8 +48,11 @@ function formatCurrency(value: number | null): string {
 }
 
 function formatNumber(value: number | null): string {
-  if (value === null) {
-    return "--";
+  if (value === null || value === 0) {
+    // Treat 0 as unknown — dashboard cards have no truth-metadata context to
+    // confirm a genuine zero subscriber count. Show a dash to avoid misleading
+    // users with a "0" that actually means "data unavailable."
+    return "—";
   }
 
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
@@ -133,9 +136,18 @@ export function buildDashboardViewModel(input: BuildDashboardViewModelInput): Da
     },
     revenueSnapshot: {
       revenueDisplay: formatCurrency(input.kpis.netRevenue),
-      revenueDeltaText: normalizeOptionalText(input.revenueDeltaText),
+      // When revenue is unavailable (null or 0), surface an explanatory subtext
+      // instead of falling back to the generic "comparison not available" message.
+      revenueDeltaText:
+        input.kpis.netRevenue === null || input.kpis.netRevenue === 0
+          ? "Insufficient data to estimate revenue."
+          : normalizeOptionalText(input.revenueDeltaText),
       subscribersDisplay: formatNumber(input.kpis.subscribers),
-      subscriberDeltaText: normalizeOptionalText(input.subscriberDeltaText),
+      // Same treatment for subscribers: make the unknown state explicit.
+      subscriberDeltaText:
+        input.kpis.subscribers === null || input.kpis.subscribers === 0
+          ? "Insufficient data to estimate subscriber baseline."
+          : normalizeOptionalText(input.subscriberDeltaText),
       revenueSparkline: normalizeSparkline(input.revenueSparkline),
       subscribersSparkline: normalizeSparkline(input.subscribersSparkline),
     },

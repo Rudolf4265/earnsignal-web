@@ -39,7 +39,7 @@ export function buildDashboardDiagnosisViewModel(input: BuildDashboardDiagnosisV
     supportingMetricLimit: 3,
     noticeFallbackBody: "Diagnosis is bounded by the available evidence in this report.",
     missingDiagnosisBody: hasReport
-      ? "This snapshot does not contain enough structured evidence to identify a primary growth constraint yet."
+      ? "Growth signals are present, but not yet specific enough to identify one clear primary constraint."
       : "Diagnosis will appear after your next completed report.",
     missingSummaryBody: "Diagnosis details are limited for this dashboard snapshot.",
   });

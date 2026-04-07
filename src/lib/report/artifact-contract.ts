@@ -349,8 +349,9 @@ const FALLBACK_INSIGHT = {
 };
 
 const FALLBACK_RECOMMENDATION = {
-  title: "Upload a fresh multi-period export",
-  description: "A broader export window will improve confidence and unlock stronger recommendations.",
+  title: "Upload a multi-period export to unlock higher-confidence revenue and retention insights.",
+  description:
+    "A broader export window gives the report engine more history to work with, improving confidence across revenue, subscriber, and retention diagnostics.",
   timeframe: "next 2 weeks",
   priority: "medium",
 };

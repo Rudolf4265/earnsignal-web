@@ -3,7 +3,7 @@ import { stubAuthenticatedSession, stubEntitlements, stubUnhandledApiRoutes } fr
 
 const FALLBACK_TITLE = "No primary constraint identified yet";
 const FALLBACK_BODY =
-  "This snapshot does not contain enough structured evidence to identify a primary growth constraint yet.";
+  "Growth signals are present, but not yet specific enough to identify one clear primary constraint.";
 const REPORT_DETAIL_DIAGNOSIS_FALLBACK = "Typed diagnosis is unavailable for this report artifact.";
 const DIAGNOSIS_TEXT = "Revenue concentration risk is the primary growth constraint.";
 const DASHBOARD_WHAT_CHANGED_TEXT = "Monthly revenue grew, but platform concentration increased.";

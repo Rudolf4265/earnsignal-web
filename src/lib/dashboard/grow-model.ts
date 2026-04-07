@@ -145,6 +145,28 @@ function toAudienceValueLabel(score: number): string {
   return `Audience quality score from the latest supported growth evidence (${score}/100).`;
 }
 
+/**
+ * When the grow hero has a strong creator score (positive tone) but the
+ * summary body carries "insufficient evidence" language from the earn
+ * diagnosis, the two statements contradict each other visually.
+ *
+ * Replace that copy with a calibrated statement that is honest about
+ * specificity while preserving the legitimately strong score signal.
+ */
+const INSUFFICIENT_EVIDENCE_PATTERN = /insufficient|too limited|not enough.*evidence|not enough.*structured/i;
+
+function sanitizeGrowthSummaryBody(body: string | null, tone: GrowDashboardTone): string | null {
+  if (!body) {
+    return null;
+  }
+
+  if (tone === "positive" && INSUFFICIENT_EVIDENCE_PATTERN.test(body)) {
+    return "Growth signals are strong overall, but not yet concentrated enough to call one clear primary constraint.";
+  }
+
+  return body;
+}
+
 function normalizeSummaryTone(data: NormalizedGrowDashboardData): GrowDashboardTone {
   if (data.creatorScore !== null) {
     return normalizeToneFromScore(data.creatorScore);
@@ -223,7 +245,9 @@ export function buildGrowDashboardModel(data: NormalizedGrowDashboardData): Grow
           rationale: data.bestPostingWindow.rationale ?? undefined,
         }
       : null;
-  const summaryBody = data.diagnosisSummary ?? data.trendSummary ?? null;
+  const rawSummaryBody = data.diagnosisSummary ?? data.trendSummary ?? null;
+  const summaryTone = normalizeSummaryTone(data);
+  const summaryBody = sanitizeGrowthSummaryBody(rawSummaryBody, summaryTone);
 
   return {
     availability: data.hasStructuredGrowthEvidence ? "structured" : "partial",
@@ -248,7 +272,7 @@ export function buildGrowDashboardModel(data: NormalizedGrowDashboardData): Grow
       ? {
           label: data.hasStructuredGrowthEvidence ? "Growth insights" : "Available guidance",
           body: summaryBody,
-          tone: normalizeSummaryTone(data),
+          tone: summaryTone,
         }
       : null,
     sourceUpdatedLabel: normalizeDateLabel(data.sourceUpdatedAt),

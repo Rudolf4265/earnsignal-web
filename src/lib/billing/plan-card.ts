@@ -1,8 +1,8 @@
 export type BillingPlanId = "report" | "pro";
 
 export const FREE_PLAN_ALIASES = new Set(["free", "none", "inactive", "no_plan"]);
-export const REPORT_PLAN_ALIASES = new Set(["report", "basic", "starter", "plan_a", "founder_creator_report", "founder"]);
-export const PRO_PLAN_ALIASES = new Set(["pro", "plan_b", "creator_pro", "protected_paid", "protected", "paid_equivalent"]);
+export const REPORT_PLAN_ALIASES = new Set(["a", "report", "basic", "starter", "plan_a", "founder_creator_report", "founder"]);
+export const PRO_PLAN_ALIASES = new Set(["b", "pro", "plan_b", "creator_pro", "protected_paid", "protected", "paid_equivalent"]);
 
 export type BillingPlanCardVariant =
   | "report_selectable"

@@ -102,6 +102,8 @@ test("cta label and disabled semantics stay aligned with current active plan beh
   assert.equal(inactiveCurrentPro.checkoutDisabled, false);
   assert.equal(checkoutBlocked.checkoutDisabled, true);
   assert.equal(formatPlanLabel("free"), "Free");
+  assert.equal(formatPlanLabel("A"), "Report");
+  assert.equal(formatPlanLabel("B"), "Pro");
   assert.equal(formatPlanLabel("founder_creator_report"), "Report");
   assert.equal(formatPlanLabel("paid_equivalent"), "Pro");
 });

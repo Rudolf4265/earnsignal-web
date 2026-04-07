@@ -4,7 +4,7 @@ import path from "node:path";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
-function createWindow(hostname = "app.earnsigma.com") {
+function createWindow(hostname = "preview-1.vercel.app") {
   const store = new Map();
   return {
     location: { hostname, protocol: hostname.includes("localhost") ? "http:" : "https:" },
@@ -147,6 +147,37 @@ test("createCheckoutSession falls back to legacy endpoint only when canonical en
   delete global.window;
 });
 
+test("createCheckoutSession on the production host does not fall back to legacy endpoints", async () => {
+  const calls = [];
+
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = "pk_live_checkout_prod";
+  process.env.NEXT_PUBLIC_STRIPE_BILLING_MODE = "live";
+  process.env.NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID = "price_report_live";
+  process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID = "price_pro_live";
+
+  global.window = createWindow("app.earnsigma.com");
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    return jsonResponse({ message: "not found" }, 404);
+  };
+
+  const moduleUrl = await buildEntitlementsTestModule(`prod-no-fallback-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
+
+  await assert.rejects(createCheckoutSession("report"), /request failed|not found/i);
+  assert.equal(calls.includes("/v1/billing/checkout"), false);
+  assert.equal(calls.includes("/v1/checkout"), false);
+  assert.equal(calls.every((url) => url === "/v1/billing/create-checkout-session"), true);
+
+  clearCheckoutAttempt();
+  delete global.fetch;
+  delete global.window;
+  delete process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  delete process.env.NEXT_PUBLIC_STRIPE_BILLING_MODE;
+  delete process.env.NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID;
+  delete process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
+});
+
 test("createCheckoutSession does not call legacy endpoints on canonical 500 errors", async () => {
   const calls = [];
 
@@ -249,6 +280,63 @@ test("createCheckoutSession validates selected plan before API request", async (
   clearCheckoutAttempt();
   delete global.fetch;
   delete global.window;
+});
+
+test("createCheckoutSession fails loudly on the production host when Stripe is still configured for test mode", async () => {
+  const calls = [];
+
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = "pk_test_checkout_bad";
+  process.env.NEXT_PUBLIC_STRIPE_BILLING_MODE = "test";
+  process.env.NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID = "price_report_test";
+  process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID = "price_pro_test";
+
+  global.window = createWindow("app.earnsigma.com");
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    return jsonResponse({});
+  };
+
+  const moduleUrl = await buildEntitlementsTestModule(`prod-test-key-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
+
+  await assert.rejects(createCheckoutSession("pro"), /test Stripe publishable key detected/i);
+  assert.equal(calls.length, 0);
+
+  clearCheckoutAttempt();
+  delete global.fetch;
+  delete global.window;
+  delete process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  delete process.env.NEXT_PUBLIC_STRIPE_BILLING_MODE;
+  delete process.env.NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID;
+  delete process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
+});
+
+test("createCheckoutSession fails loudly on the production host when required live price ids are missing", async () => {
+  const calls = [];
+
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = "pk_live_checkout_good";
+  process.env.NEXT_PUBLIC_STRIPE_BILLING_MODE = "live";
+  delete process.env.NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID;
+  process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID = "price_pro_live";
+
+  global.window = createWindow("app.earnsigma.com");
+  global.fetch = async (url) => {
+    calls.push(String(url));
+    return jsonResponse({});
+  };
+
+  const moduleUrl = await buildEntitlementsTestModule(`prod-missing-price-${Date.now()}`);
+  const { createCheckoutSession, clearCheckoutAttempt } = await import(moduleUrl);
+
+  await assert.rejects(createCheckoutSession("report"), /missing NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID/i);
+  assert.equal(calls.length, 0);
+
+  clearCheckoutAttempt();
+  delete global.fetch;
+  delete global.window;
+  delete process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  delete process.env.NEXT_PUBLIC_STRIPE_BILLING_MODE;
+  delete process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
 });
 
 test("createCheckoutSession in-flight lock dedupes repeated calls", async () => {

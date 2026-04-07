@@ -34,6 +34,11 @@ test("admin pages include hardened loading and not-authorized test markers", asy
   assert.equal(listSource.includes("Search by email (creator ID also works)"), true);
   assert.equal(listSource.includes("No email on record"), true);
   assert.equal(listSource.includes("Grant access by email"), true);
+  assert.equal(listSource.includes("Commercial tier"), true);
+  assert.equal(listSource.includes(">Report<"), true);
+  assert.equal(listSource.includes(">Pro<"), true);
+  assert.equal(listSource.includes("Basic (A)"), false);
+  assert.equal(listSource.includes("Pro (B)"), false);
   assert.equal(listSource.includes("Recent users"), true);
   assert.equal(listSource.includes("Show archived users"), true);
   assert.equal(listSource.includes("No account found for that email."), true);

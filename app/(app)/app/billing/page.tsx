@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { formatPricingPlanPrice, getPricingPlan } from "@earnsigma/config";
 import { buttonClassName } from "@/src/components/ui/button";
 import {
   clearCheckoutAttempt,
   checkoutAttemptInProgress,
+  createBillingPortalSession,
   createCheckoutSession,
   fetchBillingStatus,
   type BillingStatusResponse,
@@ -15,6 +15,7 @@ import {
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { ApiError, isApiError } from "@/src/lib/api/client";
 import { buildBillingPlanCardViewModel, formatPlanLabel } from "@/src/lib/billing/plan-card";
+import { buildSubscriptionStateViewModel } from "@/src/lib/billing/subscription-state";
 import { useAppGate } from "../../_components/app-gate-provider";
 import { useEntitlementState } from "../../_components/use-entitlement-state";
 import { SessionExpiredCallout } from "../../_components/gate-callouts";
@@ -70,27 +71,6 @@ function isCheckoutConfigError(error: unknown): error is ApiError {
   return error instanceof ApiError && CHECKOUT_CONFIG_ERROR_CODES.has(error.code);
 }
 
-function formatAccessStateLabel(status: string | null | undefined, isActive: boolean): string {
-  if (isActive) {
-    return "Active";
-  }
-
-  const normalized = String(status ?? "").trim().toLowerCase();
-  if (!normalized || normalized === "inactive") {
-    return "Inactive";
-  }
-
-  if (normalized === "past_due") {
-    return "Past due";
-  }
-
-  if (normalized === "canceled" || normalized === "cancelled") {
-    return "Canceled";
-  }
-
-  return normalized.replace(/_/g, " ");
-}
-
 function formatAccessSourceLabel(source: string | null | undefined, accessReasonCode: string | null | undefined): string {
   const normalizedSource = String(source ?? "").trim().toLowerCase();
   const normalizedReason = String(accessReasonCode ?? "").trim().toLowerCase();
@@ -112,6 +92,24 @@ function formatAccessSourceLabel(source: string | null | undefined, accessReason
   }
 
   return "Premium access";
+}
+
+function formatResolutionSourceCode(source: string | null | undefined, isActive: boolean): string {
+  const normalizedSource = String(source ?? "").trim().toLowerCase();
+  if (!normalizedSource || normalizedSource === "none") {
+    return isActive ? "unknown" : "fallback_free";
+  }
+
+  return normalizedSource;
+}
+
+function formatResolutionReasonCode(accessReasonCode: string | null | undefined, isActive: boolean): string {
+  const normalizedReason = String(accessReasonCode ?? "").trim();
+  if (normalizedReason.length > 0) {
+    return normalizedReason;
+  }
+
+  return isActive ? "ENTITLEMENT_ACTIVE" : "FALLBACK_FREE";
 }
 
 function formatInactiveAccessMessage(accessReasonCode: string | null | undefined): string | null {
@@ -152,8 +150,10 @@ export default function BillingPage() {
   const [checkoutConfigError, setCheckoutConfigError] = useState<{ message: string; requestId?: string } | null>(null);
   const [hasCheckoutMarker, setHasCheckoutMarker] = useState(() => checkoutAttemptInProgress());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCreatingPortal, setIsCreatingPortal] = useState(false);
   const [billingStatus, setBillingStatus] = useState<BillingStatusResponse | null>(null);
   const [billingStatusError, setBillingStatusError] = useState<{ message: string; requestId?: string } | null>(null);
+  const [portalError, setPortalError] = useState<{ message: string; requestId?: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,6 +192,7 @@ export default function BillingPage() {
     setIsCreatingCheckout(plan);
     setCheckoutError(null);
     setCheckoutConfigError(null);
+    setPortalError(null);
 
     try {
       const { checkout_url } = await createCheckoutSession(plan);
@@ -219,6 +220,7 @@ export default function BillingPage() {
   const refreshBillingAndEntitlements = async () => {
     setIsRefreshing(true);
     setCheckoutError(null);
+    setPortalError(null);
 
     try {
       const [entitlementsResult, billingStatusResult] = await Promise.allSettled([
@@ -253,6 +255,22 @@ export default function BillingPage() {
     }
   };
 
+  const handleManageSubscription = async () => {
+    setIsCreatingPortal(true);
+    setPortalError(null);
+
+    try {
+      const { portal_url } = await createBillingPortalSession();
+      window.location.assign(portal_url);
+    } catch (err) {
+      setPortalError({
+        message: err instanceof Error ? err.message : "Unable to open subscription management.",
+        requestId: isApiError(err) ? err.requestId : undefined,
+      });
+      setIsCreatingPortal(false);
+    }
+  };
+
   const checkoutConfigured = billingStatus?.checkoutConfigured ?? true;
   const configBlocksCheckout = checkoutConfigured === false || checkoutConfigError !== null;
   const allowCheckout = !hasCheckoutMarker && isCreatingCheckout === null && !configBlocksCheckout;
@@ -262,7 +280,6 @@ export default function BillingPage() {
   const source = billingStatus?.entitlementSource ?? entitlementState.entitlementSource ?? entitlements?.source ?? null;
   const accessReasonCode = billingStatus?.accessReasonCode ?? entitlementState.accessReasonCode;
   const billingRequired = (billingStatus?.billingRequired ?? entitlementState.billingRequired) === true;
-  const portalUrl = billingStatus?.portalUrl ?? entitlements?.portalUrl ?? entitlements?.portal_url;
   const usageSummary = useMemo(() => {
     const generated = entitlements?.reportsGeneratedThisPeriod;
     const remaining = entitlements?.reportsRemainingThisPeriod;
@@ -274,9 +291,20 @@ export default function BillingPage() {
 
     return formatUsageSummary({ generated, remaining, limit });
   }, [entitlements?.monthlyReportLimit, entitlements?.reportsGeneratedThisPeriod, entitlements?.reportsRemainingThisPeriod]);
-  const accessStateLabel = formatAccessStateLabel(activeStatus, isActive);
   const accessSourceLabel = isActive ? formatAccessSourceLabel(source, accessReasonCode) : "No premium access active";
   const inactiveAccessMessage = !isActive ? formatInactiveAccessMessage(accessReasonCode) : null;
+  const subscriptionState = buildSubscriptionStateViewModel({
+    effectivePlanTier: activePlanTier === "report" || activePlanTier === "pro" ? activePlanTier : "free",
+    accessGranted: isActive,
+    entitlementSource: source,
+    status: activeStatus,
+    cancelAtPeriodEnd: billingStatus?.cancelAtPeriodEnd ?? null,
+    currentPeriodEnd: billingStatus?.currentPeriodEnd ?? null,
+    stripeCustomerId: billingStatus?.stripeCustomerId ?? null,
+    stripeSubscriptionId: billingStatus?.stripeSubscriptionId ?? null,
+  });
+  const resolutionSourceCode = formatResolutionSourceCode(source, isActive);
+  const resolutionReasonCode = formatResolutionReasonCode(accessReasonCode, isActive);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -300,8 +328,10 @@ export default function BillingPage() {
           </button>
         </div>
 
-        <p className="mt-3 text-sm text-brand-text-secondary" data-testid="billing-current-plan">{`Current plan: ${formatPlanLabel(activePlanTier)} | ${accessStateLabel}`}</p>
+        <p className="mt-3 text-sm text-brand-text-secondary" data-testid="billing-current-plan">{`Current plan: ${formatPlanLabel(activePlanTier)} | ${subscriptionState.stateLabel}`}</p>
         <p className="mt-1 text-xs text-brand-text-muted">{`Access: ${accessSourceLabel}`}</p>
+        <p className="mt-1 text-xs text-brand-text-muted">{`Resolution: ${formatPlanLabel(activePlanTier)} via ${resolutionSourceCode} (${resolutionReasonCode})`}</p>
+        {subscriptionState.description ? <p className="mt-1 text-xs text-brand-text-muted">{subscriptionState.description}</p> : null}
         {!isActive && billingRequired ? <p className="mt-1 text-xs text-amber-100">Update billing to restore premium access.</p> : null}
         {inactiveAccessMessage ? <p className="mt-1 text-xs text-brand-text-muted">{inactiveAccessMessage}</p> : null}
         {usageSummary ? <p className="mt-1 text-xs text-brand-text-muted">{usageSummary}</p> : null}
@@ -326,6 +356,17 @@ export default function BillingPage() {
           />
         ) : null}
 
+        {portalError ? (
+          <ErrorBanner
+            className="mt-4"
+            title="Subscription management unavailable"
+            message={portalError.message}
+            requestId={portalError.requestId}
+            onRetry={() => void handleManageSubscription()}
+            retryLabel="Try again"
+          />
+        ) : null}
+
         {checkoutConfigError ? (
           <ErrorBanner
             className="mt-4"
@@ -338,12 +379,17 @@ export default function BillingPage() {
           />
         ) : null}
 
-        {portalUrl ? (
-          <Link href={portalUrl} className={buttonClassName({ variant: "secondary", className: "mt-4" })}>
-            Manage Pro subscription
-          </Link>
+        {subscriptionState.showManageSubscription ? (
+          <button
+            type="button"
+            onClick={() => void handleManageSubscription()}
+            className={buttonClassName({ variant: "secondary", className: "mt-4" })}
+            disabled={isCreatingPortal}
+          >
+            {isCreatingPortal ? "Opening..." : subscriptionState.manageSubscriptionLabel}
+          </button>
         ) : (
-          <p className="mt-3 text-xs text-brand-text-muted">Subscription management appears here when you have an active Pro subscription.</p>
+          <p className="mt-3 text-xs text-brand-text-muted">Subscription management appears here when you have an active or canceling Pro subscription.</p>
         )}
       </section>
 

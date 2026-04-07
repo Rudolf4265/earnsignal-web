@@ -168,3 +168,47 @@ test("canonical deny state wins over permissive legacy aliases", async () => {
   assert.equal(canDownloadPdfFromEntitlement(value), false);
   assert.equal(hasProEquivalentEntitlement(value), false);
 });
+
+test("brand-new user with an inactive legacy report row still resolves to Free", async () => {
+  const { resolveEffectivePlanTier, resolveEntitlementSource, resolveAccessGranted, canViewOwnedReportFromEntitlement } = await loadModel(
+    Date.now() + 7,
+  );
+
+  const value = {
+    effective_plan_tier: "report",
+    plan_tier: "plan_a",
+    plan: "plan_a",
+    entitlement_source: "none",
+    access_granted: false,
+    status: "inactive",
+    can_view_reports: true,
+    can_download_pdf: true,
+  };
+
+  assert.equal(resolveEffectivePlanTier(value), "free");
+  assert.equal(resolveEntitlementSource(value), null);
+  assert.equal(resolveAccessGranted(value), false);
+  assert.equal(canViewOwnedReportFromEntitlement(value), false);
+});
+
+test("inactive unpaid report-like rows do not resolve to Report", async () => {
+  const { resolveEffectivePlanTier, resolveEntitlementSource, resolveAccessGranted, canDownloadPdfFromEntitlement } = await loadModel(
+    Date.now() + 8,
+  );
+
+  const value = {
+    effective_plan_tier: "report",
+    plan_tier: "report",
+    entitlement_source: "owned_report",
+    access_granted: false,
+    access_reason_code: "PAYMENT_REQUIRED",
+    status: "incomplete",
+    can_view_owned_report: false,
+    can_download_owned_report: false,
+  };
+
+  assert.equal(resolveEffectivePlanTier(value), "free");
+  assert.equal(resolveEntitlementSource(value), null);
+  assert.equal(resolveAccessGranted(value), false);
+  assert.equal(canDownloadPdfFromEntitlement(value), false);
+});

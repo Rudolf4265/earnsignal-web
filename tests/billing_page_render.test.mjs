@@ -11,9 +11,10 @@ test("billing page copy stays product-facing and avoids internal entitlement phr
   assert.equal(source.includes("Current plan:"), true);
   assert.equal(source.includes("Admin-granted access"), true);
   assert.equal(source.includes("Subscription access"), true);
+  assert.equal(source.includes("Resolution:"), true);
   assert.equal(source.includes("Update billing to restore premium access."), true);
   assert.equal(source.includes("reports used this period"), true);
-  assert.equal(source.includes("Subscription management appears here when you have an active Pro subscription."), true);
+  assert.equal(source.includes("Subscription management appears here when you have an active or canceling Pro subscription."), true);
   assert.equal(source.includes("Checkout unavailable"), true);
   assert.equal(source.includes("formatPricingPlanPrice(reportPlan)"), true);
   assert.equal(source.includes("reportPlan.badge"), true);

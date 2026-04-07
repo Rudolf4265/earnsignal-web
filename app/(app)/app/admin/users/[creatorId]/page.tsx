@@ -16,6 +16,7 @@ import {
 import { AdminEntitlementSourceBadge } from "@/src/components/ui/admin-entitlement-source-badge";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
+import { formatPlanLabel } from "@/src/lib/billing/plan-card";
 import { deriveAdminRenderState } from "@/src/lib/gating/admin-guard";
 
 function formatTimestamp(value: string | null): string {
@@ -134,7 +135,7 @@ export default function AdminUserDetailPage() {
 
         <article className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-4">
           <h2 className="text-lg font-medium">Entitlement</h2>
-          <p className="text-sm">Effective plan: {user.plan ?? "none"}</p>
+          <p className="text-sm">Effective plan: {formatPlanLabel(user.plan ?? user.planTier)}</p>
           <div className="flex items-center gap-2 text-sm">
             <span>Source:</span>
             <AdminEntitlementSourceBadge source={user.entitlementSource} accessReasonCode={user.accessReasonCode} />

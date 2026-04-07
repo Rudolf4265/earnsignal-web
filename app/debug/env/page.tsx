@@ -18,6 +18,18 @@ function maskAnonKey(value: string | undefined): string {
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }
 
+function maskPublishableKey(value: string | undefined): string {
+  if (!value) {
+    return "(missing)";
+  }
+
+  if (value.length <= 12) {
+    return `${value.slice(0, 4)}...${value.slice(-2)}`;
+  }
+
+  return `${value.slice(0, 7)}...${value.slice(-4)}`;
+}
+
 export default function PublicEnvDebugPage() {
   assertDebugEnabled();
 
@@ -33,6 +45,10 @@ export default function PublicEnvDebugPage() {
       maskAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     ],
     ["NEXT_PUBLIC_API_BASE_URL", process.env.NEXT_PUBLIC_API_BASE_URL ?? "(missing)"],
+    ["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", maskPublishableKey(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)],
+    ["NEXT_PUBLIC_STRIPE_BILLING_MODE", process.env.NEXT_PUBLIC_STRIPE_BILLING_MODE ?? "(missing)"],
+    ["NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID", process.env.NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID ?? "(missing)"],
+    ["NEXT_PUBLIC_STRIPE_PRO_PRICE_ID", process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID ?? "(missing)"],
     ["VERCEL_ENV", process.env.VERCEL_ENV ?? "(missing)"],
     ["NEXT_PUBLIC_VERCEL_ENV", process.env.NEXT_PUBLIC_VERCEL_ENV ?? "(missing)"],
   ];

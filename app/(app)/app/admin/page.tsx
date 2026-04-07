@@ -8,6 +8,7 @@ import { AdminListMode, AdminUserRow, fetchAdminUsers, grantAdminAccessByEmail }
 import { AdminEntitlementSourceBadge } from "@/src/components/ui/admin-entitlement-source-badge";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
+import { formatPlanLabel } from "@/src/lib/billing/plan-card";
 import { deriveAdminRenderState } from "@/src/lib/gating/admin-guard";
 
 function formatTimestamp(value: string | null): string {
@@ -184,7 +185,7 @@ export default function AdminUsersPage() {
                       <td className="px-2 py-2 font-mono text-xs text-gray-300">{user.creatorId}</td>
                       <td className="px-2 py-2">
                         <div className="flex items-center gap-2">
-                          <span>{user.plan ?? "none"}</span>
+                          <span>{formatPlanLabel(user.plan ?? user.planTier)}</span>
                           <AdminEntitlementSourceBadge source={user.entitlementSource} />
                         </div>
                       </td>
@@ -211,7 +212,7 @@ export default function AdminUsersPage() {
         <aside className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-4">
           <div className="space-y-1">
             <h2 className="text-lg font-medium">Grant access by email</h2>
-            <p className="text-xs text-gray-400">Grant paid-equivalent access without looking up a raw creator UUID first.</p>
+            <p className="text-xs text-gray-400">Set Report or Pro access without looking up a raw creator UUID first. Free remains the default when paid access is absent.</p>
           </div>
 
           <form
@@ -300,14 +301,14 @@ export default function AdminUsersPage() {
             </label>
 
             <label className="block space-y-1 text-xs text-gray-300">
-              <span>Plan tier</span>
+              <span>Commercial tier</span>
               <select
                 value={grantPlanTier}
                 onChange={(event) => setGrantPlanTier(event.target.value === "A" ? "A" : "B")}
                 className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
               >
-                <option value="B">Pro (B)</option>
-                <option value="A">Basic (A)</option>
+                <option value="B">Pro</option>
+                <option value="A">Report</option>
               </select>
             </label>
 

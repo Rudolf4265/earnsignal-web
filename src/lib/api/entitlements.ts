@@ -121,6 +121,9 @@ export type EntitlementsResponse = Omit<
 export type CheckoutResponse = {
   checkout_url: CheckoutSessionResponseSchema["checkout_url"];
 };
+export type BillingPortalSessionResponse = {
+  portal_url: string;
+};
 export type BillingStatusResponse = Omit<
   BillingStatusResponseSchema,
   | "creator_id"
@@ -186,10 +189,13 @@ const CHECKOUT_ATTEMPT_KEY = "earnsignal.checkout.attempt.v1";
 const CHECKOUT_ATTEMPT_TTL_MS = 20_000;
 export const CANONICAL_ENTITLEMENTS_PATH = "/v1/entitlements";
 const CANONICAL_CHECKOUT_PATH = "/v1/billing/create-checkout-session";
+const BILLING_PORTAL_SESSION_PATH = "/v1/billing/create-portal-session";
 const LEGACY_BILLING_CHECKOUT_PATH = "/v1/billing/checkout";
 const LEGACY_CHECKOUT_PATH = "/v1/checkout";
 const BILLING_STATUS_PATH = "/v1/billing/status";
 const DEFAULT_STATUS = "inactive";
+const DEFAULT_PRIMARY_DOMAIN = "earnsigma.com";
+const STRIPE_MODE_ENV_NAME = "NEXT_PUBLIC_STRIPE_BILLING_MODE";
 
 const CHECKOUT_PLAN_ALIASES: Record<string, CheckoutPlan> = {
   report: "report",
@@ -206,6 +212,17 @@ const ACTIVE_STATUSES = new Set(["active", "trialing", "trial", "grace_period"])
 const LEGACY_PLAN_BY_CHECKOUT_PLAN: Record<CheckoutPlan, CheckoutCreateRequestSchema["plan"]> = {
   report: "plan_a",
   pro: "plan_b",
+};
+
+type StripeKeyMode = "live" | "test" | "missing" | "unknown";
+
+type CheckoutRuntimeEnvironment = {
+  appEnvironment: "production" | "non_production";
+  host: string | null;
+  stripeMode: "live" | "test" | "unknown";
+  publishableKeyMode: StripeKeyMode;
+  configuredPriceId: string | null;
+  priceIdEnvName: string;
 };
 
 let entitlementsMemoryCache: { value: EntitlementsResponse; fetchedAt: number } | null = null;
@@ -299,6 +316,117 @@ function normalizeString(value: string): string | null {
   return trimmed.toLowerCase();
 }
 
+function normalizeHost(value: string | null | undefined): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function inferStripePublishableKeyMode(value: string | undefined): StripeKeyMode {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return "missing";
+  }
+
+  if (trimmed.startsWith("pk_live_")) {
+    return "live";
+  }
+
+  if (trimmed.startsWith("pk_test_")) {
+    return "test";
+  }
+
+  return "unknown";
+}
+
+function getPublicPriceIdEnvName(plan: CheckoutPlan): string {
+  return plan === "pro" ? "NEXT_PUBLIC_STRIPE_PRO_PRICE_ID" : "NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID";
+}
+
+function getConfiguredPublicPriceId(plan: CheckoutPlan): string | null {
+  const value =
+    plan === "pro" ? process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID?.trim() : process.env.NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID?.trim();
+  return value && value.length > 0 ? value : null;
+}
+
+function isProductionCheckoutEnvironment(): boolean {
+  const configuredEnv = normalizeString(process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.VERCEL_ENV ?? "");
+  if (configuredEnv === "production") {
+    return true;
+  }
+
+  if (typeof window === "undefined") {
+    return process.env.NODE_ENV === "production";
+  }
+
+  const host = normalizeHost(window.location.hostname);
+  const primaryDomain = normalizeHost(process.env.NEXT_PUBLIC_PRIMARY_DOMAIN ?? DEFAULT_PRIMARY_DOMAIN) ?? DEFAULT_PRIMARY_DOMAIN;
+  return (
+    window.location.protocol === "https:" &&
+    (host === primaryDomain || host === `www.${primaryDomain}` || host === `app.${primaryDomain}`)
+  );
+}
+
+function resolveCheckoutRuntimeEnvironment(plan: CheckoutPlan): CheckoutRuntimeEnvironment {
+  const configuredStripeMode = normalizeString(process.env.NEXT_PUBLIC_STRIPE_BILLING_MODE ?? "");
+  const publishableKeyMode = inferStripePublishableKeyMode(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+
+  return {
+    appEnvironment: isProductionCheckoutEnvironment() ? "production" : "non_production",
+    host: typeof window === "undefined" ? null : normalizeHost(window.location.hostname),
+    stripeMode:
+      configuredStripeMode === "live" || configuredStripeMode === "test"
+        ? configuredStripeMode
+        : publishableKeyMode === "live" || publishableKeyMode === "test"
+          ? publishableKeyMode
+          : "unknown",
+    publishableKeyMode,
+    configuredPriceId: getConfiguredPublicPriceId(plan),
+    priceIdEnvName: getPublicPriceIdEnvName(plan),
+  };
+}
+
+function assertCheckoutRuntimeEnvironment(plan: CheckoutPlan): CheckoutRuntimeEnvironment {
+  const runtime = resolveCheckoutRuntimeEnvironment(plan);
+  if (runtime.appEnvironment !== "production") {
+    return runtime;
+  }
+
+  if (runtime.publishableKeyMode === "test") {
+    throw new Error("Production billing is misconfigured: test Stripe publishable key detected.");
+  }
+
+  if (runtime.stripeMode !== "live") {
+    throw new Error(`Production billing is misconfigured: ${STRIPE_MODE_ENV_NAME} must be set to live.`);
+  }
+
+  if (!runtime.configuredPriceId) {
+    throw new Error(`Production billing is misconfigured: missing ${runtime.priceIdEnvName}.`);
+  }
+
+  return runtime;
+}
+
+function allowLegacyCheckoutCompatibility(): boolean {
+  return !isProductionCheckoutEnvironment();
+}
+
+function logCheckoutEvent(
+  level: "info" | "warn",
+  stage: string,
+  detail: Record<string, unknown>,
+) {
+  if (process.env.NODE_ENV === "test") {
+    return;
+  }
+
+  const logger = level === "warn" ? console.warn : console.info;
+  logger(`[billing.checkout.${stage}]`, detail);
+}
+
 function normalizeFeatures(value: unknown): EntitlementFeatures {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
@@ -320,26 +448,6 @@ function asRecord(value: unknown): Record<string, unknown> {
   }
 
   return value as Record<string, unknown>;
-}
-
-function hasAnyTrue(values: Array<boolean | undefined>): boolean {
-  for (const value of values) {
-    if (value === true) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function resolvePlanTier(raw: Record<string, unknown>): string {
-  return resolveEffectivePlanTier({
-    effective_plan_tier: asNullableString(raw.effective_plan_tier),
-    effectivePlanTier: asNullableString(raw.effectivePlanTier),
-    plan_tier: asNullableString(raw.plan_tier),
-    planTier: asNullableString(raw.planTier),
-    plan: asNullableString(raw.plan),
-  });
 }
 
 function resolveAccessReasonCode(raw: Record<string, unknown>): string | null {
@@ -406,12 +514,6 @@ function normalizeCapabilityContract(raw: Record<string, unknown>): CapabilityCo
 function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string, unknown>): EntitlementsResponse {
   const raw = asRecord(value);
   const features = normalizeFeatures(raw.features);
-  const effectivePlanTier = resolvePlanTier(raw);
-  const entitlementSource = resolveEntitlementSource({
-    entitlement_source: asNullableString(raw.entitlement_source),
-    entitlementSource: asNullableString(raw.entitlementSource),
-    source: asNullableString(raw.source),
-  });
   const accessReasonCode = resolveAccessReasonCode(raw);
   const explicitAccessGranted =
     asBoolean(raw.access_granted) ??
@@ -422,32 +524,17 @@ function normalizeEntitlements(value: EntitlementsResponseSchema | Record<string
   const inferredStatus = asNullableString(raw.status);
   const inferredStatusNormalized = typeof inferredStatus === "string" ? normalizeString(inferredStatus) : null;
   const isStatusActive = inferredStatusNormalized ? ACTIVE_STATUSES.has(inferredStatusNormalized) : false;
-  const hasPaidCapabilitySignal = hasAnyTrue([
-    asBoolean(raw.can_generate_paid_report),
-    asBoolean(raw.canGeneratePaidReport),
-    asBoolean(raw.can_view_owned_report),
-    asBoolean(raw.canViewOwnedReport),
-    asBoolean(raw.can_download_owned_report),
-    asBoolean(raw.canDownloadOwnedReport),
-    asBoolean(raw.can_view_report_history),
-    asBoolean(raw.canViewReportHistory),
-    asBoolean(raw.can_access_dashboard_intelligence),
-    asBoolean(raw.canAccessDashboardIntelligence),
-    asBoolean(raw.can_access_recurring_monitoring),
-    asBoolean(raw.canAccessRecurringMonitoring),
-    asBoolean(raw.can_access_pro_comparisons_or_future_pro_features),
-    asBoolean(raw.canAccessProComparisonsOrFutureProFeatures),
-    asBoolean(raw.can_generate_report),
-    asBoolean(raw.canGenerateReport),
-    asBoolean(raw.can_view_reports),
-    asBoolean(raw.canViewReports),
-    asBoolean(raw.can_download_pdf),
-    asBoolean(raw.canDownloadPdf),
-    asBoolean(raw.can_access_dashboard),
-    asBoolean(raw.canAccessDashboard),
-  ]);
-  const accessGranted =
-    typeof explicitAccessGranted === "boolean" ? explicitAccessGranted : isStatusActive || hasPaidCapabilitySignal;
+  const accessGranted = typeof explicitAccessGranted === "boolean" ? explicitAccessGranted : isStatusActive;
+  const effectivePlanTier = resolveEffectivePlanTier({
+    ...raw,
+    access_granted: accessGranted,
+    accessGranted,
+  });
+  const entitlementSource = resolveEntitlementSource({
+    ...raw,
+    access_granted: accessGranted,
+    accessGranted,
+  });
   const status = resolveStatus(raw, accessGranted);
   const billingRequired =
     asBoolean(raw.billing_required) ??
@@ -808,6 +895,19 @@ function extractCheckoutUrl(payload: Partial<CheckoutSessionResponseSchema> & Re
   return checkoutUrl;
 }
 
+function extractPortalUrl(payload: Record<string, unknown>): string | null {
+  const portalUrl =
+    (payload.portal_url as string | undefined) ??
+    (payload.portalUrl as string | undefined) ??
+    (payload.url as string | undefined);
+
+  if (!portalUrl || typeof portalUrl !== "string") {
+    return null;
+  }
+
+  return portalUrl;
+}
+
 function validateCheckoutUrl(rawUrl: string): string {
   try {
     const parsed = new URL(rawUrl);
@@ -910,6 +1010,22 @@ async function requestCheckout(path: string, payload: Record<string, unknown>): 
     throw new Error("Checkout URL missing from response");
   }
 
+  const returnedPlan = normalizeCheckoutPlan(
+    (typeof body.plan_tier === "string" ? body.plan_tier : null) ??
+      (typeof body.plan === "string" ? body.plan : null) ??
+      (typeof body.planTier === "string" ? body.planTier : null) ??
+      "",
+  );
+  const requestedPlan = normalizeCheckoutPlan(
+    (typeof payload.plan_tier === "string" ? payload.plan_tier : null) ??
+      (typeof payload.plan === "string" ? payload.plan : null) ??
+      "",
+  );
+
+  if (requestedPlan && returnedPlan && requestedPlan !== returnedPlan && isProductionCheckoutEnvironment()) {
+    throw new Error("Checkout plan mismatch returned by billing API.");
+  }
+
   return { checkout_url: validateCheckoutUrl(checkoutUrl) };
 }
 
@@ -927,12 +1043,41 @@ export async function createCheckoutSession(plan: CheckoutPlan | string): Promis
     throw new Error("Checkout is already starting. Please wait a moment.");
   }
 
+  const runtime = assertCheckoutRuntimeEnvironment(normalizedPlan);
+  logCheckoutEvent("info", "start", {
+    requestedPlan: normalizedPlan,
+    appEnvironment: runtime.appEnvironment,
+    host: runtime.host,
+    stripeMode: runtime.stripeMode,
+    publishableKeyMode: runtime.publishableKeyMode,
+    configuredPriceId: runtime.configuredPriceId,
+  });
   setCheckoutAttemptMarker();
 
   inFlightCheckout = (async () => {
     try {
+      if (!allowLegacyCheckoutCompatibility()) {
+        const response = await requestCheckout(CANONICAL_CHECKOUT_PATH, { plan_tier: normalizedPlan });
+        logCheckoutEvent("info", "success", {
+          requestedPlan: normalizedPlan,
+          appEnvironment: runtime.appEnvironment,
+          stripeMode: runtime.stripeMode,
+          configuredPriceId: runtime.configuredPriceId,
+          endpoint: CANONICAL_CHECKOUT_PATH,
+        });
+        return response;
+      }
+
       try {
-        return await requestCheckout(CANONICAL_CHECKOUT_PATH, { plan_tier: normalizedPlan });
+        const response = await requestCheckout(CANONICAL_CHECKOUT_PATH, { plan_tier: normalizedPlan });
+        logCheckoutEvent("info", "success", {
+          requestedPlan: normalizedPlan,
+          appEnvironment: runtime.appEnvironment,
+          stripeMode: runtime.stripeMode,
+          configuredPriceId: runtime.configuredPriceId,
+          endpoint: CANONICAL_CHECKOUT_PATH,
+        });
+        return response;
       } catch (error) {
         if (!shouldRetryWithLegacyPayload(error)) {
           throw error;
@@ -941,7 +1086,7 @@ export async function createCheckoutSession(plan: CheckoutPlan | string): Promis
         return requestCheckout(CANONICAL_CHECKOUT_PATH, { plan: toLegacyCheckoutPlan(normalizedPlan) });
       }
     } catch (err) {
-      if (!shouldFallbackEndpoint(err)) {
+      if (!allowLegacyCheckoutCompatibility() || !shouldFallbackEndpoint(err)) {
         throw err;
       }
 
@@ -960,6 +1105,13 @@ export async function createCheckoutSession(plan: CheckoutPlan | string): Promis
   try {
     return await inFlightCheckout;
   } catch (err) {
+    logCheckoutEvent("warn", "error", {
+      requestedPlan: normalizedPlan,
+      appEnvironment: runtime.appEnvironment,
+      stripeMode: runtime.stripeMode,
+      configuredPriceId: runtime.configuredPriceId,
+      message: err instanceof Error ? err.message : String(err),
+    });
     clearCheckoutAttemptMarker();
     throw err;
   } finally {
@@ -967,4 +1119,17 @@ export async function createCheckoutSession(plan: CheckoutPlan | string): Promis
   }
 }
 
-export { extractCheckoutUrl, validateCheckoutUrl };
+export async function createBillingPortalSession(): Promise<BillingPortalSessionResponse> {
+  const body = await apiFetchJson<Record<string, unknown>>("billing.portal", BILLING_PORTAL_SESSION_PATH, {
+    method: "POST",
+  });
+  const portalUrl = extractPortalUrl(body);
+
+  if (!portalUrl) {
+    throw new Error("Billing portal URL missing from response");
+  }
+
+  return { portal_url: validateCheckoutUrl(portalUrl) };
+}
+
+export { extractCheckoutUrl, extractPortalUrl, validateCheckoutUrl };

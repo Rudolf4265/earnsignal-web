@@ -13,13 +13,19 @@
 ## Checkout initiation
 
 - Primary endpoint: `POST /v1/billing/create-checkout-session`
-  - canonical payload first: `{ plan_tier: "basic" | "pro" }`
-  - compatibility retry (same endpoint): `{ plan: "plan_a" | "plan_b" }` on validation-style failures
+  - canonical payload first: `{ plan_tier: "report" | "pro" }`
+  - non-production compatibility retry (same endpoint): `{ plan: "plan_a" | "plan_b" }` on validation-style failures
 - Legacy endpoint fallback remains only for compatibility:
   - `/v1/billing/checkout`
   - `/v1/checkout`
-  - fallback is only used for `404` / `405` endpoint-missing responses
+- legacy endpoint fallback is only used for `404` / `405` endpoint-missing responses in non-production
 - Checkout URL is validated for HTTPS before redirect.
+- Production checkout validates public Stripe runtime config before any API call:
+  - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+  - `NEXT_PUBLIC_STRIPE_BILLING_MODE=live`
+  - `NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID`
+  - `NEXT_PUBLIC_STRIPE_PRO_PRICE_ID`
+- Production checkout fails closed when live price IDs are missing, the publishable key is test-mode, or the billing mode is not `live`.
 - Stripe config errors are only surfaced as config banners when backend truth reports checkout is not configured (`checkout_configured=false`).
 - When backend reports checkout configured, checkout failures are shown as operational errors instead of false config warnings.
 

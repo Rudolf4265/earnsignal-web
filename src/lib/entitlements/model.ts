@@ -96,6 +96,8 @@ export type EntitlementCapabilityKey =
 type CommercialCapabilityMatrix = Record<CommercialTier, Record<EntitlementCapabilityKey, boolean>>;
 
 const PLAN_TIER_ALIASES: Record<string, CommercialTier> = {
+  a: "report",
+  b: "pro",
   free: "free",
   none: "free",
   no_plan: "free",
@@ -167,6 +169,18 @@ const COMMERCIAL_CAPABILITY_MATRIX: CommercialCapabilityMatrix = {
 
 const BILLING_REQUIRED_REASON_CODES = new Set(["ENTITLEMENT_REQUIRED", "BILLING_REQUIRED", "PLAN_REQUIRED", "UPGRADE_REQUIRED"]);
 export const FOUNDER_ACCESS_REASON_CODE = "FOUNDER_PROTECTED";
+const ADMIN_OVERRIDE_SOURCES = new Set(["admin_override", "manual_override"]);
+const SUBSCRIPTION_SOURCES = new Set(["stripe", "trial", "subscription"]);
+const OWNED_REPORT_SOURCES = new Set(["owned_report", "report_purchase"]);
+const ADMIN_OVERRIDE_REASON_CODES = new Set(["ADMIN_OVERRIDE", "ADMIN_MANUAL_GRANT", "SUPPORT_GRANT", "COMP", "MANUAL_OVERRIDE"]);
+const SUBSCRIPTION_REASON_CODES = new Set([
+  "ACTIVE_SUBSCRIPTION",
+  "SUBSCRIPTION_ACTIVE",
+  "SUBSCRIPTION_CANCELING_PERIOD_END",
+  "CANCEL_AT_PERIOD_END",
+  "TRIAL_ACTIVE",
+]);
+const OWNED_REPORT_REASON_CODES = new Set(["OWNED_REPORT", "OWNED_REPORT_PURCHASE", "REPORT_PURCHASE"]);
 const FOUNDER_EMAIL_ALLOWLIST = (process.env.NEXT_PUBLIC_FOUNDER_EMAILS ?? process.env.FOUNDER_EMAILS ?? "")
   .split(",")
   .map((value) => value.trim().toLowerCase())
@@ -208,7 +222,15 @@ export function resolveEffectivePlanTier(entitlements: EntitlementSnapshotLike |
     return "free";
   }
 
-  return normalizePlanTierAlias(
+  if (isFounderFromEntitlement(entitlements)) {
+    return "pro";
+  }
+
+  if (!resolveAccessGranted(entitlements)) {
+    return "free";
+  }
+
+  const explicitTier = normalizePlanTierAlias(
     entitlements.effectivePlanTier ??
       entitlements.effective_plan_tier ??
       entitlements.planTier ??
@@ -216,6 +238,29 @@ export function resolveEffectivePlanTier(entitlements: EntitlementSnapshotLike |
       entitlements.plan ??
       null,
   );
+
+  const source = resolveEntitlementSource(entitlements);
+  if (source === "owned_report") {
+    return "report";
+  }
+
+  if (source === "stripe" || source === "trial") {
+    return "pro";
+  }
+
+  if (source === "admin_override" && explicitTier !== "free") {
+    return explicitTier;
+  }
+
+  if (hasProCapabilitySignal(entitlements)) {
+    return "pro";
+  }
+
+  if (hasOwnedReportCapabilitySignal(entitlements)) {
+    return "report";
+  }
+
+  return explicitTier;
 }
 
 export function resolveEntitlementSource(entitlements: EntitlementSnapshotLike | null | undefined): string | null {
@@ -223,8 +268,41 @@ export function resolveEntitlementSource(entitlements: EntitlementSnapshotLike |
     return null;
   }
 
-  const candidate = normalizeString(entitlements.entitlementSource ?? entitlements.entitlement_source ?? entitlements.source ?? null);
-  return candidate ? candidate.toLowerCase() : null;
+  if (isFounderFromEntitlement(entitlements)) {
+    return "admin_override";
+  }
+
+  if (!resolveAccessGranted(entitlements)) {
+    return null;
+  }
+
+  const direct = normalizeString(entitlements.entitlementSource ?? entitlements.entitlement_source ?? entitlements.source ?? null)?.toLowerCase() ?? null;
+  if (direct && (ADMIN_OVERRIDE_SOURCES.has(direct) || SUBSCRIPTION_SOURCES.has(direct) || OWNED_REPORT_SOURCES.has(direct))) {
+    return direct === "subscription" ? "stripe" : direct;
+  }
+
+  const reasonCode = resolveAccessReasonCode(entitlements);
+  if (reasonCode && ADMIN_OVERRIDE_REASON_CODES.has(reasonCode)) {
+    return "admin_override";
+  }
+
+  if (reasonCode && SUBSCRIPTION_REASON_CODES.has(reasonCode)) {
+    return "stripe";
+  }
+
+  if (reasonCode && OWNED_REPORT_REASON_CODES.has(reasonCode)) {
+    return "owned_report";
+  }
+
+  if (hasProCapabilitySignal(entitlements)) {
+    return "stripe";
+  }
+
+  if (hasOwnedReportCapabilitySignal(entitlements)) {
+    return "owned_report";
+  }
+
+  return null;
 }
 
 export function resolveAccessReasonCode(entitlements: EntitlementSnapshotLike | null | undefined): string | null {
@@ -339,14 +417,18 @@ export function resolveAccessGranted(entitlements: EntitlementSnapshotLike | nul
     return true;
   }
 
-  const explicit =
-    asBoolean(entitlements.accessGranted) ??
-    asBoolean(entitlements.access_granted) ??
-    asBoolean(entitlements.isActive) ??
-    asBoolean(entitlements.is_active) ??
-    asBoolean(entitlements.entitled);
+  const explicitCanonical = asBoolean(entitlements.accessGranted) ?? asBoolean(entitlements.access_granted);
+  if (typeof explicitCanonical === "boolean") {
+    return explicitCanonical;
+  }
 
-  return explicit ?? false;
+  const explicitActivity = asBoolean(entitlements.isActive) ?? asBoolean(entitlements.is_active);
+  if (typeof explicitActivity === "boolean") {
+    return explicitActivity;
+  }
+
+  const explicitLegacy = asBoolean(entitlements.entitled);
+  return explicitLegacy ?? false;
 }
 
 export function resolveBillingRequired(entitlements: EntitlementSnapshotLike | null | undefined): boolean {
@@ -472,6 +554,43 @@ function resolveExplicitCapability(
     default:
       return undefined;
   }
+}
+
+function hasOwnedReportCapabilitySignal(entitlements: EntitlementSnapshotLike): boolean {
+  const explicitTier = normalizePlanTierAlias(
+    entitlements.effectivePlanTier ??
+      entitlements.effective_plan_tier ??
+      entitlements.planTier ??
+      entitlements.plan_tier ??
+      entitlements.plan ??
+      null,
+  );
+
+  return (
+    explicitTier === "report" ||
+    resolveExplicitCapability(entitlements, "canViewOwnedReport") === true ||
+    resolveExplicitCapability(entitlements, "canDownloadOwnedReport") === true ||
+    resolveExplicitCapability(entitlements, "canGeneratePaidReport") === true
+  );
+}
+
+function hasProCapabilitySignal(entitlements: EntitlementSnapshotLike): boolean {
+  const explicitTier = normalizePlanTierAlias(
+    entitlements.effectivePlanTier ??
+      entitlements.effective_plan_tier ??
+      entitlements.planTier ??
+      entitlements.plan_tier ??
+      entitlements.plan ??
+      null,
+  );
+
+  return (
+    explicitTier === "pro" ||
+    resolveExplicitCapability(entitlements, "canViewReportHistory") === true ||
+    resolveExplicitCapability(entitlements, "canAccessDashboardIntelligence") === true ||
+    resolveExplicitCapability(entitlements, "canAccessRecurringMonitoring") === true ||
+    resolveExplicitCapability(entitlements, "canAccessProComparisonsOrFutureProFeatures") === true
+  );
 }
 
 export function resolveCapability(

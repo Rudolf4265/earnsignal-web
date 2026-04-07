@@ -26,6 +26,10 @@ export async function GET(request: NextRequest) {
     userAgent,
     hasNextPublicSupabaseUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
     hasNextPublicSupabaseAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+    hasNextPublicStripePublishableKey: Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY),
+    hasNextPublicStripeReportPriceId: Boolean(process.env.NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID),
+    hasNextPublicStripeProPriceId: Boolean(process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID),
     nextPublicSupabaseUrlPreview: previewValue(process.env.NEXT_PUBLIC_SUPABASE_URL, 30),
+    nextPublicStripeBillingMode: process.env.NEXT_PUBLIC_STRIPE_BILLING_MODE ?? null,
   });
 }

@@ -172,17 +172,28 @@ CI recommendation:
 - Always run lint/type/build/test.
 - Run `api:generate:check` only when `OPENAPI_SCHEMA_URL` is provided in CI environment.
 
-Backend deploy env requirement for sandbox checkout:
+Backend deploy env requirement for billing checkout:
 
-- `STRIPE_SECRET_KEY` (`sk_test_...`)
+- `STRIPE_SECRET_KEY` (`sk_live_...` in production, `sk_test_...` outside production)
 - `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_PRICE_ID` (`price_...`, never `prod_...`)
-- optional plan overrides: `STRIPE_PRICE_ID_STARTER`, `STRIPE_PRICE_ID_PRO`
-- `FRONTEND_APP_URL` (recommended)
+- `STRIPE_PRICE_ID_REPORT` (`price_...`, one-time report checkout price)
+- `STRIPE_PRICE_ID_PRO` (`price_...`, recurring Pro subscription checkout price)
+- optional compatibility fallbacks: `STRIPE_PRICE_ID_STARTER`, `STRIPE_PRICE_ID`
+- `FRONTEND_APP_URL` (preferred), or `WEB_ORIGIN` / `APP_BASE_URL`
 
 Frontend deploy env requirement:
 
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_...` for sandbox rollout)
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_STRIPE_BILLING_MODE`
+- `NEXT_PUBLIC_STRIPE_REPORT_PRICE_ID`
+- `NEXT_PUBLIC_STRIPE_PRO_PRICE_ID`
+
+Production frontend guardrails:
+
+- `NEXT_PUBLIC_STRIPE_BILLING_MODE` must be `live`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` must be a live key (`pk_live_...`)
+- both public price IDs must be present
+- production checkout refuses legacy endpoint fallback and fails closed on missing or test-mode Stripe config
 
 
 ## Billing entitlements troubleshooting

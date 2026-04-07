@@ -16,12 +16,12 @@ async function stubBillingStatus(page, overrides: Record<string, unknown> = {}) 
         current_period_start: "2026-03-01T00:00:00Z",
         current_period_end: "2026-04-01T00:00:00Z",
         latest_processed_event_id: "evt_billing_e2e",
-        effective_plan_tier: "basic",
+        effective_plan_tier: "pro",
         entitlement_source: "stripe",
         access_granted: true,
         access_reason_code: "ACTIVE_SUBSCRIPTION",
         billing_required: false,
-        plan_tier: "basic",
+        plan_tier: "pro",
         status: "active",
         source: "stripe",
         is_active: true,
@@ -59,7 +59,7 @@ test.describe("Billing flows", () => {
 
     await page.goto("/app/billing");
 
-    await expect(page.getByTestId("billing-current-plan")).toContainText("Plan: Basic - Status: active");
+    await expect(page.getByTestId("billing-current-plan")).toContainText("Current plan: Pro | Active");
     await expect(page.getByTestId("billing-current-badge")).toBeVisible();
   });
 
@@ -69,7 +69,7 @@ test.describe("Billing flows", () => {
 
     await page.goto("/app/billing");
 
-    await expect(page.getByRole("button", { name: "Choose Basic" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Choose Report" })).toBeVisible();
   });
 
   test("checkout success redirects to stripe URL via canonical endpoint", async ({ page }) => {
@@ -91,7 +91,7 @@ test.describe("Billing flows", () => {
     );
   });
 
-  test("checkout falls back to legacy billing endpoint when canonical endpoint is unavailable", async ({ page }) => {
+  test("preview checkout still falls back to legacy billing endpoints when canonical checkout is unavailable", async ({ page }) => {
     await stubEntitlements(page, "entitled");
     await stubBillingStatus(page);
     await page.route("**/v1/billing/create-checkout-session", async (route) => {
@@ -111,6 +111,29 @@ test.describe("Billing flows", () => {
     await expect.poll(async () => page.evaluate(() => (window as Window & { __lastCheckoutUrl?: string }).__lastCheckoutUrl ?? null)).toBe(
       "https://stripe.test/checkout-fallback",
     );
+  });
+
+  test("active Pro user sees manage subscription entry point", async ({ page }) => {
+    await stubEntitlements(page, "entitled");
+    await stubBillingStatus(page, { portal_url: "https://stripe.test/portal" });
+
+    await page.goto("/app/billing");
+
+    await expect(page.getByRole("link", { name: "Manage subscription" })).toBeVisible();
+  });
+
+  test("canceling Pro user sees period-end state copy", async ({ page }) => {
+    await stubEntitlements(page, "entitled");
+    await stubBillingStatus(page, {
+      portal_url: "https://stripe.test/portal",
+      cancel_at_period_end: true,
+      current_period_end: "2026-05-01T00:00:00Z",
+    });
+
+    await page.goto("/app/billing");
+
+    await expect(page.getByTestId("billing-current-plan")).toContainText("Canceling at period end");
+    await expect(page.getByText("Pro remains active through")).toBeVisible();
   });
 
   test("checkout error displays safe message and request id", async ({ page }) => {

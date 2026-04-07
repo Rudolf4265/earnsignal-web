@@ -171,6 +171,73 @@ test("fetchEntitlements defaults to free upload validation when backend omits pl
   delete global.fetch;
 });
 
+test("fetchEntitlements resolves brand-new inactive report-shaped payloads to Free", async () => {
+  global.window = createWindow();
+  global.fetch = async () =>
+    jsonResponse({
+      effective_plan_tier: "report",
+      plan_tier: "plan_a",
+      plan: "plan_a",
+      entitlement_source: "none",
+      access_granted: false,
+      access_reason_code: "ENTITLEMENT_REQUIRED",
+      billing_required: true,
+      status: "inactive",
+      can_view_reports: true,
+      can_download_pdf: true,
+      can_upload: true,
+      can_validate_upload: true,
+    });
+
+  const moduleUrl = await buildEntitlementsTestModule(`brand-new-free-${Date.now()}`);
+  const { fetchEntitlements, resetEntitlementsCache } = await import(moduleUrl);
+  const value = await fetchEntitlements({ forceRefresh: true });
+
+  assert.equal(value.planTier, "free");
+  assert.equal(value.effectivePlanTier, "free");
+  assert.equal(value.accessGranted, false);
+  assert.equal(value.entitlementSource, null);
+  assert.equal(value.canUpload, true);
+  assert.equal(value.canValidateUpload, true);
+  assert.equal(value.canViewOwnedReport, false);
+  assert.equal(value.canDownloadPdf, false);
+
+  resetEntitlementsCache();
+  delete global.window;
+  delete global.fetch;
+});
+
+test("fetchEntitlements keeps completed owned report purchases on Report", async () => {
+  global.window = createWindow();
+  global.fetch = async () =>
+    jsonResponse({
+      effective_plan_tier: "report",
+      entitlement_source: "owned_report",
+      access_granted: true,
+      access_reason_code: "OWNED_REPORT_PURCHASE",
+      billing_required: false,
+      status: "active",
+      can_view_owned_report: true,
+      can_download_owned_report: true,
+    });
+
+  const moduleUrl = await buildEntitlementsTestModule(`owned-report-${Date.now()}`);
+  const { fetchEntitlements, resetEntitlementsCache } = await import(moduleUrl);
+  const value = await fetchEntitlements({ forceRefresh: true });
+
+  assert.equal(value.planTier, "report");
+  assert.equal(value.effectivePlanTier, "report");
+  assert.equal(value.accessGranted, true);
+  assert.equal(value.entitlementSource, "owned_report");
+  assert.equal(value.canViewOwnedReport, true);
+  assert.equal(value.canDownloadPdf, true);
+  assert.equal(value.canAccessDashboard, false);
+
+  resetEntitlementsCache();
+  delete global.window;
+  delete global.fetch;
+});
+
 test("fetchEntitlements applies founder email override before returning normalized entitlements", async () => {
   const previousFounderEmails = process.env.NEXT_PUBLIC_FOUNDER_EMAILS;
   process.env.NEXT_PUBLIC_FOUNDER_EMAILS = "founder@example.com";

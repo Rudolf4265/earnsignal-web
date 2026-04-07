@@ -25,9 +25,11 @@ test("pricing config defines the canonical Free / Report / Pro ladder", async ()
   assert.equal(free?.price, "$0");
   assert.equal(free?.cadence, "forever");
 
-  assert.equal(report?.price, "$79");
+  assert.equal(report?.price, "$25");
   assert.equal(report?.cadence, "one_time");
-  assert.equal(report?.badge, "One-time");
+  assert.equal(report?.badge, "Launch pricing");
+  assert.equal(report?.anchorPrice, "$79");
+  assert.equal(report?.footnote?.includes("creator feedback"), true);
 
   assert.equal(pro?.price, "$59");
   assert.equal(pro?.cadence, "monthly");

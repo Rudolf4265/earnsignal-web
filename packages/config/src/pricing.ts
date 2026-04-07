@@ -31,9 +31,12 @@ export const pricingPlans: PricingPlan[] = [
   {
     key: "report",
     name: "Report",
-    price: "$79",
+    price: "$25",
     cadence: "one_time",
-    badge: "One-time",
+    badge: "Launch pricing",
+    anchorPrice: "$79",
+    priceNote: "one-time",
+    footnote: "Launch pricing while we improve EarnSigma with creator feedback.",
     description: "One complete business diagnosis from your workspace data — full report, downloadable PDF, yours to keep.",
     features: [
       "One complete report from your workspace data",
@@ -63,3 +66,25 @@ export const pricingPlans: PricingPlan[] = [
     emphasis: "featured",
   },
 ];
+
+export function getPricingPlan(planKey: PricingPlanKey): PricingPlan {
+  const plan = pricingPlans.find((entry) => entry.key === planKey);
+
+  if (!plan) {
+    throw new Error(`Unknown pricing plan: ${planKey}`);
+  }
+
+  return plan;
+}
+
+export function formatPricingPlanPrice(plan: PricingPlan): string {
+  if (plan.cadence === "one_time") {
+    return `${plan.price} one-time`;
+  }
+
+  if (plan.cadence === "monthly") {
+    return `${plan.price} / month`;
+  }
+
+  return plan.price;
+}

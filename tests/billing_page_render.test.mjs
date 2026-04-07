@@ -15,8 +15,10 @@ test("billing page copy stays product-facing and avoids internal entitlement phr
   assert.equal(source.includes("reports used this period"), true);
   assert.equal(source.includes("Subscription management appears here when you have an active Pro subscription."), true);
   assert.equal(source.includes("Checkout unavailable"), true);
-  assert.equal(source.includes("One focused 3-month creator business diagnostic from your staged workspace sources."), true);
-  assert.equal(source.includes("Everything in Report, plus full-history analysis, report history, comparisons, and ongoing intelligence across fresh workspace runs."), true);
+  assert.equal(source.includes("formatPricingPlanPrice(reportPlan)"), true);
+  assert.equal(source.includes("reportPlan.badge"), true);
+  assert.equal(source.includes("One complete business diagnosis from your workspace data"), true);
+  assert.equal(source.includes("Everything in Report, plus ongoing access to track how your business changes"), true);
   assert.equal(source.includes("Report gives you ownership. Pro gives you continuity."), true);
   assert.equal(source.includes("Included at a glance"), true);
   assert.equal(source.includes("Feature access:"), false);

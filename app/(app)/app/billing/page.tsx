@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { formatPricingPlanPrice, getPricingPlan } from "@earnsigma/config";
 import { buttonClassName } from "@/src/components/ui/button";
 import {
   clearCheckoutAttempt,
@@ -18,11 +19,14 @@ import { useAppGate } from "../../_components/app-gate-provider";
 import { useEntitlementState } from "../../_components/use-entitlement-state";
 import { SessionExpiredCallout } from "../../_components/gate-callouts";
 
+const reportPlan = getPricingPlan("report");
+const proPlan = getPricingPlan("pro");
+
 const plans: Array<{ id: CheckoutPlan; label: string; priceLabel: string; summary: string; highlights: string[] }> = [
   {
     id: "report",
     label: "Report",
-    priceLabel: "$79 one-time",
+    priceLabel: formatPricingPlanPrice(reportPlan),
     summary: "One complete business diagnosis from your workspace data — full report, downloadable PDF, yours to keep.",
     highlights: [
       "One complete report from your workspace data",
@@ -35,7 +39,7 @@ const plans: Array<{ id: CheckoutPlan; label: string; priceLabel: string; summar
   {
     id: "pro",
     label: "Pro",
-    priceLabel: "$59 / month",
+    priceLabel: formatPricingPlanPrice(proPlan),
     summary: "Everything in Report, plus ongoing access to track how your business changes — full history, period comparisons, and continuous monitoring.",
     highlights: [
       "All Report features included",
@@ -375,7 +379,13 @@ export default function BillingPage() {
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <h3 className={`text-xl font-semibold ${planCard.titleClassName}`}>{plan.label}</h3>
+                    {plan.id === "report" && reportPlan.anchorPrice ? (
+                      <p className={`mt-1 text-xs line-through decoration-current/70 ${planCard.bodyClassName}`}>{reportPlan.anchorPrice} one-time</p>
+                    ) : null}
                     <p className={`mt-1 text-sm ${planCard.bodyClassName}`}>{plan.priceLabel}</p>
+                    {plan.id === "report" ? (
+                      <p className={`mt-1 text-xs font-medium uppercase tracking-[0.12em] ${planCard.bodyClassName}`}>{reportPlan.badge}</p>
+                    ) : null}
                   </div>
                   {planCard.isCurrent ? (
                     <span data-testid="billing-current-badge" className={planCard.badgeClassName}>
@@ -384,6 +394,7 @@ export default function BillingPage() {
                   ) : null}
                 </div>
                 <p className={`mt-2 text-sm ${planCard.bodyClassName}`}>{plan.summary}</p>
+                {plan.id === "report" ? <p className={`mt-2 text-xs ${planCard.bodyClassName}`}>{reportPlan.footnote}</p> : null}
               </div>
 
               <ul className={`space-y-1 text-xs ${planCard.highlightsClassName}`}>

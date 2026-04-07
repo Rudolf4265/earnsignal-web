@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatPricingPlanPrice, getPricingPlan } from "@earnsigma/config";
 import { buttonClassName } from "@/src/components/ui/button";
 import type { ReportDetailPresentationModel } from "@/src/lib/report/detail-presentation";
 
@@ -36,6 +37,8 @@ type ReportFreeTeaserProps = {
   model: ReportFreeTeaserViewModel;
 };
 
+const reportPlan = getPricingPlan("report");
+
 export function ReportFreeTeaser({ model }: ReportFreeTeaserProps) {
   const platformLabel =
     model.platformCount > 1
@@ -62,7 +65,7 @@ export function ReportFreeTeaser({ model }: ReportFreeTeaserProps) {
           </div>
 
           <p className="text-base font-semibold leading-snug text-brand-text-primary">
-            Your data is ready. Unlock the full report to see your biggest opportunity, platform risks, and recommended actions.
+            Your data is ready. Unlock the full report for {formatPricingPlanPrice(reportPlan)} to see your biggest opportunity, platform risks, and recommended actions.
           </p>
 
           <div className="flex flex-wrap gap-2">
@@ -106,10 +109,14 @@ export function ReportFreeTeaser({ model }: ReportFreeTeaserProps) {
             <p className="inline-flex rounded-full border border-brand-border-strong/80 bg-brand-panel/72 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
               Report Access Required
             </p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">
+              {reportPlan.badge} • {formatPricingPlanPrice(reportPlan)}
+            </p>
             <p className="text-sm leading-relaxed text-brand-text-secondary">
               <span className="font-medium text-brand-text-primary">Unlock your full creator business report. </span>
               See revenue breakdown, subscriber trends, platform concentration, and recommended actions in one place.
             </p>
+            <p className="text-xs leading-relaxed text-brand-text-muted">{reportPlan.footnote}</p>
           </div>
           <Link
             href="/app/billing"

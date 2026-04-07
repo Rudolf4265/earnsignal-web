@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { formatPricingPlanPrice, getPricingPlan } from "@earnsigma/config";
 import { WorkspaceLoadingShell } from "./ui/skeleton";
+
+const reportPlan = getPricingPlan("report");
 
 export function GateLoadingShell() {
   return <WorkspaceLoadingShell title="Loading workspace" subtitle="Syncing your account access and entitlements…" />;
@@ -25,9 +28,10 @@ export function NotEntitledCallout() {
     <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-blue-300/30 bg-blue-500/10 p-6" data-testid="gate-not-entitled">
       <h2 className="text-lg font-semibold text-blue-100">Upgrade required</h2>
       <p className="mt-2 text-sm text-blue-100/90">
-        Your current plan does not include access to this report. Buy a one-time Report to keep this report, or start
-        Pro for the full diagnosis plus ongoing history and comparison value.
+        Your current plan does not include access to this report. Buy a {formatPricingPlanPrice(reportPlan)} Report to keep this
+        report, or start Pro for the full diagnosis plus ongoing history and comparison value.
       </p>
+      <p className="mt-2 text-xs text-blue-100/75">{reportPlan.footnote}</p>
       <Link href="/app/billing" className="mt-4 inline-flex rounded-lg border border-blue-200/50 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
         Go to Billing
       </Link>

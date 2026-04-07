@@ -352,10 +352,8 @@ test("ReportFreeTeaser component exists with correct test IDs", async () => {
 test("ReportFreeTeaser upgrade CTA has correct copy", async () => {
   const source = await readFile(teaserComponentPath, "utf8");
 
-  assert.equal(
-    source.includes("Your data is ready. Unlock the full report to see your biggest opportunity, platform risks, and recommended actions."),
-    true,
-  );
+  assert.equal(source.includes("formatPricingPlanPrice(reportPlan)"), true);
+  assert.equal(source.includes("reportPlan.badge"), true);
   assert.equal(source.includes("View plans"), true);
   assert.equal(source.includes("/app/billing"), true);
 });
@@ -462,6 +460,7 @@ test("report page gates hero metrics behind showFullReportContent", async () => 
 
 test("report page gates all content sections behind showFullReportContent", async () => {
   const source = await readFile(reportPagePath, "utf8");
-  // Content sections are inside the fragment gate
-  assert.equal(source.includes("{showFullReportContent ? <>"), true);
+  assert.equal(source.includes("showFullReportContent ? ("), true);
+  assert.equal(source.includes("ReportAudienceGrowthSection"), true);
+  assert.equal(source.includes('data-testid="report-what-to-do-next"'), true);
 });

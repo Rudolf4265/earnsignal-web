@@ -19,6 +19,8 @@ test("workspace banner derives Run Report availability from canonical workspace 
   assert.equal(source.includes("reportWindowPolicy.runCtaLabel"), true);
   assert.equal(source.includes('data-testid="staged-run-report"'), true);
   assert.equal(source.includes('data-testid="workspace-run-report-section"'), true);
+  assert.equal(source.includes('variant: "primary"'), true);
+  assert.equal(source.includes("border-brand-accent-emerald/55"), true);
   assert.equal(source.includes("min-h-14"), true);
   assert.equal(source.includes("sm:min-w-52"), true);
   assert.equal(source.includes("Ready to run"), true);

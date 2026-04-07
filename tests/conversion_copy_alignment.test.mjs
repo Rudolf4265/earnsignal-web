@@ -51,7 +51,8 @@ test("marketing page leads with present-state product truth", async () => {
   assert.equal(pageSource.includes("clear, private business diagnosis"), true);
   assert.equal(pageSource.includes("No spreadsheet stitching"), true);
   assert.equal(pageSource.includes("Stop guessing what&apos;s driving your income."), true);
-  assert.equal(pageSource.includes("$79 one-time Report"), true);
+  assert.equal(pageSource.includes("formatPricingPlanPrice(reportPlan)"), true);
+  assert.equal(pageSource.includes("Launch pricing"), true);
   assert.equal(sectionsSource.includes("Built around the platforms your business runs on"), true);
   assert.equal(sectionsSource.includes("No new tools. No new workflows. Just your existing data."), true);
   assert.equal(sectionsSource.includes("Support is currently limited to specific export formats by platform."), true);
@@ -91,7 +92,7 @@ test("billing page explains workspace-based reports and ownership versus Pro val
 test("gate callout names the actual upgrade choices without generic activation language", async () => {
   const source = await readFile(gateCalloutsPath, "utf8");
 
-  assert.equal(source.includes("Buy a one-time Report to keep this report"), true);
+  assert.equal(source.includes("formatPricingPlanPrice(reportPlan)"), true);
   assert.equal(source.includes("ongoing history and comparison value"), true);
   assert.equal(source.includes("activate report access"), false);
 });

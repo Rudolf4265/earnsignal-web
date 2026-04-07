@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { pricingPlans } from "@earnsigma/config";
+import { formatPricingPlanPrice, getPricingPlan, pricingPlans } from "@earnsigma/config";
 import { Badge, Container, Section, buttonClassName, cn } from "@earnsigma/ui";
 import { MarketingShell } from "../_components/marketing-shell";
 import { appBaseUrl } from "@/src/lib/urls";
@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description:
     "Free validation, one-time Report, or ongoing Pro access. EarnSigma turns your creator data into a clear, private business diagnosis.",
 };
+
+const reportPlan = getPricingPlan("report");
 
 const comparisonRows: Array<{ label: string; free: boolean; report: boolean; pro: boolean }> = [
   { label: "Upload creator data", free: true, report: true, pro: true },
@@ -116,15 +118,21 @@ export default function PricingPage() {
                   </div>
 
                   <div className="mt-4">
+                    {plan.anchorPrice ? (
+                      <p className="text-sm font-medium text-brand-text-muted line-through decoration-brand-text-muted/70">
+                        {plan.anchorPrice} one-time
+                      </p>
+                    ) : null}
                     <span className="text-3xl font-semibold tracking-tight text-white">{plan.price}</span>
                     {plan.cadence !== "forever" ? (
-                      <span className="ml-1.5 text-sm text-brand-text-muted">{cadenceLabel(plan.cadence)}</span>
+                      <span className="ml-1.5 text-sm text-brand-text-muted">{plan.priceNote ?? cadenceLabel(plan.cadence)}</span>
                     ) : (
                       <span className="ml-1.5 text-sm text-brand-text-muted">free</span>
                     )}
                   </div>
 
                   <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary">{plan.description}</p>
+                  {plan.footnote ? <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{plan.footnote}</p> : null}
 
                   <ul className="mt-5 flex-1 space-y-2.5">
                     {plan.features.map((feature) => (
@@ -179,10 +187,17 @@ export default function PricingPage() {
             </p>
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               <div className="rounded-xl border border-brand-border/65 bg-brand-panel/60 p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-secondary">Report — $79 one-time</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-secondary">
+                  Report — {formatPricingPlanPrice(reportPlan)}
+                </p>
+                <p className="mt-1 text-[11px] text-brand-text-muted">
+                  <span className="line-through decoration-brand-text-muted/70">{reportPlan.anchorPrice} one-time</span>
+                  {" "}previously
+                </p>
                 <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
                   Best for creators who want a clear snapshot of their business right now — owned forever.
                 </p>
+                <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{reportPlan.footnote}</p>
               </div>
               <div className="rounded-xl border border-brand-accent-blue/35 bg-brand-accent-blue/8 p-5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-blue">Pro — $59 / month</p>

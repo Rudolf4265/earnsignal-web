@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { BRAND } from "@earnsigma/brand";
-import { marketingCtas, publicUrls } from "@earnsigma/config";
+import { formatPricingPlanPrice, getPricingPlan, marketingCtas, publicUrls } from "@earnsigma/config";
 import { Badge, Card, Container, Section, buttonClassName, cn } from "@earnsigma/ui";
 import { MarketingShell } from "./_components/marketing-shell";
 import { InsightGlyph, MarketingSupportedTodaySection, type InsightIconKey } from "./_components/marketing-sections";
@@ -62,6 +62,9 @@ const reportSectionPillars = [
   "Strengths & Risks",
   "Next 3 Actions",
 ];
+
+const reportPlan = getPricingPlan("report");
+const proPlan = getPricingPlan("pro");
 
 const primaryCtaHref = `${appBaseUrl}${marketingCtas.startTrial.appPath}?plan=report`;
 const secondaryCtaHref = marketingCtas.viewExampleReport.href;
@@ -158,7 +161,7 @@ export default function MarketingHomePage() {
               </div>
 
               <p className="mt-5 text-[11px] font-medium uppercase tracking-[0.14em] text-brand-accent-teal/90">
-                Free validation • $79 Report • $59/month Pro
+                Free validation • Launch pricing: {reportPlan.price} Report • {formatPricingPlanPrice(proPlan)}
               </p>
               <p className="mt-2.5 text-[11px] tracking-[0.06em] text-brand-text-muted/60">
                 No spreadsheet stitching · No public estimates · Your data stays private
@@ -375,7 +378,7 @@ export default function MarketingHomePage() {
               },
               {
                 title: "Validate free",
-                body: <>EarnSigma confirms your data is usable at no cost. When you&apos;re ready, a <strong className="font-medium text-brand-text-primary">$79 one-time Report</strong> gives you a full diagnosis — or start Pro for ongoing access.</>,
+                body: <>EarnSigma confirms your data is usable at no cost. When you&apos;re ready, a <strong className="font-medium text-brand-text-primary">{formatPricingPlanPrice(reportPlan)} Report</strong> gives you a full diagnosis — or start Pro for ongoing access.</>,
                 icon: (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
                     <circle cx="11" cy="11" r="8" />

@@ -17,6 +17,9 @@ test("data upload page keeps the main workspace simple while upload flow stays m
   assert.equal(source.includes("SourceListSection"), true);
   assert.equal(source.includes("HelpSection"), true);
   assert.equal(source.includes("DangerZoneClearData"), true);
+  assert.equal(source.includes("Example resources"), true);
+  assert.equal(source.includes("See example files"), true);
+  assert.equal(source.includes("View sample report"), true);
   assert.equal(source.includes("fetchWorkspaceDataSources"), true);
   assert.equal(source.includes("buildWorkspaceReportState"), true);
   assert.equal(source.includes("getSourceManifest"), true);
@@ -41,6 +44,7 @@ test("data upload page keeps the main workspace simple while upload flow stays m
   assert.equal(source.lastIndexOf("<SourceListSection") < source.lastIndexOf("<ReadyToRunBanner"), true);
   assert.equal(source.includes('data-testid="workspace-source-list-section"'), true);
   assert.equal(source.includes('data-testid="workspace-run-report-section"'), true);
+  assert.equal(source.includes('data-testid="workspace-example-resources"'), true);
   assert.equal(source.includes("md:flex-row md:items-center md:justify-between"), true);
   assert.equal(source.includes("md:grid-cols-[minmax(180px,1.2fr)_auto_minmax(140px,0.8fr)_auto]"), false);
   assert.equal(source.includes("Contribution"), false);

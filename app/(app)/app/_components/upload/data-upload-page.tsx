@@ -118,7 +118,11 @@ function ReadyToRunBanner({
               data-testid="staged-run-report"
               onClick={() => void onRunReport()}
               disabled={runDisabled}
-              className="inline-flex min-h-14 items-center justify-center rounded-2xl bg-white px-7 py-3 text-base font-semibold text-slate-950 shadow-[0_18px_40px_-24px_rgba(255,255,255,0.85)] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:bg-white/20 disabled:text-slate-400 sm:min-w-52"
+              className={buttonClassName({
+                variant: "primary",
+                className:
+                  "min-h-14 rounded-2xl border-brand-accent-emerald/55 bg-[linear-gradient(120deg,rgba(13,148,136,0.98),rgba(16,185,129,0.95))] px-7 py-3 text-base font-semibold text-white shadow-brand-glow hover:border-brand-accent-emerald/75 hover:brightness-110 disabled:border-white/10 disabled:bg-white/10 disabled:text-slate-400 sm:min-w-52",
+              })}
             >
               {runLabel}
             </button>
@@ -353,7 +357,25 @@ function HelpSection({ sourceManifestError }: { sourceManifestError: string | nu
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div
+          className="rounded-2xl border border-brand-accent-teal/20 bg-[linear-gradient(160deg,rgba(17,34,69,0.92),rgba(11,24,50,0.86))] p-4"
+          data-testid="workspace-example-resources"
+        >
+          <p className="text-sm font-semibold text-white">Example resources</p>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Open sample files and a sample report without leaving the main workflow.
+          </p>
+          <div className="mt-4 flex flex-col items-start gap-2">
+            <Link href="/app/help#upload-guide" className="text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
+              See example files
+            </Link>
+            <Link href="/example" className="text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
+              View sample report
+            </Link>
+          </div>
+        </div>
+
         <Link href="/app/help#upload-guide" className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 transition hover:bg-white/[0.04]">
           <p className="text-sm font-semibold text-white">Upload Guide</p>
           <p className="mt-2 text-sm leading-6 text-slate-400">Format rules, supported files, and exact prep steps.</p>

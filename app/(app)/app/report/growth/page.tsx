@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { formatPricingPlanPrice, getPricingPlan } from "@earnsigma/config";
 import { Badge } from "../../_components/dashboard/Badge";
 import { DashboardSectionHeader } from "../../_components/dashboard/DashboardSectionHeader";
 import { useAppGate } from "../../../_components/app-gate-provider";
@@ -20,6 +21,8 @@ type GrowthPageState =
   | { view: "error"; message: string }
   | { view: "success"; report: GrowthReport };
 
+const reportPlan = getPricingPlan("report");
+
 function SectionLockedCard({ testId }: { testId: string }) {
   return (
     <div
@@ -32,7 +35,7 @@ function SectionLockedCard({ testId }: { testId: string }) {
         <p className="inline-flex rounded-full border border-brand-border-strong/80 bg-brand-panel/72 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
           Report Access
         </p>
-        <p className="text-sm leading-relaxed text-brand-text-secondary">Report or Pro access is required for this section.</p>
+        <p className="text-sm leading-relaxed text-brand-text-secondary">A {formatPricingPlanPrice(reportPlan)} Report or Pro access is required for this section.</p>
       </div>
       <Link href="/app/billing" className={buttonClassName({ variant: "primary", size: "sm", className: "relative z-10 px-4 shadow-brand-glow" })}>
         View plans

@@ -1,0 +1,6 @@
+Unable to verify subscription status.
+
+We could not confirm your plan access right now. Retry verification or go to Billing.
+
+Retry
+Go to Billing

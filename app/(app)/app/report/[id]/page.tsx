@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { formatPricingPlanPrice, getPricingPlan } from "@earnsigma/config";
 import { useParams } from "next/navigation";
 import { Badge } from "../../_components/dashboard/Badge";
 import { DashboardSectionHeader } from "../../_components/dashboard/DashboardSectionHeader";
@@ -66,6 +67,7 @@ const initialState: ReportPageState = {
   artifactJsonMissing: false,
 };
 const REPORT_DETAIL_POLL_INTERVAL_MS = 3_000;
+const reportPlan = getPricingPlan("report");
 
 function toArtifactErrorMessage(error: unknown): string {
   if (isApiError(error) && error.code === "INVALID_JSON_RESPONSE") {
@@ -111,7 +113,7 @@ function PdfExportLockedState() {
         Report Access
       </span>
       <p className="relative text-xs text-brand-text-secondary">
-        <span className="font-semibold text-brand-text-primary">Full PDF Export.</span> Report or Pro access is required to open and download this creator earnings report PDF.
+        <span className="font-semibold text-brand-text-primary">Full PDF Export.</span> A {formatPricingPlanPrice(reportPlan)} Report or Pro access is required to open and download this creator earnings report PDF.
       </p>
       <Link
         href="/app/billing"

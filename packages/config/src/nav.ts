@@ -20,7 +20,7 @@ export const marketingCtas = {
   },
   startTrial: {
     key: "start_trial",
-    label: "Start free trial",
+    label: "Get your report",
     appPath: publicUrls.appSignupPath,
   },
   viewExampleReport: {

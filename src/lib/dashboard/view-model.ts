@@ -139,13 +139,13 @@ export function buildDashboardViewModel(input: BuildDashboardViewModelInput): Da
       // When revenue is unavailable (null or 0), surface an explanatory subtext
       // instead of falling back to the generic "comparison not available" message.
       revenueDeltaText:
-        input.kpis.netRevenue === null || input.kpis.netRevenue === 0
+        input.kpis.netRevenue === 0
           ? "Insufficient data to estimate revenue."
           : normalizeOptionalText(input.revenueDeltaText),
       subscribersDisplay: formatNumber(input.kpis.subscribers),
       // Same treatment for subscribers: make the unknown state explicit.
       subscriberDeltaText:
-        input.kpis.subscribers === null || input.kpis.subscribers === 0
+        input.kpis.subscribers === 0
           ? "Insufficient data to estimate subscriber baseline."
           : normalizeOptionalText(input.subscriberDeltaText),
       revenueSparkline: normalizeSparkline(input.revenueSparkline),

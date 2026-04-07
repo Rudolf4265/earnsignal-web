@@ -455,9 +455,9 @@ test("buildReportDetailPresentationModel surfaces typed limited and unavailable 
   });
 
   assert.equal(model.heroNotice?.label, "Unavailable");
-  assert.equal(model.heroMetrics.find((metric) => metric.id === "creator_health")?.stateLabel, "Reduced confidence");
+  assert.equal(model.heroMetrics.find((metric) => metric.id === "creator_health")?.stateLabel, "Medium confidence");
   assert.equal(model.subscriberHealth.notice?.label, "Unavailable");
-  assert.equal(model.subscriberHealth.metrics.find((metric) => metric.id === "subscribers")?.stateLabel, "Heuristic signal");
+  assert.equal(model.subscriberHealth.metrics.find((metric) => metric.id === "subscribers")?.stateLabel, "Limited data");
   assert.equal(model.recommendations[0]?.label, "Validate first");
   assert.equal(model.revenueOutlook.notice?.label, "Unavailable");
   assert.equal(model.revenueOutlook.cards[0]?.stateLabel, "Unavailable");
@@ -619,14 +619,14 @@ test("buildReportDetailPresentationModel surfaces typed diagnosis and what-chang
 
   assert.equal(model.diagnosis.diagnosisTypeLabel, "Churn pressure");
   assert.equal(model.diagnosis.summary, "Current profile looks more churn-limited based on elevated churn pressure.");
-  assert.equal(model.diagnosis.notice?.label, "Reduced confidence");
+  assert.equal(model.diagnosis.notice?.label, "Medium confidence");
   assert.equal(model.diagnosis.supportingMetrics[0]?.label, "Churn Rate");
   assert.equal(model.diagnosis.primitives.some((entry) => entry.label === "Churn pressure" && entry.value === "High"), true);
   assert.equal(model.whatChanged.comparisonAvailable, true);
   assert.equal(model.whatChanged.priorPeriodLabel, "Compared with Jan 1, 2026 to Jan 31, 2026");
   assert.equal(model.whatChanged.improved[0]?.body, "Platform concentration eased versus the prior report.");
   assert.equal(model.whatChanged.worsened[0]?.body, "Churn worsened relative to the prior report.");
-  assert.equal(model.whatChanged.watchNext[0]?.stateLabel, "Reduced confidence");
+  assert.equal(model.whatChanged.watchNext[0]?.stateLabel, "Medium confidence");
   assert.equal(model.executiveSummary.some((line) => line.includes("churn-limited")), true);
 });
 
@@ -698,7 +698,7 @@ test("buildReportDetailPresentationModel keeps mixed diagnosis and comparison-un
 
   assert.equal(model.diagnosis.diagnosisTypeLabel, "Mixed pressure");
   assert.equal(model.diagnosis.summary.includes("mixed pressure"), true);
-  assert.equal(model.diagnosis.notice?.label, "Reduced confidence");
+  assert.equal(model.diagnosis.notice?.label, "Medium confidence");
   assert.equal(model.whatChanged.comparisonAvailable, false);
   assert.equal(model.whatChanged.unavailableBody, "Unavailable for this report because prior report unavailable.");
   assert.deepEqual(model.whatChanged.improved, []);
@@ -796,5 +796,5 @@ test("buildReportDetailPresentationModel keeps low-confidence diagnosis and comp
   assert.equal(model.diagnosis.summary.includes("caused"), false);
   assert.equal(model.whatChanged.watchNext[0]?.body, watchSummary);
   assert.equal(model.whatChanged.watchNext[0]?.body.includes("definitely"), false);
-  assert.equal(model.whatChanged.notice?.label, "Reduced confidence");
+  assert.equal(model.whatChanged.notice?.label, "Medium confidence");
 });

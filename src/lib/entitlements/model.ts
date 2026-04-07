@@ -450,9 +450,7 @@ function resolveExplicitCapability(
     case "canAccessDashboardIntelligence":
       return (
         asBoolean(entitlements.canAccessDashboardIntelligence) ??
-        asBoolean(entitlements.can_access_dashboard_intelligence) ??
-        asBoolean(entitlements.canAccessDashboard) ??
-        asBoolean(entitlements.can_access_dashboard)
+        asBoolean(entitlements.can_access_dashboard_intelligence)
       );
     case "canAccessRecurringMonitoring":
       return asBoolean(entitlements.canAccessRecurringMonitoring) ?? asBoolean(entitlements.can_access_recurring_monitoring);

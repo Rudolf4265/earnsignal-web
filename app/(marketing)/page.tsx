@@ -49,7 +49,7 @@ const reportSignals: ReportSignal[] = [
     meterWidth: "42%",
     meterColor: "var(--es-color-accent-emerald)",
     icon: "churn",
-    badge: "Alert",
+    badge: "Watch",
     tone: "critical",
   },
 ];

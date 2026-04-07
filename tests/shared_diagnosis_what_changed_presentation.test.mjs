@@ -290,7 +290,7 @@ test("mixed, limited, and unavailable typed states stay aligned without upgradin
     artifactSignals: null,
   });
 
-  assert.equal(sharedDiagnosis.notice?.label, "Reduced confidence");
+  assert.equal(sharedDiagnosis.notice?.label, "Medium confidence");
   assert.equal(dashboard.notice?.label, sharedDiagnosis.notice?.label);
   assert.equal(report.diagnosis.notice?.label, sharedDiagnosis.notice?.label);
   assert.equal(sharedWhatChanged.notice?.label, "Unavailable");

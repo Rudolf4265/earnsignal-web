@@ -111,8 +111,8 @@ test("dashboard diagnosis view-model keeps mixed and reduced-confidence diagnosi
 
   assert.equal(result.diagnosisTypeLabel, "Mixed pressure");
   assert.equal(result.summary?.includes("mixed pressure"), true);
-  assert.equal(result.notice?.label, "Reduced confidence");
-  assert.equal(result.notice?.body.includes("Reduced confidence"), true);
+  assert.equal(result.notice?.label, "Medium confidence");
+  assert.equal(result.notice?.body.includes("Medium confidence"), true);
 });
 
 test("dashboard diagnosis view-model surfaces unavailable typed diagnosis honestly", async () => {
@@ -263,7 +263,7 @@ test("dashboard diagnosis view-model adds bounded watch-next context only from t
 
   assert.equal(result.comparisonContext?.label, "Watch next");
   assert.equal(result.comparisonContext?.body, "Revenue softened and should be watched next cycle.");
-  assert.equal(result.comparisonContext?.stateLabel, "Reduced confidence");
+  assert.equal(result.comparisonContext?.stateLabel, "Medium confidence");
   assert.equal(result.comparisonContext?.detail?.includes("Compared with Jan 1, 2026 to Jan 31, 2026"), true);
 });
 

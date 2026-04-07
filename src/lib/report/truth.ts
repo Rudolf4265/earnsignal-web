@@ -132,10 +132,10 @@ export function getTruthStateLabel(truth: ReportTruthMetadata, options?: TruthDe
     return "Unavailable";
   }
   if (source && (source === "derived" || source === "computed") && truth.confidence !== "high") {
-    return "Heuristic signal";
+    return "Limited data";
   }
   if (truth.confidenceAdjusted) {
-    return "Reduced confidence";
+    return "Medium confidence";
   }
   if (availability === "limited") {
     return "Limited evidence";
@@ -170,9 +170,9 @@ export function getTruthStateTone(truth: ReportTruthMetadata, options?: TruthDes
 const CONFIDENCE_LABEL_TOOLTIPS: Record<string, string> = {
   "Low confidence":
     "This estimate is based on incomplete or limited source coverage and should be treated as directional.",
-  "Reduced confidence":
-    "This result is usable, but confidence is lowered because one or more key source signals are incomplete.",
-  "Heuristic signal":
+  "Medium confidence":
+    "This result is usable, but confidence is moderated because one or more key source signals are incomplete.",
+  "Limited data":
     "This is a lightweight directional signal based on the data available, not a fully confirmed business metric.",
   "Limited evidence":
     "This result is based on limited evidence. Treat it as a starting signal until more source data is available.",
@@ -211,10 +211,10 @@ export function getTruthStateDescription(truth: ReportTruthMetadata, options?: T
     return reason ? `Unavailable for this report because ${reason}.` : "Unavailable for this report.";
   }
   if (source && (source === "derived" || source === "computed") && truth.confidence !== "high") {
-    return "Heuristic signal based on the available monthly data.";
+    return "Limited data signal based on the available monthly data.";
   }
   if (truth.confidenceAdjusted) {
-    return reason ? `Reduced confidence because ${reason}.` : "Reduced confidence because evidence is limited.";
+    return reason ? `Medium confidence because ${reason}.` : "Medium confidence because evidence is limited.";
   }
   if (availability === "limited") {
     return reason ? `Coverage is limited because ${reason}.` : "Coverage is limited for this report period.";

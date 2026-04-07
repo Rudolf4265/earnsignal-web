@@ -558,7 +558,7 @@ function buildReportTruthSummary(model: ReportViewModel | null): ReportDetailPre
   }
 
   const stabilityNotice = buildNotice(model.stability, {
-    fallbackBody: "Reduced confidence due to limited evidence in the latest report.",
+    fallbackBody: "Medium confidence due to limited evidence in the latest report.",
   });
   if (stabilityNotice) {
     return stabilityNotice;

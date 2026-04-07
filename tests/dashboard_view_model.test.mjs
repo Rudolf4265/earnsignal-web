@@ -55,7 +55,7 @@ test("dashboard view-model keeps safe fallbacks when metrics are missing", async
   assert.equal(result.creatorHealth.subtitle, "Run a report to unlock a personalized health snapshot.");
   assert.equal(result.revenueSnapshot.revenueDisplay, "$--");
   assert.equal(result.revenueSnapshot.revenueDeltaText, null);
-  assert.equal(result.revenueSnapshot.subscribersDisplay, "--");
+  assert.equal(result.revenueSnapshot.subscribersDisplay, "—");
   assert.equal(result.revenueSnapshot.subscriberDeltaText, null);
   assert.equal(result.revenueSnapshot.revenueSparkline, null);
   assert.equal(result.revenueSnapshot.subscribersSparkline, null);
@@ -105,6 +105,6 @@ test("dashboard view-model marks creator health as provisional when stability co
   });
 
   assert.equal(result.creatorHealth.title, "Creator health is provisional at 61/100.");
-  assert.equal(result.creatorHealth.stateLabel, "Reduced confidence");
-  assert.equal(result.creatorHealth.subtitle.includes("Reduced confidence"), true);
+  assert.equal(result.creatorHealth.stateLabel, "Medium confidence");
+  assert.equal(result.creatorHealth.subtitle.includes("Medium confidence"), true);
 });

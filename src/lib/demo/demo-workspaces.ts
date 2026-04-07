@@ -763,7 +763,7 @@ export const DEMO_WORKSPACES: DemoWorkspaceFixture[] = [
           subscriberDeltaText: "Comparison is still thin for subscriber movement.",
           stability: createProvisionalStability(
             67,
-            "Reduced confidence because only two months of comparable revenue history are available in this sample workspace.",
+            "Medium confidence because only two months of comparable revenue history are available in this sample workspace.",
           ),
         }),
         diagnosis: createDiagnosisModel({
@@ -771,7 +771,7 @@ export const DEMO_WORKSPACES: DemoWorkspaceFixture[] = [
           summary:
             "Revenue is stabilizing, but the evidence window is still short enough that the dashboard should be read as directional rather than settled.",
           notice: {
-            label: "Reduced confidence",
+            label: "Medium confidence",
             body: "This sample report is useful for direction, but the evidence window is still thin.",
             tone: "warn",
           },
@@ -807,7 +807,7 @@ export const DEMO_WORKSPACES: DemoWorkspaceFixture[] = [
             label: "Watch next cycle",
             body: "Do not overreact to one modest improvement while the evidence window is still short.",
             detail: "Use the next report to confirm whether the stabilization is real.",
-            stateLabel: "Reduced confidence",
+            stateLabel: "Medium confidence",
             stateTone: "warn",
           },
         ]),

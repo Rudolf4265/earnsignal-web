@@ -14,7 +14,14 @@ import {
 } from "@/src/lib/api/entitlements";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { ApiError, isApiError } from "@/src/lib/api/client";
-import { buildBillingPlanCardViewModel, formatPlanLabel } from "@/src/lib/billing/plan-card";
+import {
+  buildBillingPlanCardViewModel,
+  buildFreePlanCardViewModel,
+  formatPlanLabel,
+  FREE_PLAN_ALIASES,
+  REPORT_PLAN_ALIASES,
+  PRO_PLAN_ALIASES,
+} from "@/src/lib/billing/plan-card";
 import { buildSubscriptionStateViewModel } from "@/src/lib/billing/subscription-state";
 import { useAppGate } from "../../_components/app-gate-provider";
 import { useEntitlementState } from "../../_components/use-entitlement-state";
@@ -41,7 +48,7 @@ const plans: Array<{ id: CheckoutPlan; label: string; priceLabel: string; summar
     id: "pro",
     label: "Pro",
     priceLabel: formatPricingPlanPrice(proPlan),
-    summary: "Everything in Report, plus ongoing access to track how your business changes — full history, period comparisons, and continuous monitoring.",
+    summary: "Everything in Report, plus ongoing visibility as your business evolves — full history, comparisons, and continuous monitoring.",
     highlights: [
       "All Report features included",
       "Full-history analysis across eligible uploads",
@@ -52,16 +59,17 @@ const plans: Array<{ id: CheckoutPlan; label: string; priceLabel: string; summar
   },
 ];
 
-const comparisonRows: Array<{ label: string; report: string; pro: string }> = [
-  { label: "Full report", report: "Included", pro: "Included" },
-  { label: "PDF download", report: "Included", pro: "Included" },
-  { label: "Owned purchased reports", report: "Included", pro: "Included" },
-  { label: "Focused 3-month analysis", report: "Included", pro: "Included" },
-  { label: "Full-history analysis", report: "-", pro: "Included" },
-  { label: "Report history", report: "-", pro: "Included" },
-  { label: "Comparisons", report: "-", pro: "Included" },
-  { label: "Monitoring", report: "-", pro: "Included" },
-  { label: "Ongoing monitoring", report: "-", pro: "Included" },
+const comparisonRows: Array<{ label: string; free: string; report: string; pro: string }> = [
+  { label: "Upload data",             free: "Included", report: "Included", pro: "Included" },
+  { label: "Workspace setup",         free: "Included", report: "Included", pro: "Included" },
+  { label: "Full report",             free: "-",        report: "Included", pro: "Included" },
+  { label: "PDF download",            free: "-",        report: "Included", pro: "Included" },
+  { label: "Owned purchased reports", free: "-",        report: "Included", pro: "Included" },
+  { label: "Focused 3-month analysis",free: "-",        report: "Included", pro: "Included" },
+  { label: "Full-history analysis",   free: "-",        report: "-",        pro: "Included" },
+  { label: "Report history",          free: "-",        report: "-",        pro: "Included" },
+  { label: "Comparisons",             free: "-",        report: "-",        pro: "Included" },
+  { label: "Ongoing monitoring",      free: "-",        report: "-",        pro: "Included" },
 ];
 
 const CHECKOUT_CONFIG_ERROR_CODES = new Set(["BILLING_NOT_CONFIGURED", "BILLING_INVALID_STRIPE_PRICE_ID"]);
@@ -306,6 +314,16 @@ export default function BillingPage() {
   const resolutionSourceCode = formatResolutionSourceCode(source, isActive);
   const resolutionReasonCode = formatResolutionReasonCode(accessReasonCode, isActive);
 
+  // Plan-state helpers for state-aware CTAs
+  const normalizedTier = String(activePlanTier ?? "").trim().toLowerCase();
+  const isProUser = PRO_PLAN_ALIASES.has(normalizedTier) && isActive;
+  const isReportUser = REPORT_PLAN_ALIASES.has(normalizedTier) && isActive;
+  const isFreeUser = !isProUser && !isReportUser;
+  const isStripeSubscription = String(source ?? "").trim().toLowerCase() === "stripe";
+  const isAdminOverride = String(source ?? "").trim().toLowerCase() === "admin_override";
+
+  const freeCard = buildFreePlanCardViewModel(activePlanTier);
+
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <header className="space-y-2">
@@ -315,6 +333,7 @@ export default function BillingPage() {
 
       {state === "session_expired" ? <SessionExpiredCallout requestId={requestId} /> : null}
 
+      {/* ── Current access ─────────────────────────────────────────── */}
       <section className="rounded-2xl border border-brand-border bg-brand-panel p-6 shadow-brand-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-medium text-brand-text-primary">Current access</h2>
@@ -379,18 +398,54 @@ export default function BillingPage() {
           />
         ) : null}
 
+        {/* State-aware primary CTA */}
         {subscriptionState.showManageSubscription ? (
+          <div className="mt-4 space-y-1.5">
+            <button
+              type="button"
+              onClick={() => void handleManageSubscription()}
+              className={buttonClassName({ variant: "primary" })}
+              disabled={isCreatingPortal}
+              data-testid="billing-manage-subscription-btn"
+            >
+              {isCreatingPortal ? "Opening..." : subscriptionState.manageSubscriptionLabel}
+            </button>
+            <p className="text-xs text-brand-text-muted">
+              Manage billing, payment method, renewal, or cancellation.
+            </p>
+          </div>
+        ) : isReportUser && !isAdminOverride ? (
           <button
             type="button"
-            onClick={() => void handleManageSubscription()}
-            className={buttonClassName({ variant: "secondary", className: "mt-4" })}
-            disabled={isCreatingPortal}
+            onClick={() => void handleCheckout("pro")}
+            className={buttonClassName({ variant: "primary", className: "mt-4" })}
+            disabled={!allowCheckout}
+            data-testid="billing-upgrade-to-pro-btn"
           >
-            {isCreatingPortal ? "Opening..." : subscriptionState.manageSubscriptionLabel}
+            {isCreatingCheckout === "pro" ? "Redirecting..." : "Upgrade to Pro"}
           </button>
-        ) : (
-          <p className="mt-3 text-xs text-brand-text-muted">Subscription management appears here when you have an active or canceling Pro subscription.</p>
-        )}
+        ) : isFreeUser && !isAdminOverride ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void handleCheckout("report")}
+              className={buttonClassName({ variant: "secondary" })}
+              disabled={!allowCheckout}
+              data-testid="billing-get-report-btn"
+            >
+              {isCreatingCheckout === "report" ? "Redirecting..." : "Get your report"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleCheckout("pro")}
+              className={buttonClassName({ variant: "primary" })}
+              disabled={!allowCheckout}
+              data-testid="billing-upgrade-to-pro-free-btn"
+            >
+              {isCreatingCheckout === "pro" ? "Redirecting..." : "Upgrade to Pro"}
+            </button>
+          </div>
+        ) : null}
       </section>
 
       {hasCheckoutMarker ? (
@@ -410,7 +465,52 @@ export default function BillingPage() {
         </section>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-2">
+      {/* ── Plan cards: Free / Report / Pro ────────────────────────── */}
+      <section className="grid gap-4 md:grid-cols-3" data-testid="billing-plan-cards">
+
+        {/* Free card */}
+        <article
+          className={freeCard.cardClassName}
+          data-testid="billing-plan-card-free"
+        >
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className={`text-xl font-semibold ${freeCard.titleClassName}`}>Free</h3>
+                <p className={`mt-1 text-sm ${freeCard.bodyClassName}`}>Always free</p>
+              </div>
+              {freeCard.isCurrent ? (
+                <span data-testid="billing-current-badge" className={freeCard.badgeClassName}>
+                  Current
+                </span>
+              ) : null}
+            </div>
+            <p className={`mt-2 text-sm ${freeCard.bodyClassName}`}>
+              Set up your workspace and validate your data. Upgrade when you&apos;re ready for a full report or ongoing monitoring.
+            </p>
+          </div>
+
+          <ul className={`space-y-1 text-xs ${freeCard.highlightsClassName}`}>
+            {[
+              "Upload and validate your data",
+              "Prepare your workspace",
+              "Access when you purchase a report or upgrade",
+            ].map((line) => (
+              <li key={line}>- {line}</li>
+            ))}
+          </ul>
+
+          <button
+            type="button"
+            disabled={freeCard.ctaDisabled}
+            className={buttonClassName({ variant: "secondary", className: "disabled:opacity-60" })}
+            data-testid="billing-plan-cta-free"
+          >
+            {freeCard.isCurrent ? "Free plan active" : "Free"}
+          </button>
+        </article>
+
+        {/* Report and Pro cards */}
         {plans.map((plan) => {
           const planCard = buildBillingPlanCardViewModel({
             planId: plan.id,
@@ -463,46 +563,32 @@ export default function BillingPage() {
         })}
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <div className="rounded-2xl border border-brand-border bg-brand-panel p-5 text-sm text-brand-text-secondary shadow-brand-card">
-          <h2 className="text-base font-semibold text-brand-text-primary">Report gives you ownership. Pro gives you continuity.</h2>
-          <p className="mt-2">
-            A Report gives you a point-in-time diagnosis you keep. Pro keeps your business health visible as it evolves — full history, comparisons, and ongoing monitoring.
-          </p>
+      {/* ── Included at a glance ───────────────────────────────────── */}
+      <section className="overflow-hidden rounded-2xl border border-brand-border bg-brand-panel shadow-brand-card">
+        <div className="border-b border-brand-border px-5 py-4">
+          <h2 className="text-base font-semibold text-brand-text-primary">Included at a glance</h2>
         </div>
-
-        <div className="overflow-hidden rounded-2xl border border-brand-border bg-brand-panel shadow-brand-card">
-          <div className="border-b border-brand-border px-5 py-4">
-            <h2 className="text-base font-semibold text-brand-text-primary">Included at a glance</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-brand-panel-muted text-xs uppercase tracking-[0.14em] text-brand-text-muted">
-                <tr>
-                  <th scope="col" className="px-5 py-3 font-medium">
-                    Feature
-                  </th>
-                  <th scope="col" className="px-4 py-3 font-medium text-brand-text-secondary">
-                    Report
-                  </th>
-                  <th scope="col" className="px-5 py-3 font-medium text-brand-text-primary">
-                    Pro
-                  </th>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-brand-panel-muted text-xs uppercase tracking-[0.14em] text-brand-text-muted">
+              <tr>
+                <th scope="col" className="px-5 py-3 font-medium">Feature</th>
+                <th scope="col" className="px-4 py-3 font-medium text-brand-text-secondary">Free</th>
+                <th scope="col" className="px-4 py-3 font-medium text-brand-text-secondary">Report</th>
+                <th scope="col" className="px-5 py-3 font-medium text-brand-text-primary">Pro</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-brand-border text-xs text-brand-text-secondary">
+              {comparisonRows.map((row) => (
+                <tr key={row.label}>
+                  <th scope="row" className="px-5 py-3 font-medium text-brand-text-primary">{row.label}</th>
+                  <td className="px-4 py-3">{row.free}</td>
+                  <td className="px-4 py-3">{row.report}</td>
+                  <td className="px-5 py-3">{row.pro}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-brand-border text-xs text-brand-text-secondary">
-                {comparisonRows.map((row) => (
-                  <tr key={row.label}>
-                    <th scope="row" className="px-5 py-3 font-medium text-brand-text-primary">
-                      {row.label}
-                    </th>
-                    <td className="px-4 py-3">{row.report}</td>
-                    <td className="px-5 py-3">{row.pro}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 

@@ -11,6 +11,60 @@ export type BillingPlanCardVariant =
   | "pro_current_active"
   | "pro_current_inactive";
 
+export type FreePlanCardVariant = "free_current" | "free_available";
+
+export type FreePlanCardViewModel = {
+  isCurrent: boolean;
+  variant: FreePlanCardVariant;
+  cardClassName: string;
+  titleClassName: string;
+  bodyClassName: string;
+  highlightsClassName: string;
+  badgeClassName: string;
+  ctaLabel: string;
+  ctaDisabled: boolean;
+};
+
+const FREE_CARD_STYLE: Record<FreePlanCardVariant, { cardClassName: string; titleClassName: string; bodyClassName: string; highlightsClassName: string; badgeClassName: string }> = {
+  free_current: {
+    cardClassName: "border-brand-border-strong bg-brand-panel-muted shadow-brand-card ring-1 ring-brand-border-strong",
+    titleClassName: "text-brand-text-primary",
+    bodyClassName: "text-brand-text-secondary",
+    highlightsClassName: "text-brand-text-secondary",
+    badgeClassName: "rounded-full border border-brand-border-strong bg-brand-panel px-2 py-0.5 text-[11px] font-medium text-brand-text-primary",
+  },
+  free_available: {
+    cardClassName: "border-brand-border bg-brand-panel shadow-brand-card",
+    titleClassName: "text-brand-text-primary",
+    bodyClassName: "text-brand-text-secondary",
+    highlightsClassName: "text-brand-text-secondary",
+    badgeClassName: "rounded-full border border-brand-border bg-brand-panel-muted px-2 py-0.5 text-[11px] font-medium text-brand-text-secondary",
+  },
+};
+
+export function isFreePlan(planTier: string | null | undefined): boolean {
+  const normalized = String(planTier ?? "").trim().toLowerCase();
+  return !normalized || FREE_PLAN_ALIASES.has(normalized);
+}
+
+export function buildFreePlanCardViewModel(activePlanTier: string | null | undefined): FreePlanCardViewModel {
+  const isCurrent = isFreePlan(activePlanTier);
+  const variant: FreePlanCardVariant = isCurrent ? "free_current" : "free_available";
+  const style = FREE_CARD_STYLE[variant];
+
+  return {
+    isCurrent,
+    variant,
+    cardClassName: `${CARD_BASE_CLASS_NAME} ${style.cardClassName}`,
+    titleClassName: style.titleClassName,
+    bodyClassName: style.bodyClassName,
+    highlightsClassName: style.highlightsClassName,
+    badgeClassName: style.badgeClassName,
+    ctaLabel: "Free plan active",
+    ctaDisabled: true,
+  };
+}
+
 export type BillingPlanCardViewModel = {
   isCurrent: boolean;
   variant: BillingPlanCardVariant;

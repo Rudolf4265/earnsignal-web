@@ -1126,6 +1126,7 @@ export default function UploadStepper({
           presignedUrl: presign.presigned_url,
           file: uploadFile,
           headers: presign.headers,
+          uploadId: presign.upload_id,
         });
       } catch (storageUploadError) {
         await finalizeUploadCallback(

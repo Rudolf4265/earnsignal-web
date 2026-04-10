@@ -1,4 +1,4 @@
-import { ApiError, apiFetchJson, getApiBaseOrigin } from "./client";
+import { ApiError, apiFetchJson, getApiBaseOrigin, getApiBaseUrl } from "./client";
 import type {
   UploadCallbackRequestSchema,
   UploadCallbackResponseSchema,
@@ -95,11 +95,82 @@ export async function createUploadPresign(payload: PresignRequest): Promise<Pres
   };
 }
 
+/**
+ * Returns true when the presigned URL is a local-storage file:// path.
+ * Browsers cannot fetch() file:// URLs from an http(s) origin, so we must
+ * route local uploads through the backend dev-put endpoint instead.
+ */
+function isLocalDevUrl(url: string): boolean {
+  return url.startsWith("file://");
+}
+
+/**
+ * Mirror of getBrowserAccessToken() in client.ts — fetches the active
+ * Supabase session token so the dev-put request carries auth headers.
+ */
+async function _getBrowserAccessToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const { createBrowserSupabaseClient } = await import("../supabase/client");
+    const {
+      data: { session },
+    } = await createBrowserSupabaseClient().auth.getSession();
+    return session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Uploads a file to the backend's dev-put endpoint.
+ * Used in local storage mode where presigned URLs are file:// paths that
+ * browsers cannot PUT to.  The endpoint writes the file to local disk and
+ * is guarded (disabled in production) by _require_dev_uploads_enabled.
+ */
+async function uploadFileViaDevPut(uploadId: string, file: File): Promise<void> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const url = `${getApiBaseUrl()}/v1/uploads/dev-put/${encodeURIComponent(uploadId)}`;
+  const headers: Record<string, string> = {};
+
+  const token = await _getBrowserAccessToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Do NOT set Content-Type — the browser must set it automatically so that
+  // the multipart boundary is included in the header value.
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Local dev file upload failed with status ${response.status}`);
+  }
+}
+
 export async function uploadFileToPresignedUrl(params: {
   presignedUrl: string;
   file: File;
   headers?: Record<string, string>;
+  /** Required when presignedUrl is a file:// local-storage URL. */
+  uploadId?: string;
 }): Promise<void> {
+  // Local storage mode: presign returns file:// URLs which browsers cannot
+  // fetch(). Route to the backend dev-put endpoint instead.
+  if (isLocalDevUrl(params.presignedUrl)) {
+    if (!params.uploadId) {
+      throw new Error(
+        "uploadId is required for local dev file upload but was not provided",
+      );
+    }
+    await uploadFileViaDevPut(params.uploadId, params.file);
+    return;
+  }
+
   const response = await fetch(params.presignedUrl, {
     method: "PUT",
     headers: params.headers,

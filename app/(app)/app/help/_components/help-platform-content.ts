@@ -39,7 +39,7 @@ export type HelpPlatformContent = {
 
 type HelpPlatformOverride = Omit<HelpPlatformContent, "id" | "icon" | "name" | "reportRole" | "reportRoleLabel">;
 
-const PLATFORM_ORDER: UploadPlatform[] = ["patreon", "substack", "youtube", "tiktok", "instagram"];
+const PLATFORM_ORDER: UploadPlatform[] = ["patreon", "substack", "youtube", "tiktok", "instagram", "brand_deals_other_income"];
 
 const HELP_PLATFORM_OVERRIDES: Record<UploadPlatform, HelpPlatformOverride> = {
   patreon: {
@@ -216,6 +216,46 @@ const HELP_PLATFORM_OVERRIDES: Record<UploadPlatform, HelpPlatformOverride> = {
     secondaryAction: {
       kind: "close",
       label: "Back",
+    },
+  },
+  brand_deals_other_income: {
+    summary: "Use the EarnSigma Brand Deals & Other Income template.",
+    badge: "CSV template",
+    drawerTitle: "How to prepare your Brand Deals & Other Income file",
+    intro:
+      "Use the EarnSigma template to capture brand partnerships, affiliate payouts, consulting fees, sponsorships, digital product sales, coaching income, and any other business income earned outside your creator platforms. This data powers Tax & Cash Planning in your EarnSigma reports.",
+    steps: [
+      "Download the EarnSigma Brand Deals & Other Income template.",
+      "Add one row per payment received.",
+      "Fill in Date (when you received the payment), Source (brand or client name), Amount (net cash received), and Type (brand_deal, affiliate, consulting, sponsorship, digital_product, coaching, or other_income).",
+      "Optionally add Notes and Currency.",
+      "Save as CSV.",
+      "Upload to EarnSigma.",
+    ],
+    acceptedFile: "CSV only — use the EarnSigma template.",
+    acceptedFileNote:
+      "Amount should reflect net cash received. Use one currency per file. Multiple months of income can be included in one file.",
+    beforeUpload: [
+      "Keep header row unchanged",
+      "Save as CSV (not XLSX)",
+      "Use numbers only in Amount column — no currency symbols",
+      "Date format: YYYY-MM-DD",
+    ],
+    commonMistakes: [
+      "Including currency symbols in the Amount column",
+      "Using an unsupported date format",
+      "Leaving Amount blank or zero",
+    ],
+    primaryAction: {
+      kind: "download",
+      href: "/templates/earnsigma-brand-deals-template.csv",
+      download: "earnsigma-brand-deals-template.csv",
+      label: "Download Brand Deals template",
+    },
+    secondaryAction: {
+      kind: "link",
+      href: "/app/data",
+      label: "Upload CSV",
     },
   },
 };

@@ -206,6 +206,48 @@ export type ReportAudienceGrowthSignalsViewModel = {
   trustNote: string | null;
 };
 
+export type TaxPlanningCategoryViewModel = {
+  category: string;
+  label: string;
+  total: number;
+  pct: number;
+};
+
+export type TaxPlanningQuarterViewModel = {
+  quarter: string;
+  total: number;
+};
+
+export type TaxPlanningSourceViewModel = {
+  sourceName: string;
+  total: number;
+  category: string;
+  categoryLabel: string;
+};
+
+export type TaxPlanningCueViewModel = {
+  quarter: string;
+  cueText: string;
+  dueDateLabel: string;
+  estimatedReserve: string;
+};
+
+export type ReportTaxPlanningViewModel = {
+  available: boolean;
+  ytdYear: number | null;
+  ytdTotal: number;
+  ytdCurrency: string;
+  overallTotal: number;
+  estimatedTaxReservePct: number;
+  estimatedTaxReserve: number;
+  quarterlyTotals: TaxPlanningQuarterViewModel[];
+  categoryBreakdown: TaxPlanningCategoryViewModel[];
+  topIncomeSources: TaxPlanningSourceViewModel[];
+  planningCues: TaxPlanningCueViewModel[];
+  dataMonths: string[];
+  disclaimer: string;
+};
+
 export type ReportViewModel = {
   reportId: string | null;
   schemaVersion: string | null;
@@ -224,6 +266,7 @@ export type ReportViewModel = {
   outlook: ReportOutlookViewModel | null;
   stability: ReportStabilityViewModel | null;
   audienceGrowthSignals: ReportAudienceGrowthSignalsViewModel | null;
+  taxPlanning: ReportTaxPlanningViewModel | null;
 };
 
 export type NormalizeArtifactResult = {
@@ -1408,6 +1451,80 @@ function readAudienceGrowthSignals(records: Record<string, unknown>[]): ReportAu
   };
 }
 
+function readTaxPlanning(records: Record<string, unknown>[]): ReportTaxPlanningViewModel | null {
+  const raw = readRecordFromPaths(records, [
+    "sections.tax_planning",
+    "tax_planning",
+    "report.sections.tax_planning",
+    "report.tax_planning",
+  ]);
+  if (!raw || !raw.available) {
+    return null;
+  }
+
+  const quarterlyTotals: TaxPlanningQuarterViewModel[] = Array.isArray(raw.quarterly_totals)
+    ? raw.quarterly_totals
+        .filter(isRecord)
+        .map((q) => ({
+          quarter: readString(q.quarter) ?? "",
+          total: readNumber(q.total) ?? 0,
+        }))
+        .filter((q) => q.quarter)
+    : [];
+
+  const categoryBreakdown: TaxPlanningCategoryViewModel[] = Array.isArray(raw.category_breakdown)
+    ? raw.category_breakdown
+        .filter(isRecord)
+        .map((c) => ({
+          category: readString(c.category) ?? "",
+          label: readString(c.label) ?? readString(c.category) ?? "",
+          total: readNumber(c.total) ?? 0,
+          pct: readNumber(c.pct) ?? 0,
+        }))
+        .filter((c) => c.category)
+    : [];
+
+  const topIncomeSources: TaxPlanningSourceViewModel[] = Array.isArray(raw.top_income_sources)
+    ? raw.top_income_sources
+        .filter(isRecord)
+        .map((s) => ({
+          sourceName: readString(s.source_name ?? s.sourceName) ?? "",
+          total: readNumber(s.total) ?? 0,
+          category: readString(s.category) ?? "",
+          categoryLabel: readString(s.category_label ?? s.categoryLabel) ?? readString(s.category) ?? "",
+        }))
+        .filter((s) => s.sourceName)
+    : [];
+
+  const planningCues: TaxPlanningCueViewModel[] = Array.isArray(raw.planning_cues)
+    ? raw.planning_cues
+        .filter(isRecord)
+        .map((c) => ({
+          quarter: readString(c.quarter) ?? "",
+          cueText: readString(c.cue_text ?? c.cueText) ?? "",
+          dueDateLabel: readString(c.due_date_label ?? c.dueDateLabel) ?? "",
+          estimatedReserve: readString(c.estimated_reserve ?? c.estimatedReserve) ?? "",
+        }))
+        .filter((c) => c.quarter && c.cueText)
+    : [];
+
+  return {
+    available: true,
+    ytdYear: typeof raw.ytd_year === "number" ? raw.ytd_year : null,
+    ytdTotal: readNumber(raw.ytd_total) ?? 0,
+    ytdCurrency: readString(raw.ytd_currency) ?? "USD",
+    overallTotal: readNumber(raw.overall_total) ?? 0,
+    estimatedTaxReservePct: readNumber(raw.estimated_tax_reserve_pct) ?? 0.25,
+    estimatedTaxReserve: readNumber(raw.estimated_tax_reserve) ?? 0,
+    quarterlyTotals,
+    categoryBreakdown,
+    topIncomeSources,
+    planningCues,
+    dataMonths: Array.isArray(raw.data_months) ? raw.data_months.filter((m): m is string => typeof m === "string") : [],
+    disclaimer: readString(raw.disclaimer) ?? "For planning reference only.",
+  };
+}
+
 function toComponentNumbers(value: unknown): Record<string, number> | null {
   if (!isRecord(value)) {
     return null;
@@ -1719,6 +1836,7 @@ function emptyModel(): ReportViewModel {
     outlook: null,
     stability: null,
     audienceGrowthSignals: null,
+    taxPlanning: null,
   };
 }
 
@@ -1793,6 +1911,7 @@ export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArti
       outlook: readOutlook(namedSections?.outlook, truthDefaults),
       stability: readStability(namedSections?.stability, truthDefaults),
       audienceGrowthSignals: readAudienceGrowthSignals(records),
+      taxPlanning: readTaxPlanning(records),
     },
     warnings,
   };

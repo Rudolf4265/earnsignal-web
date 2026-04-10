@@ -1,0 +1,4 @@
+date,source,amount,type,notes,currency,payout_channel
+2024-01-15,Acme Brand,2500.00,brand_deal,Q1 sponsor integration,USD,
+2024-01-28,PartnerNetwork,350.00,affiliate,January commission payout,USD,
+2024-02-10,ConsultingClient,1200.00,consulting,Strategy session,USD,

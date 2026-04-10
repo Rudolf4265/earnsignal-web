@@ -95,6 +95,40 @@ export type ReportDetailAudienceGrowthPresentation = {
   trustNote: string | null;
 };
 
+export type ReportDetailTaxPlanningCategoryRow = {
+  category: string;
+  label: string;
+  total: number;
+  pct: number;
+  formattedTotal: string;
+  formattedPct: string;
+};
+
+export type ReportDetailTaxPlanningQuarterRow = {
+  quarter: string;
+  total: number;
+  formattedTotal: string;
+};
+
+export type ReportDetailTaxPlanningCueRow = {
+  quarter: string;
+  cueText: string;
+  dueDateLabel: string;
+};
+
+export type ReportDetailTaxPlanningPresentation = {
+  ytdLabel: string;
+  ytdTotal: string;
+  taxReserve: string;
+  taxReservePctLabel: string;
+  quarterlyTotals: ReportDetailTaxPlanningQuarterRow[];
+  categoryBreakdown: ReportDetailTaxPlanningCategoryRow[];
+  hasTopSources: boolean;
+  topSourceRows: Array<{ sourceName: string; categoryLabel: string; formattedTotal: string }>;
+  planningCues: ReportDetailTaxPlanningCueRow[];
+  disclaimer: string;
+};
+
 export type ReportDetailDisplayContext = {
   /** Eyebrow label for the hero metrics grid — e.g. "Latest available snapshot" */
   snapshotLabel: string;
@@ -164,6 +198,7 @@ export type ReportDetailPresentationModel = {
     unavailableBody: string | null;
   };
   audienceGrowth: ReportDetailAudienceGrowthPresentation | null;
+  taxPlanning: ReportDetailTaxPlanningPresentation | null;
   appendixSections: ReportDetailPresentationAppendixSection[];
 };
 
@@ -928,11 +963,75 @@ function buildWhatChangedSection(
   });
 }
 
+function formatTaxCurrency(value: number, currency = "USD"): string {
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+  } catch {
+    return `$${value.toFixed(0)}`;
+  }
+}
+
+function formatTaxPct(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+function buildTaxPlanningSection(
+  taxPlanning: ReportViewModel["taxPlanning"],
+): ReportDetailPresentationModel["taxPlanning"] {
+  if (!taxPlanning || !taxPlanning.available) {
+    return null;
+  }
+
+  const ytdLabel = taxPlanning.ytdYear ? `${taxPlanning.ytdYear} YTD` : "YTD";
+  const currency = taxPlanning.ytdCurrency ?? "USD";
+
+  const quarterlyTotals: ReportDetailTaxPlanningQuarterRow[] = taxPlanning.quarterlyTotals.map((q) => ({
+    quarter: q.quarter,
+    total: q.total,
+    formattedTotal: formatTaxCurrency(q.total, currency),
+  }));
+
+  const categoryBreakdown: ReportDetailTaxPlanningCategoryRow[] = taxPlanning.categoryBreakdown.map((c) => ({
+    category: c.category,
+    label: c.label,
+    total: c.total,
+    pct: c.pct,
+    formattedTotal: formatTaxCurrency(c.total, currency),
+    formattedPct: formatTaxPct(c.pct),
+  }));
+
+  const topSourceRows = taxPlanning.topIncomeSources.slice(0, 5).map((s) => ({
+    sourceName: s.sourceName,
+    categoryLabel: s.categoryLabel,
+    formattedTotal: formatTaxCurrency(s.total, currency),
+  }));
+
+  const planningCues: ReportDetailTaxPlanningCueRow[] = taxPlanning.planningCues.map((c) => ({
+    quarter: c.quarter,
+    cueText: c.cueText,
+    dueDateLabel: c.dueDateLabel,
+  }));
+
+  return {
+    ytdLabel,
+    ytdTotal: formatTaxCurrency(taxPlanning.ytdTotal, currency),
+    taxReserve: formatTaxCurrency(taxPlanning.estimatedTaxReserve, currency),
+    taxReservePctLabel: formatTaxPct(taxPlanning.estimatedTaxReservePct),
+    quarterlyTotals,
+    categoryBreakdown,
+    hasTopSources: topSourceRows.length > 0,
+    topSourceRows,
+    planningCues,
+    disclaimer: taxPlanning.disclaimer,
+  };
+}
+
 function buildReportDetailPresentationModel(input: BuildReportDetailPresentationInput): ReportDetailPresentationModel {
   const sectionEntries = toIndexedSections(input.artifactModel?.sections);
   const diagnosis = buildDiagnosisSection(input.artifactModel?.diagnosis ?? null);
   const whatChanged = buildWhatChangedSection(input.artifactModel?.whatChanged ?? null);
   const audienceGrowth = buildAudienceGrowthSection(input.artifactModel?.audienceGrowthSignals ?? null);
+  const taxPlanning = buildTaxPlanningSection(input.artifactModel?.taxPlanning ?? null);
 
   const revenueSections = selectSections(sectionEntries, ["revenue snapshot", "revenue trend"]);
   const subscriberSections = selectSections(sectionEntries, ["subscribers retention", "subscriber", "retention", "tier health", "churn", "arpu"]);
@@ -1145,6 +1244,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
     diagnosis,
     whatChanged,
     audienceGrowth,
+    taxPlanning,
     appendixSections,
   };
 }

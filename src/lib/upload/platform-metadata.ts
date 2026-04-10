@@ -69,7 +69,7 @@ export const PLATFORM_CATEGORY_ORDER: PlatformCategory[] = ["supported"];
 
 export const DIRECT_FAN_PLATFORM_CARD_ID: PlatformCardId = "direct-fan-platforms";
 
-const PLATFORM_ORDER: UploadPlatform[] = ["patreon", "substack", "youtube", "instagram", "tiktok"];
+const PLATFORM_ORDER: UploadPlatform[] = ["patreon", "substack", "youtube", "instagram", "tiktok", "brand_deals_other_income"];
 
 const PLATFORM_ICONS: Partial<Record<UploadPlatform, string>> = {
   patreon: "/platforms/patreon.svg",
@@ -78,6 +78,7 @@ const PLATFORM_ICONS: Partial<Record<UploadPlatform, string>> = {
   instagram: "/platforms/instagram.svg",
   tiktok: "/platforms/tiktok.svg",
   onlyfans: "/platforms/direct-fan.png",
+  brand_deals_other_income: "/platforms/brand-deals.svg",
 };
 
 const FALLBACK_PLATFORM_ICON = "/platforms/direct-fan.png";
@@ -155,6 +156,9 @@ function normalizeManifestPlatform(raw: SourceManifestPlatform | null | undefine
 }
 
 function buildContributionLabel(platform: NormalizedSourceManifestPlatform): string {
+  if (platform.platform === "brand_deals_other_income") {
+    return "Business income + tax planning";
+  }
   if (platform.platform === "youtube") {
     return "Revenue + growth insights";
   }

@@ -19,7 +19,13 @@ function isProductionEnvironment(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
-export const PRIMARY_DOMAIN = normalizeHost(process.env.NEXT_PUBLIC_PRIMARY_DOMAIN ?? DEFAULT_PRIMARY_DOMAIN);
+function isLocalPrimaryDomain(domain: string): boolean {
+  return domain === "localhost" || domain === "127.0.0.1";
+}
+
+export const PRIMARY_DOMAIN = normalizeHost(
+  process.env.NEXT_PUBLIC_PRIMARY_DOMAIN ?? DEFAULT_PRIMARY_DOMAIN
+);
 
 const configuredSuffixes = parseCsv(process.env.NEXT_PUBLIC_ALLOWED_HOST_SUFFIXES);
 const nonProductionDefaultSuffixes = [".vercel.app", ".localhost"];
@@ -40,6 +46,14 @@ export const AUTH_CALLBACK_ALLOWED_ORIGINS = [
 ];
 
 export function getCanonicalHosts() {
+  if (!isProductionEnvironment() && isLocalPrimaryDomain(PRIMARY_DOMAIN)) {
+    return {
+      marketingHost: PRIMARY_DOMAIN,
+      marketingRootHost: PRIMARY_DOMAIN,
+      appHost: PRIMARY_DOMAIN,
+    };
+  }
+
   return {
     marketingHost: `www.${PRIMARY_DOMAIN}`,
     marketingRootHost: PRIMARY_DOMAIN,

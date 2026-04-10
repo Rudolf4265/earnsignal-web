@@ -149,6 +149,33 @@ export const STATIC_SOURCE_MANIFEST_RESPONSE: SourceManifestResponse = {
         "Normalized monthly CSV only",
         "Only the allowlisted TikTok ZIP format is supported alongside this CSV fallback"
       ]
+    },
+    {
+      "platform": "brand_deals_other_income",
+      "label": "Brand Deals & Other Income",
+      "descriptor": "Business income",
+      "accepted_file_types_label": "Normalized CSV only",
+      "upload_help_text": "Upload the EarnSigma Brand Deals & Other Income CSV template. Use this to track brand partnerships, affiliate payouts, consulting fees, sponsorships, digital product sales, coaching income, and other business income not captured by your creator platforms.",
+      "public_support_status": "supported_now",
+      "report_role": "supporting",
+      "standalone_report_eligible": false,
+      "business_metrics_capable": true,
+      "accepted_extensions": [
+        ".csv"
+      ],
+      "public_contract_ids": [
+        "brand_deals_other_income_csv"
+      ],
+      "data_domains": [
+        "revenue",
+        "business_income"
+      ],
+      "role_summary": "Business income data for tax planning and accountant exports. Not used for platform mix or growth scoring.",
+      "known_limitations": [
+        "Normalized CSV template only",
+        "Does not contribute to platform mix or growth scoring",
+        "Amount is treated as net cash received"
+      ]
     }
   ]
 };

@@ -44,6 +44,7 @@ import { formatReportArtifactContractErrors, patchSparseArtifact, validateReport
 import { buildReportFraming, formatIncludedSourceCountLabel } from "@/src/lib/report/source-labeling";
 import { buildReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
 import { ReportAudienceGrowthSection } from "./_components/ReportAudienceGrowthSection";
+import { ReportTaxPlanningSection } from "./_components/ReportTaxPlanningSection";
 import { ReportWowSummary } from "./_components/ReportWowSummary";
 import { buildReportFreeTeaserViewModel, ReportFreeTeaser } from "./_components/ReportFreeTeaser";
 
@@ -764,6 +765,16 @@ export default function ReportPage() {
                     description="Where attention is growing, what to watch, and where to lean next."
                   />
                   <ReportAudienceGrowthSection model={presentation.audienceGrowth} />
+                </section>
+              ) : null}
+
+              {presentation.taxPlanning ? (
+                <section className="space-y-3" data-testid="report-tax-planning">
+                  <DashboardSectionHeader
+                    title="Business Income & Tax Planning"
+                    description="Off-platform income summary and estimated tax set-aside. For planning reference only."
+                  />
+                  <ReportTaxPlanningSection model={presentation.taxPlanning} />
                 </section>
               ) : null}
 

@@ -1849,7 +1849,7 @@ export interface components {
              * Platform
              * @enum {string}
              */
-            platform: "patreon" | "substack" | "onlyfans" | "stripe" | "youtube" | "instagram" | "tiktok";
+            platform: "patreon" | "substack" | "onlyfans" | "stripe" | "youtube" | "instagram" | "tiktok" | "brand_deals_other_income";
             /** Size */
             size: number;
         };

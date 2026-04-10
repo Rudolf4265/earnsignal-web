@@ -188,6 +188,7 @@ const BILLING_STATUS_TTL_MS = 30_000;
 const CHECKOUT_ATTEMPT_KEY = "earnsignal.checkout.attempt.v1";
 const CHECKOUT_ATTEMPT_TTL_MS = 20_000;
 export const CANONICAL_ENTITLEMENTS_PATH = "/v1/entitlements";
+const DEV_BYPASS_ENTITLEMENTS_PATH = "/api/dev/entitlements";
 const CANONICAL_CHECKOUT_PATH = "/v1/billing/create-checkout-session";
 const BILLING_PORTAL_SESSION_PATH = "/v1/billing/create-portal-session";
 const LEGACY_BILLING_CHECKOUT_PATH = "/v1/billing/checkout";
@@ -715,6 +716,21 @@ function logEntitlementResolution(value: EntitlementsResponse, resolvedEmail?: s
   });
 }
 
+/**
+ * Returns the local dev bypass route URL when DEV_ENTITLEMENT_BYPASS is active,
+ * or the canonical remote entitlements path otherwise.
+ * The server route enforces all real guards (NODE_ENV, email allowlist).
+ */
+function resolveEntitlementsPath(): string {
+  if (
+    typeof window !== "undefined" &&
+    process.env.NEXT_PUBLIC_DEV_ENTITLEMENT_BYPASS === "true"
+  ) {
+    return `${window.location.origin}${DEV_BYPASS_ENTITLEMENTS_PATH}`;
+  }
+  return CANONICAL_ENTITLEMENTS_PATH;
+}
+
 export async function fetchEntitlements(options?: { forceRefresh?: boolean; resolvedEmail?: string | null }): Promise<EntitlementsResponse> {
   const forceRefresh = options?.forceRefresh ?? false;
   const resolvedEmail = options?.resolvedEmail ?? null;
@@ -736,7 +752,7 @@ export async function fetchEntitlements(options?: { forceRefresh?: boolean; reso
   }
 
   inFlightEntitlements = (async () => {
-    const body = await apiFetchJson<EntitlementsResponseSchema>("entitlements.fetch", CANONICAL_ENTITLEMENTS_PATH, {
+    const body = await apiFetchJson<EntitlementsResponseSchema>("entitlements.fetch", resolveEntitlementsPath(), {
       method: "GET",
     });
     const value = applyFounderContext(normalizeEntitlements(body), resolvedEmail);

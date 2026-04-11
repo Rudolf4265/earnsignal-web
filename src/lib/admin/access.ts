@@ -35,11 +35,10 @@ export async function checkIsAdmin(): Promise<boolean> {
       return false;
     }
 
+    // SECURITY: Only trust app_metadata for admin claims.
+    // user_metadata is user-writable in Supabase and must never be used
+    // for authorization decisions (privilege escalation risk).
     if (hasAdminClaims(user.app_metadata as Record<string, unknown> | undefined)) {
-      return true;
-    }
-
-    if (hasAdminClaims(user.user_metadata as Record<string, unknown> | undefined)) {
       return true;
     }
 

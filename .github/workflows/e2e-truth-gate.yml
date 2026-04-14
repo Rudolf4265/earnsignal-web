@@ -17,10 +17,13 @@ jobs:
     env:
       CI: "1"
       E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
-      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
       E2E_API_BASE_URL: ${{ secrets.E2E_API_BASE_URL }}
-      E2E_UPLOAD_FIXTURE: ${{ vars.E2E_UPLOAD_FIXTURE }}
+      E2E_FREE_EMAIL: ${{ secrets.E2E_FREE_EMAIL }}
+      E2E_FREE_PASSWORD: ${{ secrets.E2E_FREE_PASSWORD }}
+      E2E_REPORT_EMAIL: ${{ secrets.E2E_REPORT_EMAIL }}
+      E2E_REPORT_PASSWORD: ${{ secrets.E2E_REPORT_PASSWORD }}
+      E2E_PRO_EMAIL: ${{ secrets.E2E_PRO_EMAIL }}
+      E2E_PRO_PASSWORD: ${{ secrets.E2E_PRO_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -33,12 +36,20 @@ jobs:
           cache: npm
           cache-dependency-path: tests/e2e/package-lock.json
 
-      - name: Validate required secrets and configure fixture
+      - name: Validate required secrets
         shell: bash
         run: |
           set -euo pipefail
           missing=0
-          for key in E2E_BASE_URL E2E_EMAIL E2E_PASSWORD; do
+          for key in \
+            E2E_BASE_URL \
+            E2E_API_BASE_URL \
+            E2E_FREE_EMAIL \
+            E2E_FREE_PASSWORD \
+            E2E_REPORT_EMAIL \
+            E2E_REPORT_PASSWORD \
+            E2E_PRO_EMAIL \
+            E2E_PRO_PASSWORD; do
             if [ -z "${!key:-}" ]; then
               echo "::error::$key is required for e2e truth gate."
               missing=1
@@ -46,9 +57,6 @@ jobs:
           done
           if [ "$missing" -ne 0 ]; then
             exit 1
-          fi
-          if [ -z "${E2E_UPLOAD_FIXTURE:-}" ]; then
-            echo "E2E_UPLOAD_FIXTURE=tests/fixtures/patreon_minimal.csv" >> "$GITHUB_ENV"
           fi
 
       - name: Install E2E dependencies
@@ -58,7 +66,7 @@ jobs:
         run: npm --prefix tests/e2e exec playwright install --with-deps chromium
 
       - name: Run truth gate
-        run: npm run test:e2e:truth
+        run: npm run qa:truth-gate
 
       - name: Upload Playwright artifacts on failure
         if: failure()
@@ -66,8 +74,8 @@ jobs:
         with:
           name: truth-gate-playwright-artifacts
           path: |
-            tests/e2e/test-results
-            tests/e2e/playwright-report
+            test-results
+            playwright-report
           if-no-files-found: warn
 
   truth-gate-skipped:

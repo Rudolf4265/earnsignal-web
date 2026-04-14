@@ -14,6 +14,10 @@ Internal admin tooling is available under `/app/admin` for support workflows.
   - Email-first user search (creator ID still supported as fallback).
   - If no query is entered, defaults to recent users from backend.
   - Default list excludes archived/deleted users. Use `Show archived users` to include lifecycle-hidden rows.
+  - Includes a compact `User overview` section between the archived toggle and user table.
+    - Summary tiles show current Total users, Free, Report, Pro, and Non-Paying counts.
+    - Trend windows support 24H, 7D, and 30D for signups, Report upgrades, Pro upgrades, and Non-Paying grants.
+    - Overview data can be exported as CSV from the section.
   - Rows show explicit fallback text (`No email on record`) when email is missing.
   - Entitlement source is rendered as a color-coded badge:
     - Stripe (blue)
@@ -51,6 +55,14 @@ Internal admin tooling is available under `/app/admin` for support workflows.
 - Success shows explicit confirmation and refreshes current admin list results.
 - Success includes a direct `Open user details` action that routes to `/app/admin/users/[creatorId]` when available.
 - Not-found and validation failures are surfaced as explicit operator-visible errors.
+
+## User Overview Classification
+
+- Endpoint: `GET /v1/admin/user-overview?window=24h|7d|30d`.
+- The backend returns `classification_mode: "overlap"`.
+- Free, Report, and Pro are current access-state totals from canonical entitlement resolution.
+- Non-Paying is a separate overlapping business-quality indicator for active admin/manual override access. A comped Pro user counts in Pro and Non-Paying because the access tier is Pro, but the access source is not self-serve paid commerce.
+- Downgrades to Free are intentionally omitted because downgrade events are not currently event-sourced reliably.
 
 ## Notes
 

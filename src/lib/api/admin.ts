@@ -3,6 +3,7 @@ import { isSessionExpiredError } from "../auth/isSessionExpiredError";
 import type {
   AdminLatestReportResponseSchema,
   AdminLatestUploadResponseSchema,
+  AdminUserOverviewResponseSchema,
   AdminUserRowSchema,
   AdminUsersListResponseSchema,
   AdminWhoAmIResponseSchema,
@@ -43,6 +44,31 @@ export type AdminUserListResponse = {
   users: AdminUserRow[];
   total: number;
   mode: AdminListMode;
+};
+
+export type AdminUserOverviewWindow = "24h" | "7d" | "30d";
+
+export type AdminUserOverview = {
+  window: AdminUserOverviewWindow;
+  classificationMode: "overlap";
+  totals: {
+    totalUsers: number;
+    free: number;
+    report: number;
+    pro: number;
+    nonPaying: number;
+  };
+  trends: {
+    newSignups: number;
+    reportUpgrades: number;
+    proUpgrades: number;
+    nonPayingGrants: number;
+    downgradesToFree?: number;
+  };
+  metadata: {
+    downgradesSupported: boolean;
+    notes: string[];
+  };
 };
 
 export type AdminUserDetail = AdminUserRow & {
@@ -187,6 +213,38 @@ type RawAdminUsersListResponse = AdminUsersListResponseSchema & {
   mode?: string | null;
 };
 
+type RawAdminUserOverviewResponse = AdminUserOverviewResponseSchema & {
+  window?: string | null;
+  classification_mode?: string | null;
+  classificationMode?: string | null;
+  totals?: {
+    total_users?: number | null;
+    totalUsers?: number | null;
+    free?: number | null;
+    report?: number | null;
+    pro?: number | null;
+    non_paying?: number | null;
+    nonPaying?: number | null;
+  } | null;
+  trends?: {
+    new_signups?: number | null;
+    newSignups?: number | null;
+    report_upgrades?: number | null;
+    reportUpgrades?: number | null;
+    pro_upgrades?: number | null;
+    proUpgrades?: number | null;
+    non_paying_grants?: number | null;
+    nonPayingGrants?: number | null;
+    downgrades_to_free?: number | null;
+    downgradesToFree?: number | null;
+  } | null;
+  metadata?: {
+    downgrades_supported?: boolean | null;
+    downgradesSupported?: boolean | null;
+    notes?: unknown;
+  } | null;
+};
+
 let whoAmICache: AdminWhoAmIResponse | null = null;
 let inFlightWhoAmI: Promise<AdminWhoAmIResponse> | null = null;
 
@@ -196,6 +254,10 @@ function asNullableString(value: unknown): string | null {
 
 function asBoolean(value: unknown): boolean {
   return value === true;
+}
+
+function asNumber(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -332,6 +394,45 @@ function normalizeSearchMode(value: unknown, searchProvided: boolean): AdminList
   return searchProvided ? "search" : "recent";
 }
 
+function normalizeOverviewWindow(value: unknown): AdminUserOverviewWindow {
+  const normalized = asNullableString(value)?.toLowerCase();
+  if (normalized === "24h" || normalized === "7d" || normalized === "30d") {
+    return normalized;
+  }
+  return "7d";
+}
+
+function mapUserOverview(raw: RawAdminUserOverviewResponse | Record<string, unknown>): AdminUserOverview {
+  const totals = asObject(raw.totals) ?? {};
+  const trends = asObject(raw.trends) ?? {};
+  const metadata = asObject(raw.metadata) ?? {};
+  const notes = Array.isArray(metadata.notes) ? metadata.notes.filter((note): note is string => typeof note === "string") : [];
+  const downgradesToFree = trends.downgrades_to_free ?? trends.downgradesToFree;
+
+  return {
+    window: normalizeOverviewWindow(raw.window),
+    classificationMode: "overlap",
+    totals: {
+      totalUsers: asNumber(totals.total_users ?? totals.totalUsers),
+      free: asNumber(totals.free),
+      report: asNumber(totals.report),
+      pro: asNumber(totals.pro),
+      nonPaying: asNumber(totals.non_paying ?? totals.nonPaying),
+    },
+    trends: {
+      newSignups: asNumber(trends.new_signups ?? trends.newSignups),
+      reportUpgrades: asNumber(trends.report_upgrades ?? trends.reportUpgrades),
+      proUpgrades: asNumber(trends.pro_upgrades ?? trends.proUpgrades),
+      nonPayingGrants: asNumber(trends.non_paying_grants ?? trends.nonPayingGrants),
+      ...(downgradesToFree === undefined || downgradesToFree === null ? {} : { downgradesToFree: asNumber(downgradesToFree) }),
+    },
+    metadata: {
+      downgradesSupported: asBoolean(metadata.downgrades_supported) || asBoolean(metadata.downgradesSupported),
+      notes,
+    },
+  };
+}
+
 export async function fetchAdminWhoAmI(options?: { forceRefresh?: boolean }): Promise<AdminWhoAmIResponse> {
   const forceRefresh = options?.forceRefresh ?? false;
 
@@ -394,6 +495,23 @@ export async function fetchAdminUsers(search?: string, options?: { includeArchiv
     total: Number.isFinite(payload.total) ? Number(payload.total) : users.length,
     mode,
   };
+}
+
+export async function fetchAdminUserOverview(
+  window: AdminUserOverviewWindow,
+  options?: { includeArchived?: boolean },
+): Promise<AdminUserOverview> {
+  const params = new URLSearchParams({ window });
+  if (options?.includeArchived) {
+    params.set("include_archived", "true");
+  }
+
+  const payload = await apiFetchJson<RawAdminUserOverviewResponse | Record<string, unknown>>(
+    "admin.userOverview",
+    `/v1/admin/user-overview?${params.toString()}`,
+    { method: "GET" },
+  );
+  return mapUserOverview(payload);
 }
 
 export async function fetchAdminUserDetail(creatorId: string): Promise<AdminUserDetail> {

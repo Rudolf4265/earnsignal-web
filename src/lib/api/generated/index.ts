@@ -171,6 +171,32 @@ export type AdminUsersListResponseSchema = SchemaOrFallback<
   }
 >;
 
+export type AdminUserOverviewResponseSchema = SchemaOrFallback<
+  "AdminUserOverviewResponse",
+  {
+    window: "24h" | "7d" | "30d";
+    classification_mode: "overlap";
+    totals: {
+      total_users: number;
+      free: number;
+      report: number;
+      pro: number;
+      non_paying: number;
+    };
+    trends: {
+      new_signups: number;
+      report_upgrades: number;
+      pro_upgrades: number;
+      non_paying_grants: number;
+      downgrades_to_free?: number;
+    };
+    metadata?: {
+      downgrades_supported?: boolean;
+      notes?: string[];
+    };
+  }
+>;
+
 export type AdminHealthItemSchema = SchemaOrFallback<
   "AdminHealthItem",
   {

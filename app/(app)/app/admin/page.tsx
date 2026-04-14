@@ -10,6 +10,7 @@ import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
 import { formatPlanLabel } from "@/src/lib/billing/plan-card";
 import { deriveAdminRenderState } from "@/src/lib/gating/admin-guard";
+import { AdminUserOverview } from "./_components/AdminUserOverview";
 
 function formatTimestamp(value: string | null): string {
   if (!value) {
@@ -155,6 +156,8 @@ export default function AdminUsersPage() {
             />
             Show archived users
           </label>
+
+          <AdminUserOverview includeArchived={showArchived} />
 
           {error ? <ErrorBanner title="Could not load admin users" message={error.message} requestId={error.requestId} /> : null}
 

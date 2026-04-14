@@ -39,11 +39,16 @@ export type EntitlementsResponse = Omit<
   | "billing_period_end"
   | "features"
   | "portal_url"
+  | "capability_contract"
   | "effective_plan_tier"
   | "entitlement_source"
   | "access_granted"
   | "access_reason_code"
   | "billing_required"
+  | "can_access_admin_console"
+  | "can_manage_subscription"
+  | "is_admin_override"
+  | "is_stripe_managed"
 > & {
   effectivePlanTier: string;
   entitlementSource: string | null;

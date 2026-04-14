@@ -262,6 +262,88 @@ test("fetchAdminUsers forwards include_archived toggle to backend", async () => 
   }
 });
 
+test("fetchAdminUserOverview maps overview payload and forwards selected window", async () => {
+  const originalFetch = global.fetch;
+  const originalWindow = global.window;
+  const calls = [];
+
+  const sessionWindow = {
+    sessionStorage: {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    },
+  };
+
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  global.window = sessionWindow;
+  global.fetch = async (input, init) => {
+    calls.push({ input: String(input), init });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: () => "application/json" },
+      text: async () =>
+        JSON.stringify({
+          window: "30d",
+          classification_mode: "overlap",
+          totals: {
+            total_users: 128,
+            free: 91,
+            report: 23,
+            pro: 14,
+            non_paying: 6,
+          },
+          trends: {
+            new_signups: 12,
+            report_upgrades: 3,
+            pro_upgrades: 2,
+            non_paying_grants: 2,
+          },
+          metadata: {
+            downgrades_supported: false,
+            notes: ["Non-paying reflects active admin/manual override access rather than paid commerce."],
+          },
+        }),
+    };
+  };
+
+  try {
+    const adminApiUrl = await buildAdminModule(`${Date.now()}-overview`);
+    const { fetchAdminUserOverview } = await import(`${adminApiUrl}?t=${Date.now()}-overview`);
+    const result = await fetchAdminUserOverview("30d", { includeArchived: true });
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].input.includes("/v1/admin/user-overview?"), true);
+    assert.equal(calls[0].input.includes("window=30d"), true);
+    assert.equal(calls[0].input.includes("include_archived=true"), true);
+    assert.deepEqual(result, {
+      window: "30d",
+      classificationMode: "overlap",
+      totals: {
+        totalUsers: 128,
+        free: 91,
+        report: 23,
+        pro: 14,
+        nonPaying: 6,
+      },
+      trends: {
+        newSignups: 12,
+        reportUpgrades: 3,
+        proUpgrades: 2,
+        nonPayingGrants: 2,
+      },
+      metadata: {
+        downgradesSupported: false,
+        notes: ["Non-paying reflects active admin/manual override access rather than paid commerce."],
+      },
+    });
+  } finally {
+    global.fetch = originalFetch;
+    global.window = originalWindow;
+  }
+});
+
 test("fetchAdminUserDetail normalizes nested latest upload/report detail fields", async () => {
   const originalFetch = global.fetch;
   const originalWindow = global.window;

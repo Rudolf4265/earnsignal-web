@@ -228,6 +228,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/user-overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin User Overview
+         * @description Compact admin dashboard metrics for the current admin-visible user scope.
+         *
+         *     classification_mode="overlap":
+         *     - Free/Report/Pro are current access-state totals from resolve_entitlements().
+         *     - Non-Paying is an overlapping business-quality count for active
+         *       admin/manual override access. For example, a comped Pro user counts in
+         *       both Pro and Non-Paying because their access tier is Pro but the access
+         *       did not come from self-serve paid commerce.
+         *
+         *     Historical trend precision follows available event timestamps:
+         *     - signups use Creator.created_at,
+         *     - Report upgrades use completed non-preview Report rows as the durable
+         *       report-ownership event,
+         *     - Pro upgrades use Stripe billing event/period/update timestamps,
+         *     - Non-Paying grants use current effective override creation timestamps.
+         *     Downgrade history is not event-sourced reliably, so it is intentionally
+         *     omitted and flagged in metadata.
+         */
+        get: operations["admin_user_overview_v1_admin_user_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/users": {
         parameters: {
             query?: never;
@@ -239,6 +275,23 @@ export interface paths {
         get: operations["admin_list_users_v1_admin_users_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/users/{creator_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Archive User */
+        post: operations["admin_archive_user_v1_admin_users__creator_id__archive_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -273,6 +326,23 @@ export interface paths {
         put?: never;
         /** Admin Comp User */
         post: operations["admin_comp_user_v1_admin_users__creator_id__comp_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/users/{creator_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Delete User */
+        post: operations["admin_delete_user_v1_admin_users__creator_id__delete_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -381,6 +451,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/users/grant-access-by-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin Grant Access By Email */
+        post: operations["admin_grant_access_by_email_v1_admin_users_grant_access_by_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/whoami": {
         parameters: {
             query?: never;
@@ -460,6 +547,23 @@ export interface paths {
         put?: never;
         /** Create Checkout Session */
         post: operations["create_checkout_session_v1_billing_create_checkout_session_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/create-portal-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Billing Portal Session */
+        post: operations["create_billing_portal_session_v1_billing_create_portal_session_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -775,6 +879,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/growth-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Growth Report
+         * @description Return a Growth Report assembled from all available audience and content analytics sources.
+         *
+         *     Sources used:
+         *     - InstagramPerformanceMonthlyEntry (if uploaded)
+         *     - TikTokPerformanceMonthlyEntry (if uploaded)
+         *     - YouTubeChannelAnalyticsSnapshot (if uploaded)
+         *
+         *     Open to all authenticated users. ``entitlement_tier`` in the response is
+         *     ``"free" | "report" | "pro"`` — the frontend uses this to gate which sections
+         *     are rendered vs. shown as upgrade prompts.  Free users always receive the
+         *     snapshot, coverage summary, and what-unlocks-next sections; the full report
+         *     (audience signals, content performance, growth constraints, confidence note,
+         *     recommended actions) requires Report or Pro.
+         *
+         *     Not gated server-side so that Free users get a meaningful teaser experience
+         *     rather than a hard 403.
+         */
+        get: operations["get_growth_report_v1_growth_report_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/ingest/validate": {
         parameters: {
             query?: never;
@@ -979,6 +1118,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/patreon-snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Patreon Snapshot
+         * @description Return the most recent Patreon Members Export snapshot analytics for the current creator.
+         *
+         *     This endpoint exposes snapshot-based metrics derived from an uploaded
+         *     ``patreon_members_export`` CSV.  Returned data is clearly labelled as
+         *     snapshot/estimate and includes explicit capability flags so clients can
+         *     render sections appropriately.
+         *
+         *     Returns 404 when no Patreon member snapshot has been ingested yet.
+         */
+        get: operations["get_patreon_snapshot_v1_patreon_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/platforms": {
         parameters: {
             query?: never;
@@ -1082,6 +1248,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/reports/{report_id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Report Feedback */
+        post: operations["submit_report_feedback_v1_reports__report_id__feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/reports/{report_id}/rerun": {
         parameters: {
             query?: never;
@@ -1116,6 +1299,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/reports/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Workspace Report */
+        post: operations["run_workspace_report_v1_reports_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/schema": {
         parameters: {
             query?: never;
@@ -1125,6 +1325,23 @@ export interface paths {
         };
         /** Get Schema */
         get: operations["get_schema_v1_schema_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/source-manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Source Manifest */
+        get: operations["get_source_manifest_v1_source_manifest_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1286,6 +1503,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/uploads/support-matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Upload Support Matrix */
+        get: operations["get_upload_support_matrix_v1_uploads_support_matrix_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/validate/{platform}": {
         parameters: {
             query?: never;
@@ -1297,6 +1531,356 @@ export interface paths {
         put?: never;
         /** Validate Platform Csv */
         post: operations["validate_platform_csv_v1_validate__platform__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/clear-data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear Workspace Data
+         * @description Permanently clear all saved source data for this workspace.
+         *
+         *     Deletes all WorkspaceStagedSource rows and marks associated Upload records
+         *     inactive.  Report history, account, auth, and billing state are NOT affected.
+         *     This action is irreversible and must be triggered explicitly by the user.
+         */
+        post: operations["clear_workspace_data_v1_workspace_clear_data_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/data-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Workspace Data Sources */
+        get: operations["get_workspace_data_sources_v1_workspace_data_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/source-connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Source Connections
+         * @description List all source connections for the current workspace.
+         *
+         *     Returns real rows plus virtual placeholders for visible-but-unconnected
+         *     platforms.  Gate: CONNECTED_ACCOUNTS_FOUNDATION.
+         */
+        get: operations["list_source_connections_v1_workspace_source_connections_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/source-connections/{connection_id}/disconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Disconnect Connection
+         * @description Disconnect (revoke) a connected account.
+         *
+         *     Best-effort token revocation at the provider; errors are logged but
+         *     never raised.  Clears stored tokens and transitions to 'revoked'.
+         *
+         *     Idempotent: disconnecting an already-revoked connection is a no-op (200).
+         *
+         *     Gate: CONNECTED_ACCOUNTS_FOUNDATION.
+         */
+        post: operations["disconnect_connection_v1_workspace_source_connections__connection_id__disconnect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/source-connections/{connection_id}/reconnect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconnect Connection
+         * @description Initiate a re-auth flow for an existing connection.
+         *
+         *     Used when status == 'needs_reconnect', 'error', or 'revoked'.
+         *     Generates a new state token and returns a fresh authorization URL.
+         *
+         *     Gate: CONNECTED_ACCOUNTS_FOUNDATION.
+         */
+        post: operations["reconnect_connection_v1_workspace_source_connections__connection_id__reconnect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/source-connections/{connection_id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Sync
+         * @description Manually trigger a data sync for a connected account.
+         *
+         *     Creates a sync job row (status=queued) and dispatches it to the sync
+         *     worker queue.  The job runs asynchronously — poll
+         *     ``GET /{connection_id}/sync-jobs/{job_id}`` for status.
+         *
+         *     Returns 409 if a sync is already in progress (queued or running) for this
+         *     connection.  Does NOT auto-run a combined report.
+         *
+         *     Gate: CONNECTED_ACCOUNTS_FOUNDATION + per-platform flag.
+         */
+        post: operations["trigger_sync_v1_workspace_source_connections__connection_id__sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/source-connections/{connection_id}/sync-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sync Jobs
+         * @description List sync jobs for a connection, newest first.  Gate: CONNECTED_ACCOUNTS_FOUNDATION.
+         */
+        get: operations["list_sync_jobs_v1_workspace_source_connections__connection_id__sync_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/source-connections/{connection_id}/sync-jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sync Job
+         * @description Get a specific sync job.  Gate: CONNECTED_ACCOUNTS_FOUNDATION.
+         */
+        get: operations["get_sync_job_v1_workspace_source_connections__connection_id__sync_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/source-connections/{connection_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Connection
+         * @description Validate that stored tokens are still accepted by the provider.
+         *
+         *     Updates ``last_validated_at``.  If the token is rejected, transitions
+         *     status to ``needs_reconnect``.
+         *
+         *     Raises 409 if the connection is not in 'connected' status.
+         *
+         *     Gate: CONNECTED_ACCOUNTS_FOUNDATION.
+         */
+        post: operations["validate_connection_v1_workspace_source_connections__connection_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/source-connections/{platform}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Oauth Callback
+         * @description Handle the OAuth callback for *platform*.
+         *
+         *     1. Validate state against stored value (CSRF check).
+         *     2. Exchange code for tokens via the adapter.
+         *     3. Encrypt and persist tokens.
+         *     4. Resolve provider identity.
+         *     5. Transition connection to 'connected'.
+         *
+         *     On state mismatch → 400.
+         *     On adapter exchange failure → 502.
+         *
+         *     Gate: CONNECTED_ACCOUNTS_FOUNDATION + per-platform flag.
+         */
+        post: operations["oauth_callback_v1_workspace_source_connections__platform__callback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/source-connections/{platform}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Connection
+         * @description Initiate an OAuth connection for *platform*.
+         *
+         *     Creates or reuses a connection row, generates a CSRF state token,
+         *     and returns the provider's authorization URL.
+         *
+         *     The client MUST redirect the user to ``authorization_url``.  After the
+         *     user authorises, the provider redirects to ``redirect_uri`` with
+         *     ``code`` and ``state`` query params which the client passes to
+         *     ``/{platform}/callback``.
+         *
+         *     Gate: CONNECTED_ACCOUNTS_FOUNDATION + per-platform flag.
+         */
+        post: operations["start_connection_v1_workspace_source_connections__platform__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspace/sources/{platform}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Workspace Source Selection
+         * @description Explicitly include or exclude a saved workspace source from future report runs.
+         *
+         *     Setting ``selected=false`` excludes the source without deleting it.  The preference
+         *     is remembered and used as the default for subsequent runs.  Re-uploading data for
+         *     an excluded source does NOT silently re-include it.
+         */
+        patch: operations["update_workspace_source_selection_v1_workspace_sources__platform__patch"];
+        trace?: never;
+    };
+    "/v1/youtube-channel-analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Youtube Channel Analytics
+         * @description Return the most recent YouTube Channel Analytics snapshot for the current creator.
+         *
+         *     This endpoint exposes metrics derived from an uploaded
+         *     ``youtube_channel_analytics_export`` CSV (YouTube Studio daily export).
+         *     Returned data is capability-flagged so clients can suppress unsupported
+         *     sections (e.g. revenue, geography) rather than rendering false zeros.
+         *
+         *     Returns 404 when no YouTube channel analytics have been ingested yet.
+         */
+        get: operations["get_youtube_channel_analytics_v1_youtube_channel_analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/youtube-membership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Youtube Membership
+         * @description Return the most recent YouTube Channel Memberships snapshot for the current creator.
+         *
+         *     This endpoint exposes metrics derived from an uploaded
+         *     ``youtube_membership_export`` CSV.  Capability flags indicate which
+         *     sections are supported vs. unavailable.
+         *
+         *     Returns 404 when no YouTube membership data has been ingested yet.
+         */
+        get: operations["get_youtube_membership_v1_youtube_membership_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1354,6 +1938,38 @@ export interface components {
         AdminEntitlementSearchResponse: {
             /** Items */
             items: components["schemas"]["AdminUserEntitlementResponse"][];
+            /**
+             * Mode
+             * @default search
+             * @enum {string}
+             */
+            mode: "recent" | "search";
+        };
+        /** AdminLatestReportSummary */
+        AdminLatestReportSummary: {
+            /** Created At */
+            created_at: string | null;
+            /** Failure Code */
+            failure_code: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /** Report Id */
+            report_id: string | null;
+            /** Status */
+            status: string | null;
+        };
+        /** AdminLatestUploadSummary */
+        AdminLatestUploadSummary: {
+            /** Created At */
+            created_at: string | null;
+            /** Failed Reason */
+            failed_reason: string | null;
+            /** Ready At */
+            ready_at: string | null;
+            /** Status */
+            status: string | null;
+            /** Upload Id */
+            upload_id: string | null;
         };
         /** AdminUserEntitlementResponse */
         AdminUserEntitlementResponse: {
@@ -1361,29 +1977,12 @@ export interface components {
             access_granted: boolean;
             /** Access Reason Code */
             access_reason_code: string | null;
+            /** Archived At */
+            archived_at: string | null;
+            /** Archived Reason */
+            archived_reason: string | null;
             /** Billing Required */
             billing_required: boolean;
-            /** Effective Plan Tier */
-            effective_plan_tier: string;
-            /** Email */
-            email: string | null;
-            /** Entitlement Source */
-            entitlement_source: string;
-            override: components["schemas"]["AdminEntitlementOverrideView"] | null;
-            /** Status */
-            status: string;
-            /** User Id */
-            user_id: string;
-        };
-        /** AdminUserListResponse */
-        AdminUserListResponse: {
-            /** Items */
-            items: components["schemas"]["AdminUserSummary"][];
-            /** Next Cursor */
-            next_cursor?: string | null;
-        };
-        /** AdminUserSummary */
-        AdminUserSummary: {
             /** Billing Status */
             billing_status: string;
             /** Comp Until */
@@ -1395,16 +1994,173 @@ export interface components {
             created_at: string;
             /** Creator Id */
             creator_id: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Deleted Reason */
+            deleted_reason: string | null;
+            /** Effective Plan Tier */
+            effective_plan_tier: string;
             /** Email */
             email: string | null;
+            /**
+             * Email State
+             * @enum {string}
+             */
+            email_state: "present" | "missing";
+            /** Entitlement Source */
+            entitlement_source: string;
+            /** Entitlement Status */
+            entitlement_status: string;
+            /** Is Archived */
+            is_archived: boolean;
             /** Is Blocked */
             is_blocked: boolean;
-            /** Last Report Status */
-            last_report_status: string | null;
-            /** Last Upload Status */
-            last_upload_status: string | null;
+            /** Last Updated At */
+            last_updated_at: string | null;
+            latest_report: components["schemas"]["AdminLatestReportSummary"];
+            latest_upload: components["schemas"]["AdminLatestUploadSummary"];
+            override: components["schemas"]["AdminEntitlementOverrideView"] | null;
             /** Plan Tier */
             plan_tier: string;
+            /** Status */
+            status: string;
+            /** User Id */
+            user_id: string;
+        };
+        /** AdminUserListResponse */
+        AdminUserListResponse: {
+            /** Items */
+            items: components["schemas"]["AdminUserSummary"][];
+            /**
+             * Mode
+             * @default search
+             * @enum {string}
+             */
+            mode: "recent" | "search";
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** AdminUserOverviewMetadata */
+        AdminUserOverviewMetadata: {
+            /**
+             * Downgrades Supported
+             * @default false
+             */
+            downgrades_supported: boolean;
+            /** Notes */
+            notes: string[];
+        };
+        /** AdminUserOverviewResponse */
+        AdminUserOverviewResponse: {
+            /**
+             * Classification Mode
+             * @constant
+             */
+            classification_mode: "overlap";
+            metadata: components["schemas"]["AdminUserOverviewMetadata"];
+            totals: components["schemas"]["AdminUserOverviewTotals"];
+            trends: components["schemas"]["AdminUserOverviewTrends"];
+            /**
+             * Window
+             * @enum {string}
+             */
+            window: "24h" | "7d" | "30d";
+        };
+        /** AdminUserOverviewTotals */
+        AdminUserOverviewTotals: {
+            /** Free */
+            free: number;
+            /** Non Paying */
+            non_paying: number;
+            /** Pro */
+            pro: number;
+            /** Report */
+            report: number;
+            /** Total Users */
+            total_users: number;
+        };
+        /** AdminUserOverviewTrends */
+        AdminUserOverviewTrends: {
+            /** New Signups */
+            new_signups: number;
+            /** Non Paying Grants */
+            non_paying_grants: number;
+            /** Pro Upgrades */
+            pro_upgrades: number;
+            /** Report Upgrades */
+            report_upgrades: number;
+        };
+        /** AdminUserSummary */
+        AdminUserSummary: {
+            /** Archived At */
+            archived_at: string | null;
+            /** Archived Reason */
+            archived_reason: string | null;
+            /** Billing Status */
+            billing_status: string;
+            /** Comp Until */
+            comp_until: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Creator Id */
+            creator_id: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Deleted Reason */
+            deleted_reason: string | null;
+            /** Effective Plan Tier */
+            effective_plan_tier: string;
+            /** Email */
+            email: string | null;
+            /**
+             * Email State
+             * @enum {string}
+             */
+            email_state: "present" | "missing";
+            /** Entitlement Source */
+            entitlement_source: string;
+            /** Entitlement Status */
+            entitlement_status: string;
+            /** Is Archived */
+            is_archived: boolean;
+            /** Is Blocked */
+            is_blocked: boolean;
+            /** Last Report At */
+            last_report_at: string | null;
+            /** Last Report Status */
+            last_report_status: string | null;
+            /** Last Updated At */
+            last_updated_at: string | null;
+            /** Last Upload At */
+            last_upload_at: string | null;
+            /** Last Upload Status */
+            last_upload_status: string | null;
+            /** Plan */
+            plan: string;
+            /** Plan Tier */
+            plan_tier: string;
+            /** Status */
+            status: string;
+        };
+        /** ArchiveUserRequest */
+        ArchiveUserRequest: {
+            /**
+             * Archived
+             * @default true
+             */
+            archived: boolean;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** BillingPortalSessionResponse */
+        BillingPortalSessionResponse: {
+            /** Portal Session Id */
+            portal_session_id: string;
+            /** Portal Url */
+            portal_url: string;
         };
         /** BillingStatusResponse */
         BillingStatusResponse: {
@@ -1448,6 +2204,16 @@ export interface components {
              */
             file: string;
         };
+        /** Body_reconnect_connection_v1_workspace_source_connections__connection_id__reconnect_post */
+        Body_reconnect_connection_v1_workspace_source_connections__connection_id__reconnect_post: {
+            /** Redirect Uri */
+            redirect_uri?: string | null;
+        };
+        /** Body_start_connection_v1_workspace_source_connections__platform__start_post */
+        Body_start_connection_v1_workspace_source_connections__platform__start_post: {
+            /** Redirect Uri */
+            redirect_uri?: string | null;
+        };
         /** Body_validate_platform_csv_v1_validate__platform__post */
         Body_validate_platform_csv_v1_validate__platform__post: {
             /** File */
@@ -1455,53 +2221,90 @@ export interface components {
             /** Url */
             url?: string | null;
         };
-        /** CallbackRequest */
-        CallbackRequest: {
-            /** Callback Proof */
-            callback_proof: string;
-            /** Client Etag */
-            client_etag?: string | null;
-            /** Error */
-            error?: string | null;
-            /** Object Key */
-            object_key: string;
-            /** Sha256 */
-            sha256?: string | null;
-            /** Size Bytes */
-            size_bytes: number;
-            /** Success */
-            success: boolean;
-            /** Upload Id */
-            upload_id: string;
-        };
         /** CallbackResponse */
         CallbackResponse: {
+            /** Export Label */
+            export_label?: string | null;
+            /** Export Type */
+            export_type?: string | null;
+            /** Included In Next Report */
+            included_in_next_report?: boolean | null;
             /** Last Error At */
             last_error_at?: string | null;
             /** Last Error Code */
             last_error_code?: string | null;
             /** Last Error Stage */
             last_error_stage?: string | null;
+            /** Message */
+            message?: string | null;
+            /** Platform */
+            platform?: string | null;
             /** Reason */
             reason?: string | null;
+            /** Staging State */
+            staging_state?: ("processing" | "ready" | "failed") | null;
             /**
              * Status
              * @enum {string}
              */
             status: "validated" | "reporting" | "ready" | "failed" | "ingestion_succeeded";
+            /** Unsupported But Recognized */
+            unsupported_but_recognized?: boolean | null;
             /** Upload Id */
             upload_id: string;
+            /** Upload Status */
+            upload_status?: string | null;
+        };
+        /**
+         * CapabilityContractResponse
+         * @description Explicit pricing-tier capability contract.
+         *
+         *     These fields encode what each canonical tier guarantees structurally.
+         *     They are tier-level static values — not per-user dynamic state.
+         *     Use these to gate features based on tier contract, not plan label inference.
+         */
+        CapabilityContractResponse: {
+            /**
+             * Can Access Monitoring
+             * @description Whether this tier includes recurring monitoring access.
+             */
+            can_access_monitoring: boolean;
+            /**
+             * Can Compare Reports
+             * @description Whether this tier permits cross-report comparison.
+             */
+            can_compare_reports: boolean;
+            /**
+             * Can Use Full History Window
+             * @description Whether this tier permits the full unlimited history window.
+             */
+            can_use_full_history_window: boolean;
+            /**
+             * Can View Report History
+             * @description Whether this tier includes report history as a continuity capability.
+             */
+            can_view_report_history: boolean;
+            /**
+             * Max Report Months
+             * @description Maximum months of report data for this tier. null means unlimited (Pro).
+             */
+            max_report_months: number | null;
+            /**
+             * Report Mode Allowed
+             * @description Report cadence mode for this tier: 'none' | 'snapshot' | 'continuous'.
+             */
+            report_mode_allowed: string;
         };
         /** CheckoutRequest */
         CheckoutRequest: {
             /**
              * Plan
-             * @description Legacy checkout plan alias: starter|pro|plan_a|plan_b.
+             * @description Legacy checkout plan alias: report|pro|starter|plan_a|plan_b.
              */
             plan?: string | null;
             /**
              * Plan Tier
-             * @description Canonical checkout plan tier: basic|pro.
+             * @description Canonical checkout plan tier: report|pro.
              */
             plan_tier?: string | null;
         };
@@ -1590,6 +2393,43 @@ export interface components {
              */
             is_comped: boolean;
         };
+        /** CallbackRequest */
+        creator_optimizer__routers__source_connections__CallbackRequest: {
+            /**
+             * Code
+             * @description Authorization code from the provider.
+             */
+            code: string;
+            /**
+             * Redirect Uri
+             * @description Redirect URI used in the start request.
+             */
+            redirect_uri: string;
+            /**
+             * State
+             * @description State token returned by the provider.
+             */
+            state: string;
+        };
+        /** CallbackRequest */
+        creator_optimizer__schemas__uploads__CallbackRequest: {
+            /** Callback Proof */
+            callback_proof: string;
+            /** Client Etag */
+            client_etag?: string | null;
+            /** Error */
+            error?: string | null;
+            /** Object Key */
+            object_key: string;
+            /** Sha256 */
+            sha256?: string | null;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Success */
+            success: boolean;
+            /** Upload Id */
+            upload_id: string;
+        };
         /** CreatorTimeseriesResponse */
         CreatorTimeseriesResponse: {
             /** Creator Id */
@@ -1600,6 +2440,20 @@ export interface components {
             ingestion_id: string;
             /** Series */
             series: components["schemas"]["SeriesPoint"][];
+        };
+        /** DeleteUserRequest */
+        DeleteUserRequest: {
+            /** Confirmation */
+            confirmation: string;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** DisconnectResponse */
+        DisconnectResponse: {
+            /** Disconnected At */
+            disconnected_at: string;
+            /** Status */
+            status: string;
         };
         /** EntitlementFeatures */
         EntitlementFeatures: {
@@ -1638,30 +2492,82 @@ export interface components {
              */
             billing_required: boolean;
             /**
+             * Can Access Admin Console
+             * @description Whether the creator can access the admin console. True only for founder/super-admin accounts.
+             */
+            can_access_admin_console: boolean;
+            /**
              * Can Access Dashboard
              * @description Whether dashboard access is allowed.
              */
             can_access_dashboard: boolean;
+            /**
+             * Can Access Dashboard Intelligence
+             * @description Whether dashboard intelligence surfaces are allowed.
+             */
+            can_access_dashboard_intelligence: boolean;
+            /**
+             * Can Access Pro Comparisons Or Future Pro Features
+             * @description Whether recurring Pro-only comparison/future features are allowed.
+             */
+            can_access_pro_comparisons_or_future_pro_features: boolean;
+            /**
+             * Can Access Recurring Monitoring
+             * @description Whether recurring monitoring surfaces are allowed.
+             */
+            can_access_recurring_monitoring: boolean;
+            /**
+             * Can Download Owned Report
+             * @description Whether the creator can download an owned completed report.
+             */
+            can_download_owned_report: boolean;
             /**
              * Can Download Pdf
              * @description Whether PDF artifact access is allowed.
              */
             can_download_pdf: boolean;
             /**
+             * Can Generate Paid Report
+             * @description Whether a paid report can be generated from current entitlement state.
+             */
+            can_generate_paid_report: boolean;
+            /**
              * Can Generate Report
              * @description Whether report generation is allowed.
              */
             can_generate_report: boolean;
+            /**
+             * Can Manage Subscription
+             * @description True when the Stripe billing portal is applicable for this user.
+             */
+            can_manage_subscription: boolean;
             /**
              * Can Upload
              * @description Whether uploads are allowed.
              */
             can_upload: boolean;
             /**
+             * Can Validate Upload
+             * @description Whether upload validation is allowed.
+             */
+            can_validate_upload: boolean;
+            /**
+             * Can View Owned Report
+             * @description Whether the creator can open an owned completed report.
+             */
+            can_view_owned_report: boolean;
+            /**
+             * Can View Report History
+             * @description Whether report history/list access is allowed.
+             */
+            can_view_report_history: boolean;
+            /**
              * Can View Reports
              * @description Whether report list/detail access is allowed.
              */
             can_view_reports: boolean;
+            /** @description Explicit pricing-tier capability contract encoding the six new pricing-boundary fields. */
+            capability_contract: components["schemas"]["CapabilityContractResponse"];
             /**
              * Effective Plan Tier
              * @description Safe effective plan tier view used for access checks.
@@ -1674,7 +2580,7 @@ export interface components {
             entitled: boolean;
             /**
              * Entitlement Source
-             * @description Alias of source for admin/frontend consumers.
+             * @description Granular entitlement source: founder_override|admin_override|stripe_subscription|owned_report_purchase|trial|free_fallback.
              */
             entitlement_source: string;
             /** @description Legacy feature alias block. */
@@ -1684,6 +2590,21 @@ export interface components {
              * @description Canonical entitlement flag.
              */
             is_active: boolean;
+            /**
+             * Is Admin Override
+             * @description True when access is from an admin/manual override (not founder, not Stripe).
+             */
+            is_admin_override: boolean;
+            /**
+             * Is Founder
+             * @description True when the creator's access comes from a founder-protected override.
+             */
+            is_founder: boolean;
+            /**
+             * Is Stripe Managed
+             * @description True when access is backed by an active Stripe subscription.
+             */
+            is_stripe_managed: boolean;
             /**
              * Monthly Report Limit
              * @description Monthly report generation limit for current plan.
@@ -1696,7 +2617,7 @@ export interface components {
             plan: string;
             /**
              * Plan Tier
-             * @description Canonical semantic plan tier: basic|pro|none.
+             * @description Canonical semantic plan tier: free|report|pro.
              */
             plan_tier: string;
             /**
@@ -1711,7 +2632,7 @@ export interface components {
             reports_remaining_this_period: number | null;
             /**
              * Source
-             * @description Entitlement source: admin_override/stripe/trial/none.
+             * @description Entitlement source: admin_override/owned_report/stripe/trial/none.
              */
             source: string;
             /**
@@ -1719,6 +2640,21 @@ export interface components {
              * @description Current canonical entitlement status.
              */
             status: string;
+        };
+        /** GrantAccessByEmailRequest */
+        GrantAccessByEmailRequest: {
+            /** Email */
+            email: string;
+            /** Ends At */
+            ends_at?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Plan Tier */
+            plan_tier: string;
+            /** Reason Code */
+            reason_code?: string | null;
+            /** Starts At */
+            starts_at?: string | null;
         };
         /** GrantAccessRequest */
         GrantAccessRequest: {
@@ -1849,7 +2785,7 @@ export interface components {
              * Platform
              * @enum {string}
              */
-            platform: "patreon" | "substack" | "onlyfans" | "stripe" | "youtube" | "instagram" | "tiktok";
+            platform: "patreon" | "substack" | "onlyfans" | "stripe" | "youtube" | "instagram" | "tiktok" | "other";
             /** Size */
             size: number;
         };
@@ -1920,6 +2856,11 @@ export interface components {
             } | null;
             /** Failure Reason */
             failure_reason?: string | null;
+            /**
+             * Is Stale
+             * @default false
+             */
+            is_stale: boolean;
             /** Last Error Code */
             last_error_code?: string | null;
             /** Last Error Message */
@@ -1933,6 +2874,8 @@ export interface components {
             months_present?: string[];
             /** Next Retry At */
             next_retry_at?: string | null;
+            /** Platforms Included */
+            platforms_included?: string[];
             /** Quality */
             quality?: ("limited" | "full") | null;
             /** Report */
@@ -1941,8 +2884,14 @@ export interface components {
             } | null;
             /** Report Id */
             report_id: string;
+            report_truth?: components["schemas"]["ReportTruthSummary"] | null;
             /** Schema Version */
             schema_version: string;
+            /**
+             * Source Count
+             * @default 0
+             */
+            source_count: number;
             /** Stalled Reason */
             stalled_reason?: string | null;
             /**
@@ -1950,6 +2899,8 @@ export interface components {
              * @enum {string}
              */
             status: "queued" | "running" | "complete" | "failed";
+            /** Title */
+            title?: string | null;
             /**
              * Updated At
              * Format: date-time
@@ -1957,6 +2908,21 @@ export interface components {
             updated_at: string;
             /** Warnings */
             warnings?: components["schemas"]["ReportWarning"][];
+        };
+        /** ReportFeedbackRequest */
+        ReportFeedbackRequest: {
+            /** Feedback Text */
+            feedback_text?: string | null;
+            /**
+             * Helpful Vote
+             * @enum {string}
+             */
+            helpful_vote: "yes" | "no";
+        };
+        /** ReportFeedbackResponse */
+        ReportFeedbackResponse: {
+            /** Status */
+            status: string;
         };
         /** ReportListItem */
         ReportListItem: {
@@ -1975,14 +2941,29 @@ export interface components {
             created_at: string;
             /** Finished At */
             finished_at?: string | null;
+            /**
+             * Is Stale
+             * @default false
+             */
+            is_stale: boolean;
             /** Job Id */
             job_id?: string | null;
             /** Platforms */
             platforms?: string[] | null;
+            /** Platforms Included */
+            platforms_included?: string[];
             /** Report Id */
             report_id: string;
+            /** Report Run Id */
+            report_run_id: string;
+            report_truth?: components["schemas"]["ReportTruthSummary"] | null;
             /** Schema Version */
             schema_version?: string | null;
+            /**
+             * Source Count
+             * @default 0
+             */
+            source_count: number;
             /**
              * Status
              * @enum {string}
@@ -2062,6 +3043,63 @@ export interface components {
             /** Warnings */
             warnings?: components["schemas"]["ReportWarning"][];
         };
+        /** ReportTruthSource */
+        ReportTruthSource: {
+            /** Contribution Label */
+            contribution_label: string;
+            /**
+             * Contribution Type
+             * @enum {string}
+             */
+            contribution_type: "business_metrics" | "content_context" | "performance_context";
+            /** Label */
+            label: string;
+            /** Platform */
+            platform: string;
+        };
+        /** ReportTruthSummary */
+        ReportTruthSummary: {
+            /** Business Driving Platforms */
+            business_driving_platforms?: string[];
+            /**
+             * Business Driving Source Count
+             * @default 0
+             */
+            business_driving_source_count: number;
+            /** Business Metrics Note */
+            business_metrics_note?: string | null;
+            /** Context Platforms */
+            context_platforms?: string[];
+            /**
+             * Context Source Count
+             * @default 0
+             */
+            context_source_count: number;
+            /** Included Sources */
+            included_sources?: components["schemas"]["ReportTruthSource"][];
+            /** Platforms Included */
+            platforms_included?: string[];
+            /**
+             * Report Has Business Metrics
+             * @default false
+             */
+            report_has_business_metrics: boolean;
+            /** Snapshot Basis Label */
+            snapshot_basis_label?: string | null;
+            /** Snapshot Coverage Note */
+            snapshot_coverage_note?: string | null;
+            /** Snapshot Window Mode */
+            snapshot_window_mode?: string | null;
+            /**
+             * Source Count
+             * @default 0
+             */
+            source_count: number;
+            /** Source Line */
+            source_line?: string | null;
+            /** Title */
+            title?: string | null;
+        };
         /** ReportWarning */
         ReportWarning: {
             /** Code */
@@ -2103,14 +3141,112 @@ export interface components {
                 };
             };
         };
+        /** SourceManifestPlatformResponse */
+        SourceManifestPlatformResponse: {
+            /** Accepted Extensions */
+            accepted_extensions: string[];
+            /** Accepted File Types Label */
+            accepted_file_types_label: string;
+            /** Business Metrics Capable */
+            business_metrics_capable: boolean;
+            /** Data Domains */
+            data_domains: string[];
+            /** Descriptor */
+            descriptor: string;
+            /** Known Limitations */
+            known_limitations: string[];
+            /** Label */
+            label: string;
+            /**
+             * Platform
+             * @enum {string}
+             */
+            platform: "patreon" | "substack" | "youtube" | "instagram" | "tiktok";
+            /** Public Contract Ids */
+            public_contract_ids: string[];
+            /**
+             * Public Support Status
+             * @enum {string}
+             */
+            public_support_status: "supported_now" | "internal_only" | "not_supported";
+            /**
+             * Report Role
+             * @enum {string}
+             */
+            report_role: "report_driving" | "supporting";
+            /** Role Summary */
+            role_summary: string;
+            /** Standalone Report Eligible */
+            standalone_report_eligible: boolean;
+            /** Upload Help Text */
+            upload_help_text: string;
+        };
+        /** SourceManifestResponse */
+        SourceManifestResponse: {
+            /** Business Metrics Rule */
+            business_metrics_rule: string;
+            /** Eligibility Rule */
+            eligibility_rule: string;
+            /** Platforms */
+            platforms: components["schemas"]["SourceManifestPlatformResponse"][];
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
+        };
+        /** StartConnectionResponse */
+        StartConnectionResponse: {
+            /** Authorization Url */
+            authorization_url: string;
+            /** Connection Id */
+            connection_id: string;
+            /** Platform */
+            platform: string;
+            /** State */
+            state: string;
+        };
+        /** TriggerSyncResponse */
+        TriggerSyncResponse: {
+            /** Connection Id */
+            connection_id: string;
+            /** Created At */
+            created_at: string;
+            /** Job Id */
+            job_id: string;
+            /** Job Status */
+            job_status: string;
+            /** Platform */
+            platform: string;
+            /** Trigger Type */
+            trigger_type: string;
+        };
         /** UploadStatusResponse */
         UploadStatusResponse: {
+            /** Analysis Capabilities */
+            analysis_capabilities?: {
+                [key: string]: boolean;
+            } | null;
+            /** Detection Confidence */
+            detection_confidence?: number | null;
+            /** Export Label */
+            export_label?: string | null;
+            /** Export Type */
+            export_type?: string | null;
+            /** Export Warnings */
+            export_warnings?: string[] | null;
+            /** Implementation Status */
+            implementation_status?: string | null;
+            /** Included In Next Report */
+            included_in_next_report?: boolean | null;
             /** Message */
             message?: string | null;
             /** Months Present */
             months_present: string[] | {
                 [key: string]: unknown;
             };
+            /** Platform */
+            platform?: string | null;
             /** Reason */
             reason?: string | null;
             /** Reason Code */
@@ -2123,9 +3259,13 @@ export interface components {
             rows_written: {
                 [key: string]: unknown;
             } | unknown[];
+            /** Staging State */
+            staging_state?: string | null;
             /** Status */
             status: string;
             timestamps: components["schemas"]["UploadStatusTimestamps"];
+            /** Unsupported But Recognized */
+            unsupported_but_recognized?: boolean | null;
             /**
              * Updated At
              * Format: date-time
@@ -2133,6 +3273,8 @@ export interface components {
             updated_at: string;
             /** Upload Id */
             upload_id: string;
+            /** Validation State */
+            validation_state?: string | null;
         };
         /** UploadStatusTimestamps */
         UploadStatusTimestamps: {
@@ -2148,6 +3290,33 @@ export interface components {
             report_started_at?: string | null;
             /** Validated At */
             validated_at?: string | null;
+        };
+        /** UploadSupportFamilyResponse */
+        UploadSupportFamilyResponse: {
+            /** Data Domains */
+            data_domains: string[];
+            /** Family */
+            family: string;
+            /** Family Class */
+            family_class: string;
+            /** Is Report Driving */
+            is_report_driving: boolean;
+            /** Is User Visible Supported */
+            is_user_visible_supported: boolean;
+            /** Known Limitations */
+            known_limitations: string[];
+            /** Label */
+            label: string;
+            /**
+             * Support Status
+             * @enum {string}
+             */
+            support_status: "supported_now" | "internal_only" | "not_supported";
+        };
+        /** UploadSupportMatrixResponse */
+        UploadSupportMatrixResponse: {
+            /** Families */
+            families: components["schemas"]["UploadSupportFamilyResponse"][];
         };
         /** UploadTarget */
         UploadTarget: {
@@ -2168,6 +3337,15 @@ export interface components {
             /** R2 Key */
             r2_key: string;
         };
+        /** ValidateResponse */
+        ValidateResponse: {
+            /** Last Validated At */
+            last_validated_at: string;
+            /** Status */
+            status: string;
+            /** Valid */
+            valid: boolean;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -2180,6 +3358,160 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /**
+         * WorkspaceClearDataResponse
+         * @description Response for POST /v1/workspace/clear-data.
+         */
+        WorkspaceClearDataResponse: {
+            /** Cleared */
+            cleared: boolean;
+            /** Message */
+            message: string;
+            /** Sources Cleared */
+            sources_cleared: number;
+        };
+        /** WorkspaceDataSourceResponse */
+        WorkspaceDataSourceResponse: {
+            /** Accepted File Types Label */
+            accepted_file_types_label: string;
+            /**
+             * Action Label
+             * @enum {string}
+             */
+            action_label: "Upload" | "Replace" | "Retry" | "View status";
+            /** Business Metrics Capable */
+            business_metrics_capable: boolean;
+            /** Descriptor */
+            descriptor: string;
+            /** Included In Next Report */
+            included_in_next_report: boolean;
+            /** Label */
+            label: string;
+            /** Last Ready At */
+            last_ready_at?: string | null;
+            /** Last Upload At */
+            last_upload_at?: string | null;
+            /**
+             * Platform
+             * @enum {string}
+             */
+            platform: "patreon" | "substack" | "youtube" | "instagram" | "tiktok";
+            /**
+             * Report Role
+             * @enum {string}
+             */
+            report_role: "report_driving" | "supporting";
+            /** Role Summary */
+            role_summary: string;
+            /** Standalone Report Eligible */
+            standalone_report_eligible: boolean;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "missing" | "processing" | "ready" | "failed";
+            /** Status Message */
+            status_message?: string | null;
+        };
+        /** WorkspaceDataSourcesResponse */
+        WorkspaceDataSourcesResponse: {
+            /** Blocking Reason */
+            blocking_reason?: string | null;
+            /**
+             * Eligible For Report
+             * @default false
+             */
+            eligible_for_report: boolean;
+            /** Failed Source Count */
+            failed_source_count: number;
+            /** Included Source Count */
+            included_source_count: number;
+            /** Missing Source Count */
+            missing_source_count: number;
+            /** Processing Source Count */
+            processing_source_count: number;
+            /** Ready Source Count */
+            ready_source_count: number;
+            /** Report Driving Included Source Count */
+            report_driving_included_source_count: number;
+            /** Report Driving Ready Source Count */
+            report_driving_ready_source_count: number;
+            /**
+             * Report Has Business Metrics
+             * @default false
+             */
+            report_has_business_metrics: boolean;
+            /** Report Readiness Note */
+            report_readiness_note?: string | null;
+            /** Run Report Enabled */
+            run_report_enabled: boolean;
+            /** Sources */
+            sources: components["schemas"]["WorkspaceDataSourceResponse"][];
+            /** Supported Source Count */
+            supported_source_count: number;
+            /** Workspace Id */
+            workspace_id: string;
+        };
+        /** WorkspaceReportRunResponse */
+        WorkspaceReportRunResponse: {
+            /** Failure Code */
+            failure_code?: string | null;
+            /** Platforms Included */
+            platforms_included?: string[];
+            /** Report Id */
+            report_id: string;
+            /** Report Run Id */
+            report_run_id: string;
+            report_truth?: components["schemas"]["ReportTruthSummary"] | null;
+            /**
+             * Schema Version
+             * @default v1
+             */
+            schema_version: string;
+            /**
+             * Source Count
+             * @default 0
+             */
+            source_count: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "complete" | "failed";
+        };
+        /**
+         * WorkspaceRunReportRequest
+         * @description Optional body for POST /v1/reports/run.
+         *
+         *     When ``selected_platforms`` is provided the run uses exactly those platforms
+         *     (which must all have a ready saved source) and persists the selection as the
+         *     new default for future runs.  When omitted the stored per-source
+         *     ``included_in_next_report`` preference is used unchanged.
+         *
+         *     When ``analysis_months`` is provided the run includes only the trailing N
+         *     calendar months from the union of available data.  Report tier allows 1–3;
+         *     Pro tier allows any value within available history.  When omitted the run
+         *     uses all available data, which is rejected for Report-tier creators whose
+         *     staged data spans more than 3 months (use ``analysis_months`` to select a
+         *     window, or upgrade to Pro).
+         */
+        WorkspaceRunReportRequest: {
+            /**
+             * Analysis Months
+             * @description Trailing months of data to analyse. Report tier: max 3. Pro tier: unlimited within available history.
+             */
+            analysis_months?: number | null;
+            /** Selected Platforms */
+            selected_platforms?: string[] | null;
+        };
+        /**
+         * WorkspaceSourceSelectionRequest
+         * @description Body for PATCH /v1/workspace/sources/{platform} — update inclusion preference.
+         */
+        WorkspaceSourceSelectionRequest: {
+            /** Selected */
+            selected: boolean;
         };
     };
     responses: never;
@@ -2605,9 +3937,11 @@ export interface operations {
     };
     admin_search_entitlements_v1_admin_entitlements_search_get: {
         parameters: {
-            query: {
-                email: string;
+            query?: {
+                email?: string | null;
+                include_archived?: boolean;
                 limit?: number;
+                query?: string | null;
             };
             header?: {
                 authorization?: string;
@@ -2670,10 +4004,46 @@ export interface operations {
             };
         };
     };
+    admin_user_overview_v1_admin_user_overview_get: {
+        parameters: {
+            query?: {
+                include_archived?: boolean;
+                window?: "24h" | "7d" | "30d";
+            };
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserOverviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_list_users_v1_admin_users_get: {
         parameters: {
             query?: {
                 cursor?: string | null;
+                include_archived?: boolean;
                 limit?: number;
                 query?: string | null;
             };
@@ -2693,6 +4063,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminUserListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_archive_user_v1_admin_users__creator_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                creator_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArchiveUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserEntitlementResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2769,6 +4177,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    admin_delete_user_v1_admin_users__creator_id__delete_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                creator_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserEntitlementResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2994,6 +4440,42 @@ export interface operations {
             };
         };
     };
+    admin_grant_access_by_email_v1_admin_users_grant_access_by_email_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantAccessByEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserEntitlementResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     admin_whoami_v1_admin_whoami_get: {
         parameters: {
             query?: never;
@@ -3154,6 +4636,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CheckoutSessionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_billing_portal_session_v1_billing_create_portal_session_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingPortalSessionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3859,6 +5373,38 @@ export interface operations {
             };
         };
     };
+    get_growth_report_v1_growth_report_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     validate_ingest_endpoint_v1_ingest_validate_post: {
         parameters: {
             query?: {
@@ -4280,6 +5826,38 @@ export interface operations {
             };
         };
     };
+    get_patreon_snapshot_v1_patreon_snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_platforms_v1_platforms_get: {
         parameters: {
             query?: never;
@@ -4495,6 +6073,44 @@ export interface operations {
             };
         };
     };
+    submit_report_feedback_v1_reports__report_id__feedback_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportFeedbackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportFeedbackResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     rerun_report_v1_reports__report_id__rerun_post: {
         parameters: {
             query?: never;
@@ -4563,6 +6179,42 @@ export interface operations {
             };
         };
     };
+    run_workspace_report_v1_reports_run_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceRunReportRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceReportRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_schema_v1_schema_get: {
         parameters: {
             query?: never;
@@ -4581,6 +6233,38 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    get_source_manifest_v1_source_manifest_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceManifestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -4765,7 +6449,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CallbackRequest"];
+                "application/json": components["schemas"]["creator_optimizer__schemas__uploads__CallbackRequest"];
             };
         };
         responses: {
@@ -4897,6 +6581,38 @@ export interface operations {
             };
         };
     };
+    get_upload_support_matrix_v1_uploads_support_matrix_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadSupportMatrixResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     validate_platform_csv_v1_validate__platform__post: {
         parameters: {
             query?: never;
@@ -4914,6 +6630,490 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["Body_validate_platform_csv_v1_validate__platform__post"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clear_workspace_data_v1_workspace_clear_data_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceClearDataResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workspace_data_sources_v1_workspace_data_sources_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceDataSourcesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_source_connections_v1_workspace_source_connections_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disconnect_connection_v1_workspace_source_connections__connection_id__disconnect_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DisconnectResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconnect_connection_v1_workspace_source_connections__connection_id__reconnect_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Body_reconnect_connection_v1_workspace_source_connections__connection_id__reconnect_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartConnectionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trigger_sync_v1_workspace_source_connections__connection_id__sync_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggerSyncResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sync_jobs_v1_workspace_source_connections__connection_id__sync_jobs_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sync_job_v1_workspace_source_connections__connection_id__sync_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                connection_id: string;
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_connection_v1_workspace_source_connections__connection_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                connection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_callback_v1_workspace_source_connections__platform__callback_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                platform: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["creator_optimizer__routers__source_connections__CallbackRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_connection_v1_workspace_source_connections__platform__start_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                /** @description Platform identifier (patreon, youtube, …) */
+                platform: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Body_start_connection_v1_workspace_source_connections__platform__start_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartConnectionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_workspace_source_selection_v1_workspace_sources__platform__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path: {
+                platform: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceSourceSelectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceDataSourcesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_youtube_channel_analytics_v1_youtube_channel_analytics_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_youtube_membership_v1_youtube_membership_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-dev-creator-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

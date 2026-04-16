@@ -173,6 +173,14 @@ EOF
           export OPENAPI_SCHEMA_URL
           npm run api:generate:check
 
+      - name: Check generated source manifest (optional)
+        run: |
+          set -euo pipefail
+          # Skips gracefully when creator_optimizer is not available in the CI environment.
+          # To enforce: clone creator_optimizer as a sibling directory before this step,
+          # or set CREATOR_OPTIMIZER_REPO to its path.
+          npm run source-manifest:generate:check
+
       - name: Build
         run: npm run build
 

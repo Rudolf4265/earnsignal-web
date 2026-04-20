@@ -76,7 +76,7 @@ test("help platform content preserves platform truth and template/download actio
   assert.equal(source.includes("Use the EarnSigma CSV template."), true);
   assert.equal(source.includes("Upload your YouTube Studio export."), true);
   assert.equal(source.includes("Upload Overview, Viewers, or Followers export."), true);
-  assert.equal(source.includes("Upload your Instagram export."), true);
+  assert.equal(source.includes("Upload your exact allowlisted Instagram export."), true);
   assert.equal(source.includes("How to prepare your Patreon file"), true);
   assert.equal(source.includes("How to prepare your Substack file"), true);
   assert.equal(source.includes("How to export your YouTube file"), true);
@@ -85,6 +85,7 @@ test("help platform content preserves platform truth and template/download actio
   assert.equal(source.includes("CSV only"), true);
   assert.equal(source.includes("Takeout not supported. Also supported today: EarnSigma normalized CSV template."), true);
   assert.equal(source.includes("Overview / Viewers / Followers only"), true);
+  assert.equal(source.includes("Instagram is supporting-only and cannot generate a report by itself."), true);
   assert.equal(source.includes("/templates/earnsigma-patreon-template.csv"), true);
   assert.equal(source.includes("/templates/earnsigma-substack-template.csv"), true);
   assert.equal(source.includes('label: "Upload CSV"'), true);

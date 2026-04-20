@@ -86,3 +86,11 @@ test("check script uses --check flag to select mode", async () => {
     '--check flag detection must be present',
   );
 });
+
+test("package test script runs source manifest check before unit tests", async () => {
+  const pkg = JSON.parse(await readFile(path.resolve("package.json"), "utf8"));
+  assert.ok(
+    pkg.scripts.test.startsWith("npm run source-manifest:generate:check && "),
+    "npm test must fail on stale generated source manifest before running unit tests",
+  );
+});

@@ -314,16 +314,16 @@ const PLATFORM_FILE_GUIDANCE: Partial<Record<UploadPlatform, { getFile: string; 
     formatNote: "Native Substack subscriber CSV export.",
   },
   youtube: {
-    getFile: "In YouTube Studio: Analytics → Advanced Mode → Export current view. Or export via Google Takeout (youtube_watch_history or channel analytics).",
-    formatNote: "YouTube Analytics CSV or a supported YouTube Takeout ZIP. Not all Takeout ZIPs will be accepted.",
+    getFile: "In YouTube Studio: Analytics -> Advanced mode -> Export -> Download as ZIP. You can also upload the EarnSigma normalized YouTube CSV template.",
+    formatNote: "Normalized YouTube CSV or YouTube Studio ZIP containing Table data.csv, Chart data.csv, and Totals.csv. Google Takeout ZIPs are not supported.",
   },
   instagram: {
-    getFile: "In Instagram: Settings → Your activity → Download your information. Select the specific export type that matches the allowlisted shape.",
-    formatNote: "Allowlisted ZIP export only. Not every Instagram data export will be accepted — only specific export shapes are supported.",
+    getFile: "In Instagram: Settings -> Your activity -> Download your information. Select JSON format and upload the exact allowlisted insights ZIP.",
+    formatNote: "Normalized monthly CSV or exact allowlisted ZIP with the required past_instagram_insights JSON files.",
   },
   tiktok: {
-    getFile: "In TikTok: Settings → Privacy → Personalization and data → Download your data. Request the data export and download the ZIP when ready.",
-    formatNote: "Allowlisted ZIP export only. Not every TikTok data export will be accepted — only specific export shapes are supported.",
+    getFile: "In TikTok Studio: Analytics -> export Followers, Viewers, or Overview. You can also upload the EarnSigma normalized TikTok monthly CSV template.",
+    formatNote: "Normalized monthly CSV or one exact TikTok ZIP shape: Followers, Viewers, or Overview. Content ZIP is not supported.",
   },
 };
 

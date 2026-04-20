@@ -186,10 +186,10 @@ const HELP_PLATFORM_OVERRIDES: Record<UploadPlatform, HelpPlatformOverride> = {
     },
   },
   instagram: {
-    summary: "Upload your Instagram export.",
+    summary: "Upload your exact allowlisted Instagram export.",
     badge: "Native export",
     drawerTitle: "How to export your Instagram file",
-    intro: "Use Instagram’s native export from Accounts Center.",
+    intro: "Use Instagram's native JSON export from Accounts Center. Only the allowlisted insights ZIP shape is supported.",
     steps: [
       "Open Settings.",
       "Click Accounts Center.",
@@ -198,8 +198,8 @@ const HELP_PLATFORM_OVERRIDES: Record<UploadPlatform, HelpPlatformOverride> = {
       "Download file.",
       "Upload to EarnSigma.",
     ],
-    acceptedFile: "Instagram native export",
-    acceptedFileNote: "Also supported today: EarnSigma normalized CSV template.",
+    acceptedFile: "Exact Instagram ZIP with past_instagram_insights JSON files",
+    acceptedFileNote: "Also supported today: EarnSigma normalized monthly CSV template. Instagram is supporting-only and cannot generate a report by itself.",
     beforeUpload: [
       "Do not edit archive",
       "Upload original file",

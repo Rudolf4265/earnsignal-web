@@ -44,6 +44,8 @@ import { formatReportArtifactContractErrors, patchSparseArtifact, validateReport
 import { buildReportFraming, formatIncludedSourceCountLabel } from "@/src/lib/report/source-labeling";
 import { buildReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
 import { ReportAudienceGrowthSection } from "./_components/ReportAudienceGrowthSection";
+import { ReportDiagnosisCallout } from "./_components/ReportDiagnosisCallout";
+import { ReportStrengthsRisksSection } from "./_components/ReportStrengthsRisksSection";
 import { ReportWowSummary } from "./_components/ReportWowSummary";
 import { buildReportFreeTeaserViewModel, ReportFreeTeaser } from "./_components/ReportFreeTeaser";
 
@@ -492,7 +494,7 @@ export default function ReportPage() {
   const wowSummary = useMemo(
     () =>
       presentation
-        ? buildReportWowSummaryViewModel(presentation, state.artifactModel, state.report, { includeContinuitySignals: false })
+        ? buildReportWowSummaryViewModel(presentation, state.artifactModel, state.report, { includeContinuitySignals: true })
         : null,
     [presentation, state.artifactModel, state.report],
   );
@@ -696,6 +698,10 @@ export default function ReportPage() {
             <>
               {state.artifactError ? <ErrorBanner title="Artifact JSON unavailable" message={state.artifactError} /> : null}
 
+              <ReportDiagnosisCallout diagnosis={presentation.diagnosis} />
+
+              {wowSummary ? <ReportStrengthsRisksSection model={wowSummary.strengthsRisks} /> : null}
+
               <section className="space-y-3">
                 <DashboardSectionHeader
                   title="Revenue Trend"
@@ -799,13 +805,47 @@ export default function ReportPage() {
                         </PanelCard>
                       ))
                     ) : (
-                      <PanelCard className="border-brand-border/75 bg-brand-panel/72">
-                        <p className="text-sm leading-relaxed text-brand-text-secondary">
-                          The report does not include a clear next-step list yet. Use the biggest opportunity and audience sections to choose the next move.
+                      <PanelCard className="border-brand-border/75 bg-brand-panel/72 md:col-span-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">
+                          Limited action signal
+                        </p>
+                        <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
+                          This snapshot has enough signal for a business diagnosis but not enough history for specific ranked actions.
+                          Use the biggest opportunity above and the audience signals below to pick your clearest next move,
+                          then rerun once another month of data is present.
                         </p>
                       </PanelCard>
                     )}
                   </div>
+                  {presentation.recommendations.length > 2 ? (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">
+                        Additional recommendations
+                      </p>
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        {presentation.recommendations.slice(2).map((rec) => (
+                          <article
+                            key={rec.id}
+                            className="rounded-[1.05rem] border border-brand-border/65 bg-[linear-gradient(155deg,rgba(16,32,67,0.88),rgba(19,41,80,0.82))] p-4"
+                            data-testid="report-additional-recommendation"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              {rec.label ? (
+                                <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">{rec.label}</p>
+                              ) : null}
+                              {rec.stateLabel ? (
+                                <Badge variant={rec.stateTone ?? "neutral"}>{rec.stateLabel}</Badge>
+                              ) : null}
+                            </div>
+                            <p className="mt-2 text-sm font-semibold leading-snug text-brand-text-primary">{rec.body}</p>
+                            {rec.detail ? (
+                              <p className="mt-1.5 text-xs leading-relaxed text-brand-text-secondary">{rec.detail}</p>
+                            ) : null}
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3">
                     <p className="text-xs leading-relaxed text-brand-text-secondary">
                       {presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1

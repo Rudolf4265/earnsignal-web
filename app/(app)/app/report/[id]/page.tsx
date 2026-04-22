@@ -45,7 +45,10 @@ import { buildReportFraming, formatIncludedSourceCountLabel } from "@/src/lib/re
 import { buildReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
 import { ReportAudienceGrowthSection } from "./_components/ReportAudienceGrowthSection";
 import { ReportDiagnosisCallout } from "./_components/ReportDiagnosisCallout";
+import { ReportExecutiveNarrative } from "./_components/ReportExecutiveNarrative";
+import { ReportOutlookSection } from "./_components/ReportOutlookSection";
 import { ReportStrengthsRisksSection } from "./_components/ReportStrengthsRisksSection";
+import { ReportSubscriberHealthSection } from "./_components/ReportSubscriberHealthSection";
 import { ReportWowSummary } from "./_components/ReportWowSummary";
 import { buildReportFreeTeaserViewModel, ReportFreeTeaser } from "./_components/ReportFreeTeaser";
 
@@ -698,9 +701,12 @@ export default function ReportPage() {
             <>
               {state.artifactError ? <ErrorBanner title="Artifact JSON unavailable" message={state.artifactError} /> : null}
 
-              <ReportDiagnosisCallout diagnosis={presentation.diagnosis} />
+              <ReportExecutiveNarrative
+                paragraphs={presentation.executiveSummary}
+                summarySentence={wowSummary?.summarySentence ?? null}
+              />
 
-              {wowSummary ? <ReportStrengthsRisksSection model={wowSummary.strengthsRisks} /> : null}
+              <ReportDiagnosisCallout diagnosis={presentation.diagnosis} />
 
               <section className="space-y-3">
                 <DashboardSectionHeader
@@ -763,6 +769,8 @@ export default function ReportPage() {
                 </PanelCard>
               </section>
 
+              <ReportSubscriberHealthSection model={presentation.subscriberHealth} />
+
               {presentation.audienceGrowth ? (
                 <section className="space-y-3">
                   <DashboardSectionHeader
@@ -772,6 +780,8 @@ export default function ReportPage() {
                   <ReportAudienceGrowthSection model={presentation.audienceGrowth} />
                 </section>
               ) : null}
+
+              {wowSummary ? <ReportStrengthsRisksSection model={wowSummary.strengthsRisks} /> : null}
 
               {wowSummary ? (
                 <section className="space-y-3" data-testid="report-what-to-do-next">
@@ -862,6 +872,8 @@ export default function ReportPage() {
                   </div>
                 </section>
               ) : null}
+
+              <ReportOutlookSection model={presentation.revenueOutlook} />
             </>
           ) : null}
         </section>

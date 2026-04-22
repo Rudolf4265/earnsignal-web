@@ -59,7 +59,13 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(gh pr create --title 'chore: redirect /example to /sample-report and clean title metadata' --body ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(node --experimental-strip-types --test tests/report_wow_summary_view_model.test.mjs tests/report_wow_summary_render.test.mjs tests/report_detail_presentation.test.mjs tests/report_detail_section_render.test.mjs tests/report_content_quality.test.mjs)",
+      "Bash(node --experimental-strip-types --test tests/report_wow_summary_view_model.test.mjs tests/report_wow_summary_render.test.mjs)",
+      "Bash(python -m pytest tests/test_report_pdf_artifact_layout.py -x -q)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_report_pdf_artifact_layout.py -x -q)",
+      "Bash(node --experimental-strip-types --test tests/report_wow_summary_view_model.test.mjs tests/report_wow_summary_render.test.mjs tests/report_artifact_contract.test.mjs tests/report_artifact_model.test.mjs)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_report_pdf_artifact_layout.py -q)"
     ]
   }
 }

@@ -98,3 +98,39 @@ body {
 .workspace-theme .hover\:bg-slate-50:hover {
   background-color: var(--es-color-panel-muted) !important;
 }
+
+/* ── Sample report print styles ─────────────────────────────────── */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+
+  /* Preserve dark-theme backgrounds when printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide marketing chrome */
+  .sample-report-footer-cta,
+  header {
+    display: none !important;
+  }
+
+  /* Page break after each report section */
+  .sample-report-section {
+    break-after: page;
+  }
+
+  /* Keep individual cards together */
+  .sample-report-card {
+    break-inside: avoid;
+  }
+
+  /* Tighten vertical padding for print */
+  .sample-report-section {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+  }
+}

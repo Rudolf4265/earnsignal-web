@@ -5,7 +5,7 @@ export const publicUrls = {
   privacy: "/privacy",
   dataPrivacy: "/data-privacy",
   terms: "/terms",
-  exampleReport: "/example",
+  exampleReport: "/sample-report",
   appLoginPath: "/login",
   appSignupPath: "/signup",
   appDashboardPath: "/app",

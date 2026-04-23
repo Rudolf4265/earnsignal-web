@@ -8,7 +8,6 @@ import { Badge, Card, Container, Section, buttonClassName, cn } from "@earnsigma
 import { MarketingShell } from "./_components/marketing-shell";
 import {
   InsightGlyph,
-  MarketingDataRevealsSection,
   MarketingPainSection,
   MarketingSupportedTodaySection,
   type InsightIconKey,
@@ -309,7 +308,145 @@ export default function MarketingHomePage() {
 
       <MarketingPainSection />
 
-      <MarketingDataRevealsSection />
+      {/* SAMPLE OUTPUT */}
+      <Section className={cn(marketingSectionClass, "pb-20 sm:pb-24 lg:pb-28")}>
+        <Container>
+          <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-14">
+            <div className="relative">
+              <div className="pointer-events-none absolute -left-10 -top-2 h-36 w-36 rounded-full bg-brand-accent-blue/12 blur-3xl" />
+              <p className={cn("relative", marketingEyebrowClass)}>SAMPLE OUTPUT</p>
+              <h2 className="relative mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
+                What a real EarnSigma report actually shows
+              </h2>
+              <p className="relative mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
+                Plain language. Specific findings. Not just data &mdash; a diagnosis.
+              </p>
+
+              <div className={cn(marketingInsetClass, "mt-6 p-5")}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">Anonymized example findings</p>
+                <div className="mt-4 space-y-3 text-sm leading-relaxed text-brand-text-secondary sm:text-[0.95rem]">
+                  <p>&ldquo;You&apos;re losing 42% of churn from your $8 tier.&rdquo;</p>
+                  <p>&ldquo;Your top 5% of supporters drive 46% of revenue.&rdquo;</p>
+                  <p>&ldquo;Raising a mid-tier offer could increase revenue by +18%.&rdquo;</p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-2.5">
+                {reportSectionPillars.map((item) => (
+                  <span
+                    key={item}
+                    className={cn(marketingPillClass, "px-3 py-1.5 text-xs normal-case tracking-normal")}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="pointer-events-none absolute -left-8 top-12 h-44 w-44 rounded-full bg-brand-accent-teal/10 blur-3xl" />
+              <div
+                className="pointer-events-none absolute -right-10 -top-10 h-52 w-52 rounded-full opacity-35 blur-3xl"
+                style={{ backgroundImage: BRAND.gradientPrimary }}
+              />
+
+              <Card className={cn(marketingPremiumCardClass, "p-4 sm:p-5")}>
+                <div className={marketingPremiumCardOverlayClass} />
+                <div className={marketingTopShineClass} />
+                <div className={cn("relative p-4 sm:p-5", marketingInsetClass)}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
+                      Private Business Diagnostics Report
+                    </p>
+                    <span className={marketingPillClass}>
+                      Sample report
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+                    <div className="space-y-3">
+                      <div className={cn(marketingInsetClass, "p-3")}>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Income Stability Score</p>
+                        <div className="mt-3 grid h-16 grid-cols-10 items-end gap-1.5">
+                          {[28, 33, 37, 46, 52, 58, 56, 64, 71, 74].map((height, index) => (
+                            <span
+                              key={`report-trend-${index}`}
+                              className="rounded-full bg-gradient-to-t from-brand-accent-blue/35 via-brand-accent-blue/60 to-brand-accent-teal/70"
+                              style={{ height: `${height}%` }}
+                              aria-hidden="true"
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className={cn(marketingInsetClass, "p-3")}>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Subscriber Health</p>
+                        <div className="mt-3 space-y-2">
+                          {[
+                            { from: "$8", to: "$15", share: "18%" },
+                            { from: "$15", to: "$30", share: "9%" },
+                            { from: "$8", to: "Cancel", share: "42%" },
+                          ].map((flow) => (
+                            <div key={`${flow.from}-${flow.to}`} className="flex items-center justify-between gap-3 text-sm text-brand-text-secondary">
+                              <span>{flow.from}</span>
+                              <span className="flex-1 border-t border-dashed border-brand-border/45" aria-hidden="true" />
+                              <span>{flow.to}</span>
+                              <span className={cn(marketingPillClass, "px-2 py-0.5 text-xs normal-case tracking-normal text-brand-text-primary")}>
+                                {flow.share}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className={cn(marketingInsetClass, "p-3")}>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Key Findings</p>
+                        <div className="mt-3 space-y-2">
+                          {[
+                            { label: "Platform exposure", width: "71%" },
+                            { label: "Mid-tier churn", width: "42%" },
+                            { label: "Upgrade friction", width: "31%" },
+                          ].map((row) => (
+                            <div key={row.label}>
+                              <div className="flex items-center justify-between gap-3 text-xs text-brand-text-secondary">
+                                <span>{row.label}</span>
+                                <span>{row.width}</span>
+                              </div>
+                              <div className="mt-1.5 h-1.5 rounded-full bg-brand-panel-muted/45">
+                                <div className="h-full rounded-full bg-gradient-to-r from-brand-accent-blue/70 to-brand-accent-teal/70" style={{ width: row.width }} aria-hidden="true" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className={cn(marketingInsetClass, "p-3")}>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Platform Concentration</p>
+                        <div className="mt-3 flex items-center gap-3">
+                          <div
+                            className="h-16 w-16 rounded-full border border-brand-border/35 shadow-[0_0_22px_rgba(47,217,197,0.12)]"
+                            style={{
+                              background:
+                                "conic-gradient(var(--es-color-accent-blue) 0 71%, rgba(31,65,122,0.34) 71% 100%)",
+                            }}
+                            aria-hidden="true"
+                          />
+                          <div className="text-xs leading-relaxed text-brand-text-secondary">
+                            <p className="font-medium text-brand-text-primary">Patreon: 71%</p>
+                            <p>Secondary channels: 29%</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </Container>
+      </Section>
 
       {/* ── 2. SUPPORTED TODAY ──────────────────────────────────────────────── */}
       <MarketingSupportedTodaySection />
@@ -460,147 +597,6 @@ export default function MarketingHomePage() {
                 <p className="relative mt-2 text-sm leading-relaxed text-brand-text-secondary">{item.body}</p>
               </Card>
             ))}
-          </div>
-        </Container>
-      </Section>
-
-      {/* SAMPLE OUTPUT */}
-      <Section className={cn(marketingSectionClass, "pb-20 sm:pb-24 lg:pb-28")}>
-        <Container>
-          <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-14">
-            <div className="relative">
-              <div className="pointer-events-none absolute -left-10 -top-2 h-36 w-36 rounded-full bg-brand-accent-blue/12 blur-3xl" />
-              <p className={cn("relative", marketingEyebrowClass)}>SAMPLE OUTPUT</p>
-              <h2 className="relative mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
-                What a real EarnSigma report actually shows
-              </h2>
-              <p className="relative mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
-                Plain language. Specific findings. Not just data &mdash; a diagnosis.
-              </p>
-
-              <div className={cn(marketingInsetClass, "mt-6 p-5")}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">Anonymized example findings</p>
-                <div className="mt-4 space-y-3 text-sm leading-relaxed text-brand-text-secondary sm:text-[0.95rem]">
-                  <p>&ldquo;You&apos;re losing 42% of churn from your $8 tier.&rdquo;</p>
-                  <p>&ldquo;Your top 5% of supporters drive 46% of revenue.&rdquo;</p>
-                  <p>&ldquo;Raising a mid-tier offer could increase revenue by +18%.&rdquo;</p>
-                </div>
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-2.5">
-                {reportSectionPillars.map((item) => (
-                  <span
-                    key={item}
-                    className={cn(marketingPillClass, "px-3 py-1.5 text-xs normal-case tracking-normal")}
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="pointer-events-none absolute -left-8 top-12 h-44 w-44 rounded-full bg-brand-accent-teal/10 blur-3xl" />
-              <div
-                className="pointer-events-none absolute -right-10 -top-10 h-52 w-52 rounded-full opacity-35 blur-3xl"
-                style={{ backgroundImage: BRAND.gradientPrimary }}
-              />
-
-              <Card className={cn(marketingPremiumCardClass, "p-4 sm:p-5")}>
-                <div className={marketingPremiumCardOverlayClass} />
-                <div className={marketingTopShineClass} />
-                <div className={cn("relative p-4 sm:p-5", marketingInsetClass)}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
-                      Private Business Diagnostics Report
-                    </p>
-                    <span className={marketingPillClass}>
-                      Sample report
-                    </span>
-                  </div>
-
-                  <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-                    <div className="space-y-3">
-                      <div className={cn(marketingInsetClass, "p-3")}>
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Income Stability Score</p>
-                        <div className="mt-3 grid h-16 grid-cols-10 items-end gap-1.5">
-                          {[28, 33, 37, 46, 52, 58, 56, 64, 71, 74].map((height, index) => (
-                            <span
-                              // Index is stable for this static chart styling data.
-                              key={`report-trend-${index}`}
-                              className="rounded-full bg-gradient-to-t from-brand-accent-blue/35 via-brand-accent-blue/60 to-brand-accent-teal/70"
-                              style={{ height: `${height}%` }}
-                              aria-hidden="true"
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className={cn(marketingInsetClass, "p-3")}>
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Subscriber Health</p>
-                        <div className="mt-3 space-y-2">
-                          {[
-                            { from: "$8", to: "$15", share: "18%" },
-                            { from: "$15", to: "$30", share: "9%" },
-                            { from: "$8", to: "Cancel", share: "42%" },
-                          ].map((flow) => (
-                            <div key={`${flow.from}-${flow.to}`} className="flex items-center justify-between gap-3 text-sm text-brand-text-secondary">
-                              <span>{flow.from}</span>
-                              <span className="flex-1 border-t border-dashed border-brand-border/45" aria-hidden="true" />
-                              <span>{flow.to}</span>
-                              <span className={cn(marketingPillClass, "px-2 py-0.5 text-xs normal-case tracking-normal text-brand-text-primary")}>
-                                {flow.share}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className={cn(marketingInsetClass, "p-3")}>
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Key Findings</p>
-                        <div className="mt-3 space-y-2">
-                          {[
-                            { label: "Platform exposure", width: "71%" },
-                            { label: "Mid-tier churn", width: "42%" },
-                            { label: "Upgrade friction", width: "31%" },
-                          ].map((row) => (
-                            <div key={row.label}>
-                              <div className="flex items-center justify-between gap-3 text-xs text-brand-text-secondary">
-                                <span>{row.label}</span>
-                                <span>{row.width}</span>
-                              </div>
-                              <div className="mt-1.5 h-1.5 rounded-full bg-brand-panel-muted/45">
-                                <div className="h-full rounded-full bg-gradient-to-r from-brand-accent-blue/70 to-brand-accent-teal/70" style={{ width: row.width }} aria-hidden="true" />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className={cn(marketingInsetClass, "p-3")}>
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Platform Concentration</p>
-                        <div className="mt-3 flex items-center gap-3">
-                          <div
-                            className="h-16 w-16 rounded-full border border-brand-border/35 shadow-[0_0_22px_rgba(47,217,197,0.12)]"
-                            style={{
-                              background:
-                                "conic-gradient(var(--es-color-accent-blue) 0 71%, rgba(31,65,122,0.34) 71% 100%)",
-                            }}
-                            aria-hidden="true"
-                          />
-                          <div className="text-xs leading-relaxed text-brand-text-secondary">
-                            <p className="font-medium text-brand-text-primary">Patreon: 71%</p>
-                            <p>Secondary channels: 29%</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </div>
           </div>
         </Container>
       </Section>

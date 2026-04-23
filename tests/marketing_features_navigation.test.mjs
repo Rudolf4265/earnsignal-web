@@ -41,7 +41,7 @@ test("features page keeps its deeper explanation while homepage surfaces early s
   assert.equal(featuresSource.includes("Turn your data into a private business diagnosis"), true);
 
   assert.equal(homeSource.includes('id="features"'), false);
-  assert.equal(homeSource.includes("<MarketingDataRevealsSection />"), true);
+  assert.equal(homeSource.includes("<MarketingDataRevealsSection />"), false);
   assert.equal(homeSource.includes("What your data reveals about your business"), false);
   assert.equal(homeSource.includes("What creators usually discover"), false);
   assert.equal(homeSource.includes("One workspace. Two lenses."), false);

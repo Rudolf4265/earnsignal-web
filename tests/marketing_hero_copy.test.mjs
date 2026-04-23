@@ -63,7 +63,7 @@ test("homepage sample output and early diagnostics align with the sample-report 
   assert.equal(homeSource.includes("You&apos;re losing 42% of churn from your $8 tier."), true);
   assert.equal(homeSource.includes("Your top 5% of supporters drive 46% of revenue."), true);
   assert.equal(homeSource.includes("Raising a mid-tier offer could increase revenue by +18%."), true);
-  assert.equal(homeSource.includes("<MarketingDataRevealsSection />"), true);
+  assert.equal(homeSource.includes("<MarketingDataRevealsSection />"), false);
   assert.equal(homeSource.includes("<MarketingSupportedTodaySection />"), true);
   assert.equal(sectionsSource.includes("EXAMPLE DIAGNOSTICS"), true);
   assert.equal(sectionsSource.includes("What creators usually discover"), true);

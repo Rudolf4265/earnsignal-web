@@ -14,7 +14,7 @@ function levelBadgeClass(stateTone: "good" | "warn" | "neutral" | null | undefin
 function OutlookCard({ card }: { card: ReportDetailOutlookCard }) {
   return (
     <article
-      className="rounded-[1.1rem] border border-brand-border/65 bg-[linear-gradient(155deg,rgba(16,32,67,0.90),rgba(19,41,80,0.84))] p-4"
+      className="rounded-[1.1rem] border border-brand-border/65 bg-[linear-gradient(165deg,rgba(16,32,67,0.9),rgba(19,41,80,0.82),rgba(13,28,57,0.92))] p-4 shadow-brand-card"
       data-testid={`report-outlook-card-${card.id}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -40,10 +40,10 @@ export function ReportOutlookSection({ model }: Props) {
   if (model.cards.length === 0 && model.highlights.length === 0) return null;
 
   return (
-    <section className="space-y-3" data-testid="report-outlook-section">
-      <div className="space-y-1">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Outlook</p>
-        <p className="text-xs text-brand-text-muted">What the current pattern suggests watching next.</p>
+    <section className="space-y-4" data-testid="report-outlook-section">
+      <div className="space-y-1.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">Outlook</p>
+        <p className="text-sm leading-relaxed text-brand-text-secondary">What the current pattern suggests watching next.</p>
       </div>
       {model.cards.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -53,11 +53,12 @@ export function ReportOutlookSection({ model }: Props) {
         </div>
       ) : null}
       {model.highlights.length > 0 ? (
-        <PanelCard className="border-brand-border/60 bg-brand-panel/50">
-          <ul className="space-y-1.5">
+        <PanelCard className="border-brand-border/60 bg-[linear-gradient(165deg,rgba(16,32,67,0.82),rgba(19,41,80,0.7),rgba(13,28,57,0.88))]">
+          <ul className="space-y-2">
             {model.highlights.map((line, i) => (
-              <li key={i} className="text-sm leading-relaxed text-brand-text-secondary">
-                {line}
+              <li key={i} className="flex items-start gap-2.5">
+                <span className="mt-1 inline-flex h-2 w-2 shrink-0 rounded-full bg-brand-accent-teal/70" aria-hidden="true" />
+                <p className="text-sm leading-relaxed text-brand-text-secondary">{line}</p>
               </li>
             ))}
           </ul>

@@ -11,9 +11,9 @@ function KpiCard({
   value: string;
 }) {
   return (
-    <article className="rounded-[1.05rem] border border-brand-border-strong/70 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(19,41,80,0.9),rgba(16,32,67,0.95))] p-4">
-      <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-secondary">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-tight text-brand-text-primary sm:text-3xl">{value}</p>
+    <article className="rounded-[1.05rem] border border-brand-border/60 bg-[linear-gradient(165deg,rgba(18,37,74,0.72),rgba(12,25,50,0.84))] p-3.5">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-brand-text-muted">{label}</p>
+      <p className="mt-2 text-xl font-semibold tracking-tight text-brand-text-primary sm:text-2xl">{value}</p>
     </article>
   );
 }
@@ -37,16 +37,23 @@ function ExecutiveSummaryCard({ summarySentence }: { summarySentence: string | n
 function KpiStripSection({ model }: { model: ReportWowSummaryViewModel }) {
   return (
     <PanelCard
-      className="border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.88),rgba(16,32,67,0.95))]"
+      className="h-full border-brand-border/65 bg-[linear-gradient(165deg,rgba(16,32,67,0.82),rgba(19,41,80,0.76),rgba(16,32,67,0.9))] p-5"
       data-testid="report-kpi-strip"
+      contentClassName="space-y-4"
     >
+      <div className="space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">Quick Read</p>
+        <p className="text-sm leading-relaxed text-brand-text-secondary">
+          The operating picture that supports the diagnosis.
+        </p>
+      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="wow-executive-strip">
         {model.kpiCards.map((card) => (
           <KpiCard key={card.id} label={card.label} value={card.value} />
         ))}
       </div>
       {model.kpiContext ? (
-        <p className="mt-3 border-t border-brand-border/40 pt-3 text-sm leading-relaxed text-brand-text-secondary" data-testid="wow-kpi-context">
+        <p className="rounded-xl border border-brand-border/40 bg-brand-panel/45 px-3.5 py-3 text-sm leading-relaxed text-brand-text-secondary" data-testid="wow-kpi-context">
           {model.kpiContext}
         </p>
       ) : null}
@@ -125,10 +132,14 @@ export function ReportWowSummary({ model }: ReportWowSummaryProps) {
 
   return (
     <section className="space-y-4" data-testid="report-wow-summary">
-      <ExecutiveSummaryCard summarySentence={model.summarySentence} />
-      <KpiStripSection model={model} />
-      <BiggestRiskCard model={model} />
-      <BiggestOpportunityCard model={model} />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
+        <ExecutiveSummaryCard summarySentence={model.summarySentence} />
+        <KpiStripSection model={model} />
+      </div>
+      <div className={`grid gap-4 ${model.biggestRisk.available ? "lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]" : ""}`}>
+        <BiggestOpportunityCard model={model} />
+        {model.biggestRisk.available ? <BiggestRiskCard model={model} /> : null}
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <CompactSignalTile
           title="Income Risk"

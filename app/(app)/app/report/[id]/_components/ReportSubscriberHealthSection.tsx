@@ -24,12 +24,12 @@ export function ReportSubscriberHealthSection({ model }: Props) {
   if (model.metrics.length === 0) return null;
 
   return (
-    <section className="space-y-3" data-testid="report-subscriber-health">
-      <div className="space-y-1">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">
+    <section className="space-y-4" data-testid="report-subscriber-health">
+      <div className="space-y-1.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">
           Subscriber &amp; Retention Health
         </p>
-        <p className="text-xs text-brand-text-muted">
+        <p className="text-sm leading-relaxed text-brand-text-secondary">
           Subscriber signals, retention context, and revenue-per-subscriber where the evidence supports it.
         </p>
       </div>
@@ -47,11 +47,12 @@ export function ReportSubscriberHealthSection({ model }: Props) {
         ))}
       </div>
       {model.highlights.length > 0 ? (
-        <PanelCard className="border-brand-border/60 bg-brand-panel/50">
-          <ul className="space-y-1.5">
+        <PanelCard className="border-brand-border/60 bg-[linear-gradient(165deg,rgba(16,32,67,0.82),rgba(19,41,80,0.7),rgba(13,28,57,0.88))]">
+          <ul className="space-y-2">
             {model.highlights.map((line, i) => (
-              <li key={i} className="text-sm leading-relaxed text-brand-text-secondary">
-                {line}
+              <li key={i} className="flex items-start gap-2.5">
+                <span className="mt-1 inline-flex h-2 w-2 shrink-0 rounded-full bg-brand-accent-blue/70" aria-hidden="true" />
+                <p className="text-sm leading-relaxed text-brand-text-secondary">{line}</p>
               </li>
             ))}
           </ul>

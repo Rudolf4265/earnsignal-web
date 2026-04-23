@@ -232,7 +232,7 @@ test("coverage metadata and kpi context flow through to the wow summary model", 
 
   assert.equal(result.coverage.snapshotCoverageNote, "Based on Patreon Jan-Mar and Instagram Feb-Mar snapshots.");
   assert.equal(result.coverage.reportHasBusinessMetrics, false);
-  assert.equal(result.kpiContext?.toLowerCase().includes("partial business view"), true);
+  assert.equal(result.kpiContext?.toLowerCase().includes("current business read"), true);
 });
 
 test("summary sentence prefers substantive executive summary copy", async () => {
@@ -350,7 +350,7 @@ test("thin reports may keep validation as the primary opportunity", async () => 
   const result = buildReportWowSummaryViewModel(presentation, artifactModel);
 
   assert.equal(result.opportunity.finding.includes("Confirm the missing source"), true);
-  assert.equal(result.nextActions[0]?.title, "Confirm the missing source before changing strategy");
+  assert.equal(result.nextActions[0]?.title, "Confirm the missing source before changing course");
 });
 
 test("high-pressure actions are rewritten into decisive premium action titles", async () => {

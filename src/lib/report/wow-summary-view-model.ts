@@ -151,20 +151,12 @@ function cleanSentence(value: string | null | undefined): string | null {
   return polishReportSentence(value);
 }
 
-function lowerFirstCharacter(value: string): string {
-  if (!value) {
-    return value;
-  }
-
-  return value.charAt(0).toLowerCase() + value.slice(1);
-}
-
 function buildKpiContext(snapshotCoverageNote: string | null): string {
   if (snapshotCoverageNote) {
-    return "Read the latest numbers as a partial business view until every source has caught up.";
+    return "Read these as the best current business read, not the final word, until every source has caught up.";
   }
 
-  return "These are the operating numbers to keep in view before deciding where to push next.";
+  return "These are the core numbers to keep in view before you decide where to push next.";
 }
 
 function buildCoverageSummary(snapshotCoverageNote: string | null): string | null {
@@ -295,7 +287,7 @@ function buildOpportunityFromDiagnosisType(
   if (diagnosisType === "concentration_pressure") {
     return {
       available: true,
-      finding: "Start building a second income stream this month.",
+      finding: "Start building the second revenue stream this month.",
       upsideLabel: "Even one meaningful secondary stream makes the business feel less fragile.",
       action: `Right now, most of your income depends on ${platformLabel}. The fastest way to reduce that risk is to move part of your audience into an owned channel like email, membership, or direct sales.`,
     };
@@ -304,7 +296,7 @@ function buildOpportunityFromDiagnosisType(
   if (diagnosisType === "churn_pressure") {
     return {
       available: true,
-      finding: "Give your existing supporters a better reason to stay.",
+      finding: "Give existing supporters a clearer reason to stay.",
       upsideLabel: "Small retention wins usually improve revenue stability faster than chasing brand-new customers.",
       action: "Within the next 2 weeks, pick the segment that is dropping off fastest and test a simple re-engagement offer, perk, or check-in before they leave.",
     };
@@ -551,7 +543,7 @@ function buildSummarySentence(
   const nextActions = buildNextActions(presentation, artifactModel);
   const nextStep =
     nextActions[0]?.title != null
-      ? `Next, ${lowerFirstCharacter(nextActions[0].title.replace(/[.!?]+$/, ""))}.`
+      ? `Most important next step: ${nextActions[0].title.replace(/[.!?]+$/, "")}.`
       : null;
 
   return [opening, why, nextStep].filter((line): line is string => Boolean(line)).join(" ");
@@ -579,7 +571,7 @@ function buildOpportunity(
     const authoredDetail = authoredAction.detail;
     const upsideLabel =
       topRecommendationIsDataOnly
-        ? "This keeps you from overcorrecting before the full business picture is back."
+        ? "This keeps you from reacting too hard to a partial business read."
         : cleanedDetail && cleanedDetail !== authoredDetail
         ? cleanedDetail
         : diagnosisOpportunity.upsideLabel && diagnosisOpportunity.upsideLabel !== authoredDetail
@@ -879,8 +871,8 @@ function buildAuthoredActionFromRecommendation(
     title = "Fix the drop-off before adding more traffic";
     detail = "Find where recent buyers or subscribers are slipping away, then repair that step before pushing more audience into it.";
   } else if (isDataCompletenessAction(rawTitle)) {
-    title = "Confirm the missing source before changing strategy";
-    detail = "Treat the read as directional until the missing source is back, then decide whether the pattern still deserves action.";
+    title = "Confirm the missing source before changing course";
+    detail = "Treat this as a partial business read until the missing source is back, then decide whether the pattern still deserves action.";
   }
 
   return {

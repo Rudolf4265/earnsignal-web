@@ -165,6 +165,22 @@ function stabilityTextColor(score: number): string {
   return "text-rose-300";
 }
 
+function stabilitySurfaceClass(score: number): string {
+  if (score >= 75) {
+    return "border-brand-accent-emerald/25 bg-[linear-gradient(165deg,rgba(14,44,57,0.82),rgba(12,31,48,0.92))]";
+  }
+  if (score >= 50) {
+    return "border-amber-400/25 bg-[linear-gradient(165deg,rgba(49,36,14,0.78),rgba(29,22,10,0.92))]";
+  }
+  return "border-rose-400/25 bg-[linear-gradient(165deg,rgba(53,22,29,0.78),rgba(30,14,19,0.92))]";
+}
+
+function stabilityCaption(score: number): string {
+  if (score >= 75) return "Supporting the overall health score.";
+  if (score >= 50) return "Worth watching, but not breaking the picture.";
+  return "This is dragging on the overall health read.";
+}
+
 function expectedImpactLabel(value: string): string {
   if (value === "high") return "High impact";
   if (value === "medium") return "Medium impact";
@@ -182,6 +198,37 @@ function platformShareBarColor(sharePct: number): string {
   if (sharePct >= 70) return "bg-amber-400";
   if (sharePct >= 45) return "bg-brand-accent-blue";
   return "bg-brand-accent-emerald";
+}
+
+function platformShareBandLabel(index: number, sharePct: number): string {
+  if (sharePct >= 70) return "Carrying most of revenue";
+  if (index === 0) return "Leading source";
+  if (sharePct >= 25) return "Meaningful support";
+  return "Smaller contribution";
+}
+
+function concentrationRiskTone(score: number): { label: string; textClassName: string; pillClassName: string } {
+  if (score >= 70) {
+    return {
+      label: "High",
+      textClassName: "text-amber-300",
+      pillClassName: "border-amber-400/35 bg-amber-400/12 text-amber-300",
+    };
+  }
+
+  if (score >= 40) {
+    return {
+      label: "Medium",
+      textClassName: "text-brand-accent-blue",
+      pillClassName: "border-brand-accent-blue/35 bg-brand-accent-blue/12 text-brand-accent-blue",
+    };
+  }
+
+  return {
+    label: "Low",
+    textClassName: "text-brand-accent-emerald",
+    pillClassName: "border-brand-accent-emerald/35 bg-brand-accent-emerald/12 text-brand-accent-emerald",
+  };
 }
 
 export default function ReportPage() {
@@ -663,26 +710,43 @@ export default function ReportPage() {
                   ))}
                 </div>
                 {presentation.stabilityComponents ? (
-                  <div className="rounded-xl border border-brand-border/45 bg-brand-panel/40 px-4 py-3" data-testid="report-stability-components">
-                    <p className="mb-3 text-[10px] uppercase tracking-[0.14em] text-brand-text-muted">Income Health Breakdown</p>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-5">
+                  <div
+                    className="overflow-hidden rounded-[1.15rem] border border-brand-border-strong/60 bg-[linear-gradient(165deg,rgba(15,31,63,0.88),rgba(19,41,80,0.72),rgba(13,28,57,0.92))] px-4 py-4 shadow-brand-card"
+                    data-testid="report-stability-components"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">Income Health Breakdown</p>
+                        <p className="mt-1 text-sm leading-relaxed text-brand-text-secondary">
+                          The pieces holding the health score up, and the ones putting pressure on it.
+                        </p>
+                      </div>
+                      <span className="inline-flex rounded-full border border-brand-border/55 bg-brand-panel/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">
+                        Same data, clearer read
+                      </span>
+                    </div>
+                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
                       {STABILITY_COMPONENT_ORDER.map((key) => {
                         const score = presentation.stabilityComponents?.[key];
                         if (score == null) return null;
                         const label = STABILITY_COMPONENT_LABELS[key] ?? key;
                         return (
-                          <div key={key}>
-                            <div className="mb-1.5 flex items-center justify-between gap-1">
-                              <span className="text-[9px] uppercase leading-tight tracking-[0.12em] text-brand-text-muted">{label}</span>
-                              <span className={`text-[10px] font-semibold tabular-nums ${stabilityTextColor(score)}`}>{score}</span>
+                          <article
+                            key={key}
+                            className={`rounded-[1rem] border p-3 shadow-brand-card ${stabilitySurfaceClass(score)}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] uppercase leading-tight tracking-[0.12em] text-brand-text-muted">{label}</span>
+                              <span className={`text-sm font-semibold tabular-nums ${stabilityTextColor(score)}`}>{score}</span>
                             </div>
-                            <div className="h-1 rounded-full bg-brand-panel-muted/60">
+                            <div className="mt-3 h-2 rounded-full bg-brand-panel-muted/55">
                               <div
                                 className={`h-full rounded-full ${stabilityBarColor(score)}`}
                                 style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
                               />
                             </div>
-                          </div>
+                            <p className="mt-2 text-[11px] leading-relaxed text-brand-text-secondary">{stabilityCaption(score)}</p>
+                          </article>
                         );
                       })}
                     </div>
@@ -795,49 +859,64 @@ export default function ReportPage() {
                     description="Where income is coming from and how concentrated it is across your sources."
                   />
                   <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
-                    <div className="space-y-2.5">
-                      {presentation.platformMix.platformShares.map((row) => {
+                    <div className="space-y-3.5">
+                      {presentation.platformMix.platformShares.map((row, index) => {
                         const sharePct = Math.round(row.share * 100);
                         return (
-                          <div key={row.platform} className="flex items-center gap-3" data-testid="report-platform-mix-row">
-                            <span className="w-20 shrink-0 text-[11px] font-medium capitalize text-brand-text-secondary">{row.platform}</span>
-                            <div className="flex-1">
-                              <div className="h-1.5 rounded-full bg-brand-panel-muted/60">
-                                <div
-                                  className={`h-full rounded-full ${platformShareBarColor(sharePct)}`}
-                                  style={{ width: `${sharePct}%` }}
-                                />
+                          <article
+                            key={row.platform}
+                            className="rounded-[1rem] border border-brand-border/55 bg-[linear-gradient(165deg,rgba(18,37,74,0.72),rgba(11,24,50,0.84))] p-3.5 shadow-brand-card"
+                            data-testid="report-platform-mix-row"
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-sm font-semibold capitalize text-brand-text-primary">{row.platform}</span>
+                                  <span className="inline-flex rounded-full border border-brand-border/50 bg-brand-panel/50 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-brand-text-muted">
+                                    {platformShareBandLabel(index, sharePct)}
+                                  </span>
+                                </div>
+                                <p className="mt-1 text-xs text-brand-text-muted">{sharePct}% of tracked revenue</p>
+                              </div>
+                              <div className="text-right">
+                                {row.revenue > 0 ? (
+                                  <p className="text-sm font-semibold tabular-nums text-brand-text-primary">
+                                    ${Math.round(row.revenue).toLocaleString("en-US")}
+                                  </p>
+                                ) : null}
+                                <p className="mt-0.5 text-[11px] tabular-nums text-brand-text-muted">{sharePct}% share</p>
                               </div>
                             </div>
-                            <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-brand-text-muted">{sharePct}%</span>
-                            {row.revenue > 0 ? (
-                              <span className="w-20 shrink-0 text-right text-[11px] tabular-nums text-brand-text-secondary">
-                                ${Math.round(row.revenue).toLocaleString("en-US")}
-                              </span>
-                            ) : null}
-                          </div>
+                            <div className="mt-3 h-2 rounded-full bg-brand-panel-muted/55">
+                              <div
+                                className={`h-full rounded-full ${platformShareBarColor(sharePct)}`}
+                                style={{ width: `${sharePct}%` }}
+                              />
+                            </div>
+                          </article>
                         );
                       })}
                     </div>
                     {presentation.platformMix.concentrationScore !== null ? (
-                      <div className="mt-3 border-t border-brand-border/30 pt-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">
-                          Concentration risk:{" "}
-                          <span className={
-                            presentation.platformMix.concentrationScore >= 70
-                              ? "text-amber-300"
-                              : presentation.platformMix.concentrationScore >= 40
-                                ? "text-brand-accent-blue"
-                                : "text-brand-accent-emerald"
-                          }>
-                            {presentation.platformMix.concentrationScore >= 70
-                              ? "High"
-                              : presentation.platformMix.concentrationScore >= 40
-                                ? "Medium"
-                                : "Low"}
-                          </span>
-                          {" "}({presentation.platformMix.concentrationScore}%)
-                        </p>
+                      <div className="mt-4 rounded-[1rem] border border-brand-border/50 bg-brand-panel/55 px-4 py-3">
+                        {(() => {
+                          const tone = concentrationRiskTone(presentation.platformMix.concentrationScore);
+                          return (
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Concentration read</p>
+                                <p className="mt-1 text-sm leading-relaxed text-brand-text-secondary">
+                                  Your current revenue mix reads as{" "}
+                                  <span className={`font-semibold ${tone.textClassName}`}>{tone.label.toLowerCase()}</span>{" "}
+                                  concentration risk across tracked sources.
+                                </p>
+                              </div>
+                              <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${tone.pillClassName}`}>
+                                {tone.label} risk {Math.round(presentation.platformMix.concentrationScore)}%
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     ) : null}
                   </PanelCard>
@@ -860,32 +939,52 @@ export default function ReportPage() {
 
               {wowSummary ? (
                 <section className="space-y-3" data-testid="report-what-to-do-next">
-                  <DashboardSectionHeader title="What to do next" description="Start with the move most connected to the diagnosis, then use the second action to reinforce it." />
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <DashboardSectionHeader
+                    title="What to do next"
+                    description="Start with the move most connected to the diagnosis, then use the follow-up move to make it stick."
+                  />
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
                     {wowSummary.nextActions.length > 0 ? (
                       wowSummary.nextActions.map((action, index) => (
                         <PanelCard
                           key={action.id}
                           className={`border-brand-border/75 ${
                             index === 0
-                              ? "bg-[linear-gradient(155deg,rgba(18,40,82,0.92),rgba(14,30,60,0.94))] shadow-brand-glow"
+                              ? "relative overflow-hidden bg-[linear-gradient(155deg,rgba(18,40,82,0.92),rgba(14,30,60,0.94),rgba(10,64,77,0.44))] shadow-brand-glow"
                               : "bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]"
                           }`}
                           data-testid={index === 0 ? "report-next-action-primary" : "report-next-action-secondary"}
                         >
+                          {index === 0 ? (
+                            <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand-accent-teal/16 blur-3xl" />
+                          ) : null}
                           <div className="space-y-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-teal">
-                                {index === 0 ? "Primary Action" : "Secondary Action"}
-                              </p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${index === 0 ? "text-brand-accent-teal" : "text-brand-accent-blue"}`}>
+                                  {index === 0 ? "Start here" : "Then reinforce"}
+                                </p>
+                                {presentation.recommendations[index]?.expectedImpact ? (
+                                  <span
+                                    className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] ${expectedImpactChipClass(presentation.recommendations[index]?.expectedImpact ?? "low")}`}
+                                  >
+                                    {expectedImpactLabel(presentation.recommendations[index]?.expectedImpact ?? "low")}
+                                  </span>
+                                ) : null}
+                              </div>
                               {action.timeframe ? (
                                 <span className="rounded-full border border-brand-border/70 bg-brand-panel/60 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-brand-text-muted">
                                   {action.timeframe}
                                 </span>
                               ) : null}
                             </div>
-                            <p className="text-lg font-semibold leading-snug text-brand-text-primary">{action.title}</p>
+                            <p className="text-lg font-semibold leading-snug text-brand-text-primary md:text-[1.15rem]">{action.title}</p>
                             {action.detail ? <p className="text-sm leading-relaxed text-brand-text-secondary">{action.detail}</p> : null}
+                            <p className="text-xs leading-relaxed text-brand-text-muted">
+                              {index === 0
+                                ? "This is the move most likely to change the business read in the next cycle."
+                                : "Use this once the first change is underway so the gain has somewhere to compound."}
+                            </p>
                           </div>
                         </PanelCard>
                       ))
@@ -938,11 +1037,11 @@ export default function ReportPage() {
                       </div>
                     </div>
                   ) : null}
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-border/55 bg-brand-panel/50 px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1rem] border border-brand-border/55 bg-[linear-gradient(165deg,rgba(18,37,74,0.58),rgba(11,24,50,0.72))] px-4 py-3">
                     <p className="text-xs leading-relaxed text-brand-text-secondary">
                       {presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1
                         ? "Adding one more source or owned channel will make the next report more useful and less fragile."
-                        : "Upload a fresh data pull after your next cycle so this diagnosis stays current."}
+                        : "Upload a fresh data pull after your next cycle so the next recommendation is based on what changed, not what you remember."}
                     </p>
                     <Link
                       href="/app/data"

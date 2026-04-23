@@ -910,6 +910,7 @@ test("buildReportDetailPresentationModel cleans raw subscriber and outlook suppo
           paragraphs: [],
           bullets: [
             "2026-04: churn month line repeated from source export.",
+            "Churn Rates: Month: 2025-11",
             "Retention held steady enough to keep subscriber interpretation useful.",
           ],
         },
@@ -950,6 +951,7 @@ test("buildReportDetailPresentationModel cleans raw subscriber and outlook suppo
   assert.equal(model.heroNotice, null);
   assert.equal(model.subscriberHealth.metrics.some((metric) => metric.id === "churn_risk"), false);
   assert.equal(model.subscriberHealth.highlights.some((line) => line.includes("2026-04")), false);
+  assert.equal(model.subscriberHealth.highlights.some((line) => line.includes("2025-11")), false);
   assert.equal(model.subscriberHealth.highlights[0], "Churn-specific conclusions are limited until subscriber history is more complete.");
   assert.equal(model.subscriberHealth.highlights[1], "Retention held steady enough to keep subscriber interpretation useful.");
   assert.equal(model.revenueOutlook.cards.length, 1);

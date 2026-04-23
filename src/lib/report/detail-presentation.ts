@@ -263,6 +263,22 @@ function collectSectionText(sections: ReportSectionViewModel[]): string[] {
   return dedupeText(sections.flatMap((section) => [...section.paragraphs, ...section.bullets]));
 }
 
+function isRawSeriesLine(value: string): boolean {
+  return /^(\d{4}-\d{2}|[a-z]{3,9}\s+\d{4})\s*[:|-]\s*\$?-?\d/i.test(value.trim());
+}
+
+function selectNarrativeLine(lines: string[]): string | null {
+  for (const line of lines) {
+    if (shouldSuppressRawReportText(line) || isRawSeriesLine(line) || /directional guidance/i.test(line)) {
+      continue;
+    }
+
+    return line;
+  }
+
+  return null;
+}
+
 function selectSections(sections: IndexedSection[], keywords: string[]): IndexedSection[] {
   return sections.filter((section) => matchesSectionTitle(section.title, keywords));
 }
@@ -828,14 +844,18 @@ function polishOutlookBody(item: NonNullable<ReportViewModel["outlook"]>["items"
 function buildTypedOutlook(outlook: ReportViewModel["outlook"], fallbackLines: string[]) {
   if (outlook?.items.length) {
     const cards = outlook.items
-      .filter((item) => !shouldSuppressRawReportText(item.body))
+      .filter((item) => !shouldSuppressRawReportText(`${item.title} ${item.body}`))
       .map((item) => ({
-      id: item.id as ReportDetailOutlookCard["id"],
-      title: item.title,
-      body: polishOutlookBody(item),
-      stateLabel: getTruthStateLabel(item),
-      stateTone: getTruthStateLabel(item) ? getTruthStateTone(item) : null,
-    }));
+        id: item.id as ReportDetailOutlookCard["id"],
+        title: item.title,
+        body: polishOutlookBody(item),
+        stateLabel: getTruthStateLabel(item),
+        stateTone: getTruthStateLabel(item) ? getTruthStateTone(item) : null,
+      }))
+      .filter((card, index, items) => {
+        const key = `${card.title.toLowerCase()}::${card.body.toLowerCase()}`;
+        return items.findIndex((candidate) => `${candidate.title.toLowerCase()}::${candidate.body.toLowerCase()}` === key) === index;
+      });
     const highlights = dedupeText(
       outlook.summary.filter((line) => {
         const polished = polishReportSentence(line) ?? line;
@@ -1050,7 +1070,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
   });
 
   const revenueLines = collectSectionText(revenueSections);
-  const trendNarrative = input.artifactSignals?.trendPreview ?? revenueLines[0] ?? null;
+  const trendNarrative = input.artifactSignals?.trendPreview ?? selectNarrativeLine(revenueLines) ?? null;
 
   const subscriberLines = collectSectionText(subscriberSections);
   const subscriberMetrics = buildSubscriberMetrics({
@@ -1145,7 +1165,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
       value: formatRevenueDisplay(kpis.netRevenue, netRevenueTruth),
       truth: netRevenueTruth,
       source: netRevenueTruth?.source ?? null,
-      detail: revenueLines[0] ?? null,
+      detail: selectNarrativeLine(revenueLines),
     }),
     createMetric({
       id: "creator_health",

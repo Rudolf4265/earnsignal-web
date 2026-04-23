@@ -28,6 +28,7 @@ const DATA_COMPLETENESS_HINTS = [
 const INTERNAL_OR_RAW_HINTS = [
   "revenue projection base",
   "projection base",
+  "repeated base projection",
   "churn month",
   "churn_month",
   "reason code",
@@ -89,11 +90,23 @@ export function shouldSuppressRawReportText(value: string | null | undefined): b
     return true;
   }
 
+  if (/(churn|subscriber|member|retention).*\bmonth:\s*\d{4}-\d{2}\b/i.test(normalized)) {
+    return true;
+  }
+
+  if (/churn rates?:\s*month:\s*\d{4}-\d{2}/i.test(normalized)) {
+    return true;
+  }
+
   if (/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{4}.*(churn|subscriber|member)/i.test(normalized)) {
     return true;
   }
 
   if (/base.*projection.*base/i.test(normalized)) {
+    return true;
+  }
+
+  if (/revenue projection\b.*(repeated|current period)/i.test(normalized)) {
     return true;
   }
 

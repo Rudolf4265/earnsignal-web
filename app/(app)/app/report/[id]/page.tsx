@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatPricingPlanPrice, getPricingPlan } from "@earnsigma/config";
 import { useParams } from "next/navigation";
 import { Badge } from "../../_components/dashboard/Badge";
-import { DashboardSectionHeader } from "../../_components/dashboard/DashboardSectionHeader";
 import { Panel } from "../../_components/dashboard/Panel";
 import { RevenueTrendChart } from "../../_components/dashboard/RevenueTrendChart";
 import { useAppGate } from "../../../_components/app-gate-provider";
@@ -13,7 +12,6 @@ import { FeatureGuard } from "../../../_components/feature-guard";
 import { SessionExpiredCallout } from "../../../_components/gate-callouts";
 import { buttonClassName } from "@/src/components/ui/button";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
-import { PanelCard } from "@/src/components/ui/panel-card";
 import { isApiError } from "@/src/lib/api/client";
 import {
   downloadReportArtifactPdf,
@@ -32,9 +30,12 @@ import {
   canRenderReportDetailReportContent,
   resolveReportDetailPdfAccessMode,
 } from "@/src/lib/report/detail-gating";
-import { getConfidenceLabelTooltip } from "@/src/lib/report/truth";
 import { isFounderFromEntitlement } from "@/src/lib/entitlements/model";
-import { buildReportDetailPresentationModel, type ReportDetailPresentationNotice } from "@/src/lib/report/detail-presentation";
+import {
+  buildReportDetailPresentationModel,
+  type ReportDetailPresentationModel,
+  type ReportDetailPresentationNotice,
+} from "@/src/lib/report/detail-presentation";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability";
 import { formatReportCreatedAt, isInFlightReportStatus, toReportStatusLabel, toReportStatusVariant } from "@/src/lib/report/list-model";
@@ -42,15 +43,10 @@ import { readReportRouteParamId } from "@/src/lib/report/route-id";
 import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/report/normalize-artifact-to-report-model";
 import { formatReportArtifactContractErrors, patchSparseArtifact, validateReportArtifactContract } from "@/src/lib/report/artifact-contract";
 import { buildReportFraming, formatIncludedSourceCountLabel } from "@/src/lib/report/source-labeling";
-import { buildReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
+import { buildReportWowSummaryViewModel, type ReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
 import { buildRevenueExplanation } from "@/src/lib/report/premium-narrative";
 import { ReportAudienceGrowthSection } from "./_components/ReportAudienceGrowthSection";
-import { ReportDiagnosisCallout } from "./_components/ReportDiagnosisCallout";
-import { ReportExecutiveNarrative } from "./_components/ReportExecutiveNarrative";
-import { ReportOutlookSection } from "./_components/ReportOutlookSection";
 import { ReportStrengthsRisksSection } from "./_components/ReportStrengthsRisksSection";
-import { ReportSubscriberHealthSection } from "./_components/ReportSubscriberHealthSection";
-import { ReportWowSummary } from "./_components/ReportWowSummary";
 import { buildReportFreeTeaserViewModel, ReportFreeTeaser } from "./_components/ReportFreeTeaser";
 
 type ReportPageState = {
@@ -143,55 +139,11 @@ function PdfExportLoadingState() {
   );
 }
 
-const STABILITY_COMPONENT_LABELS: Record<string, string> = {
-  momentum: "Revenue Momentum",
-  volatility: "Revenue Consistency",
-  churn: "Subscriber Retention",
-  concentration: "Platform Diversity",
-  data_quality: "Data Quality",
-};
-
-const STABILITY_COMPONENT_ORDER = ["momentum", "volatility", "churn", "concentration", "data_quality"];
-
-function stabilityBarColor(score: number): string {
-  if (score >= 75) return "bg-brand-accent-emerald";
-  if (score >= 50) return "bg-amber-400";
-  return "bg-rose-400/80";
-}
-
-function stabilityTextColor(score: number): string {
-  if (score >= 75) return "text-brand-accent-emerald";
-  if (score >= 50) return "text-amber-300";
-  return "text-rose-300";
-}
-
-function stabilitySurfaceClass(score: number): string {
-  if (score >= 75) {
-    return "border-brand-accent-emerald/25 bg-[linear-gradient(165deg,rgba(14,44,57,0.82),rgba(12,31,48,0.92))]";
-  }
-  if (score >= 50) {
-    return "border-amber-400/25 bg-[linear-gradient(165deg,rgba(49,36,14,0.78),rgba(29,22,10,0.92))]";
-  }
-  return "border-rose-400/25 bg-[linear-gradient(165deg,rgba(53,22,29,0.78),rgba(30,14,19,0.92))]";
-}
-
-function stabilityCaption(score: number): string {
-  if (score >= 75) return "Supporting the overall health score.";
-  if (score >= 50) return "Worth watching, but not breaking the picture.";
-  return "This is dragging on the overall health read.";
-}
-
 function expectedImpactLabel(value: string): string {
   if (value === "high") return "High impact";
   if (value === "medium") return "Medium impact";
   if (value === "low") return "Low impact";
   return value;
-}
-
-function expectedImpactChipClass(value: string): string {
-  if (value === "high") return "border-brand-accent-emerald/45 bg-brand-accent-emerald/10 text-brand-accent-emerald";
-  if (value === "medium") return "border-brand-accent-blue/40 bg-brand-accent-blue/10 text-brand-accent-blue";
-  return "border-brand-border-strong/50 bg-brand-panel/50 text-brand-text-muted";
 }
 
 function platformShareBarColor(sharePct: number): string {
@@ -229,6 +181,608 @@ function concentrationRiskTone(score: number): { label: string; textClassName: s
     textClassName: "text-brand-accent-emerald",
     pillClassName: "border-brand-accent-emerald/35 bg-brand-accent-emerald/12 text-brand-accent-emerald",
   };
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+type DocumentSectionProps = {
+  number: string;
+  title: string;
+  subtitle?: string | null;
+  children: ReactNode;
+  className?: string;
+  testId?: string;
+};
+
+type KeyFinding = {
+  id: string;
+  value: string;
+  label: string;
+  headline: string;
+  body: string;
+};
+
+type SubscriberTierRow = {
+  id: string;
+  tier: string;
+  price: string | null;
+  subscribers: string | null;
+  revenueShare: string | null;
+  churnOrRisk: string | null;
+  status: string | null;
+};
+
+type SubscriberSignalRow = {
+  id: string;
+  label: string;
+  value: string;
+  note: string | null;
+};
+
+type SpotlightModel = {
+  statement: string;
+  details: string[];
+};
+
+type OpportunityCardModel = {
+  id: string;
+  title: string;
+  impact: string | null;
+  timeframe: string | null;
+  rationale: string | null;
+};
+
+type ActionPlanItem = {
+  id: string;
+  title: string;
+  rationale: string | null;
+  timeframe: string | null;
+};
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readStringValue(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function readNumberValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number.parseFloat(value.replace(/[$,%]/g, "").replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function readFromKeys(record: UnknownRecord, keys: string[]): unknown {
+  for (const key of keys) {
+    if (key in record) {
+      return record[key];
+    }
+  }
+
+  return null;
+}
+
+function readStringFromKeys(record: UnknownRecord, keys: string[]): string | null {
+  return readStringValue(readFromKeys(record, keys));
+}
+
+function readNumberFromKeys(record: UnknownRecord, keys: string[]): number | null {
+  return readNumberValue(readFromKeys(record, keys));
+}
+
+function dedupeLines(values: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const clean = value?.trim();
+    if (!clean) {
+      continue;
+    }
+
+    const key = clean.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    result.push(clean);
+  }
+
+  return result;
+}
+
+function formatPercentLabel(value: number | null | undefined): string | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null;
+  }
+
+  const normalized = value <= 1 ? value * 100 : value;
+  return `${normalized % 1 === 0 ? normalized.toFixed(0) : normalized.toFixed(1)}%`;
+}
+
+function formatCurrencyLabel(value: number | null | undefined): string | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null;
+  }
+
+  return `$${Math.round(value).toLocaleString("en-US")}`;
+}
+
+function formatCountLabel(value: number | null | undefined): string | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null;
+  }
+
+  return Math.round(value).toLocaleString("en-US");
+}
+
+function toTitleCase(value: string): string {
+  return value
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getHeroMetric(model: ReportDetailPresentationModel, id: string) {
+  return model.heroMetrics.find((metric) => metric.id === id) ?? null;
+}
+
+function getSubscriberMetric(model: ReportDetailPresentationModel, ids: string[]) {
+  return model.subscriberHealth.metrics.find((metric) => ids.includes(metric.id)) ?? null;
+}
+
+function getArtifactSections(raw: unknown): UnknownRecord | null {
+  if (isRecord(raw) && isRecord(raw.report) && isRecord(raw.report.sections)) {
+    return raw.report.sections;
+  }
+
+  if (isRecord(raw) && isRecord(raw.sections)) {
+    return raw.sections;
+  }
+
+  return null;
+}
+
+function collectArtifactStrings(value: unknown, limit = 80, acc: string[] = []): string[] {
+  if (acc.length >= limit) {
+    return acc;
+  }
+
+  if (typeof value === "string") {
+    const clean = value.trim();
+    if (clean) {
+      acc.push(clean);
+    }
+    return acc;
+  }
+
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      collectArtifactStrings(entry, limit, acc);
+      if (acc.length >= limit) {
+        break;
+      }
+    }
+    return acc;
+  }
+
+  if (isRecord(value)) {
+    for (const entry of Object.values(value)) {
+      collectArtifactStrings(entry, limit, acc);
+      if (acc.length >= limit) {
+        break;
+      }
+    }
+  }
+
+  return acc;
+}
+
+function getTopPlatformShare(model: ReportDetailPresentationModel) {
+  const topRow = model.platformMix.platformShares?.[0] ?? null;
+  if (!topRow) {
+    return null;
+  }
+
+  return {
+    platform: toTitleCase(topRow.platform),
+    shareLabel: formatPercentLabel(topRow.share * 100) ?? `${Math.round(topRow.share * 100)}%`,
+    revenueLabel: formatCurrencyLabel(topRow.revenue),
+  };
+}
+
+function isCoverageCaveatLine(value: string | null | undefined): boolean {
+  if (!value) {
+    return false;
+  }
+
+  const line = value.trim().toLowerCase();
+  if (!line) {
+    return false;
+  }
+
+  return (
+    line.includes("partial business read") ||
+    line.includes("missing source") ||
+    line.includes("part of your sources") ||
+    line.includes("part of your data") ||
+    line.includes("directional") ||
+    line.includes("full business just yet") ||
+    line.includes("partially represented")
+  );
+}
+
+function DocumentSection({ number, title, subtitle, children, className, testId }: DocumentSectionProps) {
+  return (
+    <section
+      className={`border-t border-slate-200/80 px-6 py-10 sm:px-10 sm:py-12 lg:px-14 ${className ?? ""}`.trim()}
+      data-testid={testId}
+    >
+      <div className="max-w-5xl">
+        <div className="mb-6 space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            {number}. {title}
+          </p>
+          {subtitle ? <p className="max-w-3xl text-sm leading-7 text-slate-600">{subtitle}</p> : null}
+        </div>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function buildHeroHeadline(input: {
+  model: ReportDetailPresentationModel;
+  report: ReportDetail;
+  sourceCountLabel: string | null;
+}): string {
+  const revenueMetric = getHeroMetric(input.model, "net_revenue");
+  const topPlatform = getTopPlatformShare(input.model);
+  const sourceCount =
+    input.model.platformMix.platformsConnected ??
+    input.report.sourceCount ??
+    (input.report.platformsIncluded.length > 0 ? input.report.platformsIncluded.length : null);
+  const sourcePhrase =
+    sourceCount && sourceCount > 0 ? `${sourceCount} ${sourceCount === 1 ? "platform" : "platforms"}` : input.sourceCountLabel ?? "available sources";
+  const lead = `${revenueMetric?.value ?? "$--"} across ${sourcePhrase}`;
+
+  if (topPlatform?.shareLabel) {
+    return `${lead} — ${topPlatform.shareLabel} from ${topPlatform.platform}`;
+  }
+
+  return lead;
+}
+
+function buildHeroSubline(input: {
+  model: ReportDetailPresentationModel;
+  wowSummary: ReportWowSummaryViewModel | null;
+}): string | null {
+  const concentration = input.model.platformMix.concentrationScore;
+  const subscribers = getSubscriberMetric(input.model, ["subscribers"]);
+  const growthCard = input.wowSummary?.kpiCards[2] ?? null;
+  const parts = dedupeLines([
+    concentration != null ? `${Math.round(concentration)}% concentration risk` : null,
+    subscribers ? `${subscribers.value} paying subscribers` : null,
+    growthCard ? `revenue trend ${growthCard.value.toLowerCase()}` : null,
+  ]);
+
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+function buildKeyFindings(model: ReportDetailPresentationModel, wowSummary: ReportWowSummaryViewModel | null): KeyFinding[] {
+  const findings: KeyFinding[] = [];
+  const revenueMetric = getHeroMetric(model, "net_revenue");
+  const healthMetric = getHeroMetric(model, "creator_health");
+  const topPlatform = getTopPlatformShare(model);
+  const subscribers = getSubscriberMetric(model, ["subscribers"]);
+  const churnRisk = getSubscriberMetric(model, ["churn_risk", "churn_rate", "retention"]);
+  const arpu = getSubscriberMetric(model, ["arpu"]);
+  const growth = wowSummary?.kpiCards[2] ?? null;
+
+  if (revenueMetric) {
+    findings.push({
+      id: revenueMetric.id,
+      value: revenueMetric.value,
+      label: revenueMetric.label,
+      headline: "Current revenue anchors the report read.",
+      body: revenueMetric.detail ?? "This is the clearest business number available in the current snapshot.",
+    });
+  }
+
+  if (topPlatform) {
+    findings.push({
+      id: "top_platform_share",
+      value: topPlatform.shareLabel,
+      label: `${topPlatform.platform} share`,
+      headline: `${topPlatform.platform} is still carrying the largest share.`,
+      body: topPlatform.revenueLabel
+        ? `${topPlatform.revenueLabel} is attributed to ${topPlatform.platform} in the tracked mix.`
+        : `${topPlatform.platform} remains the primary revenue source in the tracked mix.`,
+    });
+  }
+
+  if (model.platformMix.concentrationScore != null) {
+    findings.push({
+      id: "platform_concentration",
+      value: `${Math.round(model.platformMix.concentrationScore)}%`,
+      label: "Concentration risk",
+      headline: "Revenue concentration is still material.",
+      body:
+        wowSummary?.platformMix.highlights[0] ??
+        "Platform mix matters because one source is still doing more of the work than the rest.",
+    });
+  }
+
+  if (subscribers) {
+    findings.push({
+      id: subscribers.id,
+      value: subscribers.value,
+      label: "Paid subscribers",
+      headline: "Subscriber volume is part of the business picture, not the whole story.",
+      body: subscribers.detail ?? "This is the current tracked paid base across the included sources.",
+    });
+  }
+
+  if (growth) {
+    findings.push({
+      id: growth.id,
+      value: growth.value,
+      label: growth.label,
+      headline: "Trend direction matters more than a single headline number.",
+      body: wowSummary?.momentum.summaryText ?? "Use the current movement as directional signal, then confirm it next cycle.",
+    });
+  }
+
+  if (healthMetric) {
+    findings.push({
+      id: healthMetric.id,
+      value: healthMetric.value,
+      label: healthMetric.label,
+      headline: "The overall business read is useful, but still secondary to the underlying numbers.",
+      body: healthMetric.detail ?? "Treat the health score as a summary of the current evidence, not a replacement for the sections below.",
+    });
+  }
+
+  if (churnRisk) {
+    findings.push({
+      id: churnRisk.id,
+      value: churnRisk.value,
+      label: churnRisk.label,
+      headline: "Retention should stay in the frame where subscriber evidence exists.",
+      body: churnRisk.detail ?? "Retention interpretation depends on the available subscriber history in this artifact.",
+    });
+  }
+
+  if (arpu) {
+    findings.push({
+      id: arpu.id,
+      value: arpu.value,
+      label: arpu.label,
+      headline: "Revenue per subscriber helps separate volume from value.",
+      body: arpu.detail ?? "This is useful when the business is growing, but not every subscriber is equally valuable.",
+    });
+  }
+
+  if (model.audienceGrowth?.summaryTiles[0]) {
+    const tile = model.audienceGrowth.summaryTiles[0];
+    findings.push({
+      id: tile.id,
+      value: tile.value,
+      label: tile.label,
+      headline: "Audience signal is present, but it stays behind the revenue read.",
+      body: model.audienceGrowth.diagnosis?.watchout ?? model.audienceGrowth.trustNote ?? "Audience inputs support context rather than replacing business metrics.",
+    });
+  }
+
+  return findings.slice(0, 8);
+}
+
+function parseStructuredTierRows(rawArtifact: unknown): SubscriberTierRow[] {
+  const sections = getArtifactSections(rawArtifact);
+  if (!sections) {
+    return [];
+  }
+
+  const candidateSection = [sections.tier_health, sections.subscribers_retention].find((value) => isRecord(value));
+  if (!candidateSection || !isRecord(candidateSection)) {
+    return [];
+  }
+
+  const candidateRows = [
+    readFromKeys(candidateSection, ["tiers", "rows", "table", "segments", "breakdown"]),
+    readFromKeys(candidateSection, ["items"]),
+  ].find((value) => Array.isArray(value));
+
+  if (!Array.isArray(candidateRows)) {
+    return [];
+  }
+
+  return candidateRows
+    .map((entry, index) => {
+      if (isRecord(entry)) {
+        const tier = readStringFromKeys(entry, ["tier", "name", "label", "title", "bucket", "segment"]);
+        if (!tier) {
+          return null;
+        }
+
+        const churnLabel =
+          formatPercentLabel(readNumberFromKeys(entry, ["churn", "churn_pct", "churn_rate"])) ??
+          readStringFromKeys(entry, ["risk", "signal", "note"]);
+        const status = readStringFromKeys(entry, ["status", "state", "risk"]);
+
+        return {
+          id: `tier-${index + 1}`,
+          tier,
+          price:
+            readStringFromKeys(entry, ["price", "price_label"]) ??
+            formatCurrencyLabel(readNumberFromKeys(entry, ["monthly_price", "amount"])),
+          subscribers:
+            readStringFromKeys(entry, ["subscribers_label"]) ??
+            formatCountLabel(readNumberFromKeys(entry, ["subscribers", "subs", "active_subscribers", "count"])),
+          revenueShare:
+            readStringFromKeys(entry, ["revenue_share_label"]) ??
+            formatPercentLabel(readNumberFromKeys(entry, ["revenue_share", "share", "revenue_pct", "pct"])),
+          churnOrRisk: churnLabel,
+          status,
+        } satisfies SubscriberTierRow;
+      }
+
+      const line = readStringValue(entry);
+      if (!line || !line.includes("|")) {
+        return null;
+      }
+
+      const parts = line.split("|").map((part) => part.trim()).filter(Boolean);
+      if (parts.length < 3) {
+        return null;
+      }
+
+      return {
+        id: `tier-${index + 1}`,
+        tier: parts[0] ?? `Tier ${index + 1}`,
+        price: parts[1] ?? null,
+        subscribers: parts[2] ?? null,
+        revenueShare: parts[3] ?? null,
+        churnOrRisk: parts[4] ?? null,
+        status: parts[5] ?? null,
+      } satisfies SubscriberTierRow;
+    })
+    .filter((row): row is SubscriberTierRow => row !== null);
+}
+
+function buildSubscriberSignalRows(model: ReportDetailPresentationModel): SubscriberSignalRow[] {
+  return model.subscriberHealth.metrics.slice(0, 4).map((metric) => ({
+    id: metric.id,
+    label: metric.label,
+    value: metric.value,
+    note: metric.detail ?? metric.stateLabel ?? null,
+  }));
+}
+
+function buildSpotlightModel(rawArtifact: unknown, model: ReportDetailPresentationModel, wowSummary: ReportWowSummaryViewModel | null): SpotlightModel | null {
+  const candidateLines = dedupeLines([
+    ...collectArtifactStrings(rawArtifact, 120),
+    ...model.keySignals,
+    ...model.executiveSummary,
+    wowSummary?.biggestRisk.headline ?? null,
+    wowSummary?.biggestRisk.body ?? null,
+  ]);
+
+  const supporterLine =
+    candidateLines.find((line) => /supporters?|people/.test(line.toLowerCase()) && /revenue/i.test(line)) ??
+    null;
+
+  if (supporterLine) {
+    return {
+      statement: supporterLine,
+      details: dedupeLines([
+        wowSummary?.biggestRisk.body ?? null,
+        model.platformMix.highlights[0] ?? null,
+      ]).slice(0, 2),
+    };
+  }
+
+  if (wowSummary?.biggestRisk.available) {
+    return {
+      statement: wowSummary.biggestRisk.headline,
+      details: [wowSummary.biggestRisk.body],
+    };
+  }
+
+  return null;
+}
+
+function buildOpportunityCards(
+  presentation: ReportDetailPresentationModel,
+  wowSummary: ReportWowSummaryViewModel | null,
+  hasCoverageNotice: boolean,
+): OpportunityCardModel[] {
+  const cards = presentation.recommendations.slice(0, 3).map((recommendation, index) => ({
+    id: recommendation.id,
+    title: recommendation.body,
+    impact: recommendation.expectedImpact ? expectedImpactLabel(recommendation.expectedImpact) : index === 0 ? wowSummary?.opportunity.upsideLabel ?? null : null,
+    timeframe: wowSummary?.nextActions[index]?.timeframe ?? null,
+    rationale: hasCoverageNotice && isCoverageCaveatLine(recommendation.detail) ? null : recommendation.detail,
+  }));
+
+  if (cards.length > 0) {
+    return cards;
+  }
+
+  if (wowSummary?.opportunity.available) {
+    return [
+      {
+        id: "fallback-opportunity",
+        title: wowSummary.opportunity.finding,
+        impact: wowSummary.opportunity.upsideLabel,
+        timeframe: wowSummary.nextActions[0]?.timeframe ?? null,
+        rationale: wowSummary.opportunity.action,
+      },
+    ];
+  }
+
+  return [];
+}
+
+function buildActionPlan(model: ReportDetailPresentationModel, wowSummary: ReportWowSummaryViewModel | null): ActionPlanItem[] {
+  const actions = wowSummary?.nextActions.map((action) => ({
+    id: action.id,
+    title: action.title,
+    rationale: action.detail,
+    timeframe: action.timeframe,
+  })) ?? [];
+
+  if (actions.length < 3 && model.recommendations[2]) {
+    actions.push({
+      id: model.recommendations[2].id,
+      title: model.recommendations[2].body,
+      rationale: model.recommendations[2].detail,
+      timeframe: null,
+    });
+  }
+
+  if (actions.length < 3) {
+    actions.push({
+      id: "rerun-report",
+      title: "Refresh the report after the next cycle.",
+      rationale:
+        model.platformMix.platformsConnected !== null && model.platformMix.platformsConnected <= 1
+          ? "Adding one more source before the next run will make the next report materially more specific."
+          : "The next report should be based on what changed in the business, not memory alone.",
+      timeframe: "Next cycle",
+    });
+  }
+
+  return actions.slice(0, 3);
+}
+
+function buildMethodologyLines(input: {
+  presentation: ReportDetailPresentationModel;
+  report: ReportDetail;
+  sourceCountLabel: string | null;
+}): string[] {
+  const appendixText = input.presentation.appendixSections.flatMap((section) => [...section.paragraphs, ...section.bullets]);
+  const sourceNames = input.report.platformsIncluded.join(", ");
+
+  return dedupeLines([
+    input.sourceCountLabel ? `Included sources: ${input.sourceCountLabel}${sourceNames ? ` (${sourceNames})` : ""}.` : null,
+    input.presentation.displayContext.historyLabel ? `History window: ${input.presentation.displayContext.historyLabel}.` : null,
+    input.report.snapshotCoverageNote,
+    input.report.youtubeContributionMode === "content_only"
+      ? "YouTube contributes content performance only in this report. Revenue from YouTube is not included in business metrics."
+      : null,
+    input.presentation.audienceGrowth?.trustNote ?? null,
+    ...appendixText,
+  ]).slice(0, 6);
 }
 
 export default function ReportPage() {
@@ -563,11 +1117,6 @@ export default function ReportPage() {
     () => formatIncludedSourceCountLabel(state.report?.sourceCount ?? state.report?.metrics.platformsConnected ?? null),
     [state.report],
   );
-  const legacyPlatformCount = presentation?.platformMix.platformsConnected ?? null;
-  const legacyPlatformCountLabel =
-    typeof legacyPlatformCount === "number" && legacyPlatformCount > 0
-      ? `${legacyPlatformCount} ${legacyPlatformCount === 1 ? "source" : "sources"} included`
-      : null;
   const revenueExplanation = useMemo(
     () =>
       buildRevenueExplanation({
@@ -577,6 +1126,39 @@ export default function ReportPage() {
       }),
     [presentation?.revenueTrend.narrative, revenueTrend.movementLabel, state.report?.snapshotCoverageNote],
   );
+  const heroHeadline = presentation && state.report ? buildHeroHeadline({ model: presentation, report: state.report, sourceCountLabel }) : null;
+  const heroSubline = presentation ? buildHeroSubline({ model: presentation, wowSummary }) : null;
+  const hasCoverageNotice = Boolean(presentation?.heroNotice || presentation?.displayContext.businessFramingNote);
+  const keyFindings = presentation ? buildKeyFindings(presentation, wowSummary) : [];
+  const tierRows = state.artifactRaw ? parseStructuredTierRows(state.artifactRaw) : [];
+  const subscriberSignalRows = presentation ? buildSubscriberSignalRows(presentation) : [];
+  const spotlight = presentation ? buildSpotlightModel(state.artifactRaw, presentation, wowSummary) : null;
+  const opportunityCards = presentation ? buildOpportunityCards(presentation, wowSummary, hasCoverageNotice) : [];
+  const actionPlan = presentation ? buildActionPlan(presentation, wowSummary) : [];
+  const methodologyLines = presentation && state.report ? buildMethodologyLines({ presentation, report: state.report, sourceCountLabel }) : [];
+  const strengthsOpportunityLines = dedupeLines([
+    ...opportunityCards.map((card) => card.title),
+    wowSummary?.opportunity.finding ?? null,
+  ]).slice(0, 3);
+  const executiveNarrativeLines = (() => {
+    const lines = presentation?.executiveSummary ?? [];
+    if (!hasCoverageNotice) {
+      return lines.slice(0, 2);
+    }
+
+    const filtered = lines.filter((line) => !isCoverageCaveatLine(line));
+    if (filtered.length > 0 || wowSummary?.summarySentence) {
+      return filtered.slice(0, 2);
+    }
+
+    return lines.slice(0, 1);
+  })();
+  const heroNarrative = dedupeLines([
+    wowSummary?.summarySentence ?? null,
+    ...executiveNarrativeLines,
+  ]).slice(0, 2);
+  const topPlatformShare = presentation ? getTopPlatformShare(presentation) : null;
+  const concentrationTone = presentation?.platformMix.concentrationScore != null ? concentrationRiskTone(presentation.platformMix.concentrationScore) : null;
 
   return (
     <FeatureGuard feature="report">
@@ -588,6 +1170,484 @@ export default function ReportPage() {
       ) : null}
 
       {state.view === "success" && state.report && presentation ? (
+        <section className="space-y-6" data-testid="report-content">
+          <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(251,253,255,0.98),rgba(244,247,251,0.98))] text-slate-900 shadow-[0_32px_90px_-48px_rgba(15,23,42,0.85)]">
+            <div className="px-6 py-8 sm:px-10 sm:py-10 lg:px-14 lg:py-12">
+              <div className="flex flex-wrap items-start justify-between gap-6">
+                <div className="max-w-4xl space-y-5">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
+                    <span
+                      data-testid={state.report.reportKind === "single-source" ? "report-single-source-framing" : "report-combined-framing"}
+                    >
+                      {reportFraming.badgeLabel}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span data-testid="report-snapshot-label">{presentation.displayContext.snapshotLabel}</span>
+                    {sourceCountLabel ? (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span data-testid="report-source-count">{sourceCountLabel}</span>
+                      </>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-3">
+                    <h1 className="max-w-4xl text-[2.2rem] font-semibold leading-[1.08] tracking-[-0.03em] text-slate-950 sm:text-[2.8rem]">
+                      {heroHeadline ?? presentation.heroTitle}
+                    </h1>
+                    {heroSubline ? <p className="text-sm font-medium text-slate-600 sm:text-[0.96rem]">{heroSubline}</p> : null}
+                  </div>
+
+                  {heroNarrative.length > 0 ? (
+                    <article className="max-w-3xl space-y-3" data-testid="report-executive-summary-card">
+                      {heroNarrative.map((paragraph) => (
+                        <p key={paragraph} className="text-[0.98rem] leading-8 text-slate-700">
+                          {paragraph}
+                        </p>
+                      ))}
+                    </article>
+                  ) : null}
+
+                  <div className="space-y-2 text-sm text-slate-600">
+                    <p>Created {createdAtLabel}</p>
+                    {presentation.displayContext.sourceContributionLine ? (
+                      <p data-testid="report-source-contribution">{presentation.displayContext.sourceContributionLine}</p>
+                    ) : null}
+                    {presentation.displayContext.businessFramingNote && !presentation.heroNotice ? (
+                      <p data-testid="report-snapshot-coverage-note">{presentation.displayContext.businessFramingNote}</p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={statusVariant}>{statusLabel}</Badge>
+                  {pdfAccessMode === "pdf-unlocked" ? (
+                    canAccessPdf ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => void openPdf()}
+                          disabled={pdfLoading}
+                          className="inline-flex rounded-xl bg-brand-accent-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {pdfLoading ? "Opening PDF..." : "Open PDF"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void downloadPdf()}
+                          disabled={downloadLoading}
+                          className="inline-flex rounded-xl bg-brand-accent-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {downloadLoading ? "Downloading PDF..." : "Download PDF"}
+                        </button>
+                      </>
+                    ) : (
+                      <span className="inline-flex rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+                        PDF unavailable
+                      </span>
+                    )
+                  ) : pdfAccessMode === "pdf-locked" ? (
+                    <PdfExportLockedState />
+                  ) : (
+                    <PdfExportLoadingState />
+                  )}
+                </div>
+              </div>
+
+              {presentation.heroNotice ? <div className="mt-6"><TruthNotice notice={presentation.heroNotice} testId="report-hero-truth-notice" /></div> : null}
+
+              {showFullReportContent ? (
+                <div
+                  className="mt-8 flex flex-wrap divide-y divide-slate-200 border-y border-slate-200 text-slate-900 md:divide-x md:divide-y-0"
+                  data-testid="report-hero-at-a-glance"
+                >
+                  {[
+                    { label: "Revenue", value: getHeroMetric(presentation, "net_revenue")?.value ?? "$--" },
+                    { label: "Subscribers", value: getSubscriberMetric(presentation, ["subscribers"])?.value ?? "—" },
+                    { label: "Growth", value: wowSummary?.kpiCards[2]?.value ?? "—" },
+                    {
+                      label: "Concentration",
+                      value:
+                        concentrationTone && presentation.platformMix.concentrationScore != null
+                          ? `${Math.round(presentation.platformMix.concentrationScore)}% ${concentrationTone.label.toLowerCase()}`
+                          : topPlatformShare?.shareLabel ?? "—",
+                    },
+                  ].map((item) => (
+                    <div key={item.label} className="min-w-[180px] flex-1 px-0 py-4 md:px-5">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{item.label}</p>
+                      <p className="mt-2 text-[1.55rem] font-semibold tracking-[-0.02em] text-slate-950">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {showFullReportContent ? (
+              <>
+                <DocumentSection
+                  number="1"
+                  title="Key findings"
+                  subtitle="The shortest read on the current report before the deeper sections."
+                  testId="report-key-findings"
+                >
+                  <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
+                    {keyFindings.map((finding) => (
+                      <article key={finding.id} className="border-b border-slate-200/80 pb-6">
+                        <p className="text-[2.4rem] font-semibold leading-none tracking-[-0.04em] text-slate-950">{finding.value}</p>
+                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{finding.label}</p>
+                        <h2 className="mt-3 text-lg font-semibold leading-snug text-slate-950">{finding.headline}</h2>
+                        <p className="mt-2 text-sm leading-7 text-slate-600">{finding.body}</p>
+                      </article>
+                    ))}
+                  </div>
+                </DocumentSection>
+
+                <DocumentSection
+                  number="2"
+                  title="Revenue overview"
+                  subtitle={presentation.displayContext.historyLabel || "How revenue moved across the tracked history window."}
+                >
+                  <div className="space-y-6">
+                    <div className="rounded-[1.5rem] border border-slate-200 bg-white/80 p-4 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.28)] sm:p-5">
+                      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Latest revenue</p>
+                          <p className="mt-2 text-[2rem] font-semibold tracking-[-0.03em] text-slate-950">
+                            {revenueTrend.latestValueDisplay ?? "$--"}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          {revenueTrend.movementLabel ? <p className="text-sm font-semibold text-slate-900">{revenueTrend.movementLabel}</p> : null}
+                          {revenueTrend.periodLabel ? <p className="mt-1 text-xs text-slate-500">{revenueTrend.periodLabel}</p> : null}
+                        </div>
+                      </div>
+                      {revenueTrend.hasRenderableChart ? (
+                        <RevenueTrendChart points={revenueTrend.points} />
+                      ) : (
+                        <div className="rounded-[1rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-5">
+                          <p className="text-sm text-slate-600">Trend chart data is not available in this report artifact.</p>
+                        </div>
+                      )}
+                    </div>
+                    <article className="max-w-3xl space-y-3" data-testid="report-revenue-interpretation">
+                      <h2 className="text-lg font-semibold text-slate-950">What this means</h2>
+                      <p className="text-sm leading-7 text-slate-600">
+                        {`${revenueExplanation.whatHappened} ${revenueExplanation.whyItMatters} ${revenueExplanation.whatToWatch}`}
+                      </p>
+                    </article>
+                  </div>
+                </DocumentSection>
+
+                <DocumentSection
+                  number="3"
+                  title="Platform concentration"
+                  subtitle="Where revenue is coming from now, and how exposed the business still is to one source leading the mix."
+                  testId="report-platform-mix"
+                >
+                  <div className="space-y-8">
+                    {presentation.platformMix.platformShares && presentation.platformMix.platformShares.length > 0 ? (
+                      <div className="space-y-5">
+                        {presentation.platformMix.platformShares.map((row, index) => {
+                          const sharePct = Math.round(row.share * 100);
+                          return (
+                            <article key={row.platform} className="space-y-2.5" data-testid="report-platform-mix-row">
+                              <div className="flex flex-wrap items-end justify-between gap-3">
+                                <div>
+                                  <p className="text-base font-semibold text-slate-950">{toTitleCase(row.platform)}</p>
+                                  <p className="mt-1 text-sm text-slate-600">{platformShareBandLabel(index, sharePct)}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-base font-semibold text-slate-950">{formatCurrencyLabel(row.revenue) ?? "$0"}</p>
+                                  <p className="mt-1 text-sm text-slate-600">{sharePct}% share</p>
+                                </div>
+                              </div>
+                              <div className="h-2.5 rounded-full bg-slate-200">
+                                <div
+                                  className={`h-full rounded-full ${platformShareBarColor(sharePct)}`}
+                                  style={{ width: `${sharePct}%` }}
+                                />
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-7 text-slate-600">{presentation.platformMix.highlights[0] ?? "Platform mix detail is limited in this report."}</p>
+                    )}
+
+                    {presentation.platformMix.concentrationScore != null && concentrationTone ? (
+                      <div className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white/80 p-5 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.28)]">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Concentration scale</p>
+                            <p className="mt-2 text-lg font-semibold text-slate-950">
+                              {Math.round(presentation.platformMix.concentrationScore)}% {concentrationTone.label.toLowerCase()} risk
+                            </p>
+                          </div>
+                          <p className="max-w-xl text-sm leading-7 text-slate-600">
+                            {wowSummary?.platformMix.highlights[0] ?? "A more balanced mix makes the business less fragile when one platform slows down."}
+                          </p>
+                        </div>
+                        <div className="pt-2">
+                          <div className="relative h-1 rounded-full bg-slate-200">
+                            <div className="absolute inset-y-0 left-[20%] w-px bg-slate-300" />
+                            <div className="absolute inset-y-0 left-[40%] w-px bg-slate-300" />
+                            <div className="absolute inset-y-0 left-[60%] w-px bg-slate-300" />
+                            <div
+                              className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-white bg-brand-accent-blue shadow-[0_0_0_4px_rgba(59,130,246,0.16)]"
+                              style={{ left: `calc(${Math.min(100, Math.max(0, presentation.platformMix.concentrationScore))}% - 0.5rem)` }}
+                            />
+                          </div>
+                          <div className="mt-3 grid grid-cols-4 gap-3 text-[11px] uppercase tracking-[0.14em] text-slate-500">
+                            <span>Safe &lt;20%</span>
+                            <span>Watch 20–40%</span>
+                            <span>Elevated 40–60%</span>
+                            <span className="text-right">High risk &gt;60%</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </DocumentSection>
+
+                <DocumentSection
+                  number="4"
+                  title="Subscriber structure"
+                  subtitle="Subscriber and retention detail stays grounded in the artifact. Real tier labels are used when the report includes them."
+                  testId="report-subscriber-structure"
+                >
+                  {tierRows.length > 0 ? (
+                    <div className="overflow-x-auto rounded-[1.5rem] border border-slate-200 bg-white/80 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.28)]">
+                      <table className="min-w-full divide-y divide-slate-200">
+                        <thead className="bg-slate-50">
+                          <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            <th className="px-4 py-3">Tier</th>
+                            <th className="px-4 py-3">Price</th>
+                            <th className="px-4 py-3">Subscribers</th>
+                            <th className="px-4 py-3">Revenue share</th>
+                            <th className="px-4 py-3">Churn / risk</th>
+                            <th className="px-4 py-3">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 bg-white">
+                          {tierRows.map((row) => (
+                            <tr key={row.id} className="text-sm text-slate-700">
+                              <td className="px-4 py-3 font-semibold text-slate-950">{row.tier}</td>
+                              <td className="px-4 py-3">{row.price ?? "—"}</td>
+                              <td className="px-4 py-3">{row.subscribers ?? "—"}</td>
+                              <td className="px-4 py-3">{row.revenueShare ?? "—"}</td>
+                              <td className="px-4 py-3">{row.churnOrRisk ?? "—"}</td>
+                              <td className="px-4 py-3">{row.status ?? "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-[1.5rem] border border-slate-200 bg-white/80 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.28)]">
+                      <table className="min-w-full divide-y divide-slate-200">
+                        <thead className="bg-slate-50">
+                          <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            <th className="px-4 py-3">Signal</th>
+                            <th className="px-4 py-3">Value</th>
+                            <th className="px-4 py-3">Note</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 bg-white">
+                          {subscriberSignalRows.map((row) => (
+                            <tr key={row.id} className="text-sm text-slate-700">
+                              <td className="px-4 py-3 font-semibold text-slate-950">{row.label}</td>
+                              <td className="px-4 py-3">{row.value}</td>
+                              <td className="px-4 py-3">{row.note ?? "Tier-level detail is not present in this artifact."}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </DocumentSection>
+
+                <DocumentSection
+                  number="5"
+                  title="Revenue concentration"
+                  subtitle="A single statement should carry this chapter."
+                  testId="report-revenue-concentration"
+                >
+                  <div className="max-w-4xl space-y-4">
+                    <h2 className="max-w-3xl text-[2.4rem] font-semibold leading-[1.08] tracking-[-0.04em] text-slate-950">
+                      {spotlight?.statement ?? (topPlatformShare ? `${topPlatformShare.shareLabel} of revenue still comes from ${topPlatformShare.platform}.` : "Revenue concentration is still shaping the business read.")}
+                    </h2>
+                    {spotlight?.details.length ? (
+                      spotlight.details.map((detail) => (
+                        <p key={detail} className="max-w-3xl text-sm leading-7 text-slate-600">
+                          {detail}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="max-w-3xl text-sm leading-7 text-slate-600">
+                        {wowSummary?.platformMix.highlights[0] ?? "When too much of the business depends on one source, small changes there matter more than they should."}
+                      </p>
+                    )}
+                  </div>
+                </DocumentSection>
+
+                {presentation.audienceGrowth ? (
+                  <DocumentSection
+                    number="6"
+                    title="Audience signals"
+                    subtitle="Audience context stays supporting rather than dominant."
+                    testId="report-audience-signals"
+                  >
+                    <ReportAudienceGrowthSection model={presentation.audienceGrowth} />
+                  </DocumentSection>
+                ) : null}
+
+                {wowSummary ? (
+                  <DocumentSection
+                    number="7"
+                    title="Strengths, risks, and opportunities"
+                    subtitle="The short operating summary once the numerical chapters are in view."
+                  >
+                    <ReportStrengthsRisksSection model={wowSummary.strengthsRisks} opportunities={strengthsOpportunityLines} />
+                  </DocumentSection>
+                ) : null}
+
+                {opportunityCards.length > 0 ? (
+                  <DocumentSection
+                    number="8"
+                    title="Opportunities"
+                    subtitle={
+                      hasCoverageNotice
+                        ? "These are the best-supported upside moves in the current artifact."
+                        : "These are the best-supported upside moves in the current artifact. They stay directional when the backend does not provide harder projections."
+                    }
+                    testId="report-opportunities"
+                  >
+                    <div className="grid gap-4 lg:grid-cols-3">
+                      {opportunityCards.map((card) => (
+                        <article
+                          key={card.id}
+                          className="rounded-[1.5rem] border border-slate-200 bg-white px-5 py-5 shadow-[0_18px_44px_-34px_rgba(15,23,42,0.35)]"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <h2 className="text-lg font-semibold leading-snug text-slate-950">{card.title}</h2>
+                              {card.timeframe ? (
+                                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                  {card.timeframe}
+                                </span>
+                              ) : null}
+                            </div>
+                            {card.impact ? <p className="text-sm font-semibold text-brand-accent-blue">{card.impact}</p> : null}
+                            {card.rationale ? <p className="text-sm leading-7 text-slate-600">{card.rationale}</p> : null}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </DocumentSection>
+                ) : null}
+
+                <DocumentSection
+                  number="9"
+                  title="Action plan"
+                  subtitle="A shorter operational read than the opportunity chapter."
+                  testId="report-what-to-do-next"
+                >
+                  <div className="space-y-6">
+                    <p className="text-sm font-semibold text-slate-950">If you do one thing next, do this:</p>
+                    <ol className="space-y-5">
+                      {actionPlan.map((item, index) => (
+                        <li
+                          key={item.id}
+                          className="grid gap-3 border-b border-slate-200/80 pb-5 last:border-b-0 last:pb-0 md:grid-cols-[52px_minmax(0,1fr)]"
+                          data-testid={index === 0 ? "report-next-action-primary" : index === 1 ? "report-next-action-secondary" : undefined}
+                        >
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-900">
+                            {index + 1}
+                          </span>
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <h2 className="text-lg font-semibold leading-snug text-slate-950">{item.title}</h2>
+                              {item.timeframe ? (
+                                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                  {item.timeframe}
+                                </span>
+                              ) : null}
+                            </div>
+                            {item.rationale ? <p className="text-sm leading-7 text-slate-600">{item.rationale}</p> : null}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.25rem] border border-slate-200 bg-white/75 px-4 py-3">
+                      <p className="text-sm leading-7 text-slate-600">
+                        {presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1
+                          ? "Adding one more source before the next run will make the next report materially more specific."
+                          : "Upload a fresh data pull after the next cycle so the next report reflects what actually changed."}
+                      </p>
+                      <Link
+                        href="/app/data"
+                        data-testid="report-return-to-workspace"
+                        className="inline-flex shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                      >
+                        Return to workspace
+                      </Link>
+                    </div>
+                  </div>
+                </DocumentSection>
+
+                <DocumentSection
+                  number="10"
+                  title="Methodology"
+                  subtitle="Supportive context for what this page is reading and what the current artifact does not cover."
+                  testId="report-methodology"
+                  className="pb-12"
+                >
+                  <div className="max-w-4xl space-y-4 text-sm leading-7 text-slate-600">
+                    {methodologyLines.length > 0 ? (
+                      <ul className="space-y-2">
+                        {methodologyLines.map((line) => (
+                          <li key={line} className="flex items-start gap-2.5">
+                            <span className="mt-[0.8rem] h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" aria-hidden="true" />
+                            <span>{line}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>This report is limited to the artifact currently attached to this run.</p>
+                    )}
+                  </div>
+                </DocumentSection>
+              </>
+            ) : null}
+          </section>
+
+          {pdfError ? <ErrorBanner title="PDF unavailable" message={pdfError} /> : null}
+
+          {!showFullReportContent && !isFounder && proSectionGate.wowSummary === "report-locked" && freeTeaserModel ? (
+            <ReportFreeTeaser model={freeTeaserModel} />
+          ) : null}
+
+          {showFullReportContent && state.artifactJsonMissing ? (
+            <Panel title="Artifact JSON Unavailable" description="This report does not include a JSON artifact yet.">
+              <div className="space-y-3">
+                <p className="text-sm text-slate-600">Try refreshing to load updated report metadata.</p>
+                <button
+                  type="button"
+                  onClick={() => setReloadNonce((prev) => prev + 1)}
+                  className="inline-flex rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                >
+                  Refresh
+                </button>
+              </div>
+            </Panel>
+          ) : null}
+
+          {showFullReportContent && state.artifactError ? <ErrorBanner title="Artifact JSON unavailable" message={state.artifactError} /> : null}
+        </section>
+      ) : null}
+
+      {/*
         <section className="space-y-8" data-testid="report-content">
           <PanelCard className="relative overflow-hidden border-brand-border-strong/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.96),rgba(23,49,117,0.82),rgba(15,118,110,0.28))] p-0">
             <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-brand-accent-blue/22 blur-3xl" />
@@ -1058,7 +2118,7 @@ export default function ReportPage() {
             </>
           ) : null}
         </section>
-      ) : null}
+      */}
 
       {state.view === "not_found" ? (
         <section className="space-y-3" data-testid="report-not-found">

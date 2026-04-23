@@ -1,0 +1,217 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "EarnSigma" [ref=e4] [cursor=pointer]:
+        - /url: /app
+        - generic [ref=e5]:
+          - img "EarnSigma" [ref=e6]
+          - generic [ref=e7]: EarnSigma
+      - navigation [ref=e8]:
+        - link "Dashboard" [ref=e9] [cursor=pointer]:
+          - /url: /app/dashboard
+        - link "Data" [ref=e10] [cursor=pointer]:
+          - /url: /app/data
+        - link "Reports" [ref=e11] [cursor=pointer]:
+          - /url: /app/report
+        - link "Billing" [ref=e12] [cursor=pointer]:
+          - /url: /app/billing
+        - link "Settings" [ref=e13] [cursor=pointer]:
+          - /url: /app/settings
+      - generic [ref=e14]:
+        - paragraph [ref=e15]: staff@earnsignal.test
+        - button "Log out" [ref=e16]
+        - paragraph [ref=e17]: Revenue intelligence layer
+    - main [ref=e18]:
+      - generic [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - generic [ref=e24]:
+              - generic [ref=e25]:
+                - generic [ref=e26]: Combined Report
+                - generic [ref=e27]: ·
+                - generic [ref=e28]: Current business read
+                - generic [ref=e29]: ·
+                - generic [ref=e30]: 2 sources included
+              - generic [ref=e31]:
+                - heading "$18,400 across 2 platforms" [level=1] [ref=e32]
+                - paragraph [ref=e33]: 930 paying subscribers · revenue trend flat
+              - article [ref=e34]:
+                - paragraph [ref=e35]: "Your business slowed this period and is leaning heavily on a single platform. That leaves your income exposed if Patreon slows down again. Most important next step: Build an owned path from the strongest platform."
+                - paragraph [ref=e36]: Your business is still generating income, but most of it is coming from one platform while audience momentum slows.
+              - paragraph [ref=e38]: Created Mar 01, 2026
+            - generic [ref=e39]:
+              - generic [ref=e40]: Ready
+              - generic [ref=e41]:
+                - generic [ref=e42]: Report Access
+                - paragraph [ref=e43]: Full PDF Export. A $25 one-time Report or Pro access is required to open and download this creator earnings report PDF.
+                - link "View plans" [ref=e44] [cursor=pointer]:
+                  - /url: /app/billing
+          - generic [ref=e45]:
+            - generic [ref=e46]:
+              - paragraph [ref=e47]: Revenue
+              - paragraph [ref=e48]: $18,400
+            - generic [ref=e49]:
+              - paragraph [ref=e50]: Subscribers
+              - paragraph [ref=e51]: "930"
+            - generic [ref=e52]:
+              - paragraph [ref=e53]: Growth
+              - paragraph [ref=e54]: Flat
+            - generic [ref=e55]:
+              - paragraph [ref=e56]: Concentration
+              - paragraph [ref=e57]: —
+        - generic [ref=e59]:
+          - generic [ref=e60]:
+            - paragraph [ref=e61]: 1. Key findings
+            - paragraph [ref=e62]: The shortest read on the current report before the deeper sections.
+          - generic [ref=e63]:
+            - article [ref=e64]:
+              - paragraph [ref=e65]: $18,400
+              - paragraph [ref=e66]: Net Revenue
+              - heading "Current revenue anchors the report read." [level=2] [ref=e67]
+              - paragraph [ref=e68]: This is the clearest business number available in the current snapshot.
+            - article [ref=e69]:
+              - paragraph [ref=e70]: "930"
+              - paragraph [ref=e71]: Paid subscribers
+              - heading "Subscriber volume is part of the business picture, not the whole story." [level=2] [ref=e72]
+              - paragraph [ref=e73]: This is the current tracked paid base across the included sources.
+            - article [ref=e74]:
+              - paragraph [ref=e75]: Flat
+              - paragraph [ref=e76]: Net Growth
+              - heading "Trend direction matters more than a single headline number." [level=2] [ref=e77]
+              - paragraph [ref=e78]: Income is softening, which usually means conversion or retention needs attention before volatility grows.
+            - article [ref=e79]:
+              - paragraph [ref=e80]: 58/100
+              - paragraph [ref=e81]: Creator Health
+              - heading "The overall business read is useful, but still secondary to the underlying numbers." [level=2] [ref=e82]
+              - paragraph [ref=e83]: Treat the health score as a summary of the current evidence, not a replacement for the sections below.
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - paragraph [ref=e87]: 2. Revenue overview
+            - paragraph [ref=e88]: Combined history
+          - generic [ref=e89]:
+            - generic [ref=e90]:
+              - generic [ref=e91]:
+                - generic [ref=e92]:
+                  - paragraph [ref=e93]: Latest revenue
+                  - paragraph [ref=e94]: $18,400
+                - generic [ref=e95]:
+                  - paragraph [ref=e96]: Down 8.5% vs start
+                  - paragraph [ref=e97]: Jan 2026 to Mar 2026
+              - img "Revenue trend chart" [ref=e99]:
+                - generic [ref=e106]: Jan 2026
+                - generic [ref=e107]: Feb 2026
+                - generic [ref=e108]: Mar 2026
+            - article [ref=e109]:
+              - heading "What this means" [level=2] [ref=e110]
+              - paragraph [ref=e111]: Revenue declined 8.5% from the start of the period. A slide in revenue matters because it can quickly turn a small retention, offer, or cadence problem into a business problem. Watch whether the next cycle stabilizes. If it keeps sliding, treat retention and offer clarity as the first priorities.
+        - generic [ref=e113]:
+          - generic [ref=e114]:
+            - paragraph [ref=e115]: 3. Platform concentration
+            - paragraph [ref=e116]: Where revenue is coming from now, and how exposed the business still is to one source leading the mix.
+          - paragraph [ref=e118]: 82% of revenue comes from Patreon.
+        - generic [ref=e120]:
+          - generic [ref=e121]:
+            - paragraph [ref=e122]: 4. Subscriber structure
+            - paragraph [ref=e123]: Subscriber and retention detail stays grounded in the artifact. Real tier labels are used when the report includes them.
+          - table [ref=e125]:
+            - rowgroup [ref=e126]:
+              - row "Signal Value Note" [ref=e127]:
+                - columnheader "Signal" [ref=e128]
+                - columnheader "Value" [ref=e129]
+                - columnheader "Note" [ref=e130]
+            - rowgroup [ref=e131]:
+              - row "Paid Subscribers 930 Tier-level detail is not present in this artifact." [ref=e132]:
+                - cell "Paid Subscribers" [ref=e133]
+                - cell "930" [ref=e134]
+                - cell "Tier-level detail is not present in this artifact." [ref=e135]
+        - generic [ref=e137]:
+          - generic [ref=e138]:
+            - paragraph [ref=e139]: 5. Revenue concentration
+            - paragraph [ref=e140]: A single statement should carry this chapter.
+          - generic [ref=e141]:
+            - heading "Most of your income is coming from one place." [level=2] [ref=e142]
+            - paragraph [ref=e143]: Patreon is carrying almost all of the business right now, so any slowdown there would hit your income fast.
+        - generic [ref=e145]:
+          - generic [ref=e146]:
+            - paragraph [ref=e147]: 7. Strengths, risks, and opportunities
+            - paragraph [ref=e148]: The short operating summary once the numerical chapters are in view.
+          - generic [ref=e150]:
+            - generic [ref=e151]:
+              - heading "Risks" [level=3] [ref=e152]
+              - list [ref=e153]:
+                - listitem [ref=e154]:
+                  - generic [ref=e156]: Revenue is trending down.
+            - generic [ref=e157]:
+              - heading "Opportunities" [level=3] [ref=e158]
+              - list [ref=e159]:
+                - listitem [ref=e160]:
+                  - generic [ref=e162]: Build a simple email or member path from your highest-performing platform over the next 2 weeks.
+                - listitem [ref=e163]:
+                  - generic [ref=e165]: Use your next three posts to move part of your audience into an owned channel.
+                - listitem [ref=e166]:
+                  - generic [ref=e168]: Build an owned path from the strongest platform.
+        - generic [ref=e170]:
+          - generic [ref=e171]:
+            - paragraph [ref=e172]: 8. Opportunities
+            - paragraph [ref=e173]: These are the best-supported upside moves in the current artifact. They stay directional when the backend does not provide harder projections.
+          - generic [ref=e174]:
+            - article [ref=e175]:
+              - generic [ref=e176]:
+                - generic [ref=e177]:
+                  - heading "Build a simple email or member path from your highest-performing platform over the next 2 weeks." [level=2] [ref=e178]
+                  - generic [ref=e179]: Next 2 weeks
+                - paragraph [ref=e180]: Even one meaningful secondary stream makes the business feel less fragile.
+            - article [ref=e181]:
+              - generic [ref=e183]:
+                - heading "Use your next three posts to move part of your audience into an owned channel." [level=2] [ref=e184]
+                - generic [ref=e185]: This month
+        - generic [ref=e187]:
+          - generic [ref=e188]:
+            - paragraph [ref=e189]: 9. Action plan
+            - paragraph [ref=e190]: A shorter operational read than the opportunity chapter.
+          - generic [ref=e191]:
+            - paragraph [ref=e192]: "If you do one thing next, do this:"
+            - list [ref=e193]:
+              - listitem [ref=e194]:
+                - generic [ref=e195]: "1"
+                - generic [ref=e196]:
+                  - generic [ref=e197]:
+                    - heading "Build an owned path from the strongest platform" [level=2] [ref=e198]
+                    - generic [ref=e199]: Next 2 weeks
+                  - paragraph [ref=e200]: Move the audience that is already responding into email, membership, community, or direct checkout so the business is less platform-bound.
+              - listitem [ref=e201]:
+                - generic [ref=e202]: "2"
+                - generic [ref=e203]:
+                  - generic [ref=e204]:
+                    - heading "Move the next three posts into an owned channel" [level=2] [ref=e205]
+                    - generic [ref=e206]: This month
+                  - paragraph [ref=e207]: Use the content already scheduled to give part of the audience a clear path into email, membership, community, or direct checkout.
+              - listitem [ref=e208]:
+                - generic [ref=e209]: "3"
+                - generic [ref=e210]:
+                  - generic [ref=e211]:
+                    - heading "Refresh the report after the next cycle." [level=2] [ref=e212]
+                    - generic [ref=e213]: Next cycle
+                  - paragraph [ref=e214]: The next report should be based on what changed in the business, not memory alone.
+            - generic [ref=e215]:
+              - paragraph [ref=e216]: Upload a fresh data pull after the next cycle so the next report reflects what actually changed.
+              - link "Return to workspace" [ref=e217] [cursor=pointer]:
+                - /url: /app/data
+        - generic [ref=e219]:
+          - generic [ref=e220]:
+            - paragraph [ref=e221]: 10. Methodology
+            - paragraph [ref=e222]: Supportive context for what this page is reading and what the current artifact does not cover.
+          - list [ref=e224]:
+            - listitem [ref=e225]:
+              - generic [ref=e227]: "Included sources: 2 sources included (Patreon, YouTube)."
+            - listitem [ref=e228]:
+              - generic [ref=e230]: "History window: Combined history."
+            - listitem [ref=e231]:
+              - generic [ref=e233]: Business stability is being tracked against the current available report data.
+  - button "Open Next.js Dev Tools" [ref=e239] [cursor=pointer]:
+    - img [ref=e240]
+  - alert [ref=e243]
+```

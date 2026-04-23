@@ -157,3 +157,12 @@ test("creator-facing page no longer renders supporting detail or old recommendat
   assert.equal(source.includes("Recommended Actions"), false);
   assert.equal(source.includes("What to do next"), true);
 });
+
+test("report page trims repeated coverage caveat copy when a hero coverage notice is present", async () => {
+  const source = await readFile(reportPagePath, "utf8");
+
+  assert.equal(source.includes("function isCoverageCaveatLine"), true);
+  assert.equal(source.includes("const hasCoverageNotice = Boolean"), true);
+  assert.equal(source.includes("filtered = lines.filter((line) => !isCoverageCaveatLine(line))"), true);
+  assert.equal(source.includes("rationale: hasCoverageNotice && isCoverageCaveatLine(recommendation.detail) ? null : recommendation.detail"), true);
+});

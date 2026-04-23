@@ -9,16 +9,26 @@ const audienceSectionPath = path.resolve("app/(app)/app/report/[id]/_components/
 test("report detail renders the creator-facing section order after the header", async () => {
   const source = await readFile(reportDetailPagePath, "utf8");
 
-  assert.equal(source.includes("showFullReportContent && wowSummary"), true);
-  assert.equal(source.includes('title="Revenue Trend"'), true);
-  assert.equal(source.includes('title="Audience Growth"'), true);
-  assert.equal(source.includes('title="What to do next"'), true);
-  assert.equal(
-    source.indexOf("showFullReportContent && wowSummary") < source.indexOf('title="Revenue Trend"'),
-    true,
-  );
-  assert.equal(source.indexOf('title="Revenue Trend"') < source.indexOf('title="Audience Growth"'), true);
-  assert.equal(source.indexOf('title="Audience Growth"') < source.indexOf('title="What to do next"'), true);
+  const sectionOrder = [
+    'title="Key findings"',
+    'title="Revenue overview"',
+    'title="Platform concentration"',
+    'title="Subscriber structure"',
+    'title="Revenue concentration"',
+    'title="Audience signals"',
+    'title="Strengths, risks, and opportunities"',
+    'title="Opportunities"',
+    'title="Action plan"',
+    'title="Methodology"',
+  ];
+
+  for (const section of sectionOrder) {
+    assert.equal(source.includes(section), true, `Missing section heading: ${section}`);
+  }
+
+  for (let index = 0; index < sectionOrder.length - 1; index += 1) {
+    assert.equal(source.indexOf(sectionOrder[index]) < source.indexOf(sectionOrder[index + 1]), true);
+  }
 });
 
 test("report detail removes supporting details, what changed, and old recommended actions sections from the creator page", async () => {
@@ -50,17 +60,29 @@ test("report detail keeps report access gating and PDF controls wired", async ()
   assert.equal(source.includes('!isFounder && proSectionGate.wowSummary === "report-locked" && freeTeaserModel'), true);
 });
 
-test("audience growth hero is elevated above the smaller cards and source chips", async () => {
-  const source = await readFile(audienceSectionPath, "utf8");
+test("report detail hero uses a restrained at-a-glance row instead of a KPI card grid", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8");
 
-  assert.equal(source.includes('data-testid="report-audience-growth-hero"'), true);
-  assert.equal(source.indexOf('data-testid="report-audience-growth-hero"') < source.indexOf('data-testid="report-audience-growth-summary"'), true);
-  assert.equal(source.indexOf('data-testid="report-audience-growth-hero"') < source.indexOf('data-testid="report-audience-growth-cards"'), true);
+  assert.equal(source.includes('data-testid="report-hero-at-a-glance"'), true);
+  assert.equal(source.includes('data-testid="report-executive-summary-card"'), true);
+  assert.equal(source.includes('data-testid="report-kpi-strip"'), false);
 });
 
-test("audience growth source chips stay muted and non-interactive", async () => {
+test("report detail only renders one revenue overview heading and keeps opportunities plus methodology present", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8");
+  const revenueOverviewMatches = source.match(/title="Revenue overview"/g) ?? [];
+
+  assert.equal(revenueOverviewMatches.length, 1);
+  assert.equal(source.includes('testId="report-opportunities"'), true);
+  assert.equal(source.includes('testId="report-methodology"'), true);
+});
+
+test("audience growth component is reduced to summary copy, rows, and muted source chips", async () => {
   const source = await readFile(audienceSectionPath, "utf8");
 
+  assert.equal(source.includes('data-testid="report-audience-growth-summary"'), true);
+  assert.equal(source.includes('data-testid="report-audience-growth-rows"'), true);
+  assert.equal(source.includes('data-testid="report-audience-growth-cards"'), false);
   assert.equal(source.includes('data-testid="report-audience-growth-sources"'), true);
   assert.equal(source.includes("cursor-default"), true);
   assert.equal(source.includes("select-none"), true);

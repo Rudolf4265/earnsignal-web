@@ -1,77 +1,53 @@
 "use client";
 
-import { PanelCard } from "@/src/components/ui/panel-card";
 import type { WowStrengthsRisksViewModel } from "@/src/lib/report/wow-summary-view-model";
-
-function CheckIcon() {
-  return (
-    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-accent-emerald/20" aria-hidden="true">
-      <svg viewBox="0 0 12 12" fill="none" className="h-2.5 w-2.5 text-brand-accent-emerald">
-        <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </span>
-  );
-}
-
-function WarnIcon() {
-  return (
-    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-400/18" aria-hidden="true">
-      <svg viewBox="0 0 12 12" fill="none" className="h-2.5 w-2.5 text-amber-400">
-        <path d="M6 2.5v3.5M6 8h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    </span>
-  );
-}
 
 type Props = {
   model: WowStrengthsRisksViewModel;
+  opportunities?: string[];
 };
 
-export function ReportStrengthsRisksSection({ model }: Props) {
+function Column({
+  title,
+  items,
+}: {
+  title: string;
+  items: string[];
+}) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+      <ul className="space-y-2.5">
+        {items.slice(0, 3).map((item) => (
+          <li key={item} className="flex items-start gap-2.5 text-sm leading-7 text-slate-600">
+            <span className="mt-[0.8rem] h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" aria-hidden="true" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function ReportStrengthsRisksSection({ model, opportunities = [] }: Props) {
   if (!model.available) {
     return null;
   }
 
   return (
-    <PanelCard
-      className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]"
+    <section
+      className="rounded-[1.5rem] border border-slate-200/80 bg-white/70 px-5 py-5 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.28)] sm:px-6"
       data-testid="report-strengths-risks"
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">
-        Strengths &amp; Risks
-      </p>
-      <div className="mt-4 grid gap-5 sm:grid-cols-2">
-        {model.strengths.length > 0 ? (
-          <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-brand-accent-emerald">
-              What improved
-            </p>
-            <ul className="space-y-3">
-              {model.strengths.map((item) => (
-                <li key={item.id} className="flex items-start gap-2.5">
-                  <CheckIcon />
-                  <p className="text-sm leading-relaxed text-brand-text-secondary">{item.text}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        {model.risks.length > 0 ? (
-          <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-amber-400">
-              Watch out for
-            </p>
-            <ul className="space-y-3">
-              {model.risks.map((item) => (
-                <li key={item.id} className="flex items-start gap-2.5">
-                  <WarnIcon />
-                  <p className="text-sm leading-relaxed text-brand-text-secondary">{item.text}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Column title="Strengths" items={model.strengths.map((item) => item.text)} />
+        <Column title="Risks" items={model.risks.map((item) => item.text)} />
+        <Column title="Opportunities" items={opportunities} />
       </div>
-    </PanelCard>
+    </section>
   );
 }

@@ -13,7 +13,7 @@ function resolveAppHref(path: string): string {
 export function MarketingShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text-primary">
-      <header className="sticky top-0 z-20 border-b border-brand-border/70 bg-brand-bg/78 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-brand-border/45 bg-brand-bg/72 shadow-[0_18px_50px_-42px_rgba(59,130,246,0.7)] backdrop-blur-xl">
         <Container className="flex items-center justify-between gap-4 py-3.5 sm:py-4">
           <Link href="/" className="inline-flex items-center" aria-label={BRAND_NAME}>
             <Logo
@@ -41,7 +41,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
                 </a>
                 <a
                   href={resolveAppHref(marketingCtas.startTrial.appPath)}
-                  className="inline-flex items-center justify-center rounded-xl border border-brand-border-strong/65 bg-brand-panel px-3.5 py-2 text-xs font-medium text-white transition hover:border-brand-accent-blue/45 hover:bg-brand-panel-muted sm:px-5 sm:py-2.5 sm:text-sm"
+                  className="inline-flex items-center justify-center rounded-xl border border-brand-accent-blue/35 bg-[linear-gradient(135deg,rgba(29,78,216,0.42),rgba(47,217,197,0.14))] px-3.5 py-2 text-xs font-semibold text-white shadow-[0_18px_44px_-30px_rgba(59,130,246,0.75)] transition hover:border-brand-accent-teal/45 hover:brightness-110 sm:px-5 sm:py-2.5 sm:text-sm"
                 >
                   {marketingCtas.startTrial.label}
                 </a>
@@ -53,12 +53,15 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
 
       <main>{children}</main>
 
-      <footer id="about" className="border-t border-brand-border py-10 text-sm text-brand-text-muted">
+      <footer
+        id="about"
+        className="border-t border-brand-border/45 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.065),transparent_42%)] py-10 text-sm text-brand-text-muted"
+      >
         <Container className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <span>(c) {new Date().getFullYear()} {BRAND_NAME}</span>
           <div className="flex flex-wrap gap-4 sm:gap-6">
             {footerLinks.map((item) => (
-              <Link key={item.key} href={item.href}>
+              <Link key={item.key} href={item.href} className="transition hover:text-brand-text-primary">
                 {item.label}
               </Link>
             ))}

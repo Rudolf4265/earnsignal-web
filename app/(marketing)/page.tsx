@@ -12,6 +12,20 @@ import {
   MarketingSupportedTodaySection,
   type InsightIconKey,
 } from "./_components/marketing-sections";
+import {
+  marketingEyebrowClass,
+  marketingHeroSectionClass,
+  marketingIconTileClass,
+  marketingInsetClass,
+  marketingPillClass,
+  marketingPremiumCardClass,
+  marketingPremiumCardOverlayClass,
+  marketingPrimaryCtaClass,
+  marketingSecondaryCtaClass,
+  marketingSectionClass,
+  marketingTealIconTileClass,
+  marketingTopShineClass,
+} from "./_components/marketing-visuals";
 import { MARKETING_TRUST_MICROCOPY_BODY, TrustMicrocopy } from "@/src/components/ui/trust-microcopy";
 import { appBaseUrl } from "@/src/lib/urls";
 
@@ -105,7 +119,7 @@ export default function MarketingHomePage() {
     <MarketingShell>
 
       {/* ── 1. HERO ─────────────────────────────────────────────────────────── */}
-      <Section className="relative overflow-hidden pb-20 pt-16 sm:pb-24 sm:pt-20 lg:pb-28 lg:pt-24">
+      <Section className={marketingHeroSectionClass}>
         {/* Ghosted Sigma brand mark — decorative background composition element */}
         <div
           className="pointer-events-none absolute -left-8 -top-16 select-none font-light leading-none text-brand-accent-blue opacity-[0.082] blur-[3px]"
@@ -124,7 +138,7 @@ export default function MarketingHomePage() {
               <div className="pointer-events-none absolute -left-12 top-10 h-44 w-44 rounded-full bg-brand-accent-blue/16 blur-3xl" />
               <Badge
                 variant="accent"
-                className="relative border-brand-border-strong/65 bg-brand-panel/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.17em] text-brand-accent-blue"
+                className={cn("relative", marketingEyebrowClass)}
               >
                 PRIVATE CREATOR BUSINESS INTELLIGENCE
               </Badge>
@@ -147,8 +161,7 @@ export default function MarketingHomePage() {
                   href={primaryCtaHref}
                   className={buttonClassName({
                     variant: "primary",
-                    className:
-                      "rounded-xl border-brand-accent-emerald/50 bg-[linear-gradient(120deg,rgba(29,78,216,0.98),rgba(47,217,197,0.9))] px-6 py-3 text-sm font-semibold text-white shadow-brand-glow hover:border-brand-accent-emerald/70 hover:brightness-110 sm:px-7 sm:py-3.5",
+                    className: marketingPrimaryCtaClass,
                   })}
                 >
                   Get My Free Preview
@@ -157,8 +170,7 @@ export default function MarketingHomePage() {
                   href={secondaryCtaHref}
                   className={buttonClassName({
                     variant: "secondary",
-                    className:
-                      "rounded-xl border-brand-border-strong/70 bg-brand-panel/70 px-5 py-3 text-sm text-brand-text-secondary hover:bg-brand-panel hover:text-white sm:px-6",
+                    className: marketingSecondaryCtaClass,
                   })}
                 >
                   See Sample Diagnostics
@@ -171,7 +183,7 @@ export default function MarketingHomePage() {
                   ["Private uploads", "Your data stays private"],
                   ["No public estimates", "Only your own exports are used"],
                 ].map(([label, body]) => (
-                  <div key={label} className="rounded-xl border border-brand-border/60 bg-brand-panel/40 px-3.5 py-3">
+                  <div key={label} className={cn(marketingInsetClass, "px-3.5 py-3")}>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-brand-accent-teal">{label}</p>
                     <p className="mt-1 text-xs leading-5 text-brand-text-secondary">{body}</p>
                   </div>
@@ -186,7 +198,7 @@ export default function MarketingHomePage() {
               </p>
               <TrustMicrocopy
                 body={MARKETING_TRUST_MICROCOPY_BODY}
-                className="mt-5 max-w-2xl"
+                className={cn("mt-5 max-w-2xl", marketingInsetClass)}
                 testId="marketing-trust-strip"
                 variant="marketing"
               />
@@ -201,11 +213,13 @@ export default function MarketingHomePage() {
               />
               <div className="pointer-events-none absolute -left-12 bottom-2 h-44 w-44 rounded-full bg-brand-accent-teal/10 blur-3xl" />
 
-              <Card className="relative overflow-hidden rounded-2xl border border-brand-border-strong/65 bg-[linear-gradient(162deg,rgba(11,24,49,0.97),rgba(15,31,64,0.95),rgba(9,21,43,0.98))] p-0 shadow-[0_34px_75px_-42px_rgba(13,57,142,0.95)]">
-                <div className="border-b border-brand-border/70 bg-brand-panel-muted/35 px-6 py-5 sm:px-7">
+              <Card className={cn(marketingPremiumCardClass, "p-0")}>
+                <div className={marketingPremiumCardOverlayClass} />
+                <div className={marketingTopShineClass} />
+                <div className="relative border-b border-white/[0.07] bg-brand-panel-muted/20 px-6 py-5 sm:px-7">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">Private Business Report</p>
-                    <span className="inline-flex rounded-full border border-brand-border-strong/60 bg-brand-panel px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-brand-text-secondary">
+                    <span className={marketingPillClass}>
                       Sample Output
                     </span>
                   </div>
@@ -215,16 +229,16 @@ export default function MarketingHomePage() {
                   </p>
                 </div>
 
-                <div className="space-y-3.5 p-5 sm:p-6">
+                <div className="relative space-y-3.5 p-5 sm:p-6">
                   {reportSignals.map((signal) => (
                     <div
                       key={signal.label}
-                      className="rounded-xl border border-brand-border/70 bg-[linear-gradient(165deg,rgba(17,34,69,0.9),rgba(12,26,55,0.84))] p-4 sm:p-5"
+                      className={cn(marketingInsetClass, "p-4 sm:p-5")}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-brand-border-strong/65 bg-brand-panel text-brand-accent-blue">
+                            <span className={cn(marketingIconTileClass, "h-7 w-7 rounded-lg")}>
                               <InsightGlyph icon={signal.icon} />
                             </span>
                             <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-muted">{signal.label}</p>
@@ -241,7 +255,7 @@ export default function MarketingHomePage() {
                         </span>
                       </div>
                       <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">{signal.detail}</p>
-                      <div className="mt-3.5 h-1.5 rounded-full bg-brand-panel-muted/80">
+                      <div className="mt-3.5 h-1.5 rounded-full bg-brand-panel-muted/50">
                         <div
                           className="h-full rounded-full"
                           style={{ width: signal.meterWidth, backgroundColor: signal.meterColor }}
@@ -251,9 +265,9 @@ export default function MarketingHomePage() {
                     </div>
                   ))}
 
-                  <div className="rounded-xl border border-brand-accent-emerald/35 bg-[linear-gradient(160deg,rgba(20,56,70,0.5),rgba(13,36,63,0.35))] p-4">
+                  <div className={cn(marketingInsetClass, "p-4")}>
                     <div className="flex items-start gap-3">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-brand-accent-emerald/45 bg-brand-accent-emerald/12 text-brand-accent-teal">
+                      <span className={cn(marketingTealIconTileClass, "h-8 w-8 rounded-lg")}>
                         <InsightGlyph icon="opportunity" className="h-4 w-4" />
                       </span>
                       <div>
@@ -265,7 +279,7 @@ export default function MarketingHomePage() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-brand-border/65 bg-brand-panel/70 p-4">
+                  <div className={cn(marketingInsetClass, "p-4")}>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-text-muted">
                       Projected Impact Simulation
                     </p>
@@ -274,7 +288,7 @@ export default function MarketingHomePage() {
                         <span
                           // Index is stable for this static sequence used only for styling bars.
                           key={`projection-${index}`}
-                          className="rounded-sm bg-brand-accent-blue/65"
+                          className="rounded-full bg-gradient-to-t from-brand-accent-blue/35 via-brand-accent-blue/60 to-brand-accent-teal/70"
                           style={{ height: `${height}%` }}
                           aria-hidden="true"
                         />
@@ -283,7 +297,7 @@ export default function MarketingHomePage() {
                   </div>
                 </div>
 
-                <div className="border-t border-brand-border/65 bg-brand-panel-muted/25 px-5 py-3.5 text-xs text-brand-text-muted sm:px-6">
+                <div className="relative border-t border-white/[0.07] bg-brand-panel-muted/15 px-5 py-3.5 text-xs text-brand-text-muted sm:px-6">
                   Free validation first. Full report when you are ready.
                 </div>
               </Card>
@@ -297,14 +311,14 @@ export default function MarketingHomePage() {
       {/* ── 2. SUPPORTED TODAY ──────────────────────────────────────────────── */}
       <MarketingSupportedTodaySection />
 
-      <Section className="relative border-t border-brand-border/60 pb-16 pt-16 sm:pb-20 sm:pt-20">
+      <Section className={marketingSectionClass}>
         <div
-          className="pointer-events-none absolute inset-x-0 -top-px h-24 bg-[linear-gradient(to_bottom,rgba(25,72,171,0.15),rgba(10,22,44,0))]"
+          className="pointer-events-none absolute left-1/2 top-24 -z-10 h-[24rem] w-[38rem] -translate-x-1/2 rounded-full bg-brand-accent-blue/[0.055] blur-[7rem]"
           aria-hidden="true"
         />
         <Container>
           <div className="max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">DIAGNOSIS, NOT DASHBOARD</p>
+            <p className={marketingEyebrowClass}>DIAGNOSIS, NOT DASHBOARD</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
               EarnSigma tells you what to do next
             </h2>
@@ -314,59 +328,66 @@ export default function MarketingHomePage() {
           </div>
 
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-brand-border/50 bg-brand-panel-muted/15 p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Public Trackers</p>
+            <div className={cn(marketingPremiumCardClass, "p-6")}>
+              <div className={marketingPremiumCardOverlayClass} />
+              <div className={marketingTopShineClass} />
+              <p className="relative text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-text-secondary">Public Trackers</p>
               <ul className="mt-5 space-y-3">
-                <li className="flex items-start gap-2.5 text-sm text-brand-text-muted">
+                <li className="relative flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
                   Follower counts and estimated reach
                 </li>
-                <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                <li className="relative flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
                   Public growth rankings
                 </li>
-                <li className="flex items-start gap-2.5 text-sm text-brand-text-muted">
+                <li className="relative flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
                   Rough revenue guesses from public data
                 </li>
               </ul>
             </div>
 
-            <div className="rounded-2xl border border-brand-border/50 bg-brand-panel-muted/15 p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Native Dashboards</p>
+            <div className={cn(marketingPremiumCardClass, "p-6")}>
+              <div className={marketingPremiumCardOverlayClass} />
+              <div className={marketingTopShineClass} />
+              <p className="relative text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-text-secondary">Native Dashboards</p>
               <ul className="mt-5 space-y-3">
-                <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                <li className="relative flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
                   Siloed per-platform metrics
                 </li>
-                <li className="flex items-start gap-2.5 text-sm text-brand-text-muted">
+                <li className="relative flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
                   No cross-platform revenue view
                 </li>
-                <li className="flex items-start gap-2.5 text-sm text-brand-text-muted">
+                <li className="relative flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-text-muted/50" aria-hidden="true" />
                   Raw numbers without diagnosis
                 </li>
               </ul>
             </div>
 
-            <div className="rounded-2xl border border-brand-accent-blue/40 bg-[linear-gradient(165deg,rgba(17,34,69,0.92),rgba(11,24,50,0.86))] p-6">
-              <div className="flex items-center gap-2.5">
+            <div className={cn(marketingPremiumCardClass, "p-6")}>
+              <div className={marketingPremiumCardOverlayClass} />
+              <div className="pointer-events-none absolute -right-12 -top-14 h-36 w-36 rounded-full bg-brand-accent-teal/14 blur-3xl" />
+              <div className={marketingTopShineClass} />
+              <div className="relative flex items-center gap-2.5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">EarnSigma</p>
-                <span className="inline-flex rounded-full border border-brand-accent-emerald/45 bg-brand-accent-emerald/12 px-2 py-0.5 text-[10px] font-medium text-brand-accent-teal">
+                <span className={cn(marketingPillClass, "border-brand-accent-emerald/35 bg-brand-accent-emerald/10 text-brand-accent-teal")}>
                   Private
                 </span>
               </div>
               <ul className="mt-5 space-y-3">
-                <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                <li className="relative flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
                   <span><strong className="font-semibold text-white">Built from your real data</strong>, not public estimates</span>
                 </li>
-                <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                <li className="relative flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
                   Income Stability Score, platform concentration, subscriber health, and projected upside
                 </li>
-                <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                <li className="relative flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
                   <span><strong className="font-semibold text-white">Biggest Opportunity and Next 3 Actions</strong>, not just charts</span>
                 </li>
@@ -377,10 +398,10 @@ export default function MarketingHomePage() {
       </Section>
 
       {/* ── 3. INSIGHTS — "What your business data reveals" ─────────────────── */}
-      <Section className="relative border-t border-brand-border/55 pb-16 pt-16 sm:pb-20 sm:pt-20">
+      <Section className={marketingSectionClass}>
         <Container>
           <div className="max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">HOW IT WORKS</p>
+            <p className={marketingEyebrowClass}>HOW IT WORKS</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
               Built from your real data &mdash; not public guesses
             </h2>
@@ -424,10 +445,12 @@ export default function MarketingHomePage() {
             ].map((item) => (
               <Card
                 key={item.title}
-                className="relative flex h-full flex-col overflow-hidden border-brand-border/75 bg-[linear-gradient(165deg,rgba(17,34,69,0.92),rgba(11,24,50,0.86))] p-5 sm:p-6"
+                className={cn(marketingPremiumCardClass, "flex h-full flex-col p-6 sm:p-7")}
               >
-                <div className="pointer-events-none absolute -right-9 -top-10 h-24 w-24 rounded-full bg-brand-accent-blue/12 blur-2xl" />
-                <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-brand-border-strong/65 bg-brand-panel text-brand-accent-blue">
+                <div className={marketingPremiumCardOverlayClass} />
+                <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-brand-accent-blue/14 blur-3xl" />
+                <div className={marketingTopShineClass} />
+                <span className={cn(marketingIconTileClass, "relative h-11 w-11")}>
                   {item.icon}
                 </span>
                 <h3 className="relative mt-5 text-base font-semibold tracking-tight text-white">{item.title}</h3>
@@ -439,12 +462,12 @@ export default function MarketingHomePage() {
       </Section>
 
       {/* SAMPLE OUTPUT */}
-      <Section className="relative border-t border-brand-border/55 pb-20 pt-16 sm:pb-24 sm:pt-20 lg:pb-28">
+      <Section className={cn(marketingSectionClass, "pb-20 sm:pb-24 lg:pb-28")}>
         <Container>
           <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-14">
             <div className="relative">
               <div className="pointer-events-none absolute -left-10 -top-2 h-36 w-36 rounded-full bg-brand-accent-blue/12 blur-3xl" />
-              <p className="relative text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">SAMPLE OUTPUT</p>
+              <p className={cn("relative", marketingEyebrowClass)}>SAMPLE OUTPUT</p>
               <h2 className="relative mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
                 What a sample EarnSigma report feels like
               </h2>
@@ -452,7 +475,7 @@ export default function MarketingHomePage() {
                 A resilient preview of the report structure: executive summary, key findings, projected upside, and next actions.
               </p>
 
-              <div className="mt-6 rounded-2xl border border-brand-border/65 bg-[linear-gradient(165deg,rgba(16,31,61,0.74),rgba(10,22,46,0.82))] p-5">
+              <div className={cn(marketingInsetClass, "mt-6 p-5")}>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">Anonymized example findings</p>
                 <div className="mt-4 space-y-3 text-sm leading-relaxed text-brand-text-secondary sm:text-[0.95rem]">
                   <p>&ldquo;You&apos;re losing 42% of churn from your $8 tier.&rdquo;</p>
@@ -465,7 +488,7 @@ export default function MarketingHomePage() {
                 {reportSectionPillars.map((item) => (
                   <span
                     key={item}
-                    className="inline-flex rounded-full border border-brand-border-strong/65 bg-brand-panel px-3 py-1.5 text-xs text-brand-text-secondary"
+                    className={cn(marketingPillClass, "px-3 py-1.5 text-xs normal-case tracking-normal")}
                   >
                     {item}
                   </span>
@@ -480,27 +503,29 @@ export default function MarketingHomePage() {
                 style={{ backgroundImage: BRAND.gradientPrimary }}
               />
 
-              <Card className="relative overflow-hidden rounded-2xl border border-brand-border-strong/65 bg-[linear-gradient(164deg,rgba(12,26,54,0.96),rgba(15,31,64,0.94),rgba(9,21,44,0.97))] p-4 shadow-brand-card sm:p-5">
-                <div className="rounded-xl border border-brand-border/70 bg-brand-panel/75 p-4 sm:p-5">
+              <Card className={cn(marketingPremiumCardClass, "p-4 sm:p-5")}>
+                <div className={marketingPremiumCardOverlayClass} />
+                <div className={marketingTopShineClass} />
+                <div className={cn("relative p-4 sm:p-5", marketingInsetClass)}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
                       Private Business Diagnostics Report
                     </p>
-                    <span className="inline-flex rounded-full border border-brand-border-strong/60 bg-brand-panel px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-brand-text-secondary">
+                    <span className={marketingPillClass}>
                       Sample report
                     </span>
                   </div>
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
                     <div className="space-y-3">
-                      <div className="rounded-lg border border-brand-border/65 bg-brand-panel-muted/35 p-3">
+                      <div className={cn(marketingInsetClass, "p-3")}>
                         <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Income Stability Score</p>
                         <div className="mt-3 grid h-16 grid-cols-10 items-end gap-1.5">
                           {[28, 33, 37, 46, 52, 58, 56, 64, 71, 74].map((height, index) => (
                             <span
                               // Index is stable for this static chart styling data.
                               key={`report-trend-${index}`}
-                              className="rounded-sm bg-brand-accent-blue/70"
+                              className="rounded-full bg-gradient-to-t from-brand-accent-blue/35 via-brand-accent-blue/60 to-brand-accent-teal/70"
                               style={{ height: `${height}%` }}
                               aria-hidden="true"
                             />
@@ -508,7 +533,7 @@ export default function MarketingHomePage() {
                         </div>
                       </div>
 
-                      <div className="rounded-lg border border-brand-border/65 bg-brand-panel-muted/35 p-3">
+                      <div className={cn(marketingInsetClass, "p-3")}>
                         <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Subscriber Health</p>
                         <div className="mt-3 space-y-2">
                           {[
@@ -518,9 +543,9 @@ export default function MarketingHomePage() {
                           ].map((flow) => (
                             <div key={`${flow.from}-${flow.to}`} className="flex items-center justify-between gap-3 text-sm text-brand-text-secondary">
                               <span>{flow.from}</span>
-                              <span className="flex-1 border-t border-dashed border-brand-border/80" aria-hidden="true" />
+                              <span className="flex-1 border-t border-dashed border-brand-border/45" aria-hidden="true" />
                               <span>{flow.to}</span>
-                              <span className="rounded-full border border-brand-border-strong/65 bg-brand-panel px-2 py-0.5 text-xs text-brand-text-primary">
+                              <span className={cn(marketingPillClass, "px-2 py-0.5 text-xs normal-case tracking-normal text-brand-text-primary")}>
                                 {flow.share}
                               </span>
                             </div>
@@ -530,7 +555,7 @@ export default function MarketingHomePage() {
                     </div>
 
                     <div className="space-y-3">
-                      <div className="rounded-lg border border-brand-border/65 bg-brand-panel-muted/35 p-3">
+                      <div className={cn(marketingInsetClass, "p-3")}>
                         <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Key Findings</p>
                         <div className="mt-3 space-y-2">
                           {[
@@ -543,19 +568,19 @@ export default function MarketingHomePage() {
                                 <span>{row.label}</span>
                                 <span>{row.width}</span>
                               </div>
-                              <div className="mt-1.5 h-1.5 rounded-full bg-brand-panel">
-                                <div className="h-full rounded-full bg-brand-accent-blue/80" style={{ width: row.width }} aria-hidden="true" />
+                              <div className="mt-1.5 h-1.5 rounded-full bg-brand-panel-muted/45">
+                                <div className="h-full rounded-full bg-gradient-to-r from-brand-accent-blue/70 to-brand-accent-teal/70" style={{ width: row.width }} aria-hidden="true" />
                               </div>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      <div className="rounded-lg border border-brand-border/65 bg-brand-panel-muted/35 p-3">
+                      <div className={cn(marketingInsetClass, "p-3")}>
                         <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Platform Concentration</p>
                         <div className="mt-3 flex items-center gap-3">
                           <div
-                            className="h-16 w-16 rounded-full border border-brand-border-strong/65"
+                            className="h-16 w-16 rounded-full border border-brand-border/35 shadow-[0_0_22px_rgba(47,217,197,0.12)]"
                             style={{
                               background:
                                 "conic-gradient(var(--es-color-accent-blue) 0 71%, rgba(31,65,122,0.34) 71% 100%)",
@@ -578,10 +603,10 @@ export default function MarketingHomePage() {
       </Section>
 
       {/* ── 7. WHO IT'S FOR ──────────────────────────────────────────────────── */}
-      <Section className="relative border-t border-brand-border/55 pb-20 pt-16 sm:pb-24 sm:pt-20">
+      <Section className={cn(marketingSectionClass, "pb-20 sm:pb-24")}>
         <Container>
           <div className="max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">BUILT FOR</p>
+            <p className={marketingEyebrowClass}>BUILT FOR</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
               Built for creators who run a real business
             </h2>
@@ -608,24 +633,28 @@ export default function MarketingHomePage() {
             ].map((item) => (
               <div
                 key={item.title}
-                className="rounded-2xl border border-brand-border/65 bg-brand-panel-muted/20 p-6"
+                className={cn(marketingPremiumCardClass, "p-6")}
               >
-                <h3 className="text-base font-semibold text-white">{item.title}</h3>
-                <p className="mt-2.5 text-sm leading-relaxed text-brand-text-secondary">{item.body}</p>
+                <div className={marketingPremiumCardOverlayClass} />
+                <div className={marketingTopShineClass} />
+                <h3 className="relative text-base font-semibold text-white">{item.title}</h3>
+                <p className="relative mt-2.5 text-sm leading-relaxed text-brand-text-secondary">{item.body}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-12">
-            <p className="text-lg font-semibold text-white">Understand your creator business like a business.</p>
-            <p className="mt-1.5 text-sm text-brand-text-secondary">No guesswork. No public estimates. Just your data — clearly explained.</p>
-            <div className="mt-6 flex flex-wrap items-center gap-4">
+          <div className={cn(marketingPremiumCardClass, "mt-12 p-6 sm:p-7")}>
+            <div className={marketingPremiumCardOverlayClass} />
+            <div className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-brand-accent-teal/12 blur-3xl" />
+            <div className={marketingTopShineClass} />
+            <p className="relative text-lg font-semibold text-white">Understand your creator business like a business.</p>
+            <p className="relative mt-1.5 text-sm text-brand-text-secondary">No guesswork. No public estimates. Just your data — clearly explained.</p>
+            <div className="relative mt-6 flex flex-wrap items-center gap-4">
               <a
                 href={primaryCtaHref}
                 className={buttonClassName({
                   variant: "primary",
-                  className:
-                    "rounded-xl border-brand-accent-emerald/50 bg-[linear-gradient(120deg,rgba(29,78,216,0.98),rgba(47,217,197,0.9))] px-6 py-3 text-sm font-semibold text-white shadow-brand-glow hover:border-brand-accent-emerald/70 hover:brightness-110 sm:px-7 sm:py-3.5",
+                  className: marketingPrimaryCtaClass,
                 })}
               >
                 Get My Free Preview
@@ -634,8 +663,7 @@ export default function MarketingHomePage() {
                 href={secondaryCtaHref}
                 className={buttonClassName({
                   variant: "secondary",
-                  className:
-                    "rounded-xl border-brand-border-strong/70 bg-brand-panel/70 px-5 py-3 text-sm text-brand-text-secondary hover:bg-brand-panel hover:text-white sm:px-6",
+                  className: marketingSecondaryCtaClass,
                 })}
               >
                 See Sample Diagnostics

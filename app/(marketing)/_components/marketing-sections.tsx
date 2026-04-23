@@ -1,5 +1,17 @@
 import Image from "next/image";
 import { Card, Container, Section, cn } from "@earnsigma/ui";
+import {
+  marketingDividerClass,
+  marketingEyebrowClass,
+  marketingIconTileClass,
+  marketingInsetClass,
+  marketingMutedEyebrowClass,
+  marketingPillClass,
+  marketingPremiumCardClass,
+  marketingPremiumCardOverlayClass,
+  marketingSectionClass,
+  marketingTopShineClass,
+} from "./marketing-visuals";
 
 export type InsightIconKey =
   | "churn"
@@ -235,10 +247,10 @@ function InsightCard({ insight }: { insight: DiscoverInsight }) {
   const tone = insightBucketTone[insight.bucket];
 
   return (
-    <Card className="group relative flex h-full flex-col overflow-hidden rounded-[1.45rem] border-brand-border/45 bg-[linear-gradient(150deg,rgba(20,47,89,0.86),rgba(12,28,58,0.9)_44%,rgba(7,18,37,0.96))] p-6 shadow-[0_26px_70px_-42px_rgba(59,130,246,0.78)] transition duration-200 hover:-translate-y-0.5 hover:border-brand-border-strong/55 hover:shadow-[0_34px_86px_-42px_rgba(47,217,197,0.42)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:p-7">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(255,255,255,0.08),transparent_34%),radial-gradient(circle_at_96%_18%,rgba(59,130,246,0.14),transparent_36%)] opacity-80" />
+    <Card className={cn(marketingPremiumCardClass, "flex h-full flex-col p-6 sm:p-7")}>
+      <div className={marketingPremiumCardOverlayClass} />
       <div className={cn("pointer-events-none absolute -right-12 -top-14 h-36 w-36 rounded-full blur-3xl transition-opacity duration-200 group-hover:opacity-90", tone.cardGlow)} />
-      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-brand-accent-teal/35 to-transparent" />
+      <div className={marketingTopShineClass} />
       <div className="relative flex items-center justify-between gap-4">
         <span className={cn("inline-flex h-11 w-11 items-center justify-center rounded-[0.95rem] border shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]", tone.icon)}>
           <InsightGlyph icon={insight.icon} className="h-4 w-4" />
@@ -250,7 +262,7 @@ function InsightCard({ insight }: { insight: DiscoverInsight }) {
       <h3 className="relative mt-6 text-lg font-semibold tracking-tight text-white">{insight.title}</h3>
       <p className="relative mt-3 text-sm leading-relaxed text-brand-text-secondary">{insight.description}</p>
 
-      <div className="relative mt-6 rounded-[1.05rem] border border-white/[0.07] bg-[linear-gradient(160deg,rgba(7,18,37,0.48),rgba(19,41,80,0.28))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-sm">
+      <div className={cn("relative mt-6 p-4", marketingInsetClass)}>
         <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.1em] text-brand-text-muted">
           <span className="h-1.5 w-1.5 rounded-full bg-brand-accent-teal/70 shadow-[0_0_12px_rgba(47,217,197,0.45)]" aria-hidden="true" />
           Example signal
@@ -275,12 +287,13 @@ export function MarketingSupportedTodaySection() {
   return (
     <Section
       id="supported-today"
-      className="relative border-t border-brand-border/60 pb-16 pt-16 sm:pb-20 sm:pt-20"
+      className={marketingSectionClass}
       data-testid="marketing-supported-today"
     >
-      <Container>
+      <div className="pointer-events-none absolute left-1/2 top-32 -z-10 h-[24rem] w-[40rem] -translate-x-1/2 rounded-full bg-brand-accent-teal/[0.055] blur-[7rem]" />
+      <Container className="relative">
         <div className="max-w-2xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">SUPPORTED TODAY</p>
+          <p className={marketingEyebrowClass}>SUPPORTED TODAY</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
             Built around the platforms your business runs on
           </h2>
@@ -298,27 +311,28 @@ export function MarketingSupportedTodaySection() {
               <Card
                 key={item.platform}
                 className={cn(
-                  "relative overflow-hidden rounded-2xl border p-5",
-                  isComingSoon
-                    ? "border-brand-border/55 bg-[linear-gradient(165deg,rgba(16,29,56,0.72),rgba(10,20,40,0.78))] opacity-[0.92]"
-                    : "border-brand-border/65 bg-[linear-gradient(165deg,rgba(17,34,69,0.92),rgba(11,24,50,0.86))]",
+                  marketingPremiumCardClass,
+                  "p-5",
+                  isComingSoon && "opacity-[0.88]",
                 )}
                 data-testid={`marketing-platform-card-${slug}`}
               >
                 <div
                   className={cn(
-                    "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.12),transparent_42%)]",
+                    marketingPremiumCardOverlayClass,
                     isComingSoon && "opacity-50",
                   )}
                   aria-hidden="true"
                 />
+                <div className={marketingTopShineClass} />
 
                 <div className="relative flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <span
                       className={cn(
-                        "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border bg-brand-panel-muted/65",
-                        isComingSoon ? "border-brand-border/65" : "border-brand-border-strong/70",
+                        marketingIconTileClass,
+                        "h-11 w-11",
+                        isComingSoon && "border-brand-border/45 bg-brand-panel-muted/35 text-brand-text-muted",
                       )}
                     >
                       <Image src={item.icon} alt="" width={22} height={22} className="h-[22px] w-[22px] object-contain" />
@@ -330,10 +344,11 @@ export function MarketingSupportedTodaySection() {
                   </div>
                   <span
                     className={cn(
-                      "inline-flex shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.11em]",
+                      marketingPillClass,
+                      "shrink-0 px-2.5 py-1",
                       isComingSoon
-                        ? "border-brand-accent-blue/35 bg-brand-panel/85 text-brand-text-secondary"
-                        : "border-brand-border-strong/60 bg-brand-panel px-2.5 py-1 text-brand-text-secondary",
+                        ? "border-brand-accent-blue/28 bg-brand-panel/55 text-brand-text-secondary"
+                        : "border-brand-border/35 bg-brand-panel/35 text-brand-text-secondary",
                     )}
                   >
                     {isComingSoon ? "Coming Soon" : item.format}
@@ -361,14 +376,14 @@ export function MarketingSupportedTodaySection() {
 export function MarketingDataRevealsSection() {
   return (
     <Section
-      className="relative isolate overflow-hidden border-t border-brand-border/45 bg-[radial-gradient(circle_at_18%_8%,rgba(59,130,246,0.1),transparent_35%),radial-gradient(circle_at_86%_24%,rgba(47,217,197,0.065),transparent_36%)] pb-16 pt-16 sm:pb-20 sm:pt-20 lg:pb-24 lg:pt-24"
+      className={cn(marketingSectionClass, "lg:pb-24 lg:pt-24")}
       data-testid="marketing-features-reveals"
     >
       <div className="pointer-events-none absolute left-1/2 top-36 -z-10 h-[28rem] w-[42rem] -translate-x-1/2 rounded-full bg-brand-accent-blue/[0.06] blur-[7rem]" />
       <div className="pointer-events-none absolute right-[-10rem] top-[18rem] -z-10 h-72 w-72 rounded-full bg-brand-accent-teal/[0.08] blur-[5rem]" />
       <Container className="relative">
         <div className="max-w-3xl">
-          <p className="inline-flex rounded-full border border-brand-accent-blue/28 bg-brand-accent-blue/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-blue">
+          <p className={marketingEyebrowClass}>
             EXAMPLE DIAGNOSTICS
           </p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
@@ -382,10 +397,10 @@ export function MarketingDataRevealsSection() {
         <div className="mt-14 space-y-14">
           <div>
             <div className="mb-6 flex items-center gap-4">
-              <span className="rounded-full border border-brand-border/35 bg-brand-panel/30 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary">
+              <span className={marketingMutedEyebrowClass}>
                 Revenue Risk
               </span>
-              <span className="h-px flex-1 bg-gradient-to-r from-brand-border/55 via-brand-border/18 to-transparent" aria-hidden="true" />
+              <span className={marketingDividerClass} aria-hidden="true" />
             </div>
             <div className="grid gap-6 sm:grid-cols-2">
               {discoverInsights
@@ -398,10 +413,10 @@ export function MarketingDataRevealsSection() {
 
           <div>
             <div className="mb-6 flex items-center gap-4">
-              <span className="rounded-full border border-brand-border/35 bg-brand-panel/30 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary">
+              <span className={marketingMutedEyebrowClass}>
                 Monetization Opportunity
               </span>
-              <span className="h-px flex-1 bg-gradient-to-r from-brand-border/55 via-brand-border/18 to-transparent" aria-hidden="true" />
+              <span className={marketingDividerClass} aria-hidden="true" />
             </div>
             <div className="grid gap-6 sm:grid-cols-2">
               {discoverInsights
@@ -414,10 +429,10 @@ export function MarketingDataRevealsSection() {
 
           <div>
             <div className="mb-6 flex flex-wrap items-center gap-4">
-              <span className="rounded-full border border-brand-border/35 bg-brand-panel/30 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary">
+              <span className={marketingMutedEyebrowClass}>
                 Growth Quality
               </span>
-              <span className="h-px min-w-20 flex-1 bg-gradient-to-r from-brand-border/55 via-brand-border/18 to-transparent" aria-hidden="true" />
+              <span className={cn(marketingDividerClass, "min-w-20")} aria-hidden="true" />
               <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-brand-text-muted/60">Revenue sustainability metrics</span>
             </div>
             <div className="grid gap-6 sm:grid-cols-2">

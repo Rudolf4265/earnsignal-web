@@ -143,6 +143,47 @@ function PdfExportLoadingState() {
   );
 }
 
+const STABILITY_COMPONENT_LABELS: Record<string, string> = {
+  momentum: "Revenue Momentum",
+  volatility: "Revenue Consistency",
+  churn: "Subscriber Retention",
+  concentration: "Platform Diversity",
+  data_quality: "Data Quality",
+};
+
+const STABILITY_COMPONENT_ORDER = ["momentum", "volatility", "churn", "concentration", "data_quality"];
+
+function stabilityBarColor(score: number): string {
+  if (score >= 75) return "bg-brand-accent-emerald";
+  if (score >= 50) return "bg-amber-400";
+  return "bg-rose-400/80";
+}
+
+function stabilityTextColor(score: number): string {
+  if (score >= 75) return "text-brand-accent-emerald";
+  if (score >= 50) return "text-amber-300";
+  return "text-rose-300";
+}
+
+function expectedImpactLabel(value: string): string {
+  if (value === "high") return "High impact";
+  if (value === "medium") return "Medium impact";
+  if (value === "low") return "Low impact";
+  return value;
+}
+
+function expectedImpactChipClass(value: string): string {
+  if (value === "high") return "border-brand-accent-emerald/45 bg-brand-accent-emerald/10 text-brand-accent-emerald";
+  if (value === "medium") return "border-brand-accent-blue/40 bg-brand-accent-blue/10 text-brand-accent-blue";
+  return "border-brand-border-strong/50 bg-brand-panel/50 text-brand-text-muted";
+}
+
+function platformShareBarColor(sharePct: number): string {
+  if (sharePct >= 70) return "bg-amber-400";
+  if (sharePct >= 45) return "bg-brand-accent-blue";
+  return "bg-brand-accent-emerald";
+}
+
 export default function ReportPage() {
   const { state: gateState, entitlements } = useAppGate();
   const params = useParams<{ id?: string | string[] }>();
@@ -602,7 +643,7 @@ export default function ReportPage() {
 
               {presentation.heroNotice ? <TruthNotice notice={presentation.heroNotice} testId="report-hero-truth-notice" /> : null}
               {showFullReportContent ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-brand-text-muted" data-testid="report-snapshot-label">
                     {presentation.displayContext.snapshotLabel}
                   </p>
@@ -621,6 +662,32 @@ export default function ReportPage() {
                     </article>
                   ))}
                 </div>
+                {presentation.stabilityComponents ? (
+                  <div className="rounded-xl border border-brand-border/45 bg-brand-panel/40 px-4 py-3" data-testid="report-stability-components">
+                    <p className="mb-3 text-[10px] uppercase tracking-[0.14em] text-brand-text-muted">Income Health Breakdown</p>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-5">
+                      {STABILITY_COMPONENT_ORDER.map((key) => {
+                        const score = presentation.stabilityComponents?.[key];
+                        if (score == null) return null;
+                        const label = STABILITY_COMPONENT_LABELS[key] ?? key;
+                        return (
+                          <div key={key}>
+                            <div className="mb-1.5 flex items-center justify-between gap-1">
+                              <span className="text-[9px] uppercase leading-tight tracking-[0.12em] text-brand-text-muted">{label}</span>
+                              <span className={`text-[10px] font-semibold tabular-nums ${stabilityTextColor(score)}`}>{score}</span>
+                            </div>
+                            <div className="h-1 rounded-full bg-brand-panel-muted/60">
+                              <div
+                                className={`h-full rounded-full ${stabilityBarColor(score)}`}
+                                style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
                 </div>
               ) : null}
             </div>
@@ -721,6 +788,62 @@ export default function ReportPage() {
                 </PanelCard>
               </section>
 
+              {presentation.platformMix.platformShares && presentation.platformMix.platformShares.length > 0 ? (
+                <section className="space-y-3" data-testid="report-platform-mix">
+                  <DashboardSectionHeader
+                    title="Revenue by Platform"
+                    description="Where income is coming from and how concentrated it is across your sources."
+                  />
+                  <PanelCard className="border-brand-border/75 bg-[linear-gradient(155deg,rgba(16,32,67,0.94),rgba(19,41,80,0.9),rgba(16,32,67,0.95))]">
+                    <div className="space-y-2.5">
+                      {presentation.platformMix.platformShares.map((row) => {
+                        const sharePct = Math.round(row.share * 100);
+                        return (
+                          <div key={row.platform} className="flex items-center gap-3" data-testid="report-platform-mix-row">
+                            <span className="w-20 shrink-0 text-[11px] font-medium capitalize text-brand-text-secondary">{row.platform}</span>
+                            <div className="flex-1">
+                              <div className="h-1.5 rounded-full bg-brand-panel-muted/60">
+                                <div
+                                  className={`h-full rounded-full ${platformShareBarColor(sharePct)}`}
+                                  style={{ width: `${sharePct}%` }}
+                                />
+                              </div>
+                            </div>
+                            <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-brand-text-muted">{sharePct}%</span>
+                            {row.revenue > 0 ? (
+                              <span className="w-20 shrink-0 text-right text-[11px] tabular-nums text-brand-text-secondary">
+                                ${Math.round(row.revenue).toLocaleString("en-US")}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {presentation.platformMix.concentrationScore !== null ? (
+                      <div className="mt-3 border-t border-brand-border/30 pt-3">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">
+                          Concentration risk:{" "}
+                          <span className={
+                            presentation.platformMix.concentrationScore >= 70
+                              ? "text-amber-300"
+                              : presentation.platformMix.concentrationScore >= 40
+                                ? "text-brand-accent-blue"
+                                : "text-brand-accent-emerald"
+                          }>
+                            {presentation.platformMix.concentrationScore >= 70
+                              ? "High"
+                              : presentation.platformMix.concentrationScore >= 40
+                                ? "Medium"
+                                : "Low"}
+                          </span>
+                          {" "}({presentation.platformMix.concentrationScore}%)
+                        </p>
+                      </div>
+                    ) : null}
+                  </PanelCard>
+                </section>
+              ) : null}
+
               <ReportSubscriberHealthSection model={presentation.subscriberHealth} />
 
               {presentation.audienceGrowth ? (
@@ -801,6 +924,14 @@ export default function ReportPage() {
                             <p className="mt-2 text-sm font-semibold leading-snug text-brand-text-primary">{rec.body}</p>
                             {rec.detail ? (
                               <p className="mt-1.5 text-xs leading-relaxed text-brand-text-secondary">{rec.detail}</p>
+                            ) : null}
+                            {rec.expectedImpact ? (
+                              <span
+                                className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] ${expectedImpactChipClass(rec.expectedImpact)}`}
+                                data-testid="report-rec-impact-chip"
+                              >
+                                {expectedImpactLabel(rec.expectedImpact)}
+                              </span>
                             ) : null}
                           </article>
                         ))}

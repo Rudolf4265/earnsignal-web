@@ -161,6 +161,12 @@ export type ReportStabilityViewModel = ReportTruthMetadata & {
   components: Record<string, number> | null;
 };
 
+export type ReportPlatformShareViewModel = {
+  platform: string;
+  share: number;
+  revenue: number;
+};
+
 export type ReportAudienceGrowthSummaryViewModel = {
   creatorScore: number | null;
   sourceCoverage: number | null;
@@ -224,6 +230,7 @@ export type ReportViewModel = {
   outlook: ReportOutlookViewModel | null;
   stability: ReportStabilityViewModel | null;
   audienceGrowthSignals: ReportAudienceGrowthSignalsViewModel | null;
+  platformShares: ReportPlatformShareViewModel[] | null;
 };
 
 export type NormalizeArtifactResult = {
@@ -1408,6 +1415,35 @@ function readAudienceGrowthSignals(records: Record<string, unknown>[]): ReportAu
   };
 }
 
+function readPlatformShares(value: unknown): ReportPlatformShareViewModel[] | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const shares = value.shares;
+  if (!Array.isArray(shares)) {
+    return null;
+  }
+
+  const result = shares
+    .map((entry) => {
+      if (!isRecord(entry)) {
+        return null;
+      }
+
+      const platform = readString(entry.platform);
+      const share = readNumber(entry.share);
+      if (!platform || share === null) {
+        return null;
+      }
+
+      return { platform, share, revenue: readNumber(entry.revenue) ?? 0 };
+    })
+    .filter((entry): entry is ReportPlatformShareViewModel => entry !== null);
+
+  return result.length > 0 ? result : null;
+}
+
 function toComponentNumbers(value: unknown): Record<string, number> | null {
   if (!isRecord(value)) {
     return null;
@@ -1719,6 +1755,7 @@ function emptyModel(): ReportViewModel {
     outlook: null,
     stability: null,
     audienceGrowthSignals: null,
+    platformShares: null,
   };
 }
 
@@ -1793,6 +1830,7 @@ export function normalizeArtifactToReportModel(artifact: unknown): NormalizeArti
       outlook: readOutlook(namedSections?.outlook, truthDefaults),
       stability: readStability(namedSections?.stability, truthDefaults),
       audienceGrowthSignals: readAudienceGrowthSignals(records),
+      platformShares: readPlatformShares(namedSections?.platform_mix),
     },
     warnings,
   };

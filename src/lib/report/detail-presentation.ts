@@ -29,6 +29,7 @@ import {
 } from "./truth";
 import type {
   ReportMetricProvenanceEntry,
+  ReportPlatformShareViewModel,
   ReportRecommendationViewModel,
   ReportSectionViewModel,
   ReportSignalViewModel,
@@ -53,6 +54,7 @@ export type ReportDetailPresentationRecommendation = {
   detail: string | null;
   stateLabel: string | null;
   stateTone: ReportTruthTone | null;
+  expectedImpact: string | null;
 };
 
 export type ReportDetailPresentationAppendixSection = {
@@ -140,7 +142,9 @@ export type ReportDetailPresentationModel = {
     concentrationScore: number | null;
     platformsConnected: number | null;
     highlights: string[];
+    platformShares: ReportPlatformShareViewModel[] | null;
   };
+  stabilityComponents: Record<string, number> | null;
   recommendations: ReportDetailPresentationRecommendation[];
   revenueOutlook: {
     notice: ReportDetailPresentationNotice | null;
@@ -733,6 +737,7 @@ function buildTypedRecommendations(recommendations: ReportRecommendationViewMode
           null,
         stateLabel,
         stateTone: stateLabel ? getTruthStateTone(recommendation) : null,
+        expectedImpact: recommendation.expectedImpact ?? null,
       };
     });
   }
@@ -746,6 +751,7 @@ function buildTypedRecommendations(recommendations: ReportRecommendationViewMode
       detail: null,
       stateLabel: null,
       stateTone: null,
+      expectedImpact: null,
     }));
 }
 
@@ -1071,6 +1077,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
     concentrationScore: typedConcentrationScore ?? readConcentrationScore(platformLines),
     platformsConnected: input.report.metrics.platformsConnected ?? null,
     highlights: platformLines.slice(0, 3),
+    platformShares: input.artifactModel?.platformShares ?? null,
   };
   const platformRiskSignal = readPlatformRiskSignalTone(platformLines.length > 0 ? platformLines : rawKeySignals);
 
@@ -1204,6 +1211,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
       highlights: subscriberHighlights,
     },
     platformMix,
+    stabilityComponents: input.artifactModel?.stability?.components ?? null,
     recommendations,
     revenueOutlook,
     diagnosis,

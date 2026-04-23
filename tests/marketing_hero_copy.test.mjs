@@ -26,8 +26,8 @@ test("supported-today section is visual, logo-based, and includes a non-supporte
   const source = await readFile(marketingSectionsPath, "utf8");
 
   assert.equal(source.includes("SUPPORTED TODAY"), true);
-  assert.equal(source.includes("Built around the platforms your business runs on"), true);
-  assert.equal(source.includes("No new tools. No new workflows. Just your existing data."), true);
+  assert.equal(source.includes("Your data is already there."), true);
+  assert.equal(source.includes("No new integrations. No API keys. Just export what you already have."), true);
   assert.equal(source.includes("Support is currently limited to specific export formats by platform."), true);
 
   assert.equal(source.includes('icon: "/platforms/patreon.svg"'), true);
@@ -57,8 +57,8 @@ test("homepage sample output and early diagnostics align with the sample-report 
     readFile(featuresPagePath, "utf8"),
   ]);
 
-  assert.equal(homeSource.includes("What a sample EarnSigma report feels like"), true);
-  assert.equal(homeSource.includes("A resilient preview of the report structure: executive summary, key findings, projected upside, and next actions."), true);
+  assert.equal(homeSource.includes("What a real EarnSigma report actually shows"), true);
+  assert.equal(homeSource.includes("Plain language. Specific findings. Not just data"), true);
   assert.equal(homeSource.includes("Anonymized example findings"), true);
   assert.equal(homeSource.includes("You&apos;re losing 42% of churn from your $8 tier."), true);
   assert.equal(homeSource.includes("Your top 5% of supporters drive 46% of revenue."), true);

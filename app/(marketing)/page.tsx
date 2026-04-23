@@ -44,7 +44,7 @@ const reportSignals: ReportSignal[] = [
   {
     label: "Income Stability Score",
     value: "74 / 100",
-    detail: "Recurring income is healthy, with distribution risk still worth watching.",
+    detail: "Recurring income is healthy, though how it's spread across supporters is worth watching.",
     meterWidth: "74%",
     meterColor: "var(--es-color-accent-emerald)",
     icon: "stability",
@@ -52,7 +52,7 @@ const reportSignals: ReportSignal[] = [
     tone: "positive",
   },
   {
-    label: "Platform Concentration",
+    label: "Platform Exposure",
     value: "71% of revenue depends on Patreon",
     detail: "A strong primary channel is also the clearest exposure point.",
     meterWidth: "71%",
@@ -64,7 +64,7 @@ const reportSignals: ReportSignal[] = [
   {
     label: "Subscriber Churn",
     value: "42% of subscriber churn comes from your $8 tier",
-    detail: "The report flags where retention pressure is concentrated.",
+    detail: "The report shows which tier is losing the most subscribers.",
     meterWidth: "42%",
     meterColor: "var(--es-color-accent-emerald)",
     icon: "churn",
@@ -74,10 +74,10 @@ const reportSignals: ReportSignal[] = [
 ];
 
 const reportSectionPillars = [
-  "Executive Summary",
+  "Business Summary",
   "Biggest Opportunity",
   "Income Stability Score",
-  "Platform Concentration",
+  "Platform Exposure",
   "Projected Upside",
   "Next 3 Actions",
 ];
@@ -223,9 +223,9 @@ export default function MarketingHomePage() {
                       Sample Output
                     </span>
                   </div>
-                  <h2 className="mt-3 text-xl font-semibold tracking-tight text-white sm:text-[1.35rem]">Business Diagnostics Snapshot</h2>
+                  <h2 className="mt-3 text-xl font-semibold tracking-tight text-white sm:text-[1.35rem]">Your Business at a Glance</h2>
                   <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                    An anonymized example of the diagnostic categories used in the sample report.
+                    An anonymized example showing what the report looks like for your business.
                   </p>
                 </div>
 
@@ -281,7 +281,7 @@ export default function MarketingHomePage() {
 
                   <div className={cn(marketingInsetClass, "p-4")}>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-text-muted">
-                      Projected Impact Simulation
+                      Revenue Projection
                     </p>
                     <div className="mt-3 grid h-12 grid-cols-12 items-end gap-1.5">
                       {[22, 30, 28, 40, 46, 43, 52, 61, 65, 74, 82, 88].map((height, index) => (
@@ -385,7 +385,7 @@ export default function MarketingHomePage() {
                 </li>
                 <li className="relative flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
-                  Income Stability Score, platform concentration, subscriber health, and projected upside
+                  Income Stability Score, platform exposure, subscriber health, and projected upside
                 </li>
                 <li className="relative flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
@@ -469,10 +469,10 @@ export default function MarketingHomePage() {
               <div className="pointer-events-none absolute -left-10 -top-2 h-36 w-36 rounded-full bg-brand-accent-blue/12 blur-3xl" />
               <p className={cn("relative", marketingEyebrowClass)}>SAMPLE OUTPUT</p>
               <h2 className="relative mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
-                What a sample EarnSigma report feels like
+                What a real EarnSigma report actually shows
               </h2>
               <p className="relative mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
-                A resilient preview of the report structure: executive summary, key findings, projected upside, and next actions.
+                Plain language. Specific findings. Not just data &mdash; a diagnosis.
               </p>
 
               <div className={cn(marketingInsetClass, "mt-6 p-5")}>
@@ -559,7 +559,7 @@ export default function MarketingHomePage() {
                         <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Key Findings</p>
                         <div className="mt-3 space-y-2">
                           {[
-                            { label: "Platform concentration", width: "71%" },
+                            { label: "Platform exposure", width: "71%" },
                             { label: "Mid-tier churn", width: "42%" },
                             { label: "Upgrade friction", width: "31%" },
                           ].map((row) => (

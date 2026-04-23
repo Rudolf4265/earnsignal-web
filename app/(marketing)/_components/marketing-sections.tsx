@@ -77,7 +77,7 @@ const discoverInsights: DiscoverInsight[] = [
     title: "Where Your Subscribers Are Leaving",
     description: "Identify which tiers drive cancellations and when subscriber churn accelerates.",
     signal: "42% churn in your $8 tier",
-    indicator: "Loss Concentration",
+    indicator: "Churn Pattern",
     bars: [92, 70, 46, 34, 28, 20],
     icon: "churn",
     bucket: "revenue-risk",
@@ -86,7 +86,7 @@ const discoverInsights: DiscoverInsight[] = [
     title: "How Dependent You Are On Top Fans",
     description: "Measure whether your revenue is stable or concentrated among a small number of supporters.",
     signal: "Top 12 supporters drive 58% of monthly revenue",
-    indicator: "Concentration",
+    indicator: "Revenue Dependency",
     bars: [26, 34, 43, 57, 70, 88],
     icon: "dependence",
     bucket: "revenue-risk",
@@ -95,7 +95,7 @@ const discoverInsights: DiscoverInsight[] = [
     title: "Your Top 5% of Supporters",
     description: "See whether a small group of supporters contributes a disproportionate share of revenue.",
     signal: "Top 5% currently contribute 46% of earnings",
-    indicator: "High Value Segment",
+    indicator: "Top Supporters",
     bars: [20, 24, 29, 36, 56, 76],
     icon: "supporters",
     bucket: "monetization",
@@ -295,10 +295,10 @@ export function MarketingSupportedTodaySection() {
         <div className="max-w-2xl">
           <p className={marketingEyebrowClass}>SUPPORTED TODAY</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
-            Built around the platforms your business runs on
+            Your data is already there.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
-            No new tools. No new workflows. Just your existing data.
+            No new integrations. No API keys. Just export what you already have.
           </p>
         </div>
 
@@ -414,7 +414,7 @@ export function MarketingDataRevealsSection() {
           <div>
             <div className="mb-6 flex items-center gap-4">
               <span className={marketingMutedEyebrowClass}>
-                Monetization Opportunity
+                Revenue Opportunity
               </span>
               <span className={marketingDividerClass} aria-hidden="true" />
             </div>
@@ -433,7 +433,7 @@ export function MarketingDataRevealsSection() {
                 Growth Quality
               </span>
               <span className={cn(marketingDividerClass, "min-w-20")} aria-hidden="true" />
-              <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-brand-text-muted/60">Revenue sustainability metrics</span>
+              <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-brand-text-muted/60">how steady your income really is</span>
             </div>
             <div className="grid gap-6 sm:grid-cols-2">
               {discoverInsights

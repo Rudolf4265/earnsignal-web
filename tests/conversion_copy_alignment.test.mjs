@@ -57,8 +57,8 @@ test("marketing page leads with present-state product truth", async () => {
   assert.equal(pageSource.includes("Launch pricing"), true);
   assert.equal(sectionsSource.includes("EXAMPLE DIAGNOSTICS"), true);
   assert.equal(sectionsSource.includes("Anonymized sample findings that mirror the current report categories."), true);
-  assert.equal(sectionsSource.includes("Built around the platforms your business runs on"), true);
-  assert.equal(sectionsSource.includes("No new tools. No new workflows. Just your existing data."), true);
+  assert.equal(sectionsSource.includes("Your data is already there."), true);
+  assert.equal(sectionsSource.includes("No new integrations. No API keys. Just export what you already have."), true);
   assert.equal(sectionsSource.includes("Support is currently limited to specific export formats by platform."), true);
   assert.equal(sectionsSource.includes('platform: "Snapchat"'), true);
   assert.equal(sectionsSource.includes('format: "Coming soon"'), true);

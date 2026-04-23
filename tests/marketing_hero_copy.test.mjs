@@ -10,12 +10,15 @@ const featuresPagePath = path.resolve("app/(marketing)/features/page.tsx");
 test("marketing hero keeps the private business diagnosis positioning", async () => {
   const source = await readFile(marketingPagePath, "utf8");
 
-  assert.equal(source.includes("Know what&apos;s driving your income,"), true);
-  assert.equal(source.includes("Stop guessing what&apos;s driving your income."), true);
-  assert.equal(source.includes("Generate My Private Report"), true);
+  assert.equal(source.includes("Know exactly what&apos;s driving your income"), true);
+  assert.equal(source.includes("and what&apos;s quietly hurting it."), true);
+  assert.equal(source.includes("Diagnosis, not another dashboard."), true);
+  assert.equal(source.includes("Get My Free Preview"), true);
   assert.equal(source.includes("Patreon, Substack, YouTube, Instagram, and TikTok"), true);
-  assert.equal(source.includes("clear, private business diagnosis"), true);
+  assert.equal(source.includes("private business diagnosis with clear next steps"), true);
   assert.equal(source.includes("No spreadsheet stitching"), true);
+  assert.equal(source.includes("Confirm your data before payment"), true);
+  assert.equal(source.includes("Only your own exports are used"), true);
   assert.equal(source.includes("upload anything"), false);
 });
 
@@ -47,19 +50,24 @@ test("supported-today section is visual, logo-based, and includes a non-supporte
   assert.equal(source.includes("Upload your exports. See the patterns public tools cannot surface."), false);
 });
 
-test("homepage sample output includes a narrative report excerpt and the moved product-depth sections now live on the Features page", async () => {
-  const [homeSource, featuresSource] = await Promise.all([
+test("homepage sample output and early diagnostics align with the sample-report information architecture", async () => {
+  const [homeSource, sectionsSource, featuresSource] = await Promise.all([
     readFile(marketingPagePath, "utf8"),
+    readFile(marketingSectionsPath, "utf8"),
     readFile(featuresPagePath, "utf8"),
   ]);
 
-  assert.equal(homeSource.includes("What a real EarnSigma report sounds like"), true);
-  assert.equal(homeSource.includes("Not just charts. Clear business findings based on your data."), true);
+  assert.equal(homeSource.includes("What a sample EarnSigma report feels like"), true);
+  assert.equal(homeSource.includes("A resilient preview of the report structure: executive summary, key findings, projected upside, and next actions."), true);
+  assert.equal(homeSource.includes("Anonymized example findings"), true);
   assert.equal(homeSource.includes("You&apos;re losing 42% of churn from your $8 tier."), true);
   assert.equal(homeSource.includes("Your top 5% of supporters drive 46% of revenue."), true);
   assert.equal(homeSource.includes("Raising a mid-tier offer could increase revenue by +18%."), true);
+  assert.equal(homeSource.includes("<MarketingDataRevealsSection />"), true);
   assert.equal(homeSource.includes("<MarketingSupportedTodaySection />"), true);
-  assert.equal(homeSource.includes("What your data reveals about your business"), false);
+  assert.equal(sectionsSource.includes("EXAMPLE DIAGNOSTICS"), true);
+  assert.equal(sectionsSource.includes("What creators usually discover"), true);
+  assert.equal(sectionsSource.includes("Example signal"), true);
   assert.equal(homeSource.includes("One workspace. Two lenses."), false);
   assert.equal(homeSource.includes('id="features"'), false);
 

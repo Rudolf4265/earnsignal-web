@@ -24,7 +24,7 @@ export function ReportExecutiveNarrative({ paragraphs, summarySentence }: Props)
       className="border-brand-border/65 bg-[linear-gradient(155deg,rgba(14,28,58,0.94),rgba(16,32,67,0.9))]"
       data-testid="report-executive-narrative"
     >
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Report narrative</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Strategic Read</p>
       <div className="mt-3 space-y-3">
         {usable.map((para, i) => (
           <p key={i} className="text-sm leading-relaxed text-brand-text-secondary">

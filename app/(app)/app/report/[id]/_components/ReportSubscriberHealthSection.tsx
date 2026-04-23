@@ -12,9 +12,8 @@ function toTileTone(stateTone: "good" | "warn" | "neutral" | null | undefined): 
   return "neutral";
 }
 
-function toBadge(stateLabel: string | null | undefined, stateTone: "good" | "warn" | "neutral" | null | undefined): string | null {
-  if (!stateLabel) return null;
-  return stateLabel;
+function toBadge(stateLabel: string | null | undefined): string | null {
+  return stateLabel ?? null;
 }
 
 type Props = {
@@ -31,7 +30,7 @@ export function ReportSubscriberHealthSection({ model }: Props) {
           Subscriber &amp; Retention Health
         </p>
         <p className="text-xs text-brand-text-muted">
-          Retention signals, churn pressure, and revenue-per-subscriber at a glance.
+          Subscriber signals, retention context, and revenue-per-subscriber where the evidence supports it.
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -40,7 +39,7 @@ export function ReportSubscriberHealthSection({ model }: Props) {
             key={metric.id}
             label={metric.label}
             value={metric.value}
-            badge={toBadge(metric.stateLabel, metric.stateTone)}
+            badge={toBadge(metric.stateLabel)}
             tone={toTileTone(metric.stateTone)}
             detail={metric.detail}
             testId={`subscriber-health-tile-${metric.id}`}

@@ -218,7 +218,8 @@ function InsightCard({ insight }: { insight: DiscoverInsight }) {
       <p className="relative mt-2.5 text-sm leading-relaxed text-brand-text-secondary">{insight.description}</p>
 
       <div className="relative mt-5 rounded-lg border border-brand-border/65 bg-brand-panel/70 p-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-text-muted">{insight.signal}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-text-muted">Example signal</p>
+        <p className="mt-1 text-xs font-medium leading-relaxed text-brand-text-primary">{insight.signal}</p>
         <div className="mt-3 flex h-9 items-end gap-1.5">
           {insight.bars.map((height, index) => (
             <span
@@ -329,12 +330,12 @@ export function MarketingDataRevealsSection() {
     >
       <Container>
         <div className="max-w-3xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">WHAT YOUR DATA REVEALS</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">EXAMPLE DIAGNOSTICS</p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
-            What your data reveals about your business
+            What creators usually discover
           </h2>
           <p className="mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
-            Use your platform data. See the patterns public tools cannot surface.
+            Anonymized sample findings that mirror the current report categories. Your report uses only your own uploaded data.
           </p>
         </div>
 

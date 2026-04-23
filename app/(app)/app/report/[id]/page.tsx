@@ -43,6 +43,7 @@ import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/
 import { formatReportArtifactContractErrors, patchSparseArtifact, validateReportArtifactContract } from "@/src/lib/report/artifact-contract";
 import { buildReportFraming, formatIncludedSourceCountLabel } from "@/src/lib/report/source-labeling";
 import { buildReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
+import { buildRevenueExplanation } from "@/src/lib/report/premium-narrative";
 import { ReportAudienceGrowthSection } from "./_components/ReportAudienceGrowthSection";
 import { ReportDiagnosisCallout } from "./_components/ReportDiagnosisCallout";
 import { ReportExecutiveNarrative } from "./_components/ReportExecutiveNarrative";
@@ -140,55 +141,6 @@ function PdfExportLoadingState() {
       <p className="text-xs text-brand-text-secondary">Checking plan access for full PDF export...</p>
     </div>
   );
-}
-
-function buildRevenueExplanation({
-  movementLabel,
-  narrative,
-  snapshotCoverageNote,
-}: {
-  movementLabel: string | null;
-  narrative: string | null;
-  snapshotCoverageNote: string | null;
-}) {
-  const normalizedMovement = movementLabel?.toLowerCase() ?? "";
-  const normalizedNarrative = narrative?.toLowerCase() ?? "";
-  const movementSentence =
-    movementLabel && normalizedMovement.includes("down")
-      ? `Revenue is ${movementLabel.replace(/vs start/i, "from the start of this period").toLowerCase()}.`
-      : movementLabel && normalizedMovement.includes("up")
-        ? `Revenue is ${movementLabel.replace(/vs start/i, "from the start of this period").toLowerCase()}.`
-        : movementLabel && normalizedMovement.includes("flat")
-          ? "Revenue held mostly steady across this report window."
-          : null;
-
-  const whatHappened = narrative
-    ? normalizedNarrative.includes("directional guidance")
-      ? movementSentence ?? "Revenue trend data is limited in this report."
-      : narrative
-    : movementSentence ?? "Revenue trend data is limited in this report.";
-
-  const whyItMatters = snapshotCoverageNote
-    ? "The latest period only reflects part of your source mix, so read the newest swing as directional instead of assuming the whole business changed equally."
-    : normalizedMovement.includes("down")
-      ? "When revenue starts slipping, the business usually needs a clearer retention, offer, or growth focus before income gets less predictable."
-      : normalizedMovement.includes("up")
-        ? "An improving trend is a good sign, but it is strongest when that growth comes from more than one repeatable source."
-        : "A flat trend can feel calm, but it often means the next growth lever has not fully clicked yet.";
-
-  const whatToWatch = snapshotCoverageNote
-    ? "Watch the next full period before treating this as a business-wide drop, then act on the clearest pattern that holds."
-    : normalizedMovement.includes("down")
-      ? "Watch whether your next period stabilizes or keeps sliding, then prioritize the action that most directly supports revenue."
-      : normalizedMovement.includes("up")
-        ? "Keep an eye on whether the improvement holds long enough to become a pattern instead of a one-period spike."
-        : "Use the next period to confirm whether this steadiness is healthy consistency or early slowing momentum.";
-
-  return {
-    whatHappened,
-    whyItMatters,
-    whatToWatch,
-  };
 }
 
 export default function ReportPage() {
@@ -785,7 +737,7 @@ export default function ReportPage() {
 
               {wowSummary ? (
                 <section className="space-y-3" data-testid="report-what-to-do-next">
-                  <DashboardSectionHeader title="What to do next" description="Start with the clearest move, then use the second action to reinforce it." />
+                  <DashboardSectionHeader title="What to do next" description="Start with the move most connected to the diagnosis, then use the second action to reinforce it." />
                   <div className="grid gap-3 md:grid-cols-2">
                     {wowSummary.nextActions.length > 0 ? (
                       wowSummary.nextActions.map((action, index) => (
@@ -820,9 +772,8 @@ export default function ReportPage() {
                           Limited action signal
                         </p>
                         <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                          This snapshot has enough signal for a business diagnosis but not enough history for specific ranked actions.
-                          Use the biggest opportunity above and the audience signals below to pick your clearest next move,
-                          then rerun once another month of data is present.
+                          This report has enough signal for a business read, but not enough history to rank precise actions.
+                          Use the biggest opportunity above as the first move, then rerun once another month of data is present.
                         </p>
                       </PanelCard>
                     )}

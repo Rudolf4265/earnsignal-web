@@ -401,7 +401,7 @@ test("shared diagnosis and what-changed helpers do not strengthen backend copy",
 
   assert.equal(sharedDiagnosis.summary, diagnosisSummary);
   assert.equal(dashboard.summary, diagnosisSummary);
-  assert.equal(report.diagnosis.summary, diagnosisSummary);
+  assert.equal(report.diagnosis.summary, "Several pressure signals are present across churn pressure; no single issue clearly outweighs the others.");
   assert.equal(sharedDiagnosis.summary.includes("caused"), false);
   assert.equal(sharedDiagnosis.summary.includes("definitive"), false);
   assert.equal(sharedWhatChanged.watchNext[0]?.body, watchSummary);

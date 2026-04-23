@@ -34,6 +34,7 @@ import type {
   ReportSignalViewModel,
   ReportViewModel,
 } from "./normalize-artifact-to-report-model";
+import { polishReportSentence, shouldSuppressRawReportText } from "./premium-narrative";
 
 export type { ReportDetailPresentationNotice };
 
@@ -230,7 +231,7 @@ function containsBannedPhrase(text: string): boolean {
 }
 
 function filterBannedPhrases(values: string[]): string[] {
-  return values.filter((value) => !containsBannedPhrase(value));
+  return values.filter((value) => !containsBannedPhrase(value) && !shouldSuppressRawReportText(value));
 }
 
 function dedupeText(values: string[]): string[] {
@@ -248,7 +249,7 @@ function dedupeText(values: string[]): string[] {
     }
 
     seen.add(dedupeKey);
-    result.push(trimmed);
+    result.push(polishReportSentence(trimmed) ?? trimmed);
   }
 
   return result;
@@ -473,13 +474,6 @@ function findFirstLineByKeywords(lines: string[], keywords: string[]): string | 
   return null;
 }
 
-function formatSignedPercent(value: number): string {
-  const percent = value <= 1 && value >= -1 ? value * 100 : value;
-  const rounded = Math.round(percent * 10) / 10;
-  const normalized = Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1);
-  return `${rounded > 0 ? "+" : ""}${normalized}%`;
-}
-
 function buildDiagnosisPrimitives(
   diagnosis: ReportViewModel["diagnosis"],
 ): Array<{ label: string; value: string }> {
@@ -541,26 +535,31 @@ function buildReportTruthSummary(model: ReportViewModel | null): ReportDetailPre
     return null;
   }
 
-  if (model.metricSnapshot?.churnRiskAvailability === "unavailable") {
-    const churnTruth = createEmptyTruthMetadata({
-      availability: "unavailable",
-      confidence: model.metricSnapshot.churnRiskConfidence ?? null,
-      confidenceAdjusted: true,
-      reasonCodes: model.metricSnapshot.churnRiskReasonCodes,
-      insufficientReason: model.metricSnapshot.churnRiskReasonCodes[0] ?? "missing_subscriber_evidence",
-      analysisMode: model.metricSnapshot.analysisMode ?? model.analysisMode,
-      dataQualityLevel: model.metricSnapshot.dataQualityLevel ?? model.dataQualityLevel,
-    });
-    return buildNotice(churnTruth, {
-      fallbackLabel: "Unavailable",
-      fallbackBody: "Subscriber-driven churn signals are unavailable for this report.",
-    });
+  const thinBusinessRead =
+    model.analysisMode === "reduced" ||
+    model.dataQualityLevel === "limited" ||
+    model.dataQualityLevel === "sparse" ||
+    model.kpis.netRevenue === null;
+
+  if (model.metricSnapshot?.churnRiskAvailability === "unavailable" && thinBusinessRead) {
+    return {
+      label: "Subscriber visibility limited",
+      body: "Revenue and platform signals are still usable, but churn-specific conclusions need more subscriber history.",
+      tone: "warn",
+    };
   }
 
   const stabilityNotice = buildNotice(model.stability, {
     fallbackBody: "Medium confidence due to limited evidence in the latest report.",
   });
-  if (stabilityNotice) {
+  if (stabilityNotice && thinBusinessRead) {
+    if (stabilityNotice.label.toLowerCase() === "unavailable") {
+      return {
+        label: "Evidence note",
+        body: "Some stability inputs are unavailable, so treat the health score as directional alongside the revenue and platform read.",
+        tone: "warn",
+      };
+    }
     return stabilityNotice;
   }
 
@@ -573,6 +572,40 @@ function buildReportTruthSummary(model: ReportViewModel | null): ReportDetailPre
   }
 
   return null;
+}
+
+function buildSubscriberHighlights(input: {
+  lines: string[];
+  metricSnapshot: ReportViewModel["metricSnapshot"];
+  metricProvenance: Record<string, ReportMetricProvenanceEntry>;
+}): string[] {
+  const highlights: string[] = [];
+
+  if (input.metricSnapshot?.churnRiskAvailability === "unavailable") {
+    highlights.push("Churn-specific conclusions are limited until subscriber history is more complete.");
+  } else if (input.metricSnapshot?.churnRiskAvailability === "limited") {
+    highlights.push("Churn pressure is directional; use it as a watch item, not a final verdict.");
+  }
+
+  const activeSubscribers = input.metricProvenance.active_subscribers;
+  if (activeSubscribers?.availability === "limited" || activeSubscribers?.confidence === "low") {
+    highlights.push("Subscriber totals are usable, but the confidence note means retention interpretation should stay conservative.");
+  }
+
+  const cleanedLines = dedupeText(
+    input.lines
+      .filter((line) => !shouldSuppressRawReportText(line))
+      .filter((line) => !/unavailable for this report|confidence is|limited evidence/i.test(line)),
+  );
+
+  for (const line of cleanedLines) {
+    if (highlights.length >= 3) {
+      break;
+    }
+    highlights.push(line);
+  }
+
+  return dedupeText(highlights).slice(0, 3);
 }
 
 function buildSubscriberMetrics(input: {
@@ -595,11 +628,11 @@ function buildSubscriberMetrics(input: {
     );
   }
 
-  if (input.metricSnapshot?.churnRisk != null) {
+  if (input.metricSnapshot?.churnRisk != null && input.metricSnapshot.churnRiskAvailability !== "unavailable") {
     const churnTruth = createEmptyTruthMetadata({
       availability: input.metricSnapshot.churnRiskAvailability,
       confidence: input.metricSnapshot.churnRiskConfidence,
-      confidenceAdjusted: input.metricSnapshot.churnRiskAvailability === "limited" || input.metricSnapshot.churnRiskAvailability === "unavailable",
+      confidenceAdjusted: input.metricSnapshot.churnRiskAvailability === "limited",
       insufficientReason: input.metricSnapshot.churnRiskReasonCodes[0] ?? null,
       reasonCodes: input.metricSnapshot.churnRiskReasonCodes,
       analysisMode: input.metricSnapshot.analysisMode,
@@ -673,7 +706,7 @@ function buildSubscriberMetrics(input: {
 
 function buildTypedRecommendations(recommendations: ReportRecommendationViewModel[], fallback: string[]): ReportDetailPresentationRecommendation[] {
   if (recommendations.length > 0) {
-    return recommendations.slice(0, 6).map((recommendation, index) => {
+    return recommendations.filter((recommendation) => !shouldSuppressRawReportText(recommendation.title)).slice(0, 6).map((recommendation, index) => {
       const label =
         recommendation.recommendationMode === "validate"
           ? "Validate first"
@@ -687,14 +720,16 @@ function buildTypedRecommendations(recommendations: ReportRecommendationViewMode
             ? getTruthStateLabel(recommendation)
             : null;
 
+      const truthDescription = recommendation.recommendationMode === "action" ? null : polishReportSentence(getTruthStateDescription(recommendation));
+
       return {
         id: recommendation.id || `recommendation-${index + 1}`,
         label,
-        body: recommendation.title,
+        body: polishReportSentence(recommendation.title) ?? recommendation.title,
         detail:
-          getTruthStateDescription(recommendation) ??
-          recommendation.description ??
-          recommendation.steps[0] ??
+          polishReportSentence(recommendation.description) ??
+          polishReportSentence(recommendation.steps[0]) ??
+          truthDescription ??
           null,
         stateLabel,
         stateTone: stateLabel ? getTruthStateTone(recommendation) : null,
@@ -717,14 +752,19 @@ function buildTypedRecommendations(recommendations: ReportRecommendationViewMode
 function buildFallbackOutlook(lines: string[]): { cards: ReportDetailOutlookCard[]; highlights: string[] } {
   const cards: ReportDetailOutlookCard[] = [];
   const usedLineIndexes = new Set<number>();
+  const usableLines = dedupeText(
+    lines
+      .filter((line) => !shouldSuppressRawReportText(line))
+      .filter((line) => !/use the latest trend as directional guidance/i.test(line)),
+  );
 
   const withMatch = (keywords: string[]): { line: string; index: number } | null => {
-    for (let index = 0; index < lines.length; index += 1) {
+    for (let index = 0; index < usableLines.length; index += 1) {
       if (usedLineIndexes.has(index)) {
         continue;
       }
 
-      const line = lines[index];
+      const line = usableLines[index];
       const normalized = line.toLowerCase();
       if (keywords.some((keyword) => normalized.includes(keyword))) {
         usedLineIndexes.add(index);
@@ -750,11 +790,11 @@ function buildFallbackOutlook(lines: string[]): { cards: ReportDetailOutlookCard
     cards.push({ id: "downside", title: "Downside", body: downside.line, stateLabel: null, stateTone: null });
   }
 
-  if (cards.length === 0 && lines[0]) {
+  if (cards.length === 0 && usableLines[0]) {
     cards.push({
       id: "outlook",
       title: "Outlook",
-      body: lines[0],
+      body: usableLines[0],
       stateLabel: null,
       stateTone: null,
     });
@@ -763,20 +803,39 @@ function buildFallbackOutlook(lines: string[]): { cards: ReportDetailOutlookCard
 
   return {
     cards,
-    highlights: lines.filter((_, index) => !usedLineIndexes.has(index)).slice(0, 3),
+    highlights: usableLines.filter((_, index) => !usedLineIndexes.has(index)).slice(0, 3),
   };
+}
+
+function polishOutlookBody(item: NonNullable<ReportViewModel["outlook"]>["items"][number]): string {
+  if (item.availability === "unavailable" && /churn|subscriber/i.test(`${item.title} ${item.body}`)) {
+    return "Churn outlook needs more subscriber history before it should drive decisions.";
+  }
+
+  if (/use the latest trend as directional guidance/i.test(item.body)) {
+    return "Use the next full cycle to confirm whether the current trend is becoming durable.";
+  }
+
+  return polishReportSentence(item.body) ?? item.body;
 }
 
 function buildTypedOutlook(outlook: ReportViewModel["outlook"], fallbackLines: string[]) {
   if (outlook?.items.length) {
-    const cards = outlook.items.map((item) => ({
+    const cards = outlook.items
+      .filter((item) => !shouldSuppressRawReportText(item.body))
+      .map((item) => ({
       id: item.id as ReportDetailOutlookCard["id"],
       title: item.title,
-      body: item.body,
+      body: polishOutlookBody(item),
       stateLabel: getTruthStateLabel(item),
       stateTone: getTruthStateLabel(item) ? getTruthStateTone(item) : null,
     }));
-    const highlights = dedupeText(outlook.summary.filter((line) => !cards.some((card) => card.body === line))).slice(0, 3);
+    const highlights = dedupeText(
+      outlook.summary.filter((line) => {
+        const polished = polishReportSentence(line) ?? line;
+        return !shouldSuppressRawReportText(line) && !cards.some((card) => card.body === polished || card.body === line);
+      }),
+    ).slice(0, 3);
     const notice = buildNotice(outlook.items.find((item) => getTruthStateLabel(item)) ?? null, {
       fallbackBody: "Outlook scenarios are confidence-adjusted in this report.",
     });
@@ -907,7 +966,7 @@ function buildDiagnosisSection(
 
   return {
     diagnosisTypeLabel: presentation.diagnosisTypeLabel,
-    summary: presentation.summary,
+    summary: polishReportSentence(presentation.summary) ?? presentation.summary,
     notice: presentation.notice,
     supportingMetrics: presentation.supportingMetrics,
     primitives: buildDiagnosisPrimitives(diagnosis),
@@ -993,6 +1052,11 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
     metricProvenance: input.artifactModel?.metricProvenance ?? {},
     metricSnapshot: input.artifactModel?.metricSnapshot ?? null,
     lines: subscriberLines,
+  });
+  const subscriberHighlights = buildSubscriberHighlights({
+    lines: subscriberLines,
+    metricProvenance: input.artifactModel?.metricProvenance ?? {},
+    metricSnapshot: input.artifactModel?.metricSnapshot ?? null,
   });
 
   const concentrationRisk = input.artifactModel?.metricProvenance?.concentration_risk ?? null;
@@ -1137,7 +1201,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
           source: input.artifactModel?.metricProvenance?.churn_rate?.source ?? input.artifactModel?.metricSnapshot?.churnRateSource ?? null,
         }),
       metrics: subscriberMetrics,
-      highlights: subscriberLines.slice(0, 3),
+      highlights: subscriberHighlights,
     },
     platformMix,
     recommendations,

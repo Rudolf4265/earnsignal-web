@@ -207,7 +207,7 @@ test("next actions reduce to a focused primary and secondary card", async () => 
 
   assert.equal(result.nextActions.length, 2);
   assert.equal(result.nextActions[0].title.includes("YouTube"), true);
-  assert.equal(result.nextActions[1].title.includes("Substack"), true);
+  assert.equal(result.nextActions[1].title, "Re-engage the buyers already showing intent");
   assert.equal(result.nextActions.every((action) => action.timeframe !== null), true);
 });
 
@@ -232,7 +232,7 @@ test("coverage metadata and kpi context flow through to the wow summary model", 
 
   assert.equal(result.coverage.snapshotCoverageNote, "Based on Patreon Jan-Mar and Instagram Feb-Mar snapshots.");
   assert.equal(result.coverage.reportHasBusinessMetrics, false);
-  assert.equal(result.kpiContext?.toLowerCase().includes("latest business read"), true);
+  assert.equal(result.kpiContext?.toLowerCase().includes("partial business view"), true);
 });
 
 test("summary sentence prefers substantive executive summary copy", async () => {
@@ -254,4 +254,147 @@ test("summary sentence still returns a fallback line when generic summary text i
 
   assert.equal(typeof result.summarySentence, "string");
   assert.equal(result.summarySentence.length > 0, true);
+});
+
+test("healthy multi-source reports lead with a business opportunity instead of metadata work", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const presentation = makePresentation({
+    heroMetrics: [
+      { id: "net_revenue", label: "Net Revenue", value: "$8,344", detail: null, stateLabel: null, stateTone: null },
+      { id: "creator_health", label: "Creator Health", value: "78/100", detail: null, stateLabel: null, stateTone: null },
+      { id: "platform_risk", label: "Platform Risk", value: "62%", detail: null, stateLabel: null, stateTone: null },
+    ],
+    platformMix: {
+      notice: null,
+      concentrationScore: 62,
+      platformsConnected: 3,
+      highlights: ["Patreon contributes 62% of revenue while Substack is a meaningful second paid source."],
+    },
+    recommendations: [
+      {
+        id: "r_data",
+        label: "Validate first",
+        body: "Confirm the missing source data before making a big strategy shift.",
+        detail: "Verify source coverage.",
+        stateLabel: "Limited data",
+        stateTone: "warn",
+      },
+    ],
+  });
+  const artifactModel = makeArtifactModel({
+    analysisMode: "full",
+    dataQualityLevel: "good",
+    diagnosis: {
+      diagnosisType: "mixed_pressure",
+      summaryText: "No single issue clearly outweighs the others.",
+      supportingMetrics: [],
+      primitives: {
+        revenueTrendDirection: "up",
+        activeSubscribersDirection: "up",
+        churnPressureLevel: "low",
+        concentrationPressureLevel: "medium",
+        monetizationEfficiencyLevel: "low",
+        stabilityDirection: "up",
+      },
+    },
+  });
+
+  const result = buildReportWowSummaryViewModel(presentation, artifactModel);
+  const opportunityCopy = `${result.opportunity.finding} ${result.opportunity.action}`.toLowerCase();
+
+  assert.equal(opportunityCopy.includes("missing source"), false);
+  assert.equal(opportunityCopy.includes("source coverage"), false);
+  assert.equal(result.opportunity.finding.includes("second revenue pillar"), true);
+  assert.equal(result.summarySentence?.includes("Patreon still leads"), true);
+});
+
+test("thin reports may keep validation as the primary opportunity", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const presentation = makePresentation({
+    revenueTrend: { points: [{ label: "Mar 2026", value: 7300 }], narrative: null },
+    platformMix: {
+      notice: null,
+      concentrationScore: null,
+      platformsConnected: 1,
+      highlights: ["Current income read is mainly represented by Patreon."],
+    },
+    recommendations: [
+      {
+        id: "r_validate",
+        label: "Validate first",
+        body: "Confirm the missing source data before changing strategy.",
+        detail: "Verify the source coverage before acting.",
+        stateLabel: "Limited data",
+        stateTone: "warn",
+      },
+    ],
+  });
+  const artifactModel = makeArtifactModel({
+    analysisMode: "reduced",
+    dataQualityLevel: "limited",
+    diagnosis: {
+      diagnosisType: "concentration_pressure",
+      summaryText: "This period is only partially represented.",
+      supportingMetrics: [],
+      primitives: {
+        revenueTrendDirection: "down",
+        activeSubscribersDirection: "flat",
+        churnPressureLevel: "medium",
+        concentrationPressureLevel: "high",
+        monetizationEfficiencyLevel: "medium",
+        stabilityDirection: "flat",
+      },
+    },
+  });
+
+  const result = buildReportWowSummaryViewModel(presentation, artifactModel);
+
+  assert.equal(result.opportunity.finding.includes("Confirm the missing source"), true);
+  assert.equal(result.nextActions[0]?.title, "Confirm the missing source before changing strategy");
+});
+
+test("high-pressure actions are rewritten into decisive premium action titles", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const presentation = makePresentation({
+    platformMix: { notice: null, concentrationScore: 82, platformsConnected: 2, highlights: ["82% of revenue comes from Patreon."] },
+    recommendations: [
+      {
+        id: "r_owned",
+        label: "Recommended action",
+        body: "Build a simple email or member path from your highest-performing platform within the next 2 weeks.",
+        detail: null,
+        stateLabel: null,
+        stateTone: null,
+      },
+      {
+        id: "r_posts",
+        label: "Recommended action",
+        body: "Use your next three posts to move part of your audience into an owned channel.",
+        detail: null,
+        stateLabel: null,
+        stateTone: null,
+      },
+    ],
+  });
+  const artifactModel = makeArtifactModel({
+    diagnosis: {
+      diagnosisType: "concentration_pressure",
+      summaryText: "Revenue concentration is the clearest business risk right now.",
+      supportingMetrics: [],
+      primitives: {
+        revenueTrendDirection: "down",
+        activeSubscribersDirection: "flat",
+        churnPressureLevel: "medium",
+        concentrationPressureLevel: "high",
+        monetizationEfficiencyLevel: "medium",
+        stabilityDirection: "down",
+      },
+    },
+  });
+
+  const result = buildReportWowSummaryViewModel(presentation, artifactModel);
+
+  assert.equal(result.nextActions[0]?.title, "Build an owned path from the strongest platform");
+  assert.equal(result.nextActions[0]?.detail?.includes("less platform-bound"), true);
+  assert.equal(result.opportunity.finding, "Build an owned path from the strongest platform.");
 });

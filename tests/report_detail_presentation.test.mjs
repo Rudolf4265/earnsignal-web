@@ -454,13 +454,17 @@ test("buildReportDetailPresentationModel surfaces typed limited and unavailable 
     },
   });
 
-  assert.equal(model.heroNotice?.label, "Unavailable");
+  assert.equal(model.heroNotice?.label, "Subscriber visibility limited");
+  assert.equal(model.heroNotice?.body.includes("Revenue and platform signals are still usable"), true);
   assert.equal(model.heroMetrics.find((metric) => metric.id === "creator_health")?.stateLabel, "Medium confidence");
   assert.equal(model.subscriberHealth.notice?.label, "Unavailable");
+  assert.equal(model.subscriberHealth.metrics.some((metric) => metric.id === "churn_risk"), false);
+  assert.equal(model.subscriberHealth.highlights[0], "Churn-specific conclusions are limited until subscriber history is more complete.");
   assert.equal(model.subscriberHealth.metrics.find((metric) => metric.id === "subscribers")?.stateLabel, "Limited data");
   assert.equal(model.recommendations[0]?.label, "Validate first");
   assert.equal(model.revenueOutlook.notice?.label, "Unavailable");
   assert.equal(model.revenueOutlook.cards[0]?.stateLabel, "Unavailable");
+  assert.equal(model.revenueOutlook.cards[0]?.body, "Churn outlook needs more subscriber history before it should drive decisions.");
 });
 
 test("buildReportDetailPresentationModel surfaces typed diagnosis and what-changed sections explicitly", async () => {
@@ -618,7 +622,7 @@ test("buildReportDetailPresentationModel surfaces typed diagnosis and what-chang
   });
 
   assert.equal(model.diagnosis.diagnosisTypeLabel, "Churn pressure");
-  assert.equal(model.diagnosis.summary, "Current profile looks more churn-limited based on elevated churn pressure.");
+  assert.equal(model.diagnosis.summary, "More churn-limited based on elevated churn pressure.");
   assert.equal(model.diagnosis.notice?.label, "Medium confidence");
   assert.equal(model.diagnosis.supportingMetrics[0]?.label, "Churn Rate");
   assert.equal(model.diagnosis.primitives.some((entry) => entry.label === "Churn pressure" && entry.value === "High"), true);
@@ -697,7 +701,7 @@ test("buildReportDetailPresentationModel keeps mixed diagnosis and comparison-un
   });
 
   assert.equal(model.diagnosis.diagnosisTypeLabel, "Mixed pressure");
-  assert.equal(model.diagnosis.summary.includes("mixed pressure"), true);
+  assert.equal(model.diagnosis.summary.includes("Several pressure signals"), true);
   assert.equal(model.diagnosis.notice?.label, "Medium confidence");
   assert.equal(model.whatChanged.comparisonAvailable, false);
   assert.equal(model.whatChanged.unavailableBody, "Unavailable for this report because prior report unavailable.");
@@ -792,9 +796,163 @@ test("buildReportDetailPresentationModel keeps low-confidence diagnosis and comp
     artifactSignals: null,
   });
 
-  assert.equal(model.diagnosis.summary, diagnosisSummary);
+  assert.equal(model.diagnosis.summary, "Several pressure signals are present across churn pressure; no single issue clearly outweighs the others.");
   assert.equal(model.diagnosis.summary.includes("caused"), false);
   assert.equal(model.whatChanged.watchNext[0]?.body, watchSummary);
   assert.equal(model.whatChanged.watchNext[0]?.body.includes("definitely"), false);
   assert.equal(model.whatChanged.notice?.label, "Medium confidence");
+});
+
+test("full business reports keep churn limitations out of the opening hero notice", async () => {
+  const { buildReportDetailPresentationModel } = await loadModule(Date.now() + 8);
+
+  const model = buildReportDetailPresentationModel({
+    report: makeReport({
+      id: "rep_full_churn_limited",
+      sourceCount: 3,
+      platformsIncluded: ["Patreon", "Substack", "YouTube"],
+      metrics: {
+        netRevenue: 8344,
+        subscribers: 760,
+        stabilityIndex: 78,
+        churnVelocity: null,
+        coverageMonths: 6,
+        platformsConnected: 3,
+      },
+    }),
+    artifactModel: {
+      reportId: "rep_full_churn_limited",
+      schemaVersion: "v1",
+      createdAt: "2026-04-01T10:00:00Z",
+      analysisMode: "full",
+      dataQualityLevel: "good",
+      executiveSummaryParagraphs: ["Revenue is supported by multiple paid sources, while retention conclusions should stay conservative."],
+      kpis: {
+        netRevenue: 8344,
+        subscribers: 760,
+        stabilityIndex: 78,
+        churnVelocity: null,
+      },
+      sections: [],
+      metricSnapshot: {
+        churnRisk: 50,
+        churnRiskRawScore: null,
+        churnRiskConfidence: "low",
+        churnRiskAvailability: "unavailable",
+        churnRiskReasonCodes: ["native_member_export_snapshot_history"],
+        activeSubscribersSource: "observed",
+        churnRateSource: "derived",
+        arpuSource: "observed",
+        stabilityConfidence: 0.82,
+        analysisMode: "full",
+        dataQualityLevel: "good",
+      },
+      metricProvenance: {
+        net_revenue: {
+          value: 8344,
+          source: "combined",
+          confidence: "high",
+          confidenceAdjusted: false,
+          availability: "available",
+          evidenceStrength: "strong",
+          insufficientReason: null,
+          reasonCodes: [],
+          dataQualityLevel: "good",
+          analysisMode: "full",
+          recommendationMode: null,
+          confidenceScore: null,
+        },
+      },
+      signals: [],
+      recommendations: [],
+      outlook: null,
+      stability: null,
+      diagnosis: null,
+      whatChanged: null,
+    },
+    artifactSignals: null,
+  });
+
+  assert.equal(model.heroNotice, null);
+  assert.equal(model.subscriberHealth.notice?.label, "Unavailable");
+  assert.equal(model.heroMetrics.find((metric) => metric.id === "net_revenue")?.value, "$8,344");
+});
+
+test("buildReportDetailPresentationModel cleans raw subscriber and outlook support lines", async () => {
+  const { buildReportDetailPresentationModel } = await loadModule(Date.now() + 9);
+
+  const model = buildReportDetailPresentationModel({
+    report: makeReport({
+      id: "rep_polish_lines",
+      metrics: {
+        netRevenue: 12600,
+        subscribers: 820,
+        stabilityIndex: 72,
+        churnVelocity: null,
+        coverageMonths: 6,
+        platformsConnected: 2,
+      },
+    }),
+    artifactModel: {
+      reportId: "rep_polish_lines",
+      schemaVersion: "v1",
+      createdAt: "2026-04-01T10:00:00Z",
+      executiveSummaryParagraphs: ["Revenue is steady enough to focus on retention quality."],
+      kpis: {
+        netRevenue: 12600,
+        subscribers: 820,
+        stabilityIndex: 72,
+        churnVelocity: null,
+      },
+      sections: [
+        {
+          title: "Subscribers Retention",
+          paragraphs: [],
+          bullets: [
+            "2026-04: churn month line repeated from source export.",
+            "Retention held steady enough to keep subscriber interpretation useful.",
+          ],
+        },
+        {
+          title: "Outlook",
+          paragraphs: [],
+          bullets: [
+            "Revenue Projection Base: current period, base projection, repeated base projection.",
+            "Base case: revenue holds near the current range while retention evidence matures.",
+            "Base case: revenue holds near the current range while retention evidence matures.",
+          ],
+        },
+      ],
+      metricSnapshot: {
+        churnRisk: 50,
+        churnRiskRawScore: null,
+        churnRiskConfidence: "low",
+        churnRiskAvailability: "unavailable",
+        churnRiskReasonCodes: ["native_member_export_snapshot_history"],
+        activeSubscribersSource: "observed",
+        churnRateSource: "derived",
+        arpuSource: "observed",
+        stabilityConfidence: 0.78,
+        analysisMode: "full",
+        dataQualityLevel: "good",
+      },
+      metricProvenance: {},
+      signals: [],
+      recommendations: [],
+      outlook: null,
+      stability: null,
+      diagnosis: null,
+      whatChanged: null,
+    },
+    artifactSignals: null,
+  });
+
+  assert.equal(model.heroNotice, null);
+  assert.equal(model.subscriberHealth.metrics.some((metric) => metric.id === "churn_risk"), false);
+  assert.equal(model.subscriberHealth.highlights.some((line) => line.includes("2026-04")), false);
+  assert.equal(model.subscriberHealth.highlights[0], "Churn-specific conclusions are limited until subscriber history is more complete.");
+  assert.equal(model.subscriberHealth.highlights[1], "Retention held steady enough to keep subscriber interpretation useful.");
+  assert.equal(model.revenueOutlook.cards.length, 1);
+  assert.equal(model.revenueOutlook.cards[0]?.body, "Base case: revenue holds near the current range while retention evidence matures.");
+  assert.equal(model.revenueOutlook.highlights.length, 0);
 });

@@ -48,11 +48,15 @@ test("marketing page leads with present-state product truth", async () => {
   ]);
 
   assert.equal(pageSource.includes("Patreon, Substack, YouTube, Instagram, and TikTok"), true);
-  assert.equal(pageSource.includes("clear, private business diagnosis"), true);
+  assert.equal(pageSource.includes("private business diagnosis with clear next steps"), true);
   assert.equal(pageSource.includes("No spreadsheet stitching"), true);
-  assert.equal(pageSource.includes("Stop guessing what&apos;s driving your income."), true);
+  assert.equal(pageSource.includes("Diagnosis, not another dashboard."), true);
+  assert.equal(pageSource.includes("Confirm your data before payment"), true);
+  assert.equal(pageSource.includes("Only your own exports are used"), true);
   assert.equal(pageSource.includes("formatPricingPlanPrice(reportPlan)"), true);
   assert.equal(pageSource.includes("Launch pricing"), true);
+  assert.equal(sectionsSource.includes("EXAMPLE DIAGNOSTICS"), true);
+  assert.equal(sectionsSource.includes("Anonymized sample findings that mirror the current report categories."), true);
   assert.equal(sectionsSource.includes("Built around the platforms your business runs on"), true);
   assert.equal(sectionsSource.includes("No new tools. No new workflows. Just your existing data."), true);
   assert.equal(sectionsSource.includes("Support is currently limited to specific export formats by platform."), true);
@@ -74,14 +78,14 @@ test("billing page explains workspace-based reports and ownership versus Pro val
   assert.equal(source.includes("Owned access and downloadable PDF"), true);
   assert.equal(
     source.includes(
-      "Everything in Report, plus ongoing access to track how your business changes",
+      "Everything in Report, plus ongoing visibility as your business evolves",
     ),
     true,
   );
   assert.equal(source.includes("Full-history analysis across eligible uploads"), true);
-  assert.equal(source.includes("Report gives you ownership. Pro gives you continuity."), true);
+  assert.equal(source.includes("Owned purchased reports"), true);
   assert.equal(source.includes("Ongoing dashboard monitoring"), true);
-  assert.equal(source.includes("Track how your business evolves over time"), true);
+  assert.equal(source.includes("continuous monitoring"), true);
   assert.equal(source.includes("Included at a glance"), true);
   assert.equal(source.includes("Full report"), true);
   assert.equal(source.includes("Ongoing monitoring"), true);

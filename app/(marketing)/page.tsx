@@ -6,7 +6,12 @@ import { BRAND } from "@earnsigma/brand";
 import { formatPricingPlanPrice, getPricingPlan, marketingCtas, publicUrls } from "@earnsigma/config";
 import { Badge, Card, Container, Section, buttonClassName, cn } from "@earnsigma/ui";
 import { MarketingShell } from "./_components/marketing-shell";
-import { InsightGlyph, MarketingSupportedTodaySection, type InsightIconKey } from "./_components/marketing-sections";
+import {
+  InsightGlyph,
+  MarketingDataRevealsSection,
+  MarketingSupportedTodaySection,
+  type InsightIconKey,
+} from "./_components/marketing-sections";
 import { MARKETING_TRUST_MICROCOPY_BODY, TrustMicrocopy } from "@/src/components/ui/trust-microcopy";
 import { appBaseUrl } from "@/src/lib/urls";
 
@@ -23,9 +28,9 @@ type ReportSignal = {
 
 const reportSignals: ReportSignal[] = [
   {
-    label: "Income Stability",
+    label: "Income Stability Score",
     value: "74 / 100",
-    detail: "Healthy baseline with moderate volatility in weekly earnings.",
+    detail: "Recurring income is healthy, with distribution risk still worth watching.",
     meterWidth: "74%",
     meterColor: "var(--es-color-accent-emerald)",
     icon: "stability",
@@ -33,9 +38,9 @@ const reportSignals: ReportSignal[] = [
     tone: "positive",
   },
   {
-    label: "Platform Risk",
+    label: "Platform Concentration",
     value: "71% of revenue depends on Patreon",
-    detail: "Concentration above target leaves monthly revenue exposed.",
+    detail: "A strong primary channel is also the clearest exposure point.",
     meterWidth: "71%",
     meterColor: "var(--es-color-accent-blue)",
     icon: "platform",
@@ -43,9 +48,9 @@ const reportSignals: ReportSignal[] = [
     tone: "warning",
   },
   {
-    label: "Subscriber Loss Risk",
+    label: "Subscriber Churn",
     value: "42% of subscriber churn comes from your $8 tier",
-    detail: "Most cancellations happen in the first 21 days after join.",
+    detail: "The report flags where retention pressure is concentrated.",
     meterWidth: "42%",
     meterColor: "var(--es-color-accent-emerald)",
     icon: "churn",
@@ -57,9 +62,9 @@ const reportSignals: ReportSignal[] = [
 const reportSectionPillars = [
   "Executive Summary",
   "Biggest Opportunity",
-  "Platform Mix",
-  "Subscriber Momentum",
-  "Strengths & Risks",
+  "Income Stability Score",
+  "Platform Concentration",
+  "Projected Upside",
   "Next 3 Actions",
 ];
 
@@ -125,17 +130,17 @@ export default function MarketingHomePage() {
               </Badge>
 
               <h1 className="relative mt-7 max-w-[22ch] text-4xl font-semibold leading-[1.06] tracking-[-0.025em] text-white sm:mt-8 sm:text-5xl lg:max-w-[20ch] lg:text-[3.45rem] xl:text-[3.85rem]">
-                <span className="block">Know what&apos;s driving your income,</span>
-                <span className="block">what&apos;s hurting it — and what to do next.</span>
+                <span className="block">Know exactly what&apos;s driving your income</span>
+                <span className="block">and what&apos;s quietly hurting it.</span>
               </h1>
 
               <p className="mt-7 max-w-2xl text-base leading-7 text-brand-text-secondary sm:text-lg sm:leading-8">
-                Upload your creator data from{" "}
+                Upload real creator data from{" "}
                 <strong className="font-semibold text-white">Patreon, Substack, YouTube, Instagram, and TikTok</strong>.{" "}
-                EarnSigma turns it into a{" "}
-                <strong className="font-semibold text-white">clear, private business diagnosis</strong> — not just charts.
+                EarnSigma turns revenue, churn, growth, and platform mix into a{" "}
+                <strong className="font-semibold text-white">private business diagnosis with clear next steps</strong>.
               </p>
-              <p className="mt-5 text-sm font-medium text-white/90">Stop guessing what&apos;s driving your income.</p>
+              <p className="mt-5 text-sm font-medium text-white/90">Diagnosis, not another dashboard.</p>
 
               <div className="mt-11 flex flex-wrap items-center gap-3.5 sm:gap-4">
                 <a
@@ -146,7 +151,7 @@ export default function MarketingHomePage() {
                       "rounded-xl border-brand-accent-emerald/50 bg-[linear-gradient(120deg,rgba(29,78,216,0.98),rgba(47,217,197,0.9))] px-6 py-3 text-sm font-semibold text-white shadow-brand-glow hover:border-brand-accent-emerald/70 hover:brightness-110 sm:px-7 sm:py-3.5",
                   })}
                 >
-                  Generate My Private Report
+                  Get My Free Preview
                 </a>
                 <a
                   href={secondaryCtaHref}
@@ -160,11 +165,24 @@ export default function MarketingHomePage() {
                 </a>
               </div>
 
+              <div className="mt-5 grid max-w-2xl gap-2.5 sm:grid-cols-3">
+                {[
+                  ["Free validation", "Confirm your data before payment"],
+                  ["Private uploads", "Your data stays private"],
+                  ["No public estimates", "Only your own exports are used"],
+                ].map(([label, body]) => (
+                  <div key={label} className="rounded-xl border border-brand-border/60 bg-brand-panel/40 px-3.5 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-brand-accent-teal">{label}</p>
+                    <p className="mt-1 text-xs leading-5 text-brand-text-secondary">{body}</p>
+                  </div>
+                ))}
+              </div>
+
               <p className="mt-5 text-[11px] font-medium uppercase tracking-[0.14em] text-brand-accent-teal/90">
-                Free validation • Launch pricing: {reportPlan.price} Report • {formatPricingPlanPrice(proPlan)}
+                Launch pricing: {reportPlan.price} Report - {formatPricingPlanPrice(proPlan)}
               </p>
               <p className="mt-2.5 text-[11px] tracking-[0.06em] text-brand-text-muted/60">
-                No spreadsheet stitching · No public estimates · Your data stays private
+                No spreadsheet stitching. No public estimates. Your data stays private.
               </p>
               <TrustMicrocopy
                 body={MARKETING_TRUST_MICROCOPY_BODY}
@@ -193,7 +211,7 @@ export default function MarketingHomePage() {
                   </div>
                   <h2 className="mt-3 text-xl font-semibold tracking-tight text-white sm:text-[1.35rem]">Business Diagnostics Snapshot</h2>
                   <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
-                    Generated from the past 90 days of creator earnings activity.
+                    An anonymized example of the diagnostic categories used in the sample report.
                   </p>
                 </div>
 
@@ -241,7 +259,7 @@ export default function MarketingHomePage() {
                       <div>
                         <p className="text-sm font-semibold text-white">Next best action</p>
                         <p className="mt-1 text-sm leading-relaxed text-brand-text-secondary">
-                          Adding a $15 tier could increase revenue by ~18%.
+                          Test a clearer mid-tier offer before buying more audience.
                         </p>
                       </div>
                     </div>
@@ -266,13 +284,15 @@ export default function MarketingHomePage() {
                 </div>
 
                 <div className="border-t border-brand-border/65 bg-brand-panel-muted/25 px-5 py-3.5 text-xs text-brand-text-muted sm:px-6">
-                  Initial analysis window: under 2 minutes
+                  Free validation first. Full report when you are ready.
                 </div>
               </Card>
             </div>
           </div>
         </Container>
       </Section>
+
+      <MarketingDataRevealsSection />
 
       {/* ── 2. SUPPORTED TODAY ──────────────────────────────────────────────── */}
       <MarketingSupportedTodaySection />
@@ -284,10 +304,13 @@ export default function MarketingHomePage() {
         />
         <Container>
           <div className="max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">THE DIFFERENCE</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">DIAGNOSIS, NOT DASHBOARD</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
-              Not another public stats dashboard
+              EarnSigma tells you what to do next
             </h2>
+            <p className="mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
+              Dashboards show what happened. EarnSigma turns the same business evidence into a diagnosis, a biggest opportunity, and next actions.
+            </p>
           </div>
 
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -341,11 +364,11 @@ export default function MarketingHomePage() {
                 </li>
                 <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
-                  Income risk, subscriber loss, and monetization health
+                  Income Stability Score, platform concentration, subscriber health, and projected upside
                 </li>
                 <li className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
                   <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-accent-teal" aria-hidden="true" />
-                  <span><strong className="font-semibold text-white">Next-action guidance</strong> — not just charts</span>
+                  <span><strong className="font-semibold text-white">Biggest Opportunity and Next 3 Actions</strong>, not just charts</span>
                 </li>
               </ul>
             </div>
@@ -423,14 +446,14 @@ export default function MarketingHomePage() {
               <div className="pointer-events-none absolute -left-10 -top-2 h-36 w-36 rounded-full bg-brand-accent-blue/12 blur-3xl" />
               <p className="relative text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">SAMPLE OUTPUT</p>
               <h2 className="relative mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
-                What a real EarnSigma report sounds like
+                What a sample EarnSigma report feels like
               </h2>
               <p className="relative mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
-                Not just charts. Clear business findings based on your data.
+                A resilient preview of the report structure: executive summary, key findings, projected upside, and next actions.
               </p>
 
               <div className="mt-6 rounded-2xl border border-brand-border/65 bg-[linear-gradient(165deg,rgba(16,31,61,0.74),rgba(10,22,46,0.82))] p-5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">Example Findings</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">Anonymized example findings</p>
                 <div className="mt-4 space-y-3 text-sm leading-relaxed text-brand-text-secondary sm:text-[0.95rem]">
                   <p>&ldquo;You&apos;re losing 42% of churn from your $8 tier.&rdquo;</p>
                   <p>&ldquo;Your top 5% of supporters drive 46% of revenue.&rdquo;</p>
@@ -461,17 +484,17 @@ export default function MarketingHomePage() {
                 <div className="rounded-xl border border-brand-border/70 bg-brand-panel/75 p-4 sm:p-5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
-                      Private Revenue Diagnostics Report
+                      Private Business Diagnostics Report
                     </p>
                     <span className="inline-flex rounded-full border border-brand-border-strong/60 bg-brand-panel px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-brand-text-secondary">
-                      PDF - 12 pages
+                      Sample report
                     </span>
                   </div>
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
                     <div className="space-y-3">
                       <div className="rounded-lg border border-brand-border/65 bg-brand-panel-muted/35 p-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Revenue Stability Trend</p>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Income Stability Score</p>
                         <div className="mt-3 grid h-16 grid-cols-10 items-end gap-1.5">
                           {[28, 33, 37, 46, 52, 58, 56, 64, 71, 74].map((height, index) => (
                             <span
@@ -486,7 +509,7 @@ export default function MarketingHomePage() {
                       </div>
 
                       <div className="rounded-lg border border-brand-border/65 bg-brand-panel-muted/35 p-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Tier Migration Flow</p>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Subscriber Health</p>
                         <div className="mt-3 space-y-2">
                           {[
                             { from: "$8", to: "$15", share: "18%" },
@@ -508,7 +531,7 @@ export default function MarketingHomePage() {
 
                     <div className="space-y-3">
                       <div className="rounded-lg border border-brand-border/65 bg-brand-panel-muted/35 p-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Churn &amp; Concentration Risk</p>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Key Findings</p>
                         <div className="mt-3 space-y-2">
                           {[
                             { label: "Platform concentration", width: "71%" },
@@ -529,7 +552,7 @@ export default function MarketingHomePage() {
                       </div>
 
                       <div className="rounded-lg border border-brand-border/65 bg-brand-panel-muted/35 p-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Platform Risk</p>
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-muted">Platform Concentration</p>
                         <div className="mt-3 flex items-center gap-3">
                           <div
                             className="h-16 w-16 rounded-full border border-brand-border-strong/65"
@@ -605,7 +628,7 @@ export default function MarketingHomePage() {
                     "rounded-xl border-brand-accent-emerald/50 bg-[linear-gradient(120deg,rgba(29,78,216,0.98),rgba(47,217,197,0.9))] px-6 py-3 text-sm font-semibold text-white shadow-brand-glow hover:border-brand-accent-emerald/70 hover:brightness-110 sm:px-7 sm:py-3.5",
                 })}
               >
-                Generate My Private Report
+                Get My Free Preview
               </a>
               <a
                 href={secondaryCtaHref}

@@ -43,7 +43,7 @@ export function ReportOutlookSection({ model }: Props) {
     <section className="space-y-3" data-testid="report-outlook-section">
       <div className="space-y-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Outlook</p>
-        <p className="text-xs text-brand-text-muted">Forward-looking risk and opportunity signals from this report.</p>
+        <p className="text-xs text-brand-text-muted">What the current pattern suggests watching next.</p>
       </div>
       {model.cards.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2">

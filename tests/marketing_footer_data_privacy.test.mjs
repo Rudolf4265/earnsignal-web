@@ -75,10 +75,9 @@ test("marketing home page includes the trust strip and data privacy link", async
   assert.equal(source.includes('testId="marketing-trust-strip"'), true);
   assert.equal(source.includes("MARKETING_TRUST_MICROCOPY_BODY"), true);
   assert.equal(trustSource.includes('TRUST_MICROCOPY_HEADING = "Your data stays private"'), true);
+  assert.equal(trustSource.includes("MARKETING_TRUST_MICROCOPY_BODY"), true);
   assert.equal(
-    trustSource.includes(
-      'MARKETING_TRUST_MICROCOPY_BODY =\n  "Used only to generate your reports and operate the service. Never sold. Never used to train public AI models."',
-    ),
+    trustSource.includes("Used only to generate your reports and operate the service. Never sold. Never used to train public AI models."),
     true,
   );
   assert.equal(trustSource.includes('TRUST_MICROCOPY_LINK_TEXT = "Learn how we handle your data"'), true);

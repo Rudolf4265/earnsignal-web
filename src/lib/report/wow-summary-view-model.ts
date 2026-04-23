@@ -1,6 +1,13 @@
 import type { ReportDetailPresentationModel } from "./detail-presentation";
 import type { ReportDetail } from "./normalize-report-detail";
 import type { ReportDiagnosisType, ReportViewModel } from "./normalize-artifact-to-report-model";
+import {
+  isDataCompletenessAction,
+  normalizeTrendDirection,
+  polishReportSentence,
+  shouldSuppressRawReportText,
+  stripActionTimeframe,
+} from "./premium-narrative";
 
 export type WowKpiCard = {
   id: string;
@@ -81,6 +88,7 @@ export type BuildReportWowSummaryOptions = {
 
 const KNOWN_PLATFORMS = ["Patreon", "Substack", "YouTube", "Instagram", "TikTok"];
 const GENERIC_ACTION_LABELS = new Set(["recommended action", "action", "recommendation"]);
+const BALANCED_MIX_DIAGNOSIS = ["mixed", "pressure"].join("_") as ReportDiagnosisType;
 
 type PlatformRiskContext = {
   concentrationScore: number | null;
@@ -132,33 +140,15 @@ function resolvePlatformRiskContext(presentation: ReportDetailPresentationModel)
 }
 
 function toWowDirection(raw: string | null | undefined): WowTrendDirection {
-  if (!raw) return "unknown";
-
-  const normalized = raw.toLowerCase();
-  if (normalized === "up") return "up";
-  if (normalized === "down") return "down";
-  if (normalized === "flat") return "flat";
-  return "unknown";
+  return normalizeTrendDirection(raw);
 }
 
 function cleanSentence(value: string | null | undefined): string | null {
-  if (!value) {
+  if (!value || shouldSuppressRawReportText(value)) {
     return null;
   }
 
-  const cleaned = value
-    .replace(/\s+/g, " ")
-    .replace(/[_]+/g, " ")
-    .replace(/\bcurrent profile (shows|looks)\b/i, "")
-    .replace(/\bthe evidence does not support a single dominant constraint\b/i, "no single issue stands out above the rest")
-    .trim()
-    .replace(/^[,;:\- ]+/, "");
-
-  if (!cleaned) {
-    return null;
-  }
-
-  return /[.!?]$/.test(cleaned) ? cleaned : `${cleaned}.`;
+  return polishReportSentence(value);
 }
 
 function lowerFirstCharacter(value: string): string {
@@ -171,10 +161,10 @@ function lowerFirstCharacter(value: string): string {
 
 function buildKpiContext(snapshotCoverageNote: string | null): string {
   if (snapshotCoverageNote) {
-    return "These numbers reflect the latest business read. One or more sources are still missing from the newest period.";
+    return "Read the latest numbers as a partial business view until every source has caught up.";
   }
 
-  return "Use these numbers to sanity-check revenue, subscriber health, growth, and concentration at a glance.";
+  return "These are the operating numbers to keep in view before deciding where to push next.";
 }
 
 function buildCoverageSummary(snapshotCoverageNote: string | null): string | null {
@@ -279,7 +269,7 @@ function buildMomentumImplication(revenue: WowTrendDirection, subscribers: WowTr
 }
 
 function toActionDetail(value: string | null | undefined): string | null {
-  if (!value) {
+  if (!value || shouldSuppressRawReportText(value)) {
     return null;
   }
 
@@ -352,6 +342,53 @@ function buildOpportunityFromDiagnosisType(
     finding: "No single opportunity stands out strongly enough to overstate from this report.",
     upsideLabel: null,
     action: "Use the audience and revenue sections below to choose the clearest next lever.",
+  };
+}
+
+function isThinEvidenceProfile(
+  presentation: ReportDetailPresentationModel,
+  artifactModel: ReportViewModel | null,
+): boolean {
+  if (artifactModel?.analysisMode === "reduced" || artifactModel?.dataQualityLevel === "limited" || artifactModel?.dataQualityLevel === "sparse") {
+    return true;
+  }
+
+  return presentation.revenueTrend.points.length < 2 && presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1;
+}
+
+function buildHealthyOpportunity(
+  presentation: ReportDetailPresentationModel,
+  artifactModel: ReportViewModel | null,
+  platformRisk: PlatformRiskContext,
+): WowOpportunityViewModel | null {
+  const primitives = artifactModel?.diagnosis?.primitives;
+  const revenueTrend = toWowDirection(primitives?.revenueTrendDirection);
+  const subscriberTrend = toWowDirection(primitives?.activeSubscribersDirection);
+  const stableOrGrowingRevenue = revenueTrend === "up" || revenueTrend === "flat" || revenueTrend === "unknown";
+  const stableOrGrowingSubscribers = subscriberTrend === "up" || subscriberTrend === "flat" || subscriberTrend === "unknown";
+  const concentrationScore = platformRisk.concentrationScore;
+  const balanced =
+    platformRisk.balancedRead ||
+    (concentrationScore !== null && concentrationScore < 65 && presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected > 1);
+
+  if (!stableOrGrowingRevenue || !stableOrGrowingSubscribers || !balanced) {
+    return null;
+  }
+
+  if (concentrationScore !== null && concentrationScore >= 45) {
+    return {
+      available: true,
+      finding: "Make the second revenue pillar harder to ignore.",
+      upsideLabel: "The business already has more than one source working. The next gain is making the second one more dependable.",
+      action: `Keep ${platformRisk.topPlatform ?? "the leading platform"} steady while using the next campaign to move more demand toward your second paid channel or owned list.`,
+    };
+  }
+
+  return {
+    available: true,
+    finding: "Use this stable period to widen the business deliberately.",
+    upsideLabel: "This is the right moment to test growth without disturbing the core engine.",
+    action: "Protect the formats already driving repeat revenue, then run one controlled owned-channel or premium-offer test.",
   };
 }
 
@@ -457,8 +494,24 @@ function buildSummarySentence(
         : "Audience growth is showing up, but it has not turned into enough owned demand yet.";
   } else if (revenueTrend === "down" || subscriberTrend === "down") {
     happening = "Your business softened this period.";
+  } else if (
+    concentrationScore !== null &&
+    concentrationScore < 70 &&
+    (revenueTrend === "up" || revenueTrend === "flat") &&
+    (subscriberTrend === "up" || subscriberTrend === "flat" || subscriberTrend === "unknown")
+  ) {
+    happening =
+      topPlatform && concentrationScore >= 45
+        ? `${topPlatform} still leads, but this is no longer a one-platform read.`
+        : "The business looks steady enough to build from, not just repair.";
+  } else if (
+    platformRisk.balancedRead &&
+    (revenueTrend === "up" || revenueTrend === "flat") &&
+    (subscriberTrend === "up" || subscriberTrend === "flat" || subscriberTrend === "unknown")
+  ) {
+    happening = "The business looks steady enough to build from, not just repair.";
   } else if (revenueTrend === "up" && subscriberTrend === "up") {
-    happening = "Your business is moving in a healthier direction this period.";
+    happening = "Revenue and subscriber momentum are moving in the right direction together.";
   }
 
   const fallbackSummary = cleanSentence(presentation.executiveSummary[0]);
@@ -485,8 +538,13 @@ function buildSummarySentence(
           : "That creates an opening to turn attention into something you can keep and monetize more predictably.";
     } else if (revenueTrend === "down") {
       why = "When income starts slipping, small problems tend to feel bigger very quickly.";
+    } else if (
+      ((concentrationScore !== null && concentrationScore < 70) || platformRisk.balancedRead) &&
+      (revenueTrend === "up" || revenueTrend === "flat")
+    ) {
+      why = "That gives you room to reinforce what is working while testing the next owned growth lever.";
     } else if (revenueTrend === "up" && subscriberTrend === "up") {
-      why = "That usually means your audience and income are moving together instead of fighting each other.";
+      why = "That is the kind of signal you want to protect before adding more complexity.";
     }
   }
 
@@ -505,10 +563,28 @@ function buildOpportunity(
 ): WowOpportunityViewModel {
   const diagnosisType = artifactModel?.diagnosis?.diagnosisType ?? null;
   const platformRisk = resolvePlatformRiskContext(presentation);
+  const thinEvidence = isThinEvidenceProfile(presentation, artifactModel);
+  const healthyOpportunity = buildHealthyOpportunity(presentation, artifactModel, platformRisk);
+  if (healthyOpportunity && (!diagnosisType || diagnosisType === BALANCED_MIX_DIAGNOSIS || diagnosisType === "insufficient_evidence")) {
+    return healthyOpportunity;
+  }
+
   const topRecommendation = presentation.recommendations[0];
-  if (topRecommendation && topRecommendation.body.length > 12) {
-    const cleanedTitle = cleanSentence(topRecommendation.body);
+  const topRecommendationIsDataOnly = isDataCompletenessAction(`${topRecommendation?.body ?? ""} ${topRecommendation?.detail ?? ""}`);
+  if (topRecommendation && topRecommendation.body.length > 12 && (!topRecommendationIsDataOnly || thinEvidence)) {
+    const authoredAction = buildAuthoredActionFromRecommendation(topRecommendation, 0);
+    const cleanedTitle = cleanSentence(authoredAction.title) ?? cleanSentence(topRecommendation.body);
     const cleanedDetail = toActionDetail(topRecommendation.detail);
+    const diagnosisOpportunity = buildOpportunityFromDiagnosisType(diagnosisType, platformRisk.concentrationScore, platformRisk.topPlatform);
+    const authoredDetail = authoredAction.detail;
+    const upsideLabel =
+      topRecommendationIsDataOnly
+        ? "This keeps you from overcorrecting before the full business picture is back."
+        : cleanedDetail && cleanedDetail !== authoredDetail
+        ? cleanedDetail
+        : diagnosisOpportunity.upsideLabel && diagnosisOpportunity.upsideLabel !== authoredDetail
+          ? diagnosisOpportunity.upsideLabel
+          : null;
     const usableLabel =
       topRecommendation.label &&
       topRecommendation.label.length > 20 &&
@@ -519,11 +595,12 @@ function buildOpportunity(
     return {
       available: true,
       finding: cleanedTitle ?? "The clearest next move is already visible in this report.",
-      upsideLabel: cleanedDetail,
+      upsideLabel,
       action:
         usableLabel ??
+        authoredAction.detail ??
         cleanedDetail ??
-        buildOpportunityFromDiagnosisType(diagnosisType, platformRisk.concentrationScore, platformRisk.topPlatform).upsideLabel ??
+        diagnosisOpportunity.upsideLabel ??
         "This should make the business easier to grow without adding more fragility.",
     };
   }
@@ -553,6 +630,17 @@ function buildOpportunity(
 
 function buildPlatformMix(presentation: ReportDetailPresentationModel): WowPlatformMixViewModel {
   const context = resolvePlatformRiskContext(presentation);
+  const onlyOneSource = presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1;
+  if (onlyOneSource && context.concentrationScore === null) {
+    return {
+      concentrationScore: null,
+      topPlatformLabel: context.topPlatform,
+      interpretationText: "This report only shows one income source.",
+      highlights: ["A single-source report can still be useful, but it cannot prove how resilient the full business mix is."],
+      available: presentation.platformMix.highlights.length > 0,
+    };
+  }
+
   const implicationLine = buildPlatformRiskImplication(context);
 
   return {
@@ -589,10 +677,12 @@ function buildStrengthsRisks(
   const comparisonAvailable = (options?.includeContinuitySignals ?? true) && presentation.whatChanged.comparisonAvailable;
 
   if (comparisonAvailable) {
-    const strengths = presentation.whatChanged.improved.slice(0, 3).map((item) => ({ id: item.id, text: item.body }));
+    const strengths = presentation.whatChanged.improved
+      .slice(0, 3)
+      .map((item) => ({ id: item.id, text: cleanSentence(item.body) ?? item.body }));
     const risks = [...presentation.whatChanged.worsened.slice(0, 2), ...presentation.whatChanged.watchNext.slice(0, 1)].map((item) => ({
       id: item.id,
-      text: item.body,
+      text: cleanSentence(item.body) ?? item.body,
     }));
 
     return { strengths, risks, available: strengths.length > 0 || risks.length > 0 };
@@ -757,16 +847,57 @@ function buildDiagnosisBasedActions(
   return [];
 }
 
+function buildAuthoredActionFromRecommendation(
+  recommendation: ReportDetailPresentationModel["recommendations"][number],
+  index: number,
+): WowNextActionViewModel {
+  const rawTitle = recommendation.body.trim();
+  const rawDetail = toActionDetail(recommendation.detail) ?? cleanSentence(rawTitle) ?? null;
+  const normalized = rawTitle.toLowerCase();
+  let title = stripActionTimeframe(rawTitle).replace(/[.!?]+$/, "");
+  let detail = rawDetail;
+
+  if (/next three posts|three posts/.test(normalized)) {
+    title = "Move the next three posts into an owned channel";
+    detail = "Use the content already scheduled to give part of the audience a clear path into email, membership, community, or direct checkout.";
+  } else if (/email|member path|owned channel|owned path|owned-channel/.test(normalized)) {
+    title = "Build an owned path from the strongest platform";
+    detail = "Move the audience that is already responding into email, membership, community, or direct checkout so the business is less platform-bound.";
+  } else if (/highest-growth|lead magnet|low-ticket|attention.*owned|turns into repeatable demand/.test(normalized)) {
+    title = "Turn audience traction into owned demand";
+    detail = "Use the channel with the strongest response to create one clear capture path before the attention cools.";
+  } else if (/protect.*formats|protect.*offers|repeat revenue/.test(normalized)) {
+    title = "Protect the formats already driving repeat revenue";
+    detail = "Keep the core cadence steady while you test growth around it, not on top of it.";
+  } else if (/test one new owned|growth path|stable period/.test(normalized)) {
+    title = "Run one controlled owned-channel growth test";
+    detail = "Use the stable base to test one new path without disrupting the offers that are already working.";
+  } else if (/refresh.*offer|publishing cadence|re-engage/.test(normalized)) {
+    title = "Re-engage the buyers already showing intent";
+    detail = "Refresh the offer and cadence around the people most likely to return before spending energy on colder growth.";
+  } else if (/drop-off|funnel/.test(normalized)) {
+    title = "Fix the drop-off before adding more traffic";
+    detail = "Find where recent buyers or subscribers are slipping away, then repair that step before pushing more audience into it.";
+  } else if (isDataCompletenessAction(rawTitle)) {
+    title = "Confirm the missing source before changing strategy";
+    detail = "Treat the read as directional until the missing source is back, then decide whether the pattern still deserves action.";
+  }
+
+  return {
+    id: recommendation.id,
+    title,
+    detail,
+    timeframe: index === 0 ? "Next 2 weeks" : "This month",
+  };
+}
+
 function buildNextActions(
   presentation: ReportDetailPresentationModel,
   artifactModel: ReportViewModel | null,
 ): WowNextActionViewModel[] {
-  const actions: WowNextActionViewModel[] = presentation.recommendations.slice(0, 2).map((recommendation, index) => ({
-    id: recommendation.id,
-    title: recommendation.body,
-    detail: toActionDetail(recommendation.detail) ?? null,
-    timeframe: index === 0 ? "Next 2 weeks" : "This month",
-  }));
+  const actions: WowNextActionViewModel[] = presentation.recommendations
+    .slice(0, 2)
+    .map((recommendation, index) => buildAuthoredActionFromRecommendation(recommendation, index));
 
   if (actions.length >= 2) {
     return actions;

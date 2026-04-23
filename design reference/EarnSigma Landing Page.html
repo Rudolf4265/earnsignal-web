@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EarnSigma — Know what's driving your income</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #071225; --bg-e: #0c1933; --panel: #102043; --panel-m: #132950;
+  --border: rgba(148,163,184,0.2); --border-s: rgba(96,165,250,0.32);
+  --text: #eaf1ff; --text-s: #b9c7e8; --text-m: #8ea2cc;
+  --blue: #3b82f6; --teal: #2fd9c5; --em: #34d399;
+}
+html, body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; line-height: 1.5; overflow-x: hidden; }
+h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+#root { min-height: 100vh; }
+a { text-decoration: none; }
+
+#tweaks-panel { position:fixed; bottom:24px; right:24px; z-index:9999; background:linear-gradient(145deg,#0e1e3d,#0a1628); border:1px solid var(--border-s); border-radius:1.2rem; padding:18px 20px; width:250px; box-shadow:0 24px 48px rgba(0,0,0,.5); display:none; }
+#tweaks-panel.active { display:block; }
+#tweaks-panel h3 { font-size:10px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--teal); margin-bottom:14px; }
+.tw-row { margin-bottom:11px; }
+.tw-label { font-size:10px; color:var(--text-m); margin-bottom:5px; display:block; }
+.tw-opts { display:flex; gap:5px; flex-wrap:wrap; }
+.tw-btn { font-size:10px; font-family:inherit; font-weight:500; padding:3px 9px; border-radius:999px; border:1px solid var(--border); background:transparent; color:var(--text-s); cursor:pointer; transition:all .15s; }
+.tw-btn:hover { border-color:var(--border-s); color:var(--text); }
+.tw-btn.on { background:rgba(47,217,197,.15); border-color:var(--teal); color:var(--teal); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="tweaks-panel">
+  <h3>Tweaks</h3>
+  <div class="tw-row"><span class="tw-label">Hero tone</span><div class="tw-opts" id="tw-tone">
+    <button class="tw-btn on" data-v="empathy">Empathy-led</button>
+    <button class="tw-btn" data-v="direct">Direct</button>
+    <button class="tw-btn" data-v="bold">Bold</button>
+  </div></div>
+  <div class="tw-row"><span class="tw-label">Social proof</span><div class="tw-opts" id="tw-proof">
+    <button class="tw-btn on" data-v="show">Show</button>
+    <button class="tw-btn" data-v="hide">Hide</button>
+  </div></div>
+  <div class="tw-row"><span class="tw-label">Pain section</span><div class="tw-opts" id="tw-pain">
+    <button class="tw-btn on" data-v="show">Show</button>
+    <button class="tw-btn" data-v="hide">Hide</button>
+  </div></div>
+  <div class="tw-row"><span class="tw-label">CTA label</span><div class="tw-opts" id="tw-cta">
+    <button class="tw-btn on" data-v="report">Get my report</button>
+    <button class="tw-btn" data-v="free">Start free</button>
+  </div></div>
+</div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const C = { bg:'#071225', bgE:'#0c1933', panel:'#102043', panelM:'#132950', border:'rgba(148,163,184,0.2)', borderS:'rgba(96,165,250,0.32)', text:'#eaf1ff', textS:'#b9c7e8', textM:'#8ea2cc', blue:'#3b82f6', teal:'#2fd9c5', em:'#34d399' };
+
+const W = ({ children, style={} }) => <div style={{ maxWidth:1080, margin:'0 auto', padding:'0 40px', ...style }}>{children}</div>;
+const Pill = ({ children, color=C.textM, bg='rgba(16,32,67,.75)', border=C.borderS }) =>
+  <span style={{ display:'inline-flex', padding:'4px 14px', borderRadius:999, fontSize:10, fontWeight:700, letterSpacing:'.18em', textTransform:'uppercase', background:bg, border:`1px solid ${border}`, color, marginBottom:20 }}>{children}</span>;
+
+// ── LOGO mark (flat SVG — 2D product variant) ─────────────────────
+function LogoMark({ size=28 }) {
+  return <svg width={size} height={size} viewBox="0 0 28 28" style={{flexShrink:0}}>
+    <rect width="28" height="28" rx="7" fill={C.blue} opacity=".13"/>
+    <rect width="28" height="28" rx="7" fill="none" stroke={C.teal} strokeWidth="1.2" opacity=".5"/>
+    <text x="14" y="20.5" textAnchor="middle" fill={C.teal} fontSize="16" fontWeight="700" fontFamily="Plus Jakarta Sans,sans-serif">Σ</text>
+    <line x1="18.5" y1="9.5" x2="23.5" y2="4.5" stroke={C.teal} strokeWidth="1.7" strokeLinecap="round"/>
+    <polyline points="20.5,4.5 23.5,4.5 23.5,7.5" fill="none" stroke={C.teal} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>;
+}
+function Wordmark({ size=16 }) {
+  return <div style={{display:'flex',alignItems:'center',gap:9}}>
+    <LogoMark size={28}/>
+    <span style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:size,fontWeight:700,color:C.text,letterSpacing:'-.01em'}}>Earn<span style={{color:C.teal}}>Sigma</span></span>
+  </div>;
+}
+
+// ── NAV ──────────────────────────────────────────────────────────
+function Nav({ navStyle='solid' }) {
+  return <header style={{ position:'sticky', top:0, zIndex:100, borderBottom:`1px solid ${C.border}`, background: navStyle==='glass' ? 'rgba(7,18,37,0.75)' : C.bgE, backdropFilter: navStyle==='glass'?'blur(16px)':'none', padding:'0 40px' }}>
+    <div style={{ maxWidth:1080, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between', height:60 }}>
+      <Wordmark/>
+      <nav style={{ display:'flex', alignItems:'center', gap:28 }}>
+        {['Features','Pricing','About'].map(l => <a key={l} href="#" style={{ fontSize:13, color:C.textM, transition:'color .15s' }} onMouseEnter={e=>e.target.style.color=C.text} onMouseLeave={e=>e.target.style.color=C.textM}>{l}</a>)}
+      </nav>
+      <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+        <a href="#" style={{ fontSize:13, color:C.textS }}>Sign in</a>
+        <button style={{ padding:'7px 18px', borderRadius:999, fontSize:13, fontWeight:600, background:C.blue, border:'none', color:'#fff', cursor:'pointer', boxShadow:'0 0 16px rgba(59,130,246,.3)', fontFamily:'Plus Jakarta Sans,sans-serif' }}>Get your report</button>
+      </div>
+    </div>
+  </header>;
+}
+
+// ── HERO TONES ────────────────────────────────────────────────────
+const TONES = {
+  empathy: {
+    eyebrow: 'For creators who run a real business',
+    h: "You\u2019re great at making. The business side is harder.",
+    sub: "EarnSigma reads your Patreon, YouTube, Substack, and TikTok data and tells you exactly what\u2019s working, what\u2019s leaking money \u2014 and what to do about it.",
+    proof: '\u201CI finally understand why my revenue fluctuates.\u201D',
+  },
+  direct: {
+    eyebrow: 'Private creator business intelligence',
+    h: "Know what\u2019s driving your income \u2014 and what\u2019s hurting it.",
+    sub: "Upload your creator data. Get a private diagnosis of your income health, subscriber risk, and platform exposure \u2014 not just charts.",
+    proof: '\u201CThe $8 tier churn finding alone was worth it.\u201D',
+  },
+  bold: {
+    eyebrow: 'Stop flying blind',
+    h: "Your revenue has a story. Most creators never read it.",
+    sub: "EarnSigma pulls your data from Patreon, YouTube, Substack, Instagram, and TikTok and tells you the truth about your earnings \u2014 what\u2019s driving it, what\u2019s at risk, and your next move.",
+    proof: '\u201CI had no idea 42% of my churn was from one tier.\u201D',
+  },
+};
+
+// Sample report card
+function SampleReportCard() {
+  const signals = [
+    { label:'Income Stability', value:'74 / 100', meter:74, mc:C.em, badge:'Stable', bc:C.em },
+    { label:'Platform Risk', value:'71% of revenue on Patreon', meter:71, mc:C.blue, badge:'Risk', bc:'#fbbf24' },
+    { label:'Subscriber Churn', value:'42% churn from $8 tier', meter:42, mc:C.teal, badge:'Watch', bc:'#fbbf24' },
+  ];
+  return <div style={{ background:'linear-gradient(162deg,rgba(11,24,49,.97),rgba(15,31,64,.95),rgba(9,21,43,.98))', border:`1px solid ${C.borderS}`, borderRadius:'1.5rem', overflow:'hidden', boxShadow:'0 40px 80px -30px rgba(13,57,142,.65)' }}>
+    <div style={{ padding:'18px 22px', borderBottom:`1px solid ${C.border}`, background:'rgba(19,41,80,.35)', display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
+      <div>
+        <p style={{ fontSize:10, fontWeight:700, letterSpacing:'.16em', textTransform:'uppercase', color:C.teal }}>Private Business Report</p>
+        <h3 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:16, fontWeight:700, color:C.text, marginTop:4 }}>Business Diagnostics Snapshot</h3>
+        <p style={{ fontSize:12, color:C.textS, marginTop:2 }}>90 days of earnings activity</p>
+      </div>
+      <span style={{ fontSize:10, fontWeight:600, letterSpacing:'.1em', textTransform:'uppercase', padding:'3px 9px', borderRadius:999, background:C.panel, border:`1px solid ${C.border}`, color:C.textM, whiteSpace:'nowrap' }}>Sample</span>
+    </div>
+    <div style={{ padding:'14px 18px', display:'flex', flexDirection:'column', gap:9 }}>
+      {signals.map((s,i) => <div key={i} style={{ background:'linear-gradient(165deg,rgba(17,34,69,.9),rgba(12,26,55,.84))', border:`1px solid ${C.border}`, borderRadius:'0.9rem', padding:'12px 14px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
+          <div>
+            <p style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'.12em', color:C.textM }}>{s.label}</p>
+            <p style={{ fontSize:13, fontWeight:600, color:C.text, marginTop:4 }}>{s.value}</p>
+          </div>
+          <span style={{ fontSize:9, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', padding:'2px 8px', borderRadius:999, background:`${s.bc}18`, border:`1px solid ${s.bc}44`, color:s.bc, whiteSpace:'nowrap', flexShrink:0 }}>{s.badge}</span>
+        </div>
+        <div style={{ marginTop:9, height:3, borderRadius:999, background:'rgba(19,41,80,.8)' }}>
+          <div style={{ width:`${s.meter}%`, height:'100%', borderRadius:999, background:s.mc }}/>
+        </div>
+      </div>)}
+      <div style={{ background:'rgba(47,217,197,.07)', border:`1px solid rgba(47,217,197,.22)`, borderRadius:'0.9rem', padding:'12px 14px', display:'flex', gap:10, alignItems:'center' }}>
+        <div style={{ width:28, height:28, borderRadius:7, background:'rgba(47,217,197,.12)', border:`1px solid rgba(47,217,197,.3)`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.teal} strokeWidth="2"><path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z"/></svg>
+        </div>
+        <div>
+          <p style={{ fontSize:12, fontWeight:600, color:C.text }}>Next best action</p>
+          <p style={{ fontSize:11, color:C.textS, marginTop:2 }}>Adding a $15 tier could increase revenue by ~18%</p>
+        </div>
+      </div>
+      <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:'0.9rem', padding:'11px 14px' }}>
+        <p style={{ fontSize:9, fontWeight:600, textTransform:'uppercase', letterSpacing:'.14em', color:C.textM, marginBottom:7 }}>Projected impact simulation</p>
+        <div style={{ display:'flex', alignItems:'flex-end', gap:2.5, height:28 }}>
+          {[22,30,28,40,46,43,52,61,65,74,82,88].map((h,i)=><div key={i} style={{ flex:1, background:i>=9?C.blue:`${C.blue}44`, borderRadius:2, height:`${h}%` }}/>)}
+        </div>
+      </div>
+    </div>
+    <div style={{ padding:'9px 18px', borderTop:`1px solid ${C.border}`, background:'rgba(19,41,80,.25)' }}>
+      <p style={{ fontSize:10, color:C.textM }}>Initial analysis: under 2 minutes</p>
+    </div>
+  </div>;
+}
+
+function Hero({ tone, ctaStyle, showProof }) {
+  const t = TONES[tone];
+  const ctaLabel = ctaStyle==='free' ? 'Start free — validate your data' : 'Generate my private report';
+  return <section style={{ padding:'80px 40px 90px', background:`radial-gradient(circle at 14% 0%, rgba(59,130,246,.18) 0%, transparent 48%), radial-gradient(circle at 85% 60%, rgba(47,217,197,.06) 0%, transparent 40%), ${C.bg}` }}>
+    <div style={{ maxWidth:1080, margin:'0 auto', display:'grid', gridTemplateColumns:'1.1fr 0.9fr', gap:56, alignItems:'start' }}>
+      {/* Left column */}
+      <div style={{ position:'relative' }}>
+        <Pill color={C.blue}>{t.eyebrow}</Pill>
+        <h1 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'clamp(2rem,3.6vw,3rem)', fontWeight:800, letterSpacing:'-.03em', lineHeight:1.15, color:C.text, maxWidth:'22ch' }}>{t.h}</h1>
+        <p style={{ fontSize:16, color:C.textS, marginTop:20, lineHeight:1.8, maxWidth:'42ch' }}>{t.sub}</p>
+
+        {/* Creator pain — small humanising line */}
+        <p style={{ fontSize:13, color:C.text, marginTop:16, fontWeight:500 }}>You shouldn't need a finance degree to run your own channel.</p>
+
+        <div style={{ marginTop:32, display:'flex', gap:12, flexWrap:'wrap', alignItems:'center' }}>
+          <button style={{ padding:'13px 26px', borderRadius:999, fontSize:14, fontWeight:700, background:'linear-gradient(120deg,rgba(29,78,216,.98),rgba(47,217,197,.85))', border:'none', color:'#fff', cursor:'pointer', boxShadow:'0 0 28px rgba(59,130,246,.32)', fontFamily:'Plus Jakarta Sans,sans-serif' }}>{ctaLabel}</button>
+          <button style={{ padding:'13px 20px', borderRadius:999, fontSize:14, fontWeight:500, background:'transparent', border:`1px solid ${C.borderS}`, color:C.textS, cursor:'pointer', fontFamily:'Inter,sans-serif' }}>See sample report</button>
+        </div>
+
+        <p style={{ marginTop:14, fontSize:10, fontWeight:700, letterSpacing:'.16em', textTransform:'uppercase', color:`${C.teal}bb` }}>Free validation · $25 report · Pro from $59/mo</p>
+        <p style={{ marginTop:5, fontSize:10, color:C.textM }}>No spreadsheet stitching · Your data stays private · No public estimates</p>
+
+        {/* Social proof quote */}
+        {showProof && <div style={{ marginTop:28, padding:'14px 18px', background:'rgba(16,32,67,.55)', border:`1px solid ${C.border}`, borderRadius:'1rem', borderLeft:`3px solid ${C.teal}` }}>
+          <p style={{ fontSize:13, color:C.textS, fontStyle:'italic', lineHeight:1.6 }}>{t.proof}</p>
+          <p style={{ fontSize:11, color:C.textM, marginTop:5 }}>— Patreon creator, 14k subscribers</p>
+        </div>}
+      </div>
+
+      {/* Right column — sample report */}
+      <div style={{ position:'relative' }}>
+        <div style={{ position:'absolute', inset:'-16px', background:'radial-gradient(circle at 30% 20%, rgba(29,78,216,.15), transparent 55%)', borderRadius:'2rem', pointerEvents:'none' }}/>
+        <SampleReportCard/>
+      </div>
+    </div>
+  </section>;
+}
+
+// ── CREATOR PAIN SECTION ─────────────────────────────────────────
+const pains = [
+  { q: '"I know my numbers are off but I don\'t know why."', label: 'Revenue mystery', body: 'Platform dashboards show you totals. EarnSigma shows you why they went up or down.' },
+  { q: '"I keep losing subscribers but I don\'t know which ones."', label: 'Churn blind spot', body: 'We identify exactly which tier and which window drives most cancellations — so you can fix it.' },
+  { q: '"I\'m too reliant on one platform and it scares me."', label: 'Platform risk', body: 'EarnSigma quantifies your concentration risk and tells you when it\'s at a dangerous level.' },
+  { q: '"I don\'t know if raising prices will hurt me."', label: 'Pricing uncertainty', body: 'Your data holds the answer. We surface what your highest-value supporters actually look like.' },
+];
+function PainSection() {
+  return <section style={{ padding:'72px 40px', borderTop:`1px solid ${C.border}`, background:`radial-gradient(circle at 50% 100%, rgba(47,217,197,.04) 0%, transparent 50%), ${C.bg}` }}>
+    <W>
+      <Pill color={C.textM} bg="transparent" border={C.border}>Sound familiar?</Pill>
+      <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'clamp(1.6rem,2.6vw,2.1rem)', fontWeight:800, letterSpacing:'-.025em', color:C.text, maxWidth:'26ch', textWrap:'pretty', marginBottom:32 }}>Every creator we talk to says some version of this.</h2>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:14 }}>
+        {pains.map((p,i) => <div key={i} style={{ background:'linear-gradient(165deg,rgba(17,34,69,.88),rgba(11,24,50,.82))', border:`1px solid ${C.border}`, borderRadius:'1.3rem', padding:'22px 24px' }}>
+          <p style={{ fontSize:15, fontStyle:'italic', color:C.textS, lineHeight:1.55, marginBottom:14, borderLeft:`2px solid ${C.borderS}`, paddingLeft:14 }}>{p.q}</p>
+          <p style={{ fontSize:10, fontWeight:700, letterSpacing:'.14em', textTransform:'uppercase', color:C.teal, marginBottom:6 }}>{p.label}</p>
+          <p style={{ fontSize:13, color:C.textM, lineHeight:1.65 }}>{p.body}</p>
+        </div>)}
+      </div>
+    </W>
+  </section>;
+}
+
+// ── PLATFORMS ─────────────────────────────────────────────────────
+const platforms = [
+  { name:'Patreon', desc:'Membership revenue', format:'CSV' },
+  { name:'Substack', desc:'Subscriber data', format:'CSV' },
+  { name:'YouTube', desc:'Analytics data', format:'CSV / ZIP' },
+  { name:'Instagram', desc:'Performance data', format:'ZIP' },
+  { name:'TikTok', desc:'Performance data', format:'ZIP' },
+  { name:'Snapchat', desc:'Audience data', format:'Coming soon', soon:true },
+];
+function Platforms() {
+  return <section style={{ padding:'72px 40px', borderTop:`1px solid ${C.border}` }}>
+    <W>
+      <Pill color={C.blue} border={`rgba(59,130,246,.35)`}>Supported today</Pill>
+      <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'clamp(1.5rem,2.5vw,2rem)', fontWeight:800, letterSpacing:'-.025em', color:C.text, maxWidth:'30ch', marginBottom:8, textWrap:'pretty' }}>Your data is already there.</h2>
+      <p style={{ fontSize:15, color:C.textS, lineHeight:1.75, maxWidth:'44ch', marginBottom:32 }}>No new integrations. No API keys. Just export what you already have.</p>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 }}>
+        {platforms.map(p => <div key={p.name} style={{ background: p.soon ? 'rgba(16,29,56,.72)' : 'linear-gradient(165deg,rgba(17,34,69,.92),rgba(11,24,50,.86))', border:`1px solid ${C.border}`, borderRadius:'1.2rem', padding:'18px 20px', opacity:p.soon ? 0.75 : 1 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8 }}>
+            <div>
+              <div style={{ width:38, height:38, borderRadius:9, background:C.panel, border:`1px solid ${C.borderS}`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:10, fontSize:11, fontWeight:700, color:C.textM, letterSpacing:'.05em' }}>
+                {p.name.slice(0,2).toUpperCase()}
+              </div>
+              <p style={{ fontSize:14, fontWeight:600, color:C.text }}>{p.name}</p>
+              <p style={{ fontSize:12, color:C.textS, marginTop:2 }}>{p.desc}</p>
+            </div>
+            <span style={{ fontSize:9, fontWeight:600, letterSpacing:'.1em', textTransform:'uppercase', padding:'3px 8px', borderRadius:999, background: p.soon ? 'rgba(59,130,246,.1)' : C.panel, border:`1px solid ${C.border}`, color:C.textM, whiteSpace:'nowrap', flexShrink:0 }}>{p.format}</span>
+          </div>
+        </div>)}
+      </div>
+      <p style={{ fontSize:11, color:C.textM, marginTop:10 }}>Support is limited to specific export formats by platform.</p>
+    </W>
+  </section>;
+}
+
+// ── THE DIFFERENCE ────────────────────────────────────────────────
+function Difference() {
+  return <section style={{ padding:'72px 40px', borderTop:`1px solid ${C.border}` }}>
+    <W>
+      <Pill color={C.textM} bg="transparent" border={C.border}>The difference</Pill>
+      <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'clamp(1.5rem,2.5vw,2rem)', fontWeight:800, letterSpacing:'-.025em', color:C.text, marginBottom:32 }}>Not another public stats dashboard</h2>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14 }}>
+        {[
+          { title:'Public trackers', items:['Follower counts & estimated reach','Public growth rankings','Rough revenue guesses'], hl:false },
+          { title:'Native dashboards', items:['Siloed per-platform metrics','No cross-platform revenue view','Raw numbers without diagnosis'], hl:false },
+          { title:'EarnSigma', tag:'Private', items:['Built from your real data, not estimates','Income risk, churn & platform health','Next-action guidance — not just charts'], hl:true },
+        ].map(col => <div key={col.title} style={{ background: col.hl ? 'linear-gradient(165deg,rgba(17,34,69,.95),rgba(11,24,50,.9))' : 'rgba(16,32,67,.25)', border:`1px solid ${col.hl ? C.borderS : C.border}`, borderRadius:'1.3rem', padding:'22px 24px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
+            <p style={{ fontSize:11, fontWeight:700, letterSpacing:'.12em', textTransform:'uppercase', color: col.hl ? C.teal : C.textM }}>{col.title}</p>
+            {col.tag && <span style={{ fontSize:9, fontWeight:700, letterSpacing:'.12em', textTransform:'uppercase', padding:'2px 7px', borderRadius:999, background:'rgba(52,211,153,.12)', border:'1px solid rgba(52,211,153,.28)', color:C.em }}>{col.tag}</span>}
+          </div>
+          <ul style={{ listStyle:'none', display:'flex', flexDirection:'column', gap:10 }}>
+            {col.items.map(item => <li key={item} style={{ display:'flex', alignItems:'flex-start', gap:9, fontSize:13, color: col.hl ? C.textS : C.textM, lineHeight:1.55 }}>
+              <span style={{ width:5, height:5, borderRadius:'50%', background: col.hl ? C.teal : C.textM, flexShrink:0, marginTop:5 }}/>
+              {item}
+            </li>)}
+          </ul>
+        </div>)}
+      </div>
+    </W>
+  </section>;
+}
+
+// ── HOW IT WORKS ─────────────────────────────────────────────────
+function HowItWorks() {
+  return <section style={{ padding:'72px 40px', borderTop:`1px solid ${C.border}` }}>
+    <W>
+      <Pill color={C.textM} bg="transparent" border={C.border}>How it works</Pill>
+      <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'clamp(1.5rem,2.5vw,2rem)', fontWeight:800, letterSpacing:'-.025em', color:C.text, marginBottom:32 }}>Three steps. Under two minutes to your first insight.</h2>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14 }}>
+        {[
+          { n:'01', title:'Upload your data', body:'Export a CSV or ZIP from your platforms. Data you already have — no new logins, no API keys.' },
+          { n:'02', title:'We validate it free', body:'EarnSigma checks your data is usable at no charge. You only pay when you generate a report.' },
+          { n:'03', title:'Get your earnings picture', body:'A private diagnosis: income health, subscriber risk, platform exposure, and what to do next.' },
+        ].map(s => <div key={s.n} style={{ background:'linear-gradient(165deg,rgba(17,34,69,.9),rgba(11,24,50,.84))', border:`1px solid ${C.border}`, borderRadius:'1.3rem', padding:'24px' }}>
+          <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:36, fontWeight:800, color:C.teal, opacity:.28, lineHeight:1, marginBottom:14 }}>{s.n}</p>
+          <h3 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:16, fontWeight:700, color:C.text, marginBottom:8 }}>{s.title}</h3>
+          <p style={{ fontSize:13, color:C.textS, lineHeight:1.7 }}>{s.body}</p>
+        </div>)}
+      </div>
+    </W>
+  </section>;
+}
+
+// ── SAMPLE OUTPUT ────────────────────────────────────────────────
+function SampleOutput() {
+  const pillars = ['Executive Summary','Biggest Opportunity','Platform Mix','Subscriber Momentum','Strengths & Risks','Next 3 Actions'];
+  return <section style={{ padding:'72px 40px', borderTop:`1px solid ${C.border}`, background:`radial-gradient(circle at 80% 50%, rgba(59,130,246,.05) 0%, transparent 50%), ${C.bg}` }}>
+    <W style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:56, alignItems:'start', padding:'0 40px' }}>
+      <div>
+        <Pill color={C.blue} border="rgba(59,130,246,.35)">Sample output</Pill>
+        <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'clamp(1.5rem,2.3vw,1.9rem)', fontWeight:800, letterSpacing:'-.025em', color:C.text, lineHeight:1.2, marginBottom:14 }}>What a real EarnSigma report actually says</h2>
+        <p style={{ fontSize:15, color:C.textS, lineHeight:1.75, marginBottom:24 }}>Plain language. Specific findings. Not just data — a diagnosis.</p>
+        <div style={{ background:'rgba(16,32,67,.55)', border:`1px solid ${C.border}`, borderRadius:'1.2rem', padding:'18px 20px', marginBottom:20 }}>
+          <p style={{ fontSize:10, fontWeight:700, letterSpacing:'.14em', textTransform:'uppercase', color:C.teal, marginBottom:14 }}>Example findings</p>
+          {['"You\'re losing 42% of your churn from the $8 tier."','"Your top 5% of supporters drive 46% of revenue."','"Raising a mid-tier offer could increase revenue by +18%."'].map((f,i) => <p key={i} style={{ fontSize:14, color:C.textS, lineHeight:1.65, borderLeft:`2px solid ${C.borderS}`, paddingLeft:14, fontStyle:'italic', marginBottom:i<2?10:0 }}>{f}</p>)}
+        </div>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:7 }}>
+          {pillars.map(p => <span key={p} style={{ fontSize:11, padding:'4px 12px', borderRadius:999, background:C.panel, border:`1px solid ${C.border}`, color:C.textS }}>{p}</span>)}
+        </div>
+      </div>
+      <div style={{ background:'linear-gradient(164deg,rgba(12,26,54,.96),rgba(15,31,64,.94))', border:`1px solid ${C.borderS}`, borderRadius:'1.5rem', overflow:'hidden' }}>
+        <div style={{ padding:'16px 20px', borderBottom:`1px solid ${C.border}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <p style={{ fontSize:10, fontWeight:700, letterSpacing:'.14em', textTransform:'uppercase', color:C.teal }}>Private Revenue Diagnostics</p>
+          <span style={{ fontSize:10, fontWeight:500, padding:'3px 9px', borderRadius:999, background:C.panel, border:`1px solid ${C.border}`, color:C.textM }}>PDF · 12 pages</span>
+        </div>
+        <div style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:11 }}>
+          <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:'0.9rem', padding:'13px 15px' }}>
+            <p style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'.14em', color:C.textM, marginBottom:9 }}>Revenue stability trend</p>
+            <div style={{ display:'flex', alignItems:'flex-end', gap:3.5, height:46 }}>
+              {[28,33,37,46,52,58,56,64,71,74].map((h,i)=><div key={i} style={{ flex:1, background:`${C.blue}${i>=8?'bb':'44'}`, borderRadius:3, height:`${h}%` }}/>)}
+            </div>
+          </div>
+          <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:'0.9rem', padding:'13px 15px' }}>
+            <p style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'.14em', color:C.textM, marginBottom:10 }}>Churn & concentration risk</p>
+            {[{l:'Platform concentration',w:71},{l:'Mid-tier churn',w:42},{l:'Upgrade friction',w:31}].map(r=><div key={r.l} style={{ marginBottom:8 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:C.textS, marginBottom:4 }}><span>{r.l}</span><span>{r.w}%</span></div>
+              <div style={{ height:4, borderRadius:999, background:C.panelM }}><div style={{ width:`${r.w}%`, height:'100%', borderRadius:999, background:C.blue }}/></div>
+            </div>)}
+          </div>
+          <div style={{ background:C.panel, border:`1px solid ${C.border}`, borderRadius:'0.9rem', padding:'13px 15px', display:'flex', gap:14, alignItems:'center' }}>
+            <svg width="52" height="52" viewBox="0 0 60 60">
+              <circle cx="30" cy="30" r="22" fill="none" stroke={`${C.blue}22`} strokeWidth="10"/>
+              <circle cx="30" cy="30" r="22" fill="none" stroke={C.blue} strokeWidth="10" strokeDasharray={`${0.71*138.2} ${138.2}`} strokeLinecap="round" transform="rotate(-90 30 30)"/>
+            </svg>
+            <div style={{ fontSize:12, color:C.textS, lineHeight:1.7 }}>
+              <p style={{ fontWeight:600, color:C.text }}>Patreon: 71%</p>
+              <p>Other channels: 29%</p>
+              <p style={{ color:'#fbbf24', fontSize:11 }}>Concentration risk</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </W>
+  </section>;
+}
+
+// ── WHO IT'S FOR ─────────────────────────────────────────────────
+function WhoFor() {
+  return <section style={{ padding:'72px 40px', borderTop:`1px solid ${C.border}` }}>
+    <W>
+      <Pill color={C.textM} bg="transparent" border={C.border}>Built for</Pill>
+      <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'clamp(1.5rem,2.5vw,2rem)', fontWeight:800, letterSpacing:'-.025em', color:C.text, marginBottom:32 }}>Built for creators who run a real business</h2>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14 }}>
+        {[
+          { title:'Membership & subscription income', body:'You earn from Patreon, memberships, or recurring multi-channel income and need to understand what drives it.' },
+          { title:'Your data, your answers', body:'You want insights from your own numbers — not estimates scraped from public profiles.' },
+          { title:'Decisions, not just dashboards', body:'You need to know what to do next — not just what your charts look like.' },
+          { title:'Revenue + audience in one place', body:'You want your earnings and audience growth connected — not in separate, siloed apps.' },
+        ].map(c => <div key={c.title} style={{ background:'rgba(16,32,67,.35)', border:`1px solid ${C.border}`, borderRadius:'1.2rem', padding:'20px' }}>
+          <h3 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:14, fontWeight:700, color:C.text, lineHeight:1.4, marginBottom:9 }}>{c.title}</h3>
+          <p style={{ fontSize:12, color:C.textS, lineHeight:1.7 }}>{c.body}</p>
+        </div>)}
+      </div>
+    </W>
+  </section>;
+}
+
+// ── PRICING ──────────────────────────────────────────────────────
+function Pricing({ ctaStyle }) {
+  return <section style={{ padding:'72px 40px', borderTop:`1px solid ${C.border}` }}>
+    <W>
+      <Pill color={C.textM} bg="transparent" border={C.border}>Pricing</Pill>
+      <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'clamp(1.5rem,2.5vw,2rem)', fontWeight:800, letterSpacing:'-.025em', color:C.text, marginBottom:8 }}>Start with a report. Scale with Pro.</h2>
+      <p style={{ fontSize:14, color:C.textM, marginBottom:32 }}>Free validation on every upload. No charge until you generate a report.</p>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, maxWidth:680 }}>
+        {[
+          { name:'Report', price:'$25', freq:'one-time', desc:'A single private diagnosis of your creator business.', features:['Full earnings diagnosis','Income stability score','Platform risk analysis','Subscriber churn breakdown','Next 3 actions'], cta:'Get my report', hl:false },
+          { name:'Pro', price:'$59', freq:'/month', desc:'Ongoing creator intelligence — monitor and act every cycle.', features:['Everything in Report','Monthly refreshes','Trend comparisons','Grow mode (audience analytics)','Priority analysis'], cta: ctaStyle==='free' ? 'Start free — 14 days' : 'Start Pro', hl:true },
+        ].map(p => <div key={p.name} style={{ background: p.hl ? 'linear-gradient(165deg,rgba(17,34,69,.95),rgba(11,24,50,.9))' : 'rgba(16,32,67,.35)', border:`1px solid ${p.hl ? C.borderS : C.border}`, borderRadius:'1.5rem', padding:'26px 26px', boxShadow:p.hl?'0 24px 48px rgba(2,6,23,.4)':'' }}>
+          <p style={{ fontSize:10, fontWeight:700, letterSpacing:'.15em', textTransform:'uppercase', color: p.hl ? C.teal : C.textM }}>{p.name}</p>
+          <div style={{ display:'flex', alignItems:'baseline', gap:4, marginTop:8, marginBottom:4 }}>
+            <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:38, fontWeight:800, letterSpacing:'-.03em', color:C.text }}>{p.price}</p>
+            <p style={{ fontSize:13, color:C.textM }}>{p.freq}</p>
+          </div>
+          <p style={{ fontSize:12, color:C.textS, lineHeight:1.6, marginBottom:18 }}>{p.desc}</p>
+          <ul style={{ listStyle:'none', display:'flex', flexDirection:'column', gap:8, marginBottom:22 }}>
+            {p.features.map(f => <li key={f} style={{ display:'flex', alignItems:'center', gap:8, fontSize:12, color:C.textS }}>
+              <span style={{ width:5, height:5, borderRadius:'50%', background:p.hl?C.teal:C.textM, flexShrink:0 }}/>
+              {f}
+            </li>)}
+          </ul>
+          <button style={{ width:'100%', padding:'11px 0', borderRadius:999, fontSize:13, fontWeight:700, background:p.hl?C.blue:'transparent', border:p.hl?'none':`1px solid ${C.borderS}`, color:p.hl?'#fff':C.textS, cursor:'pointer', fontFamily:'Plus Jakarta Sans,sans-serif', boxShadow:p.hl?'0 0 20px rgba(59,130,246,.28)':'' }}>{p.cta}</button>
+        </div>)}
+      </div>
+    </W>
+  </section>;
+}
+
+// ── FOOTER CTA ───────────────────────────────────────────────────
+function FooterCta({ ctaStyle }) {
+  return <section style={{ padding:'80px 40px', borderTop:`1px solid ${C.border}`, background:`radial-gradient(circle at 50% 0%, rgba(59,130,246,.12) 0%, transparent 52%), ${C.bg}`, textAlign:'center' }}>
+    <div style={{ maxWidth:560, margin:'0 auto' }}>
+      <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'clamp(1.8rem,2.8vw,2.3rem)', fontWeight:800, letterSpacing:'-.03em', color:C.text, lineHeight:1.12, marginBottom:14, textWrap:'pretty' }}>Understand your creator business like a business.</h2>
+      <p style={{ fontSize:15, color:C.textS, lineHeight:1.75, marginBottom:30 }}>No guesswork. No public estimates. Just your data — clearly explained.</p>
+      <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
+        <button style={{ padding:'13px 28px', borderRadius:999, fontSize:15, fontWeight:700, background:'linear-gradient(120deg,rgba(29,78,216,.98),rgba(47,217,197,.85))', border:'none', color:'#fff', cursor:'pointer', boxShadow:'0 0 28px rgba(59,130,246,.3)', fontFamily:'Plus Jakarta Sans,sans-serif' }}>
+          {ctaStyle==='free' ? 'Start free — validate your data' : 'Generate my private report'}
+        </button>
+        <button style={{ padding:'13px 22px', borderRadius:999, fontSize:14, fontWeight:500, background:'rgba(16,32,67,.7)', border:`1px solid ${C.borderS}`, color:C.textS, cursor:'pointer', fontFamily:'Inter,sans-serif' }}>See sample report</button>
+      </div>
+      <p style={{ marginTop:14, fontSize:10, fontWeight:600, letterSpacing:'.14em', textTransform:'uppercase', color:`${C.teal}99` }}>Free validation · No spreadsheet stitching · Your data stays private</p>
+    </div>
+  </section>;
+}
+
+// ── FOOTER ───────────────────────────────────────────────────────
+function Footer() {
+  return <footer style={{ padding:'28px 40px', borderTop:`1px solid ${C.border}`, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:14 }}>
+    <Wordmark size={14}/>
+    <div style={{ display:'flex', gap:22 }}>
+      {['Privacy','Terms','Data Privacy','Contact'].map(l=><a key={l} href="#" style={{ fontSize:12, color:C.textM }}>{l}</a>)}
+    </div>
+    <p style={{ fontSize:11, color:C.textM }}>© 2026 EarnSigma</p>
+  </footer>;
+}
+
+// ── APP ───────────────────────────────────────────────────────────
+function App() {
+  const [tone, setTone] = useState('empathy');
+  const [showProof, setShowProof] = useState(true);
+  const [showPain, setShowPain] = useState(true);
+  const [ctaStyle, setCtaStyle] = useState('report');
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+
+  useEffect(()=>{
+    const fn=e=>{ if(e.data?.type==='__activate_edit_mode') setTweaksOpen(true); if(e.data?.type==='__deactivate_edit_mode') setTweaksOpen(false); };
+    window.addEventListener('message',fn);
+    window.parent.postMessage({type:'__edit_mode_available'},'*');
+    return ()=>window.removeEventListener('message',fn);
+  },[]);
+
+  useEffect(()=>{
+    function wire(id,cb){ const el=document.getElementById(id); if(!el)return; el.querySelectorAll('.tw-btn').forEach(b=>b.addEventListener('click',()=>{ el.querySelectorAll('.tw-btn').forEach(x=>x.classList.remove('on')); b.classList.add('on'); cb(b.dataset.v); })); }
+    wire('tw-tone', setTone);
+    wire('tw-proof', v=>setShowProof(v==='show'));
+    wire('tw-pain', v=>setShowPain(v==='show'));
+    wire('tw-cta', setCtaStyle);
+    const p=document.getElementById('tweaks-panel');
+    if(p) p.classList.toggle('active',tweaksOpen);
+  },[tweaksOpen]);
+
+  return <div>
+    <Nav/>
+    <Hero tone={tone} ctaStyle={ctaStyle} showProof={showProof}/>
+    {showPain && <PainSection/>}
+    <Platforms/>
+    <Difference/>
+    <HowItWorks/>
+    <SampleOutput/>
+    <WhoFor/>
+    <Pricing ctaStyle={ctaStyle}/>
+    <FooterCta ctaStyle={ctaStyle}/>
+    <Footer/>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="80" fill="#071225"/>
+  <rect x="0" y="0" width="120" height="10" fill="#0c1933"/>
+  <rect x="10" y="16" width="50" height="8" rx="2" fill="#3b82f6" opacity=".6"/>
+  <rect x="10" y="28" width="35" height="5" rx="1" fill="#eaf1ff" opacity=".3"/>
+  <rect x="65" y="14" width="45" height="50" rx="6" fill="#102043" stroke="rgba(96,165,250,0.35)" strokeWidth="1"/>
+</svg>
+</template>
+</body>
+</html>

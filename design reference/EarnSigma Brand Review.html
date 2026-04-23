@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EarnSigma — Brand Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --es-bg: #071225;
+    --es-bg-elevated: #0c1933;
+    --es-panel: #102043;
+    --es-panel-muted: #132950;
+    --es-border: rgba(148,163,184,0.28);
+    --es-border-strong: rgba(96,165,250,0.38);
+    --es-text: #eaf1ff;
+    --es-text-sec: #b9c7e8;
+    --es-text-muted: #8ea2cc;
+    --es-blue: #3b82f6;
+    --es-blue-strong: #1d4ed8;
+    --es-teal: #2fd9c5;
+    --es-emerald: #34d399;
+    --es-shadow-card: 0 18px 36px rgba(2,6,23,0.36);
+    --es-shadow-glow: 0 0 40px rgba(59,130,246,0.24);
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--es-bg);
+    color: var(--es-text);
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+  #root { min-height: 100vh; }
+
+  /* Tweaks panel */
+  #tweaks-panel {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: linear-gradient(145deg, #0e1e3d, #0a1628);
+    border: 1px solid var(--es-border-strong);
+    border-radius: 1.25rem;
+    padding: 18px 20px;
+    width: 260px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+    display: none;
+  }
+  #tweaks-panel.active { display: block; }
+  #tweaks-panel h3 { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--es-teal); margin-bottom: 14px; }
+  .tweak-row { margin-bottom: 12px; }
+  .tweak-label { font-size: 11px; color: var(--es-text-muted); margin-bottom: 5px; display: block; }
+  .tweak-options { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tweak-btn {
+    font-size: 11px; font-family: inherit; font-weight: 500;
+    padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--es-border);
+    background: transparent; color: var(--es-text-sec);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .tweak-btn:hover { border-color: var(--es-border-strong); color: var(--es-text); }
+  .tweak-btn.active { background: rgba(47,217,197,0.15); border-color: var(--es-teal); color: var(--es-teal); }
+  .tweak-divider { height: 1px; background: var(--es-border); margin: 14px 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="tweaks-panel">
+  <h3>Tweaks</h3>
+  <div class="tweak-row">
+    <span class="tweak-label">Mode</span>
+    <div class="tweak-options" id="tweak-mode">
+      <button class="tweak-btn active" data-val="earn">Earn</button>
+      <button class="tweak-btn" data-val="grow">Grow</button>
+    </div>
+  </div>
+  <div class="tweak-row">
+    <span class="tweak-label">Accent color</span>
+    <div class="tweak-options" id="tweak-accent">
+      <button class="tweak-btn active" data-val="teal">Teal</button>
+      <button class="tweak-btn" data-val="blue">Blue</button>
+      <button class="tweak-btn" data-val="violet">Violet</button>
+    </div>
+  </div>
+  <div class="tweak-row">
+    <span class="tweak-label">Data state</span>
+    <div class="tweak-options" id="tweak-data">
+      <button class="tweak-btn active" data-val="full">With data</button>
+      <button class="tweak-btn" data-val="empty">Empty</button>
+    </div>
+  </div>
+  <div class="tweak-divider"></div>
+  <div class="tweak-row">
+    <span class="tweak-label">Review panel</span>
+    <div class="tweak-options" id="tweak-review">
+      <button class="tweak-btn active" data-val="show">Show</button>
+      <button class="tweak-btn" data-val="hide">Hide</button>
+    </div>
+  </div>
+</div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ─── design tokens ─────────────────────────────────────────────────
+const T = {
+  bg: '#071225', bgElevated: '#0c1933', panel: '#102043', panelMuted: '#132950',
+  border: 'rgba(148,163,184,0.28)', borderStrong: 'rgba(96,165,250,0.38)',
+  text: '#eaf1ff', textSec: '#b9c7e8', textMuted: '#8ea2cc',
+  blue: '#3b82f6', teal: '#2fd9c5', emerald: '#34d399',
+};
+
+// Mini sparkline component
+function Sparkline({ data, color = '#2fd9c5', width = 120, height = 40 }) {
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((v - min) / range) * (height - 6) - 3;
+    return `${x},${y}`;
+  }).join(' ');
+  const area = `0,${height} ` + pts + ` ${width},${height}`;
+  return (
+    <svg width={width} height={height} style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={area} fill="url(#sg)" />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// Donut score ring
+function ScoreRing({ score = 72, size = 96, color = '#2fd9c5' }) {
+  const r = (size - 10) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (score / 100) * circ;
+  return (
+    <svg width={size} height={size} style={{ display: 'block' }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(148,163,184,0.15)" strokeWidth="7" />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="7"
+        strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round"
+        transform={`rotate(-90 ${size/2} ${size/2})`} />
+      <text x={size/2} y={size/2 + 7} textAnchor="middle" fill="#eaf1ff" fontSize="20" fontWeight="600" fontFamily="Inter,sans-serif">{score}</text>
+    </svg>
+  );
+}
+
+// Mini bar chart
+function MiniBar({ data, color = '#3b82f6' }) {
+  const max = Math.max(...data);
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 32 }}>
+      {data.map((v, i) => (
+        <div key={i} style={{
+          flex: 1, background: i === data.length - 1 ? color : `${color}55`,
+          borderRadius: 3, height: `${(v / max) * 100}%`, minHeight: 3,
+          transition: 'height 0.3s'
+        }} />
+      ))}
+    </div>
+  );
+}
+
+// Badge
+function Badge({ variant = 'neutral', children }) {
+  const styles = {
+    good: { bg: 'rgba(52,211,153,0.15)', border: 'rgba(52,211,153,0.35)', color: '#34d399' },
+    warn: { bg: 'rgba(251,191,36,0.13)', border: 'rgba(251,191,36,0.3)', color: '#fbbf24' },
+    neutral: { bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.25)', color: '#b9c7e8' },
+    blue: { bg: 'rgba(59,130,246,0.15)', border: 'rgba(59,130,246,0.35)', color: '#3b82f6' },
+  };
+  const s = styles[variant] || styles.neutral;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      padding: '2px 10px', borderRadius: 999,
+      fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase',
+      background: s.bg, border: `1px solid ${s.border}`, color: s.color,
+    }}>{children}</span>
+  );
+}
+
+// ─── BRAND REVIEW PANEL ───────────────────────────────────────────
+const brandItems = [
+  {
+    section: 'What\'s working',
+    color: '#34d399',
+    items: [
+      { icon: '✦', title: 'Color system is cohesive', body: 'The navy-to-panel elevation system (#071225 → #102043) is tight. Blue + teal accent pairing is memorable and distinctive — the teal in particular feels "yours."' },
+      { icon: '✦', title: 'Logo concept is strong', body: 'Σ (sum) + upward arrow = earnings growth. That\'s a good metaphor. The 3D execution reads high-energy, which differentiates from generic SaaS.' },
+      { icon: '✦', title: 'Component library is mature', body: 'Rounded cards, gradient panels, skeleton loaders, pill badges — the pattern set is consistent and polished for an early-stage product.' },
+    ]
+  },
+  {
+    section: 'Brand gaps to close',
+    color: '#fbbf24',
+    items: [
+      { icon: '▲', title: 'Logo ↔ App visual disconnect', body: 'The logo is 3D/glossy/gamer; the app UI is flat/minimal/refined. When the lockup sits in the nav it feels like two different products. Consider a flatter version of the mark for UI use.' },
+      { icon: '▲', title: 'Language is too technical', body: '"Diagnosis", "artifact hydration", "constraints", "coverage months" — creators will bounce off this. They want to feel smart, not studied. Reframe around outcomes: "Your biggest blocker", "What\'s working", "Your earning momentum."' },
+      { icon: '▲', title: 'Missing warmth & creator identity', body: 'The current palette and tone skews quant-fund / fintech. Creators are expressive, personal-brand-driven. A small shift — warmer grays, a human headline font, softer copy — bridges the gap without losing the pro feel.' },
+      { icon: '▲', title: 'No visual hierarchy anchor', body: 'The dashboard has 6–7 equally-weighted sections. Creators need a single number they can feel proud of or worried about at a glance. The "Creator Health" score should be the hero, not one card among many.' },
+    ]
+  },
+  {
+    section: 'Recommended next moves',
+    color: '#3b82f6',
+    items: [
+      { icon: '→', title: 'Create a flat/minimal logo variant', body: 'Keep the 3D version for marketing. Build a 2D flat version (just the Σ + arrow in teal/blue) for the app nav, favicons, and product surfaces.' },
+      { icon: '→', title: 'Rewrite the copy layer', body: 'Go through every label and metric name with a creator lens. "Business status" → "Your earnings health." "Signals" → "What changed this month." "Next best move" is already great — keep it.' },
+      { icon: '→', title: 'Add a type personality to headings', body: 'Inter is clean but anonymous. Pairing it with a display font (e.g. Sora, Plus Jakarta Sans, or Bricolage Grotesque) for hero numbers and H1s would add personality without losing legibility.' },
+      { icon: '→', title: 'Make the health score the centrepiece', body: 'A single score (72/100) animated on load, full-bleed in the hero card, is far more emotionally engaging than 4 KPI tiles. Creators want to feel something — let the number land.' },
+    ]
+  },
+];
+
+function BrandReviewPanel({ visible }) {
+  if (!visible) return null;
+  return (
+    <aside style={{
+      width: 340, flexShrink: 0,
+      borderLeft: `1px solid ${T.border}`,
+      background: 'linear-gradient(160deg, #0a1628 0%, #071225 100%)',
+      overflowY: 'auto', padding: '28px 24px',
+    }}>
+      <div style={{ marginBottom: 20 }}>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: T.teal, marginBottom: 6 }}>Brand Review</p>
+        <h2 style={{ fontSize: 18, fontWeight: 600, color: T.text, lineHeight: 1.3 }}>EarnSigma — Current state assessment</h2>
+        <p style={{ fontSize: 12, color: T.textMuted, marginTop: 6, lineHeight: 1.6 }}>Reviewed against the live codebase. The mockup on the left reflects your exact design tokens.</p>
+      </div>
+
+      {brandItems.map((section) => (
+        <div key={section.section} style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <div style={{ width: 3, height: 14, borderRadius: 2, background: section.color, flexShrink: 0 }} />
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: section.color }}>{section.section}</p>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {section.items.map((item, i) => (
+              <div key={i} style={{
+                background: 'rgba(16,32,67,0.55)', border: `1px solid ${T.border}`,
+                borderRadius: '0.9rem', padding: '12px 14px'
+              }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: T.text, marginBottom: 4 }}>{item.icon} {item.title}</p>
+                <p style={{ fontSize: 11.5, color: T.textMuted, lineHeight: 1.65 }}>{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </aside>
+  );
+}
+
+// ─── APP SHELL / DASHBOARD ─────────────────────────────────────────
+const revenueData = [4200, 4800, 4500, 5100, 4900, 5400, 5800, 6100, 5900, 6400, 6800, 7200];
+const months = ['May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr'];
+const barData = [5100, 4900, 5400, 5800, 6100, 5900, 6400, 6800, 7200];
+
+function ModeToggle({ mode, onChange }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center',
+      background: 'rgba(16,32,67,0.7)', border: `1px solid ${T.borderStrong}`,
+      borderRadius: 999, padding: 3,
+    }}>
+      {['earn','grow'].map(m => (
+        <button key={m} onClick={() => onChange(m)} style={{
+          padding: '5px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+          letterSpacing: '0.05em', textTransform: 'capitalize',
+          border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+          background: mode === m ? 'rgba(47,217,197,0.18)' : 'transparent',
+          color: mode === m ? T.teal : T.textMuted,
+          fontFamily: 'Inter, sans-serif',
+        }}>{m}</button>
+      ))}
+    </div>
+  );
+}
+
+function DashHeader({ mode, setMode, refreshing, empty }) {
+  return (
+    <section style={{
+      background: 'linear-gradient(145deg,rgba(10,24,50,0.94),rgba(15,35,75,0.93),rgba(16,32,67,0.96))',
+      border: `1px solid rgba(148,163,184,0.2)`,
+      borderRadius: '1.5rem', padding: '20px 24px',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16,
+      flexWrap: 'wrap',
+    }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: T.teal }}>Dashboard</p>
+          <Badge variant="blue">Pro</Badge>
+        </div>
+        <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em', color: T.text }}>Dashboard</h1>
+        <p style={{ fontSize: 13, color: T.textSec, marginTop: 4 }}>
+          {empty ? 'Upload a supported file to populate your workspace.' : `Latest snapshot: Apr 08, 2025.`}
+        </p>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+        <ModeToggle mode={mode} onChange={setMode} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={{
+            padding: '7px 14px', borderRadius: 999, fontSize: 12, fontWeight: 500,
+            background: 'rgba(16,32,67,0.8)', border: `1px solid ${T.borderStrong}`,
+            color: T.textSec, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+          }}>{refreshing ? 'Refreshing…' : 'Refresh'}</button>
+          <button style={{
+            padding: '7px 16px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+            background: T.blue, border: 'none', color: '#fff',
+            cursor: 'pointer', boxShadow: '0 0 20px rgba(59,130,246,0.35)', fontFamily: 'Inter, sans-serif',
+          }}>View latest report →</button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function KpiTile({ label, value, delta, spark, accent = T.teal }) {
+  return (
+    <article style={{
+      background: 'linear-gradient(155deg,rgba(16,32,67,0.95),rgba(19,41,80,0.92),rgba(16,32,67,0.96))',
+      border: `1px solid ${T.borderStrong}`,
+      borderRadius: '1.2rem', padding: '20px 20px 16px',
+      boxShadow: T.shadowCard,
+    }}>
+      <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: T.textMuted, marginBottom: 8 }}>{label}</p>
+      <p style={{ fontSize: 34, fontWeight: 600, letterSpacing: '-0.03em', color: T.text, lineHeight: 1 }}>{value}</p>
+      {delta && <p style={{ fontSize: 12, color: delta.startsWith('+') ? T.emerald : '#fbbf24', marginTop: 6 }}>{delta} vs last period</p>}
+      {spark && <div style={{ marginTop: 10 }}><Sparkline data={spark} color={accent} width={100} height={32} /></div>}
+    </article>
+  );
+}
+
+function CreatorHealthCard({ score, empty }) {
+  return (
+    <article style={{
+      background: 'linear-gradient(145deg,rgba(16,32,67,0.95),rgba(19,41,80,0.94),rgba(16,32,67,0.96))',
+      border: `1px solid ${T.borderStrong}`,
+      borderRadius: '1.5rem', padding: 24,
+      display: 'flex', flexDirection: 'column', gap: 0,
+      minHeight: 280,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.textMuted }}>Business status</p>
+        <Badge variant="neutral">Ready</Badge>
+      </div>
+
+      {empty ? (
+        <div style={{ marginTop: 20, background: 'rgba(16,32,67,0.55)', border: `1px solid ${T.border}`, borderRadius: '1.1rem', padding: '16px' }}>
+          <p style={{ fontSize: 13, fontWeight: 600, color: T.text }}>Run your first report</p>
+          <p style={{ fontSize: 12, color: T.textSec, marginTop: 6, lineHeight: 1.6 }}>Creator health appears after a completed report with enough evidence to score it confidently.</p>
+        </div>
+      ) : (
+        <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 18 }}>
+          <ScoreRing score={score} size={96} color={T.teal} />
+          <div>
+            <p style={{ fontSize: 22, fontWeight: 600, color: T.text, letterSpacing: '-0.02em' }}>{score}<span style={{ fontSize: 13, color: T.textMuted, fontWeight: 400 }}>/100</span></p>
+            <span style={{
+              display: 'inline-flex', marginTop: 6,
+              padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 500,
+              background: 'rgba(148,163,184,0.1)', border: `1px solid ${T.border}`, color: T.textSec,
+            }}>Healthy and stable.</span>
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+        <div style={{ background: 'rgba(16,32,67,0.6)', border: `1px solid ${T.border}`, borderRadius: '1.1rem', padding: '14px 16px' }}>
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.textSec, marginBottom: 6 }}>Latest report</p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Apr 08, 2025</p>
+          <p style={{ fontSize: 12, color: T.textSec, marginTop: 4, lineHeight: 1.6 }}>Revenue held flat with a slight dip in Patreon. YouTube monetization is the strongest contributor this period.</p>
+        </div>
+        <button style={{
+          marginTop: 12, width: '100%', padding: '9px 0', borderRadius: 999, fontSize: 12, fontWeight: 600,
+          background: 'rgba(16,32,67,0.8)', border: `1px solid ${T.borderStrong}`,
+          color: T.textSec, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+        }}>Open report</button>
+      </div>
+    </article>
+  );
+}
+
+function SignalsPanel({ empty }) {
+  const signals = [
+    { tone: 'good', label: 'Positive', title: 'YouTube revenue up 14%', body: 'Ad revenue increased across the last 3 uploads. Mid-roll placement change appears to be the primary driver.' },
+    { tone: 'warn', label: 'Watch', title: 'Patreon churn ticked up', body: 'New patron acquisitions dropped below the 30-day retention baseline. Review tier pricing before the next cohort.' },
+    { tone: 'neutral', label: 'Signal', title: 'Sponsorship timing gap', body: 'No brand deal income in Apr. Recurring sponsorships tend to cluster Q2–Q3; pipeline should be seeded now.' },
+  ];
+  return (
+    <article style={{
+      background: 'linear-gradient(155deg,rgba(16,32,67,0.92),rgba(19,41,80,0.86),rgba(16,32,67,0.93))',
+      border: `1px solid rgba(148,163,184,0.2)`,
+      borderRadius: '1.5rem', padding: 24,
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: T.textMuted }}>What changed</p>
+      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {empty ? (
+          <div style={{ border: `1px dashed ${T.border}`, borderRadius: '1.1rem', padding: 16, background: 'rgba(16,32,67,0.4)' }}>
+            <p style={{ fontSize: 12, color: T.textSec, lineHeight: 1.6 }}>Signals appear here after a report surfaces a clear pattern worth watching.</p>
+          </div>
+        ) : signals.map((s, i) => (
+          <div key={i} style={{ background: 'rgba(16,32,67,0.55)', border: `1px solid rgba(148,163,184,0.2)`, borderRadius: '1.1rem', padding: '14px 16px' }}>
+            <Badge variant={s.tone === 'good' ? 'good' : s.tone === 'warn' ? 'warn' : 'neutral'}>{s.label}</Badge>
+            <p style={{ fontSize: 13, fontWeight: 600, color: T.text, marginTop: 10, lineHeight: 1.4 }}>{s.title}</p>
+            <p style={{ fontSize: 12, color: T.textSec, marginTop: 5, lineHeight: 1.6 }}>{s.body}</p>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function NextBestMove({ empty }) {
+  return (
+    <article style={{
+      background: 'linear-gradient(145deg,rgba(10,24,50,0.94),rgba(15,35,75,0.93),rgba(16,32,67,0.96))',
+      border: `1px solid ${T.borderStrong}`,
+      borderRadius: '1.3rem', padding: '20px 24px',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24, flexWrap: 'wrap',
+    }}>
+      <div style={{ flex: 1, minWidth: 240 }}>
+        <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: T.teal, marginBottom: 8 }}>Next best move</p>
+        <p style={{ fontSize: 15, fontWeight: 600, color: T.text, lineHeight: 1.45 }}>
+          {empty ? 'Upload your latest exports to initialize baseline trend analysis.' : 'Pitch a sponsorship renewal before May — your Q2 engagement window is opening.'}
+        </p>
+        <p style={{ fontSize: 12, color: T.textSec, marginTop: 6, lineHeight: 1.6 }}>
+          {empty ? 'Upload a supported platform export to start.' : 'Based on your audience growth trend and the 14-week gap since last brand deal.'}
+        </p>
+      </div>
+      {!empty && (
+        <button style={{
+          padding: '9px 20px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+          background: T.blue, border: 'none', color: '#fff', cursor: 'pointer',
+          boxShadow: '0 0 20px rgba(59,130,246,0.3)', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
+        }}>See full breakdown</button>
+      )}
+    </article>
+  );
+}
+
+function RevenueTrend({ empty }) {
+  if (empty) return (
+    <article style={{
+      background: 'rgba(16,32,67,0.55)', border: `1px solid ${T.border}`,
+      borderRadius: '1.3rem', padding: 24,
+    }}>
+      <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: T.textMuted, marginBottom: 6 }}>Revenue trend</p>
+      <p style={{ fontSize: 12, color: T.textSec, lineHeight: 1.6 }}>Revenue trend will appear here after your first completed report.</p>
+    </article>
+  );
+
+  const max = Math.max(...revenueData);
+  const min = Math.min(...revenueData);
+  const W = 560, H = 120;
+  const pts = revenueData.map((v, i) => {
+    const x = 10 + (i / (revenueData.length - 1)) * (W - 20);
+    const y = H - 10 - ((v - min) / (max - min)) * (H - 24);
+    return [x, y];
+  });
+  const polyline = pts.map(p => p.join(',')).join(' ');
+  const area = `10,${H} ` + polyline + ` ${W - 10},${H}`;
+
+  return (
+    <article style={{
+      background: 'linear-gradient(145deg,rgba(16,32,67,0.95),rgba(19,41,80,0.92),rgba(16,32,67,0.96))',
+      border: `1px solid ${T.borderStrong}`,
+      borderRadius: '1.3rem', padding: 24,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: T.textMuted }}>Revenue trend</p>
+          <p style={{ fontSize: 20, fontWeight: 600, color: T.text, marginTop: 4, letterSpacing: '-0.02em' }}>$7,200 <span style={{ fontSize: 12, color: T.emerald, fontWeight: 500 }}>↑ +5.9% vs Mar</span></p>
+        </div>
+        <p style={{ fontSize: 11, color: T.textMuted }}>12-month rolling</p>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+        <defs>
+          <linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#2fd9c5" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#2fd9c5" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon points={area} fill="url(#tg)" />
+        <polyline points={polyline} fill="none" stroke="#2fd9c5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {pts.map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r={i === pts.length - 1 ? 4 : 0} fill="#2fd9c5" />
+        ))}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+        {months.map((m, i) => (
+          <span key={i} style={{ fontSize: 9, color: T.textMuted, textAlign: 'center', flex: 1 }}>{m}</span>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function UtilityRow({ empty }) {
+  const tiles = [
+    { label: 'Plan', value: 'Pro', sub: 'Active', badge: 'good' },
+    { label: 'Platforms connected', value: empty ? '—' : '3', sub: empty ? 'None yet' : 'YouTube · Patreon · Gumroad' },
+    { label: 'Data coverage', value: empty ? '—' : '12 months', sub: empty ? 'After first report' : 'Jan 2024 – Apr 2025' },
+    { label: 'Last upload', value: empty ? '—' : 'Apr 08', sub: empty ? 'No uploads yet' : '2025' },
+  ];
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+      {tiles.map((t, i) => (
+        <article key={i} style={{
+          background: 'rgba(16,32,67,0.55)', border: `1px solid ${T.border}`,
+          borderRadius: '1.1rem', padding: '14px 16px',
+        }}>
+          <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.textMuted, marginBottom: 6 }}>{t.label}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <p style={{ fontSize: 17, fontWeight: 600, color: T.text }}>{t.value}</p>
+            {t.badge && <Badge variant={t.badge}>{t.sub.split(' ')[0]}</Badge>}
+          </div>
+          {!t.badge && <p style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>{t.sub}</p>}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────
+function App() {
+  const [mode, setMode] = useState('earn');
+  const [empty, setEmpty] = useState(false);
+  const [accent, setAccent] = useState('teal');
+  const [showReview, setShowReview] = useState(true);
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+
+  // Tweaks panel wiring
+  useEffect(() => {
+    const listener = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setTweaksOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', listener);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', listener);
+  }, []);
+
+  // Wire tweaks buttons
+  useEffect(() => {
+    function wire(id, setter) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.querySelectorAll('.tweak-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          el.querySelectorAll('.tweak-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          setter(btn.dataset.val);
+        });
+      });
+    }
+    wire('tweak-mode', setMode);
+    wire('tweak-data', (v) => setEmpty(v === 'empty'));
+    wire('tweak-accent', setAccent);
+    wire('tweak-review', (v) => setShowReview(v === 'show'));
+    const panel = document.getElementById('tweaks-panel');
+    if (panel) panel.classList.toggle('active', tweaksOpen);
+  }, [tweaksOpen]);
+
+  const accentColor = accent === 'violet' ? '#a78bfa' : accent === 'blue' ? T.blue : T.teal;
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      {/* Sidebar nav */}
+      <nav style={{
+        width: 220, flexShrink: 0,
+        background: 'linear-gradient(180deg, #0a1628 0%, #071225 100%)',
+        borderRight: `1px solid ${T.border}`,
+        display: 'flex', flexDirection: 'column',
+        padding: '20px 0',
+      }}>
+        {/* Logo */}
+        <div style={{ padding: '0 20px 24px', borderBottom: `1px solid ${T.border}` }}>
+          <img src="assets/earnsigma-lockup-transparent.png" alt="EarnSigma" style={{ width: 140, height: 'auto' }} />
+        </div>
+
+        {/* Nav links */}
+        <div style={{ padding: '16px 12px', flex: 1 }}>
+          {[
+            { label: 'Dashboard', active: true },
+            { label: 'Reports' },
+            { label: 'Data' },
+            { label: 'Upload' },
+            { label: 'Settings' },
+          ].map((l) => (
+            <div key={l.label} style={{
+              padding: '8px 12px', borderRadius: 999, marginBottom: 2,
+              fontSize: 13, fontWeight: l.active ? 600 : 400,
+              color: l.active ? T.text : T.textMuted,
+              background: l.active ? 'linear-gradient(135deg,rgba(59,130,246,0.18),rgba(47,217,197,0.12))' : 'transparent',
+              border: l.active ? `1px solid ${T.borderStrong}` : '1px solid transparent',
+              cursor: 'pointer',
+            }}>{l.label}</div>
+          ))}
+        </div>
+
+        {/* Plan badge bottom */}
+        <div style={{ padding: '0 12px' }}>
+          <div style={{
+            padding: '12px 14px', borderRadius: '1rem',
+            background: 'rgba(16,32,67,0.6)', border: `1px solid ${T.border}`,
+          }}>
+            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: T.textMuted, marginBottom: 4 }}>Plan</p>
+            <p style={{ fontSize: 13, fontWeight: 600, color: T.text }}>Pro</p>
+            <p style={{ fontSize: 11, color: T.textMuted }}>Active · Renews May 1</p>
+          </div>
+        </div>
+      </nav>
+
+      {/* Main content */}
+      <main style={{ flex: 1, overflowY: 'auto', padding: '28px 28px', background: `radial-gradient(circle at 14% -8%, rgba(59,130,246,0.15) 0%, rgba(59,130,246,0) 48%), radial-gradient(circle at 92% 8%, rgba(47,217,197,0.06) 0%, rgba(47,217,197,0) 44%), ${T.bg}` }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <DashHeader mode={mode} setMode={setMode} empty={empty} />
+          <NextBestMove empty={empty} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <CreatorHealthCard score={72} empty={empty} />
+            <SignalsPanel empty={empty} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+            <KpiTile label="Net Revenue" value="$7,200" delta="+5.9%" spark={revenueData.slice(-8)} accent={accentColor} />
+            <KpiTile label="Subscribers" value="14,820" delta="+2.1%" spark={[8200,9100,9600,10200,11400,12800,13600,14820]} accent={accentColor} />
+            <KpiTile label="Stability Index" value="78" delta="+3 pts" spark={[62,65,68,71,69,72,75,78]} accent={accentColor} />
+          </div>
+          <RevenueTrend empty={empty} />
+          <UtilityRow empty={empty} />
+        </div>
+      </main>
+
+      {/* Brand review panel */}
+      <BrandReviewPanel visible={showReview} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="80" fill="#071225"/>
+  <rect x="10" y="10" width="45" height="60" rx="6" fill="#102043" stroke="rgba(96,165,250,0.38)" strokeWidth="1"/>
+  <rect x="62" y="10" width="48" height="28" rx="5" fill="#102043" stroke="rgba(96,165,250,0.38)" strokeWidth="1"/>
+  <rect x="62" y="43" width="48" height="27" rx="5" fill="#102043" stroke="rgba(96,165,250,0.38)" strokeWidth="1"/>
+  <polyline points="14,55 20,48 26,50 32,40 38,36 44,28 50,22" fill="none" stroke="#2fd9c5" strokeWidth="2"/>
+</svg>
+</template>
+</body>
+</html>

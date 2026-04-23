@@ -22,6 +22,35 @@ type DiscoverInsight = {
   bucket: InsightBucket;
 };
 
+const insightBucketTone: Record<
+  InsightBucket,
+  {
+    cardGlow: string;
+    icon: string;
+    badge: string;
+    bar: string;
+  }
+> = {
+  "revenue-risk": {
+    cardGlow: "bg-brand-accent-blue/18",
+    icon: "border-brand-accent-blue/35 bg-brand-accent-blue/12 text-brand-accent-blue",
+    badge: "border-brand-accent-blue/24 bg-brand-accent-blue/10 text-brand-text-secondary",
+    bar: "from-brand-accent-blue/35 via-brand-accent-blue/62 to-brand-accent-teal/72",
+  },
+  monetization: {
+    cardGlow: "bg-brand-accent-teal/14",
+    icon: "border-brand-accent-teal/35 bg-brand-accent-teal/10 text-brand-accent-teal",
+    badge: "border-brand-accent-teal/24 bg-brand-accent-teal/8 text-brand-text-secondary",
+    bar: "from-brand-accent-teal/28 via-brand-accent-teal/58 to-brand-accent-emerald/70",
+  },
+  growth: {
+    cardGlow: "bg-brand-accent-emerald/12",
+    icon: "border-brand-accent-emerald/32 bg-brand-accent-emerald/8 text-brand-accent-teal",
+    badge: "border-brand-accent-emerald/22 bg-brand-accent-emerald/8 text-brand-text-secondary",
+    bar: "from-brand-accent-blue/28 via-brand-accent-teal/54 to-brand-accent-emerald/66",
+  },
+};
+
 type SupportedPlatformCard = {
   platform: string;
   description: string;
@@ -203,29 +232,36 @@ export function InsightGlyph({ icon, className }: { icon: InsightIconKey; classN
 }
 
 function InsightCard({ insight }: { insight: DiscoverInsight }) {
+  const tone = insightBucketTone[insight.bucket];
+
   return (
-    <Card className="relative flex h-full flex-col overflow-hidden border-brand-border/75 bg-[linear-gradient(165deg,rgba(17,34,69,0.92),rgba(11,24,50,0.86))] p-5 sm:p-6">
-      <div className="pointer-events-none absolute -right-9 -top-10 h-24 w-24 rounded-full bg-brand-accent-blue/14 blur-2xl" />
+    <Card className="group relative flex h-full flex-col overflow-hidden rounded-[1.45rem] border-brand-border/45 bg-[linear-gradient(150deg,rgba(20,47,89,0.86),rgba(12,28,58,0.9)_44%,rgba(7,18,37,0.96))] p-6 shadow-[0_26px_70px_-42px_rgba(59,130,246,0.78)] transition duration-200 hover:-translate-y-0.5 hover:border-brand-border-strong/55 hover:shadow-[0_34px_86px_-42px_rgba(47,217,197,0.42)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:p-7">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(255,255,255,0.08),transparent_34%),radial-gradient(circle_at_96%_18%,rgba(59,130,246,0.14),transparent_36%)] opacity-80" />
+      <div className={cn("pointer-events-none absolute -right-12 -top-14 h-36 w-36 rounded-full blur-3xl transition-opacity duration-200 group-hover:opacity-90", tone.cardGlow)} />
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-brand-accent-teal/35 to-transparent" />
       <div className="relative flex items-center justify-between gap-4">
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-brand-border-strong/65 bg-brand-panel text-brand-accent-blue">
+        <span className={cn("inline-flex h-11 w-11 items-center justify-center rounded-[0.95rem] border shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]", tone.icon)}>
           <InsightGlyph icon={insight.icon} className="h-4 w-4" />
         </span>
-        <span className="inline-flex rounded-full border border-brand-border-strong/60 bg-brand-panel px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.11em] text-brand-text-secondary">
+        <span className={cn("inline-flex rounded-full border px-3 py-1 text-[10px] font-medium uppercase tracking-[0.08em] backdrop-blur-sm", tone.badge)}>
           {insight.indicator}
         </span>
       </div>
-      <h3 className="relative mt-5 text-lg font-semibold tracking-tight text-white">{insight.title}</h3>
-      <p className="relative mt-2.5 text-sm leading-relaxed text-brand-text-secondary">{insight.description}</p>
+      <h3 className="relative mt-6 text-lg font-semibold tracking-tight text-white">{insight.title}</h3>
+      <p className="relative mt-3 text-sm leading-relaxed text-brand-text-secondary">{insight.description}</p>
 
-      <div className="relative mt-5 rounded-lg border border-brand-border/65 bg-brand-panel/70 p-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-text-muted">Example signal</p>
-        <p className="mt-1 text-xs font-medium leading-relaxed text-brand-text-primary">{insight.signal}</p>
-        <div className="mt-3 flex h-9 items-end gap-1.5">
+      <div className="relative mt-6 rounded-[1.05rem] border border-white/[0.07] bg-[linear-gradient(160deg,rgba(7,18,37,0.48),rgba(19,41,80,0.28))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-sm">
+        <p className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.1em] text-brand-text-muted">
+          <span className="h-1.5 w-1.5 rounded-full bg-brand-accent-teal/70 shadow-[0_0_12px_rgba(47,217,197,0.45)]" aria-hidden="true" />
+          Example signal
+        </p>
+        <p className="mt-2 text-sm font-medium leading-relaxed text-brand-text-primary">{insight.signal}</p>
+        <div className="mt-4 flex h-10 items-end gap-2">
           {insight.bars.map((height, index) => (
             <span
               key={`${insight.title}-bar-${index}`}
-              className="w-full rounded-sm bg-brand-accent-blue/65"
-              style={{ height: `${height}%` }}
+              className={cn("w-full rounded-full bg-gradient-to-t shadow-[0_0_14px_rgba(59,130,246,0.16)]", tone.bar)}
+              style={{ height: `${height}%`, opacity: 0.38 + index * 0.085 }}
               aria-hidden="true"
             />
           ))}
@@ -325,12 +361,16 @@ export function MarketingSupportedTodaySection() {
 export function MarketingDataRevealsSection() {
   return (
     <Section
-      className="relative border-t border-brand-border/55 pb-16 pt-16 sm:pb-20 sm:pt-20 lg:pb-24 lg:pt-24"
+      className="relative isolate overflow-hidden border-t border-brand-border/45 bg-[radial-gradient(circle_at_18%_8%,rgba(59,130,246,0.1),transparent_35%),radial-gradient(circle_at_86%_24%,rgba(47,217,197,0.065),transparent_36%)] pb-16 pt-16 sm:pb-20 sm:pt-20 lg:pb-24 lg:pt-24"
       data-testid="marketing-features-reveals"
     >
-      <Container>
+      <div className="pointer-events-none absolute left-1/2 top-36 -z-10 h-[28rem] w-[42rem] -translate-x-1/2 rounded-full bg-brand-accent-blue/[0.06] blur-[7rem]" />
+      <div className="pointer-events-none absolute right-[-10rem] top-[18rem] -z-10 h-72 w-72 rounded-full bg-brand-accent-teal/[0.08] blur-[5rem]" />
+      <Container className="relative">
         <div className="max-w-3xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">EXAMPLE DIAGNOSTICS</p>
+          <p className="inline-flex rounded-full border border-brand-accent-blue/28 bg-brand-accent-blue/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent-blue">
+            EXAMPLE DIAGNOSTICS
+          </p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
             What creators usually discover
           </h2>
@@ -339,13 +379,15 @@ export function MarketingDataRevealsSection() {
           </p>
         </div>
 
-        <div className="mt-12 space-y-10">
+        <div className="mt-14 space-y-14">
           <div>
-            <div className="mb-5 flex items-center gap-4">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Revenue Risk</span>
-              <span className="h-px flex-1 bg-brand-border/55" aria-hidden="true" />
+            <div className="mb-6 flex items-center gap-4">
+              <span className="rounded-full border border-brand-border/35 bg-brand-panel/30 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary">
+                Revenue Risk
+              </span>
+              <span className="h-px flex-1 bg-gradient-to-r from-brand-border/55 via-brand-border/18 to-transparent" aria-hidden="true" />
             </div>
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-2">
               {discoverInsights
                 .filter((insight) => insight.bucket === "revenue-risk")
                 .map((insight) => (
@@ -355,11 +397,13 @@ export function MarketingDataRevealsSection() {
           </div>
 
           <div>
-            <div className="mb-5 flex items-center gap-4">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Monetization Opportunity</span>
-              <span className="h-px flex-1 bg-brand-border/55" aria-hidden="true" />
+            <div className="mb-6 flex items-center gap-4">
+              <span className="rounded-full border border-brand-border/35 bg-brand-panel/30 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary">
+                Monetization Opportunity
+              </span>
+              <span className="h-px flex-1 bg-gradient-to-r from-brand-border/55 via-brand-border/18 to-transparent" aria-hidden="true" />
             </div>
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-2">
               {discoverInsights
                 .filter((insight) => insight.bucket === "monetization")
                 .map((insight) => (
@@ -369,12 +413,14 @@ export function MarketingDataRevealsSection() {
           </div>
 
           <div>
-            <div className="mb-5 flex items-center gap-4">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">Growth Quality</span>
-              <span className="h-px flex-1 bg-brand-border/55" aria-hidden="true" />
-              <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-brand-text-muted/65">Revenue sustainability metrics</span>
+            <div className="mb-6 flex flex-wrap items-center gap-4">
+              <span className="rounded-full border border-brand-border/35 bg-brand-panel/30 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-brand-text-secondary">
+                Growth Quality
+              </span>
+              <span className="h-px min-w-20 flex-1 bg-gradient-to-r from-brand-border/55 via-brand-border/18 to-transparent" aria-hidden="true" />
+              <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-brand-text-muted/60">Revenue sustainability metrics</span>
             </div>
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-2">
               {discoverInsights
                 .filter((insight) => insight.bucket === "growth")
                 .map((insight) => (

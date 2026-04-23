@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EarnSigma — Dashboard v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #071225; --bg-e: #0c1933; --panel: #102043; --panel-m: #132950;
+  --border: rgba(148,163,184,0.22); --border-s: rgba(96,165,250,0.35);
+  --text: #eaf1ff; --text-s: #b9c7e8; --text-m: #8ea2cc;
+  --blue: #3b82f6; --teal: #2fd9c5; --em: #34d399;
+}
+html,body { height:100%; }
+body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); overflow-x:hidden; }
+h1,h2,h3,.display { font-family:'Plus Jakarta Sans',sans-serif; }
+#root { min-height:100vh; }
+
+/* tweaks panel */
+#tweaks-panel {
+  position:fixed; bottom:24px; right:24px; z-index:9999;
+  background:linear-gradient(145deg,#0e1e3d,#0a1628);
+  border:1px solid var(--border-s); border-radius:1.2rem;
+  padding:18px 20px; width:240px;
+  box-shadow:0 24px 48px rgba(0,0,0,0.5); display:none;
+}
+#tweaks-panel.active { display:block; }
+#tweaks-panel h3 { font-size:10px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--teal); margin-bottom:14px; }
+.tw-row { margin-bottom:11px; }
+.tw-label { font-size:10px; color:var(--text-m); margin-bottom:5px; display:block; }
+.tw-opts { display:flex; gap:5px; flex-wrap:wrap; }
+.tw-btn { font-size:10px; font-family:inherit; font-weight:500; padding:3px 9px; border-radius:999px; border:1px solid var(--border); background:transparent; color:var(--text-s); cursor:pointer; transition:all .15s; }
+.tw-btn:hover { border-color:var(--border-s); color:var(--text); }
+.tw-btn.on { background:rgba(47,217,197,.15); border-color:var(--teal); color:var(--teal); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="tweaks-panel">
+  <h3>Tweaks</h3>
+  <div class="tw-row"><span class="tw-label">Mode</span><div class="tw-opts" id="tw-mode"><button class="tw-btn on" data-v="earn">Earn</button><button class="tw-btn" data-v="grow">Grow</button></div></div>
+  <div class="tw-row"><span class="tw-label">Data state</span><div class="tw-opts" id="tw-data"><button class="tw-btn on" data-v="full">With data</button><button class="tw-btn" data-v="empty">Empty</button></div></div>
+  <div class="tw-row"><span class="tw-label">Score</span><div class="tw-opts" id="tw-score"><button class="tw-btn on" data-v="72">72</button><button class="tw-btn" data-v="85">85</button><button class="tw-btn" data-v="54">54</button></div></div>
+</div>
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+const C = { bg:'#071225', bgE:'#0c1933', panel:'#102043', panelM:'#132950', border:'rgba(148,163,184,0.22)', borderS:'rgba(96,165,250,0.35)', text:'#eaf1ff', textS:'#b9c7e8', textM:'#8ea2cc', blue:'#3b82f6', teal:'#2fd9c5', em:'#34d399' };
+
+// SVG sparkline
+function Spark({ data, color='#2fd9c5', w=110, h=36 }) {
+  const mn=Math.min(...data), mx=Math.max(...data), rng=mx-mn||1;
+  const pts=data.map((v,i)=>`${10+(i/(data.length-1))*(w-20)},${h-6-((v-mn)/rng)*(h-14)}`).join(' ');
+  const area=`10,${h} `+pts+` ${w-10},${h}`;
+  return <svg width={w} height={h} style={{display:'block'}}>
+    <defs><linearGradient id={`sg${color.replace('#','')}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={color} stopOpacity=".28"/><stop offset="100%" stopColor={color} stopOpacity="0"/></linearGradient></defs>
+    <polygon points={area} fill={`url(#sg${color.replace('#','')})`}/>
+    <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>;
+}
+
+// Score ring — the hero
+function ScoreRing({ score, size=140 }) {
+  const color = score >= 75 ? C.em : score >= 55 ? C.teal : '#fbbf24';
+  const r=(size-12)/2, circ=2*Math.PI*r, dash=(score/100)*circ;
+  const label = score >= 75 ? 'Strong' : score >= 55 ? 'Healthy' : 'Needs attention';
+  return <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
+    <svg width={size} height={size}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(148,163,184,0.1)" strokeWidth="9"/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="9"
+        strokeDasharray={`${dash} ${circ-dash}`} strokeLinecap="round"
+        transform={`rotate(-90 ${size/2} ${size/2})`}
+        style={{filter:`drop-shadow(0 0 8px ${color}66)`}}/>
+      <text x={size/2} y={size/2-6} textAnchor="middle" fill={C.text} fontSize="36" fontWeight="700" fontFamily="Plus Jakarta Sans,sans-serif">{score}</text>
+      <text x={size/2} y={size/2+16} textAnchor="middle" fill={C.textM} fontSize="12" fontFamily="Inter,sans-serif">/100</text>
+    </svg>
+    <span style={{fontSize:12,fontWeight:600,color,padding:'3px 12px',borderRadius:999,background:`${color}18`,border:`1px solid ${color}44`}}>{label}</span>
+  </div>;
+}
+
+function Badge({ v='neutral', children }) {
+  const s={good:{bg:'rgba(52,211,153,.14)',b:'rgba(52,211,153,.32)',c:'#34d399'},warn:{bg:'rgba(251,191,36,.12)',b:'rgba(251,191,36,.28)',c:'#fbbf24'},neutral:{bg:'rgba(148,163,184,.1)',b:'rgba(148,163,184,.22)',c:'#b9c7e8'},blue:{bg:'rgba(59,130,246,.14)',b:'rgba(59,130,246,.32)',c:'#3b82f6'}}[v]||{bg:'rgba(148,163,184,.1)',b:'rgba(148,163,184,.22)',c:'#b9c7e8'};
+  return <span style={{display:'inline-flex',alignItems:'center',padding:'2px 9px',borderRadius:999,fontSize:10,fontWeight:600,letterSpacing:'.1em',textTransform:'uppercase',background:s.bg,border:`1px solid ${s.b}`,color:s.c}}>{children}</span>;
+}
+
+// ── NAV ──────────────────────────────────────────────────────────
+function Sidebar({ mode, setMode }) {
+  const links=['Dashboard','Reports','Data','Upload','Settings'];
+  return <nav style={{width:210,flexShrink:0,background:'linear-gradient(180deg,#091830 0%,#071225 100%)',borderRight:`1px solid ${C.border}`,display:'flex',flexDirection:'column',padding:'0'}}>
+    {/* Flat wordmark logo — the 2D product variant */}
+    <div style={{padding:'22px 20px 20px',borderBottom:`1px solid ${C.border}`}}>
+      <div style={{display:'flex',alignItems:'center',gap:9}}>
+        {/* Flat sigma mark */}
+        <svg width="28" height="28" viewBox="0 0 28 28">
+          <rect width="28" height="28" rx="7" fill={C.blue} opacity=".15"/>
+          <rect width="28" height="28" rx="7" fill="none" stroke={C.teal} strokeWidth="1.2" opacity=".5"/>
+          <text x="14" y="21" textAnchor="middle" fill={C.teal} fontSize="17" fontWeight="700" fontFamily="Plus Jakarta Sans,sans-serif">Σ</text>
+          <line x1="18" y1="10" x2="24" y2="4" stroke={C.teal} strokeWidth="1.8" strokeLinecap="round"/>
+          <polyline points="21,4 24,4 24,7" fill="none" stroke={C.teal} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <div>
+          <span style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:15,fontWeight:700,color:C.text,letterSpacing:'-.01em'}}>Earn<span style={{color:C.teal}}>Sigma</span></span>
+        </div>
+      </div>
+      <p style={{fontSize:9,color:C.textM,letterSpacing:'.15em',textTransform:'uppercase',marginTop:4,paddingLeft:37}}>Creator Intelligence</p>
+    </div>
+
+    <div style={{padding:'14px 10px',flex:1}}>
+      {links.map(l=><div key={l} style={{padding:'8px 12px',borderRadius:999,marginBottom:2,fontSize:12.5,fontWeight:l==='Dashboard'?600:400,color:l==='Dashboard'?C.text:C.textM,background:l==='Dashboard'?'linear-gradient(135deg,rgba(59,130,246,.18),rgba(47,217,197,.11))':'transparent',border:l==='Dashboard'?`1px solid ${C.borderS}`:'1px solid transparent',cursor:'pointer'}}>{l}</div>)}
+    </div>
+
+    <div style={{padding:'0 10px 16px'}}>
+      <div style={{padding:'12px 14px',borderRadius:'1rem',background:'rgba(16,32,67,.6)',border:`1px solid ${C.border}`}}>
+        <p style={{fontSize:9,fontWeight:700,letterSpacing:'.15em',textTransform:'uppercase',color:C.textM,marginBottom:3}}>Plan</p>
+        <p style={{fontSize:13,fontWeight:600,color:C.text}}>Pro</p>
+        <p style={{fontSize:10,color:C.textM}}>Active · Renews May 1</p>
+      </div>
+    </div>
+  </nav>;
+}
+
+// ── HEADER ───────────────────────────────────────────────────────
+function Header({ mode, setMode, empty }) {
+  return <section style={{background:'linear-gradient(145deg,rgba(10,24,50,.95),rgba(15,35,75,.93),rgba(16,32,67,.96))',border:`1px solid rgba(148,163,184,.18)`,borderRadius:'1.5rem',padding:'20px 24px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:16,flexWrap:'wrap'}}>
+    <div>
+      <p style={{fontSize:10,fontWeight:700,letterSpacing:'.2em',textTransform:'uppercase',color:C.teal,marginBottom:5}}>Your workspace</p>
+      <h1 style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:22,fontWeight:700,letterSpacing:'-.02em',color:C.text}}>
+        {empty ? "Let's get you set up" : "Good to see you, Sarah"}
+      </h1>
+      <p style={{fontSize:13,color:C.textS,marginTop:3}}>{empty ? 'Connect your first platform to unlock your earnings picture.' : 'Last snapshot: Apr 08, 2025 · Your earnings are in a healthy range.'}</p>
+    </div>
+    <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:10}}>
+      <div style={{display:'inline-flex',alignItems:'center',background:'rgba(16,32,67,.7)',border:`1px solid ${C.borderS}`,borderRadius:999,padding:3}}>
+        {['earn','grow'].map(m=><button key={m} onClick={()=>setMode(m)} style={{padding:'5px 14px',borderRadius:999,fontSize:12,fontWeight:600,letterSpacing:'.05em',textTransform:'capitalize',border:'none',cursor:'pointer',transition:'all .15s',background:mode===m?'rgba(47,217,197,.18)':'transparent',color:mode===m?C.teal:C.textM,fontFamily:'Inter,sans-serif'}}>{m}</button>)}
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        <button style={{padding:'7px 14px',borderRadius:999,fontSize:12,fontWeight:500,background:'rgba(16,32,67,.8)',border:`1px solid ${C.borderS}`,color:C.textS,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>Refresh</button>
+        <button style={{padding:'7px 16px',borderRadius:999,fontSize:12,fontWeight:600,background:C.blue,border:'none',color:'#fff',cursor:'pointer',boxShadow:'0 0 20px rgba(59,130,246,.3)',fontFamily:'Inter,sans-serif'}}>Open latest report →</button>
+      </div>
+    </div>
+  </section>;
+}
+
+// ── HERO HEALTH CARD ─────────────────────────────────────────────
+function EarningsHealthHero({ score, empty }) {
+  const rev=[4200,4800,4500,5100,4900,5400,5800,6100,5900,6400,6800,7200];
+  return <section style={{background:'linear-gradient(145deg,rgba(11,25,52,.97),rgba(17,38,80,.95),rgba(12,27,56,.97))',border:`1px solid ${C.borderS}`,borderRadius:'1.5rem',padding:'28px 32px',display:'grid',gridTemplateColumns:empty?'1fr':'1fr 1px 1fr 1px 1fr',gap:32,alignItems:'center',boxShadow:'0 24px 48px rgba(2,6,23,.4)'}}>
+    {/* Score */}
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',gap:12}}>
+      <p style={{fontSize:10,fontWeight:700,letterSpacing:'.2em',textTransform:'uppercase',color:C.textM}}>Your earning health</p>
+      {empty ? <div style={{padding:'20px 24px',background:'rgba(16,32,67,.55)',border:`1px solid ${C.border}`,borderRadius:'1.1rem',textAlign:'center'}}>
+        <p style={{fontSize:13,fontWeight:600,color:C.text}}>Run your first report</p>
+        <p style={{fontSize:12,color:C.textS,marginTop:6,lineHeight:1.6}}>Your score appears once we've analysed your data.</p>
+      </div> : <ScoreRing score={score}/>}
+      <p style={{fontSize:11,color:C.textM,lineHeight:1.6,maxWidth:180}}>{empty?'':'Healthy and stable. Watch the Patreon churn signal.'}</p>
+    </div>
+
+    {!empty && <div style={{width:1,background:C.border,alignSelf:'stretch'}}/>}
+
+    {/* Revenue tile */}
+    {!empty && <div style={{display:'flex',flexDirection:'column',gap:10}}>
+      <p style={{fontSize:10,fontWeight:600,letterSpacing:'.16em',textTransform:'uppercase',color:C.textM}}>Monthly revenue</p>
+      <div>
+        <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:38,fontWeight:700,letterSpacing:'-.03em',color:C.text,lineHeight:1}}>$7,200</p>
+        <p style={{fontSize:12,color:C.em,marginTop:6,fontWeight:500}}>↑ +5.9% vs last month</p>
+      </div>
+      <Spark data={rev} color={C.teal} w={140} h={40}/>
+      <p style={{fontSize:11,color:C.textM}}>12-month trend</p>
+    </div>}
+
+    {!empty && <div style={{width:1,background:C.border,alignSelf:'stretch'}}/>}
+
+    {/* Biggest signal */}
+    {!empty && <div style={{display:'flex',flexDirection:'column',gap:10}}>
+      <p style={{fontSize:10,fontWeight:600,letterSpacing:'.16em',textTransform:'uppercase',color:C.textM}}>Your next best move</p>
+      <div style={{background:'rgba(47,217,197,.07)',border:`1px solid rgba(47,217,197,.2)`,borderRadius:'1.1rem',padding:'14px 16px'}}>
+        <p style={{fontSize:13,fontWeight:600,color:C.text,lineHeight:1.45}}>Pitch a sponsorship renewal before May</p>
+        <p style={{fontSize:12,color:C.textS,marginTop:5,lineHeight:1.6}}>Your Q2 engagement window is opening. The last brand deal was 14 weeks ago.</p>
+      </div>
+      <button style={{padding:'8px 0',borderRadius:999,fontSize:12,fontWeight:600,background:'transparent',border:`1px solid ${C.borderS}`,color:C.teal,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>See full breakdown</button>
+    </div>}
+  </section>;
+}
+
+// ── KPI ROW ───────────────────────────────────────────────────────
+function KpiRow({ empty }) {
+  const kpis=[
+    {label:'Subscribers',value:'14,820',delta:'+2.1%',spark:[8200,9100,9600,10200,11400,12800,13600,14820],color:C.teal},
+    {label:'Stability index',value:'78/100',delta:'+3 pts',spark:[62,65,68,71,69,72,75,78],color:C.blue},
+    {label:'Data coverage',value:'12 months',delta:'Jan 2024–Apr 2025',spark:null,color:C.em},
+  ];
+  return <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+    {kpis.map(k=><article key={k.label} style={{background:'linear-gradient(155deg,rgba(16,32,67,.95),rgba(19,41,80,.92),rgba(16,32,67,.96))',border:`1px solid ${C.borderS}`,borderRadius:'1.2rem',padding:'18px 20px',boxShadow:'0 18px 36px rgba(2,6,23,.3)'}}>
+      <p style={{fontSize:10,fontWeight:600,letterSpacing:'.15em',textTransform:'uppercase',color:C.textM,marginBottom:8}}>{k.label}</p>
+      {empty ? <p style={{fontSize:22,fontWeight:700,color:C.textM,fontFamily:'Plus Jakarta Sans,sans-serif'}}>—</p> : <>
+        <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:26,fontWeight:700,letterSpacing:'-.02em',color:C.text,lineHeight:1}}>{k.value}</p>
+        <p style={{fontSize:11,color:k.delta.startsWith('+')?C.em:C.textM,marginTop:5,fontWeight:500}}>{k.delta}</p>
+        {k.spark && <div style={{marginTop:10}}><Spark data={k.spark} color={k.color} w={100} h={30}/></div>}
+      </>}
+    </article>)}
+  </div>;
+}
+
+// ── THIS MONTH'S SIGNALS ─────────────────────────────────────────
+function SignalsSection({ empty }) {
+  const signals=[
+    {tone:'good',label:'Working well',title:'YouTube revenue up 14%',body:'Ad revenue increased across the last 3 uploads. Mid-roll placement change appears to be the primary driver.'},
+    {tone:'warn',label:'Worth watching',title:'Patreon churn ticked up',body:'New patron acquisitions dropped below your 30-day retention baseline. Review tier pricing before the next cohort.'},
+    {tone:'neutral',label:'Heads up',title:'Sponsorship timing gap',body:'No brand deal income in April. Q2–Q3 is your strongest window — pipeline should be seeded now.'},
+  ];
+  return <article style={{background:'linear-gradient(155deg,rgba(16,32,67,.92),rgba(19,41,80,.86),rgba(16,32,67,.93))',border:`1px solid rgba(148,163,184,.18)`,borderRadius:'1.5rem',padding:24}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+      <p style={{fontSize:10,fontWeight:700,letterSpacing:'.2em',textTransform:'uppercase',color:C.textM}}>This month's signals</p>
+      {!empty && <Badge v="neutral">Apr 2025</Badge>}
+    </div>
+    {empty ? <div style={{border:`1px dashed ${C.border}`,borderRadius:'1.1rem',padding:16,background:'rgba(16,32,67,.4)'}}>
+      <p style={{fontSize:12,color:C.textS,lineHeight:1.6}}>Signals appear here after a report finds something worth watching in your data.</p>
+    </div> : <div style={{display:'flex',flexDirection:'column',gap:10}}>
+      {signals.map((s,i)=><div key={i} style={{background:'rgba(16,32,67,.55)',border:`1px solid rgba(148,163,184,.18)`,borderRadius:'1.1rem',padding:'14px 16px'}}>
+        <Badge v={s.tone==='good'?'good':s.tone==='warn'?'warn':'neutral'}>{s.label}</Badge>
+        <p style={{fontSize:13,fontWeight:600,color:C.text,marginTop:10,lineHeight:1.4}}>{s.title}</p>
+        <p style={{fontSize:12,color:C.textS,marginTop:5,lineHeight:1.6}}>{s.body}</p>
+      </div>)}
+    </div>}
+  </article>;
+}
+
+// ── WHAT'S HOLDING YOU BACK ───────────────────────────────────────
+function BlockerSection({ empty }) {
+  return <article style={{background:'linear-gradient(145deg,rgba(10,24,50,.94),rgba(15,35,75,.93))',border:`1px solid ${C.borderS}`,borderRadius:'1.3rem',padding:'20px 24px',display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:24,flexWrap:'wrap'}}>
+    <div style={{flex:1,minWidth:240}}>
+      <p style={{fontSize:10,fontWeight:700,letterSpacing:'.2em',textTransform:'uppercase',color:C.teal,marginBottom:8}}>What's holding you back</p>
+      <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:16,fontWeight:600,color:C.text,lineHeight:1.45}}>
+        {empty ? 'Add a data source to see your biggest constraint.' : '42% of your Patreon churn happens in the first 21 days after sign-up.'}
+      </p>
+      <p style={{fontSize:12,color:C.textS,marginTop:6,lineHeight:1.6}}>
+        {empty ? 'Connect Patreon, Substack, YouTube or other platforms to get started.' : 'Improving your welcome sequence could reduce churn significantly and protect monthly revenue.'}
+      </p>
+    </div>
+    {!empty && <button style={{padding:'9px 20px',borderRadius:999,fontSize:12,fontWeight:600,background:C.blue,border:'none',color:'#fff',cursor:'pointer',boxShadow:'0 0 20px rgba(59,130,246,.3)',fontFamily:'Inter,sans-serif',whiteSpace:'nowrap'}}>See the full diagnosis</button>}
+  </article>;
+}
+
+// ── REVENUE TREND ─────────────────────────────────────────────────
+function RevenueTrend({ empty }) {
+  const data=[4200,4800,4500,5100,4900,5400,5800,6100,5900,6400,6800,7200];
+  const months=['May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr'];
+  if (empty) return <article style={{background:'rgba(16,32,67,.55)',border:`1px solid ${C.border}`,borderRadius:'1.3rem',padding:24}}>
+    <p style={{fontSize:10,fontWeight:600,letterSpacing:'.15em',textTransform:'uppercase',color:C.textM,marginBottom:6}}>Your revenue trend</p>
+    <p style={{fontSize:12,color:C.textS,lineHeight:1.6}}>Your earnings trend will appear here after your first completed report.</p>
+  </article>;
+  const mn=Math.min(...data), mx=Math.max(...data), W=520, H=110;
+  const pts=data.map((v,i)=>[10+(i/(data.length-1))*(W-20), H-8-((v-mn)/(mx-mn))*(H-22)]);
+  const poly=pts.map(p=>p.join(',')).join(' ');
+  const area=`10,${H} `+poly+` ${W-10},${H}`;
+  return <article style={{background:'linear-gradient(145deg,rgba(16,32,67,.95),rgba(19,41,80,.92))',border:`1px solid ${C.borderS}`,borderRadius:'1.3rem',padding:24}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14,flexWrap:'wrap',gap:8}}>
+      <div>
+        <p style={{fontSize:10,fontWeight:600,letterSpacing:'.15em',textTransform:'uppercase',color:C.textM}}>Your revenue trend</p>
+        <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:22,fontWeight:700,color:C.text,marginTop:4,letterSpacing:'-.02em'}}>$7,200 <span style={{fontSize:13,color:C.em,fontWeight:500}}>↑ +5.9% vs Mar</span></p>
+      </div>
+      <p style={{fontSize:11,color:C.textM}}>12-month rolling</p>
+    </div>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:'auto',display:'block'}}>
+      <defs><linearGradient id="tgv2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2fd9c5" stopOpacity=".22"/><stop offset="100%" stopColor="#2fd9c5" stopOpacity="0"/></linearGradient></defs>
+      <polygon points={area} fill="url(#tgv2)"/>
+      <polyline points={poly} fill="none" stroke="#2fd9c5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      {pts.map(([x,y],i)=>i===pts.length-1?<circle key={i} cx={x} cy={y} r={4} fill="#2fd9c5" style={{filter:'drop-shadow(0 0 4px #2fd9c5)'}}/>:null)}
+    </svg>
+    <div style={{display:'flex',justifyContent:'space-between',marginTop:6}}>
+      {months.map((m,i)=><span key={i} style={{fontSize:9,color:C.textM,textAlign:'center',flex:1}}>{m}</span>)}
+    </div>
+  </article>;
+}
+
+// ── WORKSPACE STATUS ─────────────────────────────────────────────
+function WorkspaceStatus({ empty }) {
+  const tiles=[
+    {label:'Plan',value:'Pro',sub:'Active'},
+    {label:'Platforms',value:empty?'—':'3',sub:empty?'None connected':'YouTube · Patreon · Gumroad'},
+    {label:'Coverage',value:empty?'—':'12 mo',sub:empty?'After first report':'Jan 2024 – Apr 2025'},
+    {label:'Last upload',value:empty?'—':'Apr 08',sub:empty?'No uploads yet':'2025'},
+  ];
+  return <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
+    {tiles.map((t,i)=><article key={i} style={{background:'rgba(16,32,67,.55)',border:`1px solid ${C.border}`,borderRadius:'1.1rem',padding:'14px 16px'}}>
+      <p style={{fontSize:9,fontWeight:600,letterSpacing:'.16em',textTransform:'uppercase',color:C.textM,marginBottom:6}}>{t.label}</p>
+      <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:18,fontWeight:700,color:C.text}}>{t.value}</p>
+      <p style={{fontSize:10,color:C.textM,marginTop:3}}>{t.sub}</p>
+    </article>)}
+  </div>;
+}
+
+// ── ONBOARDING ────────────────────────────────────────────────────
+function OnboardingSection() {
+  const steps=[
+    {n:'01',title:'Upload your data',body:'Export a CSV or ZIP from Patreon, Substack, YouTube, Instagram, or TikTok.'},
+    {n:'02',title:'We validate it free',body:'EarnSigma checks your data is usable. No charge until you generate a report.'},
+    {n:'03',title:'Get your earnings picture',body:'A private diagnosis of your income health, risks, and what to do next.'},
+  ];
+  return <section style={{background:'linear-gradient(145deg,rgba(10,24,50,.94),rgba(15,35,75,.93))',border:`1px solid ${C.borderS}`,borderRadius:'1.5rem',padding:'24px 28px'}}>
+    <p style={{fontSize:10,fontWeight:700,letterSpacing:'.2em',textTransform:'uppercase',color:C.teal,marginBottom:6}}>Getting started</p>
+    <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:18,fontWeight:700,color:C.text,marginBottom:20,letterSpacing:'-.01em'}}>Three steps to your first earnings report</p>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14}}>
+      {steps.map(s=><div key={s.n} style={{background:'rgba(16,32,67,.55)',border:`1px solid ${C.border}`,borderRadius:'1.2rem',padding:'16px 18px'}}>
+        <p style={{fontSize:24,fontWeight:800,color:C.teal,opacity:.4,fontFamily:'Plus Jakarta Sans,sans-serif',lineHeight:1,marginBottom:10}}>{s.n}</p>
+        <p style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:5}}>{s.title}</p>
+        <p style={{fontSize:12,color:C.textS,lineHeight:1.6}}>{s.body}</p>
+      </div>)}
+    </div>
+    <div style={{marginTop:18,display:'flex',gap:10}}>
+      <button style={{padding:'9px 22px',borderRadius:999,fontSize:13,fontWeight:600,background:C.blue,border:'none',color:'#fff',cursor:'pointer',boxShadow:'0 0 20px rgba(59,130,246,.3)',fontFamily:'Plus Jakarta Sans,sans-serif'}}>Upload your first file</button>
+      <button style={{padding:'9px 18px',borderRadius:999,fontSize:13,fontWeight:500,background:'transparent',border:`1px solid ${C.borderS}`,color:C.textS,cursor:'pointer',fontFamily:'Inter,sans-serif'}}>See a sample report</button>
+    </div>
+  </section>;
+}
+
+// ── GROW MODE ─────────────────────────────────────────────────────
+function GrowMode() {
+  return <section style={{background:'linear-gradient(145deg,rgba(10,24,50,.94),rgba(15,35,75,.93))',border:`1px solid ${C.borderS}`,borderRadius:'1.5rem',padding:'28px 32px',textAlign:'center'}}>
+    <p style={{fontSize:10,fontWeight:700,letterSpacing:'.2em',textTransform:'uppercase',color:C.teal,marginBottom:8}}>Grow mode</p>
+    <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:20,fontWeight:700,color:C.text,marginBottom:8}}>Audience health is coming</p>
+    <p style={{fontSize:13,color:C.textS,maxWidth:400,margin:'0 auto',lineHeight:1.7}}>Grow mode will show your audience momentum, engagement patterns, and how your following translates into earnings. Connect your social analytics to unlock early access.</p>
+    <button style={{marginTop:20,padding:'9px 22px',borderRadius:999,fontSize:13,fontWeight:600,background:'rgba(47,217,197,.12)',border:`1px solid ${C.teal}`,color:C.teal,cursor:'pointer',fontFamily:'Plus Jakarta Sans,sans-serif'}}>Connect social analytics</button>
+  </section>;
+}
+
+// ── APP ────────────────────────────────────────────────────────────
+function App() {
+  const [mode,setMode]=useState('earn');
+  const [empty,setEmpty]=useState(false);
+  const [score,setScore]=useState(72);
+  const [tweaksOpen,setTweaksOpen]=useState(false);
+
+  useEffect(()=>{
+    const fn=e=>{
+      if(e.data?.type==='__activate_edit_mode') setTweaksOpen(true);
+      if(e.data?.type==='__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message',fn);
+    window.parent.postMessage({type:'__edit_mode_available'},'*');
+    return ()=>window.removeEventListener('message',fn);
+  },[]);
+
+  useEffect(()=>{
+    function wire(id,cb){ const el=document.getElementById(id); if(!el)return; el.querySelectorAll('.tw-btn').forEach(b=>b.addEventListener('click',()=>{ el.querySelectorAll('.tw-btn').forEach(x=>x.classList.remove('on')); b.classList.add('on'); cb(b.dataset.v); })); }
+    wire('tw-mode',setMode);
+    wire('tw-data',v=>setEmpty(v==='empty'));
+    wire('tw-score',v=>setScore(Number(v)));
+    const p=document.getElementById('tweaks-panel');
+    if(p) p.classList.toggle('active',tweaksOpen);
+  },[tweaksOpen]);
+
+  return <div style={{display:'flex',height:'100vh',overflow:'hidden'}}>
+    <Sidebar mode={mode} setMode={setMode}/>
+    <main style={{flex:1,overflowY:'auto',padding:'24px 28px',background:`radial-gradient(circle at 12% -6%, rgba(59,130,246,.14) 0%, transparent 46%), radial-gradient(circle at 90% 8%, rgba(47,217,197,.06) 0%, transparent 42%), ${C.bg}`}}>
+      <div style={{maxWidth:860,margin:'0 auto',display:'flex',flexDirection:'column',gap:14}}>
+        <Header mode={mode} setMode={setMode} empty={empty}/>
+        {mode==='earn' ? <>
+          <EarningsHealthHero score={score} empty={empty}/>
+          {empty && <OnboardingSection/>}
+          {!empty && <BlockerSection empty={empty}/>}
+          <KpiRow empty={empty}/>
+          {!empty && <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+            <SignalsSection empty={empty}/>
+            <RevenueTrend empty={empty}/>
+          </div>}
+          <WorkspaceStatus empty={empty}/>
+        </> : <GrowMode/>}
+      </div>
+    </main>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

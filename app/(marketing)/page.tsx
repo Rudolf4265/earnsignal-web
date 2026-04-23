@@ -9,6 +9,7 @@ import { MarketingShell } from "./_components/marketing-shell";
 import {
   InsightGlyph,
   MarketingDataRevealsSection,
+  MarketingPainSection,
   MarketingSupportedTodaySection,
   type InsightIconKey,
 } from "./_components/marketing-sections";
@@ -305,6 +306,8 @@ export default function MarketingHomePage() {
           </div>
         </Container>
       </Section>
+
+      <MarketingPainSection />
 
       <MarketingDataRevealsSection />
 

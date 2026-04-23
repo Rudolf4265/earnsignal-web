@@ -373,6 +373,65 @@ export function MarketingSupportedTodaySection() {
   );
 }
 
+const marketingPains = [
+  {
+    quote: "“I know my numbers are off but I don’t know why.”",
+    label: "Revenue Mystery",
+    body: "Platform dashboards show you totals. EarnSigma shows you why they went up or down.",
+  },
+  {
+    quote: "“I keep losing subscribers but I don’t know which ones.”",
+    label: "Churn Blind Spot",
+    body: "The report identifies exactly which tier and which window drives most cancellations — so you can fix it.",
+  },
+  {
+    quote: "“I’m too reliant on one platform and it scares me.”",
+    label: "Platform Risk",
+    body: "EarnSigma shows how exposed your income is to a single platform, and what that actually means.",
+  },
+  {
+    quote: "“I don’t know if raising prices will hurt me.”",
+    label: "Pricing Uncertainty",
+    body: "Your data holds the answer. We show you what your highest-value supporters actually look like.",
+  },
+];
+
+export function MarketingPainSection() {
+  return (
+    <Section className={marketingSectionClass} data-testid="marketing-pain-section">
+      <Container>
+        <div className="max-w-2xl">
+          <span className={marketingMutedEyebrowClass}>Sound familiar?</span>
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-[2rem]">
+            Every creator we talk to says some version of this.
+          </h2>
+        </div>
+
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          {marketingPains.map((pain) => (
+            <div
+              key={pain.label}
+              className={cn(marketingPremiumCardClass, "p-6 sm:p-7")}
+            >
+              <div className={marketingPremiumCardOverlayClass} />
+              <div className={marketingTopShineClass} />
+              <p className="relative border-l-2 border-brand-accent-blue/40 pl-4 text-[0.95rem] italic leading-relaxed text-brand-text-secondary">
+                {pain.quote}
+              </p>
+              <p className="relative mt-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-accent-teal">
+                {pain.label}
+              </p>
+              <p className="relative mt-2 text-sm leading-relaxed text-brand-text-muted">
+                {pain.body}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Container>
+    </Section>
+  );
+}
+
 export function MarketingDataRevealsSection() {
   return (
     <Section

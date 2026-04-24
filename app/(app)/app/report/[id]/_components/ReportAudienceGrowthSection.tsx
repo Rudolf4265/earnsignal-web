@@ -4,6 +4,7 @@ import type { ReportDetailAudienceGrowthPresentation } from "@/src/lib/report/de
 
 type ReportAudienceGrowthSectionProps = {
   model: ReportDetailAudienceGrowthPresentation;
+  emptyMessage?: string | null;
 };
 
 function summarizeCard(card: ReportDetailAudienceGrowthPresentation["platformCards"][number]): string {
@@ -18,14 +19,11 @@ function summarizeCard(card: ReportDetailAudienceGrowthPresentation["platformCar
   return card.metrics.map((metric) => `${metric.label}: ${metric.value}`).join(" | ");
 }
 
-export function ReportAudienceGrowthSection({ model }: ReportAudienceGrowthSectionProps) {
+export function ReportAudienceGrowthSection({ model, emptyMessage = null }: ReportAudienceGrowthSectionProps) {
   const rows = model.platformCards.slice(0, 3);
-  const intro =
-    model.diagnosis?.strongestSignal ??
-    model.subtitle ??
-    (rows.length > 0 ? "Audience data is supporting the revenue read, but it stays secondary to the business numbers." : null);
+  const intro = model.diagnosis?.strongestSignal ?? model.subtitle ?? null;
 
-  if (!intro && rows.length === 0 && model.includedSources.length === 0 && !model.trustNote) {
+  if (!intro && rows.length === 0 && model.includedSources.length === 0 && !model.trustNote && !emptyMessage) {
     return null;
   }
 
@@ -50,6 +48,10 @@ export function ReportAudienceGrowthSection({ model }: ReportAudienceGrowthSecti
             </article>
           ))}
         </div>
+      ) : emptyMessage ? (
+        <p className="max-w-3xl text-sm leading-7 text-brand-text-secondary" data-testid="report-audience-growth-empty">
+          {emptyMessage}
+        </p>
       ) : null}
 
       {model.includedSources.length > 0 ? (

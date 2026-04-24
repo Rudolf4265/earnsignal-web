@@ -5,6 +5,7 @@ import {
   buildCanonicalReportTitle,
   buildReportDisplayLabels,
   buildReportSourceContributionLine,
+  normalizePlatformLabel,
   normalizePlatformsIncluded,
   resolveReportSourceCount,
 } from "./source-labeling";
@@ -900,10 +901,21 @@ function readPlatformRiskSignalTone(lines: string[]): { tone: "Warning" | "Posit
 
 function buildAudienceGrowthSection(
   audienceGrowth: ReportViewModel["audienceGrowthSignals"],
+  platformsIncluded: string[] | null | undefined,
 ): ReportDetailPresentationModel["audienceGrowth"] {
   if (!audienceGrowth) {
     return null;
   }
+
+  const allowedPlatforms = new Set(normalizePlatformsIncluded(platformsIncluded));
+  const keepAudiencePlatform = (platform: string | null | undefined, label: string | null | undefined): boolean => {
+    if (allowedPlatforms.size === 0) {
+      return true;
+    }
+
+    const normalized = normalizePlatformLabel(platform ?? label ?? null);
+    return normalized ? allowedPlatforms.has(normalized) : true;
+  };
 
   const rawSummaryTiles: Array<{
     id: ReportDetailAudienceGrowthSummaryTile["id"];
@@ -941,7 +953,7 @@ function buildAudienceGrowthSection(
     }));
 
   const includedSources = audienceGrowth.includedSources
-    .filter((source) => source.included)
+    .filter((source) => source.included && keepAudiencePlatform(source.platform, source.label))
     .map((source, index) => ({
       id: source.platform ?? `${index}`,
       label: source.label,
@@ -950,7 +962,7 @@ function buildAudienceGrowthSection(
     }));
 
   const platformCards = audienceGrowth.platformCards
-    .filter((card) => card.included)
+    .filter((card) => card.included && keepAudiencePlatform(card.platform, card.label))
     .map((card, index) => ({
       id: card.platform ?? `${index}`,
       label: card.label,
@@ -963,18 +975,31 @@ function buildAudienceGrowthSection(
     (audienceGrowth.diagnosis.strongestSignal || audienceGrowth.diagnosis.watchout || audienceGrowth.diagnosis.nextBestMove)
       ? audienceGrowth.diagnosis
       : null;
+  const subtitle =
+    audienceGrowth.subtitle && !hasConflictingPlatformMentions(audienceGrowth.subtitle, normalizePlatformsIncluded(platformsIncluded))
+      ? polishReportSentence(audienceGrowth.subtitle) ?? audienceGrowth.subtitle
+      : null;
+  const trustworthyDiagnosis =
+    diagnosis &&
+    ![
+      diagnosis.strongestSignal,
+      diagnosis.watchout,
+      diagnosis.nextBestMove,
+    ].some((line) => (line ? hasConflictingPlatformMentions(line, normalizePlatformsIncluded(platformsIncluded)) : false))
+      ? diagnosis
+      : null;
 
-  if (summaryTiles.length === 0 && includedSources.length === 0 && platformCards.length === 0 && !diagnosis && !audienceGrowth.trustNote) {
+  if (summaryTiles.length === 0 && includedSources.length === 0 && platformCards.length === 0 && !trustworthyDiagnosis && !audienceGrowth.trustNote) {
     return null;
   }
 
   return {
     title: /signals/i.test(audienceGrowth.title) ? "Audience Growth" : audienceGrowth.title,
-    subtitle: audienceGrowth.subtitle ? "Where attention is building, what to watch, and where to lean next." : null,
+    subtitle,
     summaryTiles,
     includedSources,
     platformCards,
-    diagnosis,
+    diagnosis: trustworthyDiagnosis,
     trustNote: audienceGrowth.trustNote,
   };
 }
@@ -1017,7 +1042,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
   const sectionEntries = toIndexedSections(input.artifactModel?.sections);
   const diagnosis = buildDiagnosisSection(input.artifactModel?.diagnosis ?? null);
   const whatChanged = buildWhatChangedSection(input.artifactModel?.whatChanged ?? null);
-  const audienceGrowth = buildAudienceGrowthSection(input.artifactModel?.audienceGrowthSignals ?? null);
+  const audienceGrowth = buildAudienceGrowthSection(input.artifactModel?.audienceGrowthSignals ?? null, input.report.platformsIncluded);
 
   const revenueSections = selectSections(sectionEntries, ["revenue snapshot", "revenue trend"]);
   const subscriberSections = selectSections(sectionEntries, ["subscribers retention", "subscriber", "retention", "tier health", "churn", "arpu"]);

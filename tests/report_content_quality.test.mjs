@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 const wowViewModelUrl = pathToFileURL(path.resolve("src/lib/report/wow-summary-view-model.ts")).href;
+const detailPresentationUrl = pathToFileURL(path.resolve("src/lib/report/detail-presentation.ts")).href;
 const wowComponentPath = path.resolve("app/(app)/app/report/[id]/_components/ReportWowSummary.tsx");
 const reportPagePath = path.resolve("app/(app)/app/report/[id]/page.tsx");
 const detailPresentationPath = path.resolve("src/lib/report/detail-presentation.ts");
@@ -19,6 +20,21 @@ const BANNED_LITERAL_PHRASES = [
   "technical report details",
   "quality flag",
 ];
+
+const BANNED_VISIBLE_REPORT_PHRASES = [
+  "report read",
+  "this chapter",
+  "current artifact",
+  "operating summary",
+  "single statement should carry",
+];
+
+function stripComments(source) {
+  return source
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1");
+}
 
 function makePresentation(overrides = {}) {
   return {
@@ -101,6 +117,42 @@ function makeArtifactModel(overrides = {}) {
   };
 }
 
+function makeReportDetail(overrides = {}) {
+  return {
+    id: "rep_test_001",
+    title: "Creator Report",
+    status: "complete",
+    summary: "Revenue is still concentrated in one place.",
+    createdAt: "2026-04-01T10:00:00Z",
+    updatedAt: "2026-04-01T10:00:00Z",
+    artifactUrl: "/artifact.json",
+    pdfUrl: "/artifact.pdf",
+    artifactJsonUrl: "/artifact.json",
+    keySignals: [],
+    recommendedActions: [],
+    diagnosis: null,
+    whatChanged: null,
+    platformsIncluded: ["Patreon", "Substack", "YouTube"],
+    sourceCount: 3,
+    reportKind: "combined",
+    snapshotWindowMode: null,
+    snapshotCoverageNote: null,
+    youtubeContributionMode: null,
+    monthsPresent: null,
+    reportHasBusinessMetrics: true,
+    sectionStrength: [],
+    metrics: {
+      netRevenue: 3084,
+      subscribers: 305,
+      stabilityIndex: 36,
+      churnVelocity: null,
+      coverageMonths: 3,
+      platformsConnected: 3,
+    },
+    ...overrides,
+  };
+}
+
 test("creator-facing report sources do not contain banned internal phrases", async () => {
   const wowSource = await readFile(path.resolve("src/lib/report/wow-summary-view-model.ts"), "utf8");
   const componentSource = await readFile(wowComponentPath, "utf8");
@@ -158,6 +210,14 @@ test("creator-facing page no longer renders supporting detail or old recommendat
   assert.equal(source.includes("What to do next"), true);
 });
 
+test("visible report copy removes stale report-meta phrases", async () => {
+  const pageSource = stripComments(await readFile(reportPagePath, "utf8")).toLowerCase();
+
+  for (const phrase of BANNED_VISIBLE_REPORT_PHRASES) {
+    assert.equal(pageSource.includes(phrase), false, `Found stale visible phrase in report page: ${phrase}`);
+  }
+});
+
 test("report page trims repeated coverage caveat copy when a hero coverage notice is present", async () => {
   const source = await readFile(reportPagePath, "utf8");
 
@@ -165,4 +225,73 @@ test("report page trims repeated coverage caveat copy when a hero coverage notic
   assert.equal(source.includes("const hasCoverageNotice = Boolean"), true);
   assert.equal(source.includes("filtered = lines.filter((line) => !isCoverageCaveatLine(line))"), true);
   assert.equal(source.includes("rationale: hasCoverageNotice && isCoverageCaveatLine(recommendation.detail) ? null : recommendation.detail"), true);
+});
+
+test("audience growth only keeps rows for report sources that were actually included", async () => {
+  const { buildReportDetailPresentationModel } = await import(detailPresentationUrl);
+
+  const presentation = buildReportDetailPresentationModel({
+    report: makeReportDetail({
+      platformsIncluded: ["Patreon", "Substack", "YouTube"],
+      sourceCount: 3,
+    }),
+    artifactModel: makeArtifactModel({
+      diagnosis: null,
+      audienceGrowthSignals: {
+        title: "Audience signals",
+        subtitle: "Based on your available Instagram, TikTok, and YouTube audience data.",
+        summary: {
+          creatorScore: 72,
+          sourceCoverage: 67,
+          audienceMomentum: 61,
+          engagementSignal: 59,
+        },
+        includedSources: [
+          { platform: "youtube", label: "YouTube", included: true, latestPeriodLabel: "Apr 2026", dataType: "audience_and_content" },
+          { platform: "instagram", label: "Instagram", included: true, latestPeriodLabel: "Apr 2026", dataType: "audience" },
+          { platform: "tiktok", label: "TikTok", included: true, latestPeriodLabel: "Apr 2026", dataType: "audience" },
+        ],
+        platformCards: [
+          {
+            platform: "youtube",
+            label: "YouTube",
+            included: true,
+            metrics: [{ id: "subscribers_trend", label: "Subscribers trend", value: "Stable" }],
+            insight: "YouTube is contributing useful audience context.",
+          },
+          {
+            platform: "instagram",
+            label: "Instagram",
+            included: true,
+            metrics: [{ id: "followers_trend", label: "Followers trend", value: "Up" }],
+            insight: "Instagram is climbing fastest.",
+          },
+          {
+            platform: "tiktok",
+            label: "TikTok",
+            included: true,
+            metrics: [{ id: "followers_trend", label: "Followers trend", value: "Up" }],
+            insight: "TikTok is climbing fastest.",
+          },
+        ],
+        diagnosis: {
+          strongestSignal: "TikTok is the strongest audience signal in this upload.",
+          watchout: null,
+          nextBestMove: null,
+        },
+        trustNote: null,
+      },
+    }),
+    artifactSignals: null,
+  });
+
+  assert.deepEqual(
+    presentation.audienceGrowth?.includedSources.map((source) => source.label),
+    ["YouTube"],
+  );
+  assert.deepEqual(
+    presentation.audienceGrowth?.platformCards.map((card) => card.label),
+    ["YouTube"],
+  );
+  assert.equal(presentation.audienceGrowth?.diagnosis, null);
 });

@@ -82,9 +82,21 @@ test("audience growth component is reduced to summary copy, rows, and muted sour
 
   assert.equal(source.includes('data-testid="report-audience-growth-summary"'), true);
   assert.equal(source.includes('data-testid="report-audience-growth-rows"'), true);
+  assert.equal(source.includes('data-testid="report-audience-growth-empty"'), true);
   assert.equal(source.includes('data-testid="report-audience-growth-cards"'), false);
   assert.equal(source.includes('data-testid="report-audience-growth-sources"'), true);
   assert.equal(source.includes("cursor-default"), true);
   assert.equal(source.includes("select-none"), true);
   assert.equal(source.includes("Included sources"), true);
+  assert.equal(source.includes("Instagram"), false);
+  assert.equal(source.includes("TikTok"), false);
+});
+
+test("report detail keeps audience scope truthful and renders a restrained empty state when no audience source is present", async () => {
+  const pageSource = await readFile(reportDetailPagePath, "utf8");
+
+  assert.equal(pageSource.includes("function buildAudienceEmptyState"), true);
+  assert.equal(pageSource.includes("No audience-growth source was included in this report."), true);
+  assert.equal(pageSource.includes("Audience signals are not available for the included sources yet."), true);
+  assert.equal(pageSource.includes("<ReportAudienceGrowthSection model={audienceSectionModel} emptyMessage={audienceEmptyState} />"), true);
 });

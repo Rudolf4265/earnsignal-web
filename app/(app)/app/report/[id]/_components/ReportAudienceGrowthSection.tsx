@@ -15,7 +15,7 @@ function summarizeCard(card: ReportDetailAudienceGrowthPresentation["platformCar
     return "Signal detail is limited in this report.";
   }
 
-  return card.metrics.map((metric) => `${metric.label}: ${metric.value}`).join(" · ");
+  return card.metrics.map((metric) => `${metric.label}: ${metric.value}`).join(" | ");
 }
 
 export function ReportAudienceGrowthSection({ model }: ReportAudienceGrowthSectionProps) {
@@ -32,21 +32,21 @@ export function ReportAudienceGrowthSection({ model }: ReportAudienceGrowthSecti
   return (
     <div className="space-y-5" data-testid="report-audience-growth-section">
       {intro ? (
-        <p className="max-w-3xl text-sm leading-7 text-slate-600" data-testid="report-audience-growth-summary">
+        <p className="max-w-3xl text-sm leading-7 text-brand-text-secondary" data-testid="report-audience-growth-summary">
           {intro}
         </p>
       ) : null}
 
       {rows.length > 0 ? (
-        <div className="divide-y divide-slate-200/80 border-y border-slate-200/80" data-testid="report-audience-growth-rows">
+        <div className="divide-y divide-brand-border/60 border-y border-brand-border/65" data-testid="report-audience-growth-rows">
           {rows.map((card) => (
             <article
               key={card.id}
               className="grid gap-2 py-4 md:grid-cols-[minmax(140px,180px)_minmax(0,1fr)] md:gap-6"
               data-testid={`report-audience-growth-row-${card.id}`}
             >
-              <p className="text-sm font-semibold text-slate-900">{card.label}</p>
-              <p className="text-sm leading-7 text-slate-600">{summarizeCard(card)}</p>
+              <p className="text-sm font-semibold text-brand-text-primary">{card.label}</p>
+              <p className="text-sm leading-7 text-brand-text-secondary">{summarizeCard(card)}</p>
             </article>
           ))}
         </div>
@@ -54,17 +54,17 @@ export function ReportAudienceGrowthSection({ model }: ReportAudienceGrowthSecti
 
       {model.includedSources.length > 0 ? (
         <div className="space-y-2" data-testid="report-audience-growth-sources">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Included sources</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Included sources</p>
           <div className="flex flex-wrap gap-2.5">
             {model.includedSources.map((source) => (
               <div
                 key={source.id}
-                className="cursor-default select-none rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs text-slate-600"
+                className="cursor-default select-none rounded-full border border-brand-border/70 bg-brand-panel/65 px-3 py-1.5 text-xs text-brand-text-secondary"
                 data-testid={`report-audience-growth-source-${source.id}`}
               >
-                <span className="font-semibold text-slate-900">{source.label}</span>
+                <span className="font-semibold text-brand-text-primary">{source.label}</span>
                 {source.latestPeriodLabel || source.dataType ? (
-                  <span className="ml-2 text-slate-500">{[source.latestPeriodLabel, source.dataType].filter(Boolean).join(" · ")}</span>
+                  <span className="ml-2 text-brand-text-muted">{[source.latestPeriodLabel, source.dataType].filter(Boolean).join(" | ")}</span>
                 ) : null}
               </div>
             ))}
@@ -73,7 +73,7 @@ export function ReportAudienceGrowthSection({ model }: ReportAudienceGrowthSecti
       ) : null}
 
       {model.trustNote ? (
-        <p className="text-xs leading-6 text-slate-500" data-testid="report-audience-growth-trust-note">
+        <p className="text-xs leading-6 text-brand-text-muted" data-testid="report-audience-growth-trust-note">
           {model.trustNote}
         </p>
       ) : null}

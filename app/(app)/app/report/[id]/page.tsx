@@ -239,6 +239,15 @@ type ActionPlanItem = {
   timeframe: string | null;
 };
 
+const reportDocumentShellClassName =
+  "overflow-hidden rounded-[2rem] border border-brand-border-strong/80 bg-[linear-gradient(180deg,rgba(11,27,61,0.98),rgba(16,31,67,0.96),rgba(10,23,51,0.98))] text-brand-text-primary shadow-brand-card";
+const reportDocumentPanelClassName =
+  "rounded-[1.5rem] border border-brand-border/75 bg-[linear-gradient(165deg,rgba(16,32,67,0.9),rgba(19,41,80,0.78),rgba(11,24,50,0.92))] shadow-brand-card";
+const reportDocumentPanelElevatedClassName =
+  "rounded-[1.5rem] border border-brand-border-strong/80 bg-[linear-gradient(155deg,rgba(16,32,67,0.95),rgba(23,49,117,0.82),rgba(15,118,110,0.18))] shadow-brand-card";
+const reportDocumentTableClassName =
+  "overflow-x-auto rounded-[1.5rem] border border-brand-border/75 bg-[linear-gradient(165deg,rgba(16,32,67,0.9),rgba(19,41,80,0.78),rgba(11,24,50,0.92))] shadow-brand-card";
+
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -424,15 +433,15 @@ function isCoverageCaveatLine(value: string | null | undefined): boolean {
 function DocumentSection({ number, title, subtitle, children, className, testId }: DocumentSectionProps) {
   return (
     <section
-      className={`border-t border-slate-200/80 px-6 py-10 sm:px-10 sm:py-12 lg:px-14 ${className ?? ""}`.trim()}
+      className={`border-t border-brand-border/65 px-6 py-10 sm:px-10 sm:py-12 lg:px-14 ${className ?? ""}`.trim()}
       data-testid={testId}
     >
       <div className="max-w-5xl">
         <div className="mb-6 space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-text-muted">
             {number}. {title}
           </p>
-          {subtitle ? <p className="max-w-3xl text-sm leading-7 text-slate-600">{subtitle}</p> : null}
+          {subtitle ? <p className="max-w-3xl text-sm leading-7 text-brand-text-secondary">{subtitle}</p> : null}
         </div>
         {children}
       </div>
@@ -1165,17 +1174,17 @@ export default function ReportPage() {
       {state.view === "loading" ? (
         <div className="space-y-3" data-testid="report-loading">
           <h1 className="text-2xl font-semibold">Loading report...</h1>
-          <p className="text-sm text-slate-400">Fetching report details for {canonicalReportId ?? "unknown report"}.</p>
+          <p className="text-sm text-brand-text-secondary">Fetching report details for {canonicalReportId ?? "unknown report"}.</p>
         </div>
       ) : null}
 
       {state.view === "success" && state.report && presentation ? (
-        <section className="space-y-6" data-testid="report-content">
-          <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(251,253,255,0.98),rgba(244,247,251,0.98))] text-slate-900 shadow-[0_32px_90px_-48px_rgba(15,23,42,0.85)]">
+        <section className="space-y-8" data-testid="report-content">
+          <section className={reportDocumentShellClassName}>
             <div className="px-6 py-8 sm:px-10 sm:py-10 lg:px-14 lg:py-12">
               <div className="flex flex-wrap items-start justify-between gap-6">
                 <div className="max-w-4xl space-y-5">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium uppercase tracking-[0.16em] text-brand-text-muted">
                     <span
                       data-testid={state.report.reportKind === "single-source" ? "report-single-source-framing" : "report-combined-framing"}
                     >
@@ -1192,23 +1201,23 @@ export default function ReportPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <h1 className="max-w-4xl text-[2.2rem] font-semibold leading-[1.08] tracking-[-0.03em] text-slate-950 sm:text-[2.8rem]">
+                    <h1 className="max-w-4xl text-[2.2rem] font-semibold leading-[1.08] tracking-[-0.03em] text-brand-text-primary sm:text-[2.8rem]">
                       {heroHeadline ?? presentation.heroTitle}
                     </h1>
-                    {heroSubline ? <p className="text-sm font-medium text-slate-600 sm:text-[0.96rem]">{heroSubline}</p> : null}
+                    {heroSubline ? <p className="text-sm font-medium text-brand-text-secondary sm:text-[0.96rem]">{heroSubline}</p> : null}
                   </div>
 
                   {heroNarrative.length > 0 ? (
                     <article className="max-w-3xl space-y-3" data-testid="report-executive-summary-card">
                       {heroNarrative.map((paragraph) => (
-                        <p key={paragraph} className="text-[0.98rem] leading-8 text-slate-700">
+                        <p key={paragraph} className="text-[0.98rem] leading-8 text-brand-text-secondary">
                           {paragraph}
                         </p>
                       ))}
                     </article>
                   ) : null}
 
-                  <div className="space-y-2 text-sm text-slate-600">
+                  <div className="space-y-2 text-sm text-brand-text-muted">
                     <p>Created {createdAtLabel}</p>
                     {presentation.displayContext.sourceContributionLine ? (
                       <p data-testid="report-source-contribution">{presentation.displayContext.sourceContributionLine}</p>
@@ -1228,7 +1237,7 @@ export default function ReportPage() {
                           type="button"
                           onClick={() => void openPdf()}
                           disabled={pdfLoading}
-                          className="inline-flex rounded-xl bg-brand-accent-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                          className={buttonClassName({ variant: "secondary", size: "sm", className: "px-4 shadow-brand-card" })}
                         >
                           {pdfLoading ? "Opening PDF..." : "Open PDF"}
                         </button>
@@ -1236,13 +1245,13 @@ export default function ReportPage() {
                           type="button"
                           onClick={() => void downloadPdf()}
                           disabled={downloadLoading}
-                          className="inline-flex rounded-xl bg-brand-accent-blue px-3 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                          className={buttonClassName({ variant: "primary", size: "sm", className: "px-4 shadow-brand-glow" })}
                         >
                           {downloadLoading ? "Downloading PDF..." : "Download PDF"}
                         </button>
                       </>
                     ) : (
-                      <span className="inline-flex rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+                      <span className="inline-flex rounded-full border border-[rgba(245,158,11,0.42)] bg-[rgba(245,158,11,0.18)] px-3 py-1.5 text-xs font-medium text-amber-200">
                         PDF unavailable
                       </span>
                     )
@@ -1258,7 +1267,7 @@ export default function ReportPage() {
 
               {showFullReportContent ? (
                 <div
-                  className="mt-8 flex flex-wrap divide-y divide-slate-200 border-y border-slate-200 text-slate-900 md:divide-x md:divide-y-0"
+                  className="mt-8 flex flex-wrap divide-y divide-brand-border/60 border-y border-brand-border/70 text-brand-text-primary md:divide-x md:divide-y-0 md:divide-brand-border/60"
                   data-testid="report-hero-at-a-glance"
                 >
                   {[
@@ -1274,8 +1283,8 @@ export default function ReportPage() {
                     },
                   ].map((item) => (
                     <div key={item.label} className="min-w-[180px] flex-1 px-0 py-4 md:px-5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{item.label}</p>
-                      <p className="mt-2 text-[1.55rem] font-semibold tracking-[-0.02em] text-slate-950">{item.value}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">{item.label}</p>
+                      <p className="mt-2 text-[1.55rem] font-semibold tracking-[-0.02em] text-brand-text-primary">{item.value}</p>
                     </div>
                   ))}
                 </div>
@@ -1292,11 +1301,11 @@ export default function ReportPage() {
                 >
                   <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
                     {keyFindings.map((finding) => (
-                      <article key={finding.id} className="border-b border-slate-200/80 pb-6">
-                        <p className="text-[2.4rem] font-semibold leading-none tracking-[-0.04em] text-slate-950">{finding.value}</p>
-                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{finding.label}</p>
-                        <h2 className="mt-3 text-lg font-semibold leading-snug text-slate-950">{finding.headline}</h2>
-                        <p className="mt-2 text-sm leading-7 text-slate-600">{finding.body}</p>
+                      <article key={finding.id} className="border-b border-brand-border/60 pb-6">
+                        <p className="text-[2.4rem] font-semibold leading-none tracking-[-0.04em] text-brand-text-primary">{finding.value}</p>
+                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">{finding.label}</p>
+                        <h2 className="mt-3 text-lg font-semibold leading-snug text-brand-text-primary">{finding.headline}</h2>
+                        <p className="mt-2 text-sm leading-7 text-brand-text-secondary">{finding.body}</p>
                       </article>
                     ))}
                   </div>
@@ -1308,30 +1317,30 @@ export default function ReportPage() {
                   subtitle={presentation.displayContext.historyLabel || "How revenue moved across the tracked history window."}
                 >
                   <div className="space-y-6">
-                    <div className="rounded-[1.5rem] border border-slate-200 bg-white/80 p-4 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.28)] sm:p-5">
+                    <div className={`${reportDocumentPanelClassName} p-4 sm:p-5`}>
                       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
                         <div>
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Latest revenue</p>
-                          <p className="mt-2 text-[2rem] font-semibold tracking-[-0.03em] text-slate-950">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Latest revenue</p>
+                          <p className="mt-2 text-[2rem] font-semibold tracking-[-0.03em] text-brand-text-primary">
                             {revenueTrend.latestValueDisplay ?? "$--"}
                           </p>
                         </div>
                         <div className="text-right">
-                          {revenueTrend.movementLabel ? <p className="text-sm font-semibold text-slate-900">{revenueTrend.movementLabel}</p> : null}
-                          {revenueTrend.periodLabel ? <p className="mt-1 text-xs text-slate-500">{revenueTrend.periodLabel}</p> : null}
+                          {revenueTrend.movementLabel ? <p className="text-sm font-semibold text-brand-text-primary">{revenueTrend.movementLabel}</p> : null}
+                          {revenueTrend.periodLabel ? <p className="mt-1 text-xs text-brand-text-muted">{revenueTrend.periodLabel}</p> : null}
                         </div>
                       </div>
                       {revenueTrend.hasRenderableChart ? (
                         <RevenueTrendChart points={revenueTrend.points} />
                       ) : (
-                        <div className="rounded-[1rem] border border-dashed border-slate-300 bg-slate-50 px-4 py-5">
-                          <p className="text-sm text-slate-600">Trend chart data is not available in this report artifact.</p>
+                        <div className="rounded-[1rem] border border-dashed border-brand-border-strong/65 bg-brand-panel-muted/55 px-4 py-5">
+                          <p className="text-sm text-brand-text-muted">Trend chart data is not available in this report artifact.</p>
                         </div>
                       )}
                     </div>
                     <article className="max-w-3xl space-y-3" data-testid="report-revenue-interpretation">
-                      <h2 className="text-lg font-semibold text-slate-950">What this means</h2>
-                      <p className="text-sm leading-7 text-slate-600">
+                      <h2 className="text-lg font-semibold text-brand-text-primary">What this means</h2>
+                      <p className="text-sm leading-7 text-brand-text-secondary">
                         {`${revenueExplanation.whatHappened} ${revenueExplanation.whyItMatters} ${revenueExplanation.whatToWatch}`}
                       </p>
                     </article>
@@ -1353,15 +1362,15 @@ export default function ReportPage() {
                             <article key={row.platform} className="space-y-2.5" data-testid="report-platform-mix-row">
                               <div className="flex flex-wrap items-end justify-between gap-3">
                                 <div>
-                                  <p className="text-base font-semibold text-slate-950">{toTitleCase(row.platform)}</p>
-                                  <p className="mt-1 text-sm text-slate-600">{platformShareBandLabel(index, sharePct)}</p>
+                                  <p className="text-base font-semibold text-brand-text-primary">{toTitleCase(row.platform)}</p>
+                                  <p className="mt-1 text-sm text-brand-text-secondary">{platformShareBandLabel(index, sharePct)}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-base font-semibold text-slate-950">{formatCurrencyLabel(row.revenue) ?? "$0"}</p>
-                                  <p className="mt-1 text-sm text-slate-600">{sharePct}% share</p>
+                                  <p className="text-base font-semibold text-brand-text-primary">{formatCurrencyLabel(row.revenue) ?? "$0"}</p>
+                                  <p className="mt-1 text-sm text-brand-text-secondary">{sharePct}% share</p>
                                 </div>
                               </div>
-                              <div className="h-2.5 rounded-full bg-slate-200">
+                              <div className="h-2.5 rounded-full bg-brand-panel-muted/80">
                                 <div
                                   className={`h-full rounded-full ${platformShareBarColor(sharePct)}`}
                                   style={{ width: `${sharePct}%` }}
@@ -1372,33 +1381,33 @@ export default function ReportPage() {
                         })}
                       </div>
                     ) : (
-                      <p className="text-sm leading-7 text-slate-600">{presentation.platformMix.highlights[0] ?? "Platform mix detail is limited in this report."}</p>
+                      <p className="text-sm leading-7 text-brand-text-secondary">{presentation.platformMix.highlights[0] ?? "Platform mix detail is limited in this report."}</p>
                     )}
 
                     {presentation.platformMix.concentrationScore != null && concentrationTone ? (
-                      <div className="space-y-4 rounded-[1.5rem] border border-slate-200 bg-white/80 p-5 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.28)]">
+                      <div className={`${reportDocumentPanelClassName} space-y-4 p-5`}>
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Concentration scale</p>
-                            <p className="mt-2 text-lg font-semibold text-slate-950">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Concentration scale</p>
+                            <p className="mt-2 text-lg font-semibold text-brand-text-primary">
                               {Math.round(presentation.platformMix.concentrationScore)}% {concentrationTone.label.toLowerCase()} risk
                             </p>
                           </div>
-                          <p className="max-w-xl text-sm leading-7 text-slate-600">
+                          <p className="max-w-xl text-sm leading-7 text-brand-text-secondary">
                             {wowSummary?.platformMix.highlights[0] ?? "A more balanced mix makes the business less fragile when one platform slows down."}
                           </p>
                         </div>
                         <div className="pt-2">
-                          <div className="relative h-1 rounded-full bg-slate-200">
-                            <div className="absolute inset-y-0 left-[20%] w-px bg-slate-300" />
-                            <div className="absolute inset-y-0 left-[40%] w-px bg-slate-300" />
-                            <div className="absolute inset-y-0 left-[60%] w-px bg-slate-300" />
+                          <div className="relative h-1 rounded-full bg-brand-panel-muted/80">
+                            <div className="absolute inset-y-0 left-[20%] w-px bg-brand-border/70" />
+                            <div className="absolute inset-y-0 left-[40%] w-px bg-brand-border/70" />
+                            <div className="absolute inset-y-0 left-[60%] w-px bg-brand-border/70" />
                             <div
-                              className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-white bg-brand-accent-blue shadow-[0_0_0_4px_rgba(59,130,246,0.16)]"
+                              className="absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-[#071126] bg-brand-accent-blue shadow-[0_0_0_4px_rgba(96,165,250,0.2)]"
                               style={{ left: `calc(${Math.min(100, Math.max(0, presentation.platformMix.concentrationScore))}% - 0.5rem)` }}
                             />
                           </div>
-                          <div className="mt-3 grid grid-cols-4 gap-3 text-[11px] uppercase tracking-[0.14em] text-slate-500">
+                          <div className="mt-3 grid grid-cols-4 gap-3 text-[11px] uppercase tracking-[0.14em] text-brand-text-muted">
                             <span>Safe &lt;20%</span>
                             <span>Watch 20–40%</span>
                             <span>Elevated 40–60%</span>
@@ -1417,10 +1426,10 @@ export default function ReportPage() {
                   testId="report-subscriber-structure"
                 >
                   {tierRows.length > 0 ? (
-                    <div className="overflow-x-auto rounded-[1.5rem] border border-slate-200 bg-white/80 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.28)]">
-                      <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50">
-                          <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <div className={reportDocumentTableClassName}>
+                      <table className="min-w-full divide-y divide-brand-border/60">
+                        <thead className="bg-brand-panel-muted/55">
+                          <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">
                             <th className="px-4 py-3">Tier</th>
                             <th className="px-4 py-3">Price</th>
                             <th className="px-4 py-3">Subscribers</th>
@@ -1429,10 +1438,10 @@ export default function ReportPage() {
                             <th className="px-4 py-3">Status</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-200 bg-white">
+                        <tbody className="divide-y divide-brand-border/55 bg-transparent">
                           {tierRows.map((row) => (
-                            <tr key={row.id} className="text-sm text-slate-700">
-                              <td className="px-4 py-3 font-semibold text-slate-950">{row.tier}</td>
+                            <tr key={row.id} className="text-sm text-brand-text-secondary">
+                              <td className="px-4 py-3 font-semibold text-brand-text-primary">{row.tier}</td>
                               <td className="px-4 py-3">{row.price ?? "—"}</td>
                               <td className="px-4 py-3">{row.subscribers ?? "—"}</td>
                               <td className="px-4 py-3">{row.revenueShare ?? "—"}</td>
@@ -1444,19 +1453,19 @@ export default function ReportPage() {
                       </table>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto rounded-[1.5rem] border border-slate-200 bg-white/80 shadow-[0_16px_40px_-34px_rgba(15,23,42,0.28)]">
-                      <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50">
-                          <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <div className={reportDocumentTableClassName}>
+                      <table className="min-w-full divide-y divide-brand-border/60">
+                        <thead className="bg-brand-panel-muted/55">
+                          <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">
                             <th className="px-4 py-3">Signal</th>
                             <th className="px-4 py-3">Value</th>
                             <th className="px-4 py-3">Note</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-200 bg-white">
+                        <tbody className="divide-y divide-brand-border/55 bg-transparent">
                           {subscriberSignalRows.map((row) => (
-                            <tr key={row.id} className="text-sm text-slate-700">
-                              <td className="px-4 py-3 font-semibold text-slate-950">{row.label}</td>
+                            <tr key={row.id} className="text-sm text-brand-text-secondary">
+                              <td className="px-4 py-3 font-semibold text-brand-text-primary">{row.label}</td>
                               <td className="px-4 py-3">{row.value}</td>
                               <td className="px-4 py-3">{row.note ?? "Tier-level detail is not present in this artifact."}</td>
                             </tr>
@@ -1474,17 +1483,17 @@ export default function ReportPage() {
                   testId="report-revenue-concentration"
                 >
                   <div className="max-w-4xl space-y-4">
-                    <h2 className="max-w-3xl text-[2.4rem] font-semibold leading-[1.08] tracking-[-0.04em] text-slate-950">
+                    <h2 className="max-w-3xl text-[2.4rem] font-semibold leading-[1.08] tracking-[-0.04em] text-brand-text-primary">
                       {spotlight?.statement ?? (topPlatformShare ? `${topPlatformShare.shareLabel} of revenue still comes from ${topPlatformShare.platform}.` : "Revenue concentration is still shaping the business read.")}
                     </h2>
                     {spotlight?.details.length ? (
                       spotlight.details.map((detail) => (
-                        <p key={detail} className="max-w-3xl text-sm leading-7 text-slate-600">
+                        <p key={detail} className="max-w-3xl text-sm leading-7 text-brand-text-secondary">
                           {detail}
                         </p>
                       ))
                     ) : (
-                      <p className="max-w-3xl text-sm leading-7 text-slate-600">
+                      <p className="max-w-3xl text-sm leading-7 text-brand-text-secondary">
                         {wowSummary?.platformMix.highlights[0] ?? "When too much of the business depends on one source, small changes there matter more than they should."}
                       </p>
                     )}
@@ -1527,19 +1536,19 @@ export default function ReportPage() {
                       {opportunityCards.map((card) => (
                         <article
                           key={card.id}
-                          className="rounded-[1.5rem] border border-slate-200 bg-white px-5 py-5 shadow-[0_18px_44px_-34px_rgba(15,23,42,0.35)]"
+                          className={`${reportDocumentPanelElevatedClassName} px-5 py-5`}
                         >
                           <div className="space-y-3">
                             <div className="flex flex-wrap items-start justify-between gap-3">
-                              <h2 className="text-lg font-semibold leading-snug text-slate-950">{card.title}</h2>
+                              <h2 className="text-lg font-semibold leading-snug text-brand-text-primary">{card.title}</h2>
                               {card.timeframe ? (
-                                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                <span className="rounded-full border border-brand-border/65 bg-brand-panel/65 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">
                                   {card.timeframe}
                                 </span>
                               ) : null}
                             </div>
                             {card.impact ? <p className="text-sm font-semibold text-brand-accent-blue">{card.impact}</p> : null}
-                            {card.rationale ? <p className="text-sm leading-7 text-slate-600">{card.rationale}</p> : null}
+                            {card.rationale ? <p className="text-sm leading-7 text-brand-text-secondary">{card.rationale}</p> : null}
                           </div>
                         </article>
                       ))}
@@ -1554,33 +1563,33 @@ export default function ReportPage() {
                   testId="report-what-to-do-next"
                 >
                   <div className="space-y-6">
-                    <p className="text-sm font-semibold text-slate-950">If you do one thing next, do this:</p>
+                    <p className="text-sm font-semibold text-brand-text-primary">If you do one thing next, do this:</p>
                     <ol className="space-y-5">
                       {actionPlan.map((item, index) => (
                         <li
                           key={item.id}
-                          className="grid gap-3 border-b border-slate-200/80 pb-5 last:border-b-0 last:pb-0 md:grid-cols-[52px_minmax(0,1fr)]"
+                          className="grid gap-3 border-b border-brand-border/60 pb-5 last:border-b-0 last:pb-0 md:grid-cols-[52px_minmax(0,1fr)]"
                           data-testid={index === 0 ? "report-next-action-primary" : index === 1 ? "report-next-action-secondary" : undefined}
                         >
-                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-900">
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-border/70 bg-brand-panel/75 text-sm font-semibold text-brand-text-primary">
                             {index + 1}
                           </span>
                           <div className="space-y-2">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                              <h2 className="text-lg font-semibold leading-snug text-slate-950">{item.title}</h2>
+                              <h2 className="text-lg font-semibold leading-snug text-brand-text-primary">{item.title}</h2>
                               {item.timeframe ? (
-                                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">
                                   {item.timeframe}
                                 </span>
                               ) : null}
                             </div>
-                            {item.rationale ? <p className="text-sm leading-7 text-slate-600">{item.rationale}</p> : null}
+                            {item.rationale ? <p className="text-sm leading-7 text-brand-text-secondary">{item.rationale}</p> : null}
                           </div>
                         </li>
                       ))}
                     </ol>
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.25rem] border border-slate-200 bg-white/75 px-4 py-3">
-                      <p className="text-sm leading-7 text-slate-600">
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.25rem] border border-brand-border/70 bg-[linear-gradient(165deg,rgba(19,41,80,0.74),rgba(16,32,67,0.86))] px-4 py-3">
+                      <p className="text-sm leading-7 text-brand-text-secondary">
                         {presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1
                           ? "Adding one more source before the next run will make the next report materially more specific."
                           : "Upload a fresh data pull after the next cycle so the next report reflects what actually changed."}
@@ -1588,7 +1597,7 @@ export default function ReportPage() {
                       <Link
                         href="/app/data"
                         data-testid="report-return-to-workspace"
-                        className="inline-flex shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
+                        className={buttonClassName({ variant: "secondary", size: "sm", className: "shrink-0 px-4 shadow-brand-card" })}
                       >
                         Return to workspace
                       </Link>
@@ -1603,12 +1612,12 @@ export default function ReportPage() {
                   testId="report-methodology"
                   className="pb-12"
                 >
-                  <div className="max-w-4xl space-y-4 text-sm leading-7 text-slate-600">
+                  <div className="max-w-4xl space-y-4 text-sm leading-7 text-brand-text-secondary">
                     {methodologyLines.length > 0 ? (
                       <ul className="space-y-2">
                         {methodologyLines.map((line) => (
                           <li key={line} className="flex items-start gap-2.5">
-                            <span className="mt-[0.8rem] h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" aria-hidden="true" />
+                            <span className="mt-[0.8rem] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-text-muted/55" aria-hidden="true" />
                             <span>{line}</span>
                           </li>
                         ))}
@@ -1631,11 +1640,11 @@ export default function ReportPage() {
           {showFullReportContent && state.artifactJsonMissing ? (
             <Panel title="Artifact JSON Unavailable" description="This report does not include a JSON artifact yet.">
               <div className="space-y-3">
-                <p className="text-sm text-slate-600">Try refreshing to load updated report metadata.</p>
+                <p className="text-sm text-brand-text-secondary">Try refreshing to load updated report metadata.</p>
                 <button
                   type="button"
                   onClick={() => setReloadNonce((prev) => prev + 1)}
-                  className="inline-flex rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                  className={buttonClassName({ variant: "secondary", size: "sm", className: "px-3 shadow-brand-card" })}
                 >
                   Refresh
                 </button>
@@ -2123,10 +2132,10 @@ export default function ReportPage() {
       {state.view === "not_found" ? (
         <section className="space-y-3" data-testid="report-not-found">
           <h1 className="text-2xl font-semibold">Report not found</h1>
-          <p className="text-slate-400">
+          <p className="text-brand-text-secondary">
             We could not find a report with ID {canonicalReportId ?? "unknown"}. It may have been deleted or never existed.
           </p>
-          <Link href="/app/report" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
+          <Link href="/app/report" className={buttonClassName({ variant: "secondary", size: "sm", className: "px-4 shadow-brand-card" })}>
             Back to Reports
           </Link>
         </section>
@@ -2135,8 +2144,8 @@ export default function ReportPage() {
       {state.view === "invalid_route" ? (
         <section className="space-y-3" data-testid="report-invalid-route">
           <h1 className="text-2xl font-semibold">Invalid report route</h1>
-          <p className="text-slate-400">The report URL is missing a valid report ID.</p>
-          <Link href="/app/report" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
+          <p className="text-brand-text-secondary">The report URL is missing a valid report ID.</p>
+          <Link href="/app/report" className={buttonClassName({ variant: "secondary", size: "sm", className: "px-4 shadow-brand-card" })}>
             Back to Reports
           </Link>
         </section>
@@ -2145,8 +2154,8 @@ export default function ReportPage() {
       {state.view === "forbidden" ? (
         <section className="space-y-3" data-testid="report-forbidden">
           <h1 className="text-2xl font-semibold">Unauthorized access</h1>
-          <p className="text-slate-400">You do not have permission to view this report.</p>
-          <Link href="/app" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
+          <p className="text-brand-text-secondary">You do not have permission to view this report.</p>
+          <Link href="/app" className={buttonClassName({ variant: "secondary", size: "sm", className: "px-4 shadow-brand-card" })}>
             Back to Dashboard
           </Link>
         </section>
@@ -2155,19 +2164,19 @@ export default function ReportPage() {
       {state.view === "entitlement_required" && !isFounder ? (
         <section className="space-y-3" data-testid="report-entitlement-required">
           <h1 className="text-2xl font-semibold">Upgrade required</h1>
-          <p className="text-slate-400">This report requires Report or Pro access. Continue in Billing to unlock access.</p>
-          <Link href="/app/billing" className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100">
+          <p className="text-brand-text-secondary">This report requires Report or Pro access. Continue in Billing to unlock access.</p>
+          <Link href="/app/billing" className={buttonClassName({ variant: "secondary", size: "sm", className: "px-4 shadow-brand-card" })}>
             Go to Billing
           </Link>
         </section>
       ) : state.view === "entitlement_required" ? (
         <section className="space-y-3" data-testid="report-founder-override-retry">
           <h1 className="text-2xl font-semibold">Access sync required</h1>
-          <p className="text-slate-400">Founder override was detected, but this report request still returned a gated response. Retry to refresh access.</p>
+          <p className="text-brand-text-secondary">Founder override was detected, but this report request still returned a gated response. Retry to refresh access.</p>
           <button
             type="button"
             onClick={() => setReloadNonce((prev) => prev + 1)}
-            className="inline-flex rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-100"
+            className={buttonClassName({ variant: "secondary", size: "sm", className: "px-4 shadow-brand-card" })}
           >
             Retry
           </button>
@@ -2183,7 +2192,7 @@ export default function ReportPage() {
             message="We could not load this report due to a server error. Please try again shortly."
             requestId={state.requestId}
             action={
-              <Link href="/app/report" className="inline-flex rounded-lg border border-rose-200 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50">
+              <Link href="/app/report" className={buttonClassName({ variant: "secondary", size: "sm", className: "px-4 shadow-brand-card" })}>
                 Back to Reports
               </Link>
             }

@@ -192,3 +192,82 @@ test("createReportRun fails explicitly when /v1/reports/run is unavailable inste
     global.fetch = originalFetch;
   }
 });
+
+test("createReportRun omits selected_platforms from request body when platform list is empty", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  const requests = [];
+
+  global.fetch = async (url, init = {}) => {
+    requests.push({ url: String(url), method: init.method ?? "GET", body: init.body ?? null });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: (key) => (key === "content-type" ? "application/json" : null) },
+      text: async () => JSON.stringify({ report_id: "rep_no_platforms" }),
+    };
+  };
+
+  try {
+    const { createReportRun } = await loadReportsModule(Date.now() + 6);
+    await createReportRun({ selectedPlatforms: [] });
+    // Empty selectedPlatforms must not include a selected_platforms key — body stays null.
+    assert.deepEqual(requests, [{ url: "https://api.example.test/v1/reports/run", method: "POST", body: null }]);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("createReportRun sends explicit selected_platforms in submit body when platforms are non-empty", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+  const requests = [];
+
+  global.fetch = async (url, init = {}) => {
+    requests.push({ url: String(url), method: init.method ?? "GET", body: init.body ?? null });
+    return {
+      ok: true,
+      status: 200,
+      headers: { get: (key) => (key === "content-type" ? "application/json" : null) },
+      text: async () => JSON.stringify({ report_id: "rep_explicit_platforms" }),
+    };
+  };
+
+  try {
+    const { createReportRun } = await loadReportsModule(Date.now() + 7);
+    await createReportRun({ selectedPlatforms: ["patreon"] });
+    assert.deepEqual(requests, [
+      {
+        url: "https://api.example.test/v1/reports/run",
+        method: "POST",
+        body: JSON.stringify({ selected_platforms: ["patreon"] }),
+      },
+    ]);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("createReportRun propagates backend rejection when platform selection is invalid", async () => {
+  const originalFetch = global.fetch;
+  process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";
+
+  global.fetch = async () => {
+    return {
+      ok: false,
+      status: 422,
+      headers: { get: (key) => (key === "content-type" ? "application/json" : null) },
+      text: async () => JSON.stringify({ message: "INVALID_PLATFORM_SELECTION", code: "INVALID_PLATFORM" }),
+    };
+  };
+
+  try {
+    const { createReportRun } = await loadReportsModule(Date.now() + 8);
+    await assert.rejects(
+      () => createReportRun({ selectedPlatforms: ["unknown_platform_xyz"] }),
+      /INVALID_PLATFORM_SELECTION/,
+    );
+  } finally {
+    global.fetch = originalFetch;
+  }
+});

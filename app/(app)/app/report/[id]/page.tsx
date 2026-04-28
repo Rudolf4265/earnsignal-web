@@ -1447,7 +1447,7 @@ export default function ReportPage() {
                   title="Revenue overview"
                   subtitle={presentation.displayContext.historyLabel || "How revenue moved across the tracked history window."}
                 >
-                  <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.9fr)] xl:items-start">
+                  <div className="space-y-6">
                     <div className={`${reportDocumentPanelClassName} p-4 sm:p-5`}>
                       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
                         <div>
@@ -1469,8 +1469,7 @@ export default function ReportPage() {
                         </div>
                       )}
                     </div>
-                    <article className={`${reportDocumentPanelClassName} space-y-3 p-5`} data-testid="report-revenue-interpretation">
-                      <h2 className="text-lg font-semibold text-brand-text-primary">What this means</h2>
+                    <article className="max-w-3xl space-y-2" data-testid="report-revenue-interpretation">
                       <p className="text-sm leading-7 text-brand-text-secondary">
                         {`${revenueExplanation.whatHappened} ${revenueExplanation.whyItMatters} ${revenueExplanation.whatToWatch}`}
                       </p>
@@ -1484,13 +1483,7 @@ export default function ReportPage() {
                   subtitle="Where revenue is coming from now, and how exposed the business still is to one source leading the mix."
                   testId="report-platform-mix"
                 >
-                  <div
-                    className={
-                      presentation.platformMix.concentrationScore != null && concentrationTone
-                        ? "grid gap-8 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.95fr)] xl:items-start"
-                        : "space-y-8"
-                    }
-                  >
+                  <div className="space-y-8">
                     {presentation.platformMix.platformShares && presentation.platformMix.platformShares.length > 0 ? (
                       <div className="space-y-5">
                         {presentation.platformMix.platformShares.map((row, index) => {
@@ -1522,19 +1515,22 @@ export default function ReportPage() {
                     )}
 
                     {presentation.platformMix.concentrationScore != null && concentrationTone ? (
-                      <div className={`${reportDocumentPanelClassName} space-y-5 p-5`}>
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Concentration scale</p>
-                            <p className="mt-2 text-lg font-semibold text-brand-text-primary">
-                              {Math.round(presentation.platformMix.concentrationScore)}% {concentrationTone.label.toLowerCase()} risk
-                            </p>
-                          </div>
-                          <p className="max-w-xl text-sm leading-7 text-brand-text-secondary">
-                            {wowSummary?.platformMix.highlights[0] ?? "A more balanced mix makes the business less fragile when one platform slows down."}
+                      <div className="max-w-3xl space-y-4 pt-2">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <p className="text-sm font-semibold text-brand-text-primary">
+                            {Math.round(presentation.platformMix.concentrationScore)}% {concentrationTone.label.toLowerCase()} concentration risk
                           </p>
                         </div>
-                        <div className="pt-3">
+                        {wowSummary?.platformMix.highlights[0] ? (
+                          <p className="text-sm leading-7 text-brand-text-secondary">
+                            {wowSummary.platformMix.highlights[0]}
+                          </p>
+                        ) : (
+                          <p className="text-sm leading-7 text-brand-text-secondary">
+                            A more balanced mix makes the business less fragile when one platform slows down.
+                          </p>
+                        )}
+                        <div className="pt-2">
                           <div className="relative h-1.5 rounded-full bg-brand-panel-muted/80">
                             <div className="absolute inset-y-0 left-[20%] w-px bg-brand-border/70" />
                             <div className="absolute inset-y-0 left-[40%] w-px bg-brand-border/70" />
@@ -1675,15 +1671,18 @@ export default function ReportPage() {
                     }
                     testId="report-opportunities"
                   >
-                    <div className="grid gap-4 lg:grid-cols-3">
-                      {opportunityCards.map((card) => (
+                    <div className="space-y-5">
+                      {opportunityCards.map((card, index) => (
                         <article
                           key={card.id}
-                          className={`${reportDocumentPanelElevatedClassName} px-5 py-5`}
+                          className="grid gap-4 border-b border-brand-border/60 pb-5 last:border-b-0 last:pb-0 sm:grid-cols-[3rem_minmax(0,1fr)]"
                         >
-                          <div className="space-y-3">
+                          <p className="pt-0.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">
+                            0{index + 1}
+                          </p>
+                          <div className="space-y-2">
                             <div className="flex flex-wrap items-start justify-between gap-3">
-                              <h2 className="text-lg font-semibold leading-snug text-brand-text-primary">{card.title}</h2>
+                              <h2 className="text-base font-semibold leading-snug text-brand-text-primary">{card.title}</h2>
                               {card.timeframe ? (
                                 <span className="rounded-full border border-brand-border/65 bg-brand-panel/65 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-muted">
                                   {card.timeframe}

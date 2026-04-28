@@ -7,6 +7,8 @@ Next.js (App Router) single-repo app serving both:
 
 Hostname routing is handled by `proxy.ts` in this project via centralized domain config (`src/lib/config/domains.ts`).
 
+For agent-assisted engineering work and repo safety rules, start with [`docs/CODEX_START_HERE.md`](docs/CODEX_START_HERE.md).
+
 ## Local development
 
 ```bash

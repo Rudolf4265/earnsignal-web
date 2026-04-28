@@ -272,3 +272,48 @@ test("workspace report state does not promote legacy runReportEnabled over canon
   assert.equal(result.hasExistingReport, true);
   assert.equal(result.currentReportId, "rep_current_123");
 });
+
+test("workspace report state does not resurrect removed platforms that are absent from current workspace truth", async () => {
+  const { buildWorkspaceReportState } = await loadModule(Date.now() + 24);
+
+  const result = buildWorkspaceReportState(
+    {
+      workspaceId: "creator-removed-platform",
+      supportedSourceCount: 5,
+      readySourceCount: 1,
+      processingSourceCount: 0,
+      missingSourceCount: 4,
+      failedSourceCount: 0,
+      includedSourceCount: 2,
+      runReportEnabled: true,
+      eligibleForReport: true,
+      blockingReason: null,
+      reportHasBusinessMetrics: true,
+      reportReadinessNote: "Ready to run from the staged workspace.",
+      reportDrivingReadySourceCount: 1,
+      reportDrivingIncludedSourceCount: 1,
+      sources: [
+        {
+          platform: "patreon",
+          label: "Patreon",
+          descriptor: "Membership revenue",
+          acceptedFileTypesLabel: "Normalized CSV only",
+          reportRole: "report_driving",
+          standaloneReportEligible: true,
+          businessMetricsCapable: true,
+          roleSummary: "Revenue and subscriber data.",
+          state: "ready",
+          includedInNextReport: true,
+          lastUploadAt: "2026-03-24T10:00:00Z",
+          lastReadyAt: "2026-03-24T10:00:00Z",
+          statusMessage: "ready",
+          actionLabel: "Replace",
+        },
+      ],
+    },
+    { isLoading: false, currentReportId: null },
+  );
+
+  assert.deepEqual(result.includedSources.map((source) => source.platform), ["patreon"]);
+  assert.equal(result.includedSourceCount, 1);
+});

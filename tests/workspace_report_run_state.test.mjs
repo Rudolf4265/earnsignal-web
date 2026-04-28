@@ -317,3 +317,96 @@ test("workspace report state does not resurrect removed platforms that are absen
   assert.deepEqual(result.includedSources.map((source) => source.platform), ["patreon"]);
   assert.equal(result.includedSourceCount, 1);
 });
+
+test("workspace report state blocks run when a processing source has includedInNextReport:true but eligibility gate is false", async () => {
+  const { buildWorkspaceReportState } = await loadModule(Date.now() + 27);
+
+  const result = buildWorkspaceReportState(
+    {
+      workspaceId: "creator-processing-gate",
+      supportedSourceCount: 5,
+      readySourceCount: 0,
+      processingSourceCount: 1,
+      missingSourceCount: 4,
+      failedSourceCount: 0,
+      includedSourceCount: 1,
+      runReportEnabled: false,
+      eligibleForReport: false,
+      blockingReason: "Source is still processing and cannot be used for a report run yet.",
+      reportHasBusinessMetrics: false,
+      reportReadinessNote: "Source is still processing.",
+      reportDrivingReadySourceCount: 0,
+      reportDrivingIncludedSourceCount: 1,
+      sources: [
+        {
+          platform: "youtube",
+          label: "YouTube",
+          descriptor: "Creator earnings",
+          acceptedFileTypesLabel: "CSV or allowlisted ZIP",
+          reportRole: "report_driving",
+          standaloneReportEligible: true,
+          businessMetricsCapable: true,
+          roleSummary: "Can generate a report.",
+          state: "processing",
+          includedInNextReport: true,
+          lastUploadAt: "2026-03-25T10:00:00Z",
+          lastReadyAt: null,
+          statusMessage: "Processing your data",
+          actionLabel: "View status",
+        },
+      ],
+    },
+    { isLoading: false, currentReportId: null },
+  );
+
+  assert.equal(result.canRunReport, false);
+  assert.equal(result.eligibleForReport, false);
+  assert.deepEqual(result.includedSources.map((s) => s.platform), ["youtube"]);
+  assert.equal(result.includedSourceCount, 1);
+});
+
+test("workspace report state blocks run when a failed source has includedInNextReport:true but eligibility gate is false", async () => {
+  const { buildWorkspaceReportState } = await loadModule(Date.now() + 28);
+
+  const result = buildWorkspaceReportState(
+    {
+      workspaceId: "creator-failed-gate",
+      supportedSourceCount: 5,
+      readySourceCount: 0,
+      processingSourceCount: 0,
+      missingSourceCount: 4,
+      failedSourceCount: 1,
+      includedSourceCount: 1,
+      runReportEnabled: false,
+      eligibleForReport: false,
+      blockingReason: "Source failed to process. Re-upload to continue.",
+      reportHasBusinessMetrics: false,
+      reportReadinessNote: "Source failed.",
+      reportDrivingReadySourceCount: 0,
+      reportDrivingIncludedSourceCount: 1,
+      sources: [
+        {
+          platform: "patreon",
+          label: "Patreon",
+          descriptor: "Membership revenue",
+          acceptedFileTypesLabel: "Normalized CSV only",
+          reportRole: "report_driving",
+          standaloneReportEligible: true,
+          businessMetricsCapable: true,
+          roleSummary: "Revenue and subscriber data.",
+          state: "failed",
+          includedInNextReport: true,
+          lastUploadAt: "2026-03-25T10:00:00Z",
+          lastReadyAt: null,
+          statusMessage: "Upload failed",
+          actionLabel: "Re-upload",
+        },
+      ],
+    },
+    { isLoading: false, currentReportId: null },
+  );
+
+  assert.equal(result.canRunReport, false);
+  assert.equal(result.eligibleForReport, false);
+  assert.deepEqual(result.includedSources.map((s) => s.platform), ["patreon"]);
+});

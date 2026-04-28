@@ -63,14 +63,12 @@ export function ReportStrengthsRisksSection({ model, opportunities = [] }: Props
 
   return (
     <section
-      className="rounded-[1.5rem] border border-brand-border/70 bg-[linear-gradient(165deg,rgba(16,32,67,0.76),rgba(19,41,80,0.62),rgba(11,24,50,0.88))] px-5 py-5 shadow-brand-card sm:px-6"
+      className="grid gap-6 lg:grid-cols-3"
       data-testid="report-strengths-risks"
     >
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Column title="Strengths" items={model.strengths.map((item) => item.text)} />
-        <Column title="Risks" items={model.risks.map((item) => item.text)} />
-        <Column title="Opportunities" items={opportunities} />
-      </div>
+      <Column title="Strengths" items={model.strengths.map((item) => item.text)} />
+      <Column title="Risks" items={model.risks.map((item) => item.text)} />
+      <Column title="Opportunities" items={opportunities} />
     </section>
   );
 }

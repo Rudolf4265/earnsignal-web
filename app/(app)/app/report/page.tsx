@@ -264,7 +264,7 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <PageHeader
           title="Reports"
-          subtitle="Open purchased reports, review current runs, and access report artifacts."
+          subtitle="Open purchased reports, review current runs, and access report data."
           actions={
             <Link href="/app/data" className={buttonClassName({ variant: "primary" })}>
               Upload

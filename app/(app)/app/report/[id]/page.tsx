@@ -333,6 +333,27 @@ function formatCountLabel(value: number | null | undefined): string | null {
   return Math.round(value).toLocaleString("en-US");
 }
 
+function humanizeGrowthLabel(value: string | null | undefined): string | null {
+  const clean = value?.trim();
+  if (!clean) {
+    return null;
+  }
+
+  if (clean.startsWith("+")) {
+    return `up ${clean.slice(1)}`;
+  }
+  if (clean.startsWith("-")) {
+    return `down ${clean.slice(1)}`;
+  }
+
+  const normalized = clean.toLowerCase();
+  if (normalized.startsWith("up ") || normalized.startsWith("down ") || normalized.startsWith("flat")) {
+    return normalized;
+  }
+
+  return clean;
+}
+
 function toTitleCase(value: string): string {
   return value
     .split(/[\s_-]+/)
@@ -451,37 +472,42 @@ function DocumentSection({ number, title, subtitle, children, className, testId 
 
 function buildHeroHeadline(input: {
   model: ReportDetailPresentationModel;
-  report: ReportDetail;
-  sourceCountLabel: string | null;
+  wowSummary: ReportWowSummaryViewModel | null;
 }): string {
-  const revenueMetric = getHeroMetric(input.model, "net_revenue");
   const topPlatform = getTopPlatformShare(input.model);
-  const sourceCount =
-    input.model.platformMix.platformsConnected ??
-    input.report.sourceCount ??
-    (input.report.platformsIncluded.length > 0 ? input.report.platformsIncluded.length : null);
-  const sourcePhrase =
-    sourceCount && sourceCount > 0 ? `${sourceCount} ${sourceCount === 1 ? "platform" : "platforms"}` : input.sourceCountLabel ?? "available sources";
-  const lead = `${revenueMetric?.value ?? "$--"} across ${sourcePhrase}`;
+  const concentration = input.model.platformMix.concentrationScore;
+  const growthLabel = humanizeGrowthLabel(input.wowSummary?.kpiCards[2]?.value);
 
-  if (topPlatform?.shareLabel) {
-    return `${lead} — ${topPlatform.shareLabel} from ${topPlatform.platform}`;
+  if (topPlatform && concentration != null && concentration >= 60) {
+    return `${topPlatform.platform} still sets the floor for the business.`;
   }
 
-  return lead;
+  if (topPlatform && concentration != null && concentration >= 40) {
+    return `${topPlatform.platform} still leads, but the business is starting to widen.`;
+  }
+
+  if (growthLabel?.startsWith("down")) {
+    return "The revenue base softened and needs a steadier second engine.";
+  }
+
+  if (growthLabel?.startsWith("up")) {
+    return "The business is moving in the right direction.";
+  }
+
+  return "The business has a real paid base to build from.";
 }
 
 function buildHeroSubline(input: {
   model: ReportDetailPresentationModel;
   wowSummary: ReportWowSummaryViewModel | null;
 }): string | null {
-  const concentration = input.model.platformMix.concentrationScore;
+  const revenue = getHeroMetric(input.model, "net_revenue");
   const subscribers = getSubscriberMetric(input.model, ["subscribers"]);
   const growthCard = input.wowSummary?.kpiCards[2] ?? null;
   const parts = dedupeLines([
-    concentration != null ? `${Math.round(concentration)}% concentration risk` : null,
+    revenue ? `${revenue.value} net revenue` : null,
     subscribers ? `${subscribers.value} paying subscribers` : null,
-    growthCard ? `revenue trend ${growthCard.value.toLowerCase()}` : null,
+    growthCard ? humanizeGrowthLabel(growthCard.value) : null,
   ]);
 
   return parts.length > 0 ? parts.join(" · ") : null;
@@ -509,7 +535,7 @@ function buildKeyFindings(model: ReportDetailPresentationModel, wowSummary: Repo
       id: revenueMetric.id,
       value: revenueMetric.value,
       label: revenueMetric.label,
-      headline: `${revenueMetric.value} in tracked monthly revenue`,
+      headline: `${revenueMetric.value} in current tracked revenue`,
       body:
         model.revenueTrend.points.length >= 2
           ? "The business has a real paid base. The next question is whether that revenue holds across another full cycle."
@@ -522,16 +548,16 @@ function buildKeyFindings(model: ReportDetailPresentationModel, wowSummary: Repo
       id: "top_platform_share",
       value: topPlatform.shareLabel,
       label: `${topPlatform.platform} share`,
-      headline: `${topPlatform.shareLabel} still comes from ${topPlatform.platform}`,
+      headline: `${topPlatform.platform} contributes ${topPlatform.shareLabel} of tracked revenue`,
       body: secondPlatform
-        ? `${secondPlatform.platform} is contributing at ${secondPlatform.shareLabel}, but it has not reduced dependency enough yet.`
+        ? `${secondPlatform.platform} is contributing ${secondPlatform.shareLabel} in the current mix, which makes it the clearest candidate to reduce dependency over time.`
         : topPlatform.revenueLabel
-          ? `${topPlatform.revenueLabel} is still being carried by ${topPlatform.platform} in the tracked mix.`
+          ? `${topPlatform.revenueLabel} is still being carried by ${topPlatform.platform} in the current mix.`
           : `${topPlatform.platform} remains the main engine in the tracked mix.`,
     });
   }
 
-  if (concentrationScore != null) {
+  if (concentrationScore != null && !topPlatform) {
     findings.push({
       id: "platform_concentration",
       value: `${Math.round(concentrationScore)}%`,
@@ -551,7 +577,7 @@ function buildKeyFindings(model: ReportDetailPresentationModel, wowSummary: Repo
       label: "Paid subscribers",
       headline: `${subscribers.value} paid subscribers`,
       body: churnRisk
-        ? "There is enough volume to learn from. The missing piece is clearer retention history by segment or tier."
+        ? "The paid base is large enough to matter. What is still missing is cleaner retention history by segment or tier."
         : "There is enough volume to learn from. Retention history is the missing layer.",
     });
   }
@@ -695,12 +721,12 @@ function buildSpotlightModel(rawArtifact: unknown, model: ReportDetailPresentati
   const topPlatform = getTopPlatformShare(model);
   if (topPlatform) {
     return {
-      statement: `${topPlatform.shareLabel} of revenue still comes from ${topPlatform.platform}.`,
+      statement: `${topPlatform.platform} still sets the floor for the business.`,
       details: dedupeLines([
-        wowSummary?.platformMix.highlights[0] ?? null,
+        `${topPlatform.shareLabel} of tracked revenue still comes from ${topPlatform.platform}, so any pricing, cadence, or policy shock there would move the whole business.`,
         model.platformMix.platformShares?.[1]
-          ? `${toTitleCase(model.platformMix.platformShares[1].platform)} is contributing, but it is not yet large enough to meaningfully lower that dependency.`
-          : null,
+          ? `${toTitleCase(model.platformMix.platformShares[1].platform)} is the best candidate to reduce that dependency over time.`
+          : "The goal is not to replace it; it is to let a second channel carry more of the load over time.",
       ]).slice(0, 2),
     };
   }
@@ -737,10 +763,10 @@ function buildOpportunityCards(
     const topPlatformLabel = toTitleCase(topPlatform.platform);
     cards.push({
       id: `protect-${topPlatform.platform}`,
-      title: `Protect the ${topPlatformLabel} base`,
+      title: `Protect the ${topPlatformLabel} revenue base`,
       impact: "Primary benefit: revenue protection",
-      timeframe: "Next 30 days",
-      rationale: `${formatPercentLabel(topPlatform.share * 100) ?? `${Math.round(topPlatform.share * 100)}%`} of tracked revenue still comes from ${topPlatformLabel}. Keep the core offer and delivery steady there while you test other growth moves.`,
+      timeframe: "This month",
+      rationale: `${formatPercentLabel(topPlatform.share * 100) ?? `${Math.round(topPlatform.share * 100)}%`} of tracked revenue still comes from ${topPlatformLabel}. Keep the core offer and delivery steady there while you test the next growth move somewhere else.`,
     });
   }
 
@@ -748,9 +774,9 @@ function buildOpportunityCards(
     const secondPlatformLabel = toTitleCase(secondPlatform.platform);
     cards.push({
       id: `grow-${secondPlatform.platform}`,
-      title: `Use ${secondPlatformLabel} as the diversification lever`,
+      title: `Scale ${secondPlatformLabel} as the second revenue pillar`,
       impact: "Primary benefit: diversification",
-      timeframe: "Next 30-60 days",
+      timeframe: "Next 1-2 cycles",
       rationale: `${secondPlatformLabel} already contributes ${formatPercentLabel(secondPlatform.share * 100) ?? `${Math.round(secondPlatform.share * 100)}%`} of tracked revenue. Growing the second source that is already working is the cleanest way to lower platform dependency.`,
     });
   }
@@ -758,9 +784,9 @@ function buildOpportunityCards(
   if (hasYouTubeSignal && paidDestination) {
     cards.push({
       id: "youtube-to-paid",
-      title: `Turn YouTube into a clearer path to ${paidDestination}`,
+      title: `Use YouTube as the top-of-funnel path into ${paidDestination}`,
       impact: "Primary benefit: conversion",
-      timeframe: "Next 30 days",
+      timeframe: "This month",
       rationale:
         presentation.audienceGrowth?.platformCards.find((card) => card.label.toLowerCase().includes("youtube"))?.insight ??
         `YouTube is already part of the business picture. The next gain is giving viewers one obvious route into ${paidDestination} instead of leaving that interest unclaimed.`,
@@ -826,8 +852,8 @@ function buildActionPlan(model: ReportDetailPresentationModel, wowSummary: Repor
     const topPlatformLabel = toTitleCase(topPlatform.platform);
     actions.push({
       id: `stabilize-${topPlatform.platform}`,
-      title: `Keep ${topPlatformLabel} stable while you collect the next cycle.`,
-      rationale: `${formatPercentLabel(topPlatform.share * 100) ?? `${Math.round(topPlatform.share * 100)}%`} of tracked revenue still sits on ${topPlatformLabel}. Protect the existing base before you change pricing, packaging, or cadence.`,
+      title: `Protect the ${topPlatformLabel} base while you test elsewhere.`,
+      rationale: `${formatPercentLabel(topPlatform.share * 100) ?? `${Math.round(topPlatform.share * 100)}%`} of tracked revenue still sits on ${topPlatformLabel}. Keep the existing base steady before you change pricing, packaging, or cadence.`,
       timeframe: "This month",
     });
   }
@@ -836,18 +862,18 @@ function buildActionPlan(model: ReportDetailPresentationModel, wowSummary: Repor
     const secondPlatformLabel = toTitleCase(secondPlatform.platform);
     actions.push({
       id: `test-${secondPlatform.platform}`,
-      title: `Use ${secondPlatformLabel} as the next diversification test.`,
+      title: `Grow ${secondPlatformLabel} as the second revenue pillar.`,
       rationale: `${secondPlatformLabel} is already contributing enough to matter. Strengthening the second channel is the cleanest way to reduce dependency on the lead platform.`,
-      timeframe: "Next 30 days",
+      timeframe: "This month",
     });
   }
 
   if (hasYouTubeSignal && paidDestination) {
     actions.push({
       id: "youtube-cta",
-      title: `Add one clear paid CTA from YouTube to ${paidDestination}.`,
+      title: `Give YouTube viewers one obvious path into ${paidDestination}.`,
       rationale: `YouTube is already in the report. The business only benefits when viewers get a simple next step into ${paidDestination}.`,
-      timeframe: "Next 30 days",
+      timeframe: "This month",
     });
   }
 
@@ -1255,7 +1281,7 @@ export default function ReportPage() {
       }),
     [presentation?.revenueTrend.narrative, revenueTrend.movementLabel, state.report?.snapshotCoverageNote],
   );
-  const heroHeadline = presentation && state.report ? buildHeroHeadline({ model: presentation, report: state.report, sourceCountLabel }) : null;
+  const heroHeadline = presentation ? buildHeroHeadline({ model: presentation, wowSummary }) : null;
   const heroSubline = presentation ? buildHeroSubline({ model: presentation, wowSummary }) : null;
   const hasCoverageNotice = Boolean(presentation?.heroNotice || presentation?.displayContext.businessFramingNote);
   const keyFindings = presentation ? buildKeyFindings(presentation, wowSummary) : [];
@@ -1465,7 +1491,7 @@ export default function ReportPage() {
                         <RevenueTrendChart points={revenueTrend.points} />
                       ) : (
                         <div className="rounded-[1rem] border border-dashed border-brand-border-strong/65 bg-brand-panel-muted/55 px-4 py-5">
-                          <p className="text-sm text-brand-text-muted">Trend chart data is not available in this report artifact.</p>
+                          <p className="text-sm text-brand-text-muted">Trend chart data was not included in this export.</p>
                         </div>
                       )}
                     </div>
@@ -1561,7 +1587,7 @@ export default function ReportPage() {
                 <DocumentSection
                   number="4"
                   title="Subscriber structure"
-                  subtitle="Subscriber and retention detail stays grounded in the artifact. Real tier labels are used when the report includes them."
+                  subtitle="Subscriber-level depth is limited in this upload, so this section focuses on the stable signals available here: paid subscribers, ARPU, and churn where the export supports it."
                   testId="report-subscriber-structure"
                 >
                   {tierRows.length > 0 ? (
@@ -1606,7 +1632,7 @@ export default function ReportPage() {
                             <tr key={row.id} className="text-sm text-brand-text-secondary">
                               <td className="px-4 py-3 font-semibold text-brand-text-primary">{row.label}</td>
                               <td className="px-4 py-3">{row.value}</td>
-                              <td className="px-4 py-3">{row.note ?? "Tier-level detail is not present in this artifact."}</td>
+                              <td className="px-4 py-3">{row.note ?? "Tier-level detail was not included in this export."}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -1618,7 +1644,7 @@ export default function ReportPage() {
                 <DocumentSection
                   number="5"
                   title="Revenue concentration"
-                  subtitle="The part of the business that matters most to protect right now."
+                  subtitle="What the lead platform means for the business, not just the revenue mix."
                   testId="report-revenue-concentration"
                 >
                   <div className="max-w-4xl space-y-4">
@@ -1643,7 +1669,7 @@ export default function ReportPage() {
                   <DocumentSection
                     number="6"
                     title="Audience signals"
-                    subtitle="Only sources included in this report appear here."
+                    subtitle="Discovery and engagement signals that can feed paid channels over time."
                     testId="report-audience-signals"
                   >
                     <ReportAudienceGrowthSection model={audienceSectionModel} emptyMessage={audienceEmptyState} />
@@ -1701,7 +1727,7 @@ export default function ReportPage() {
                 <DocumentSection
                   number="9"
                   title="Action plan"
-                  subtitle="The next 30 days, in order."
+                  subtitle="What to do next, in order."
                   testId="report-what-to-do-next"
                 >
                   <div className="space-y-6">
@@ -1780,7 +1806,7 @@ export default function ReportPage() {
           ) : null}
 
           {showFullReportContent && state.artifactJsonMissing ? (
-            <Panel title="Artifact JSON Unavailable" description="This report does not include a JSON artifact yet.">
+            <Panel title="Report Data Unavailable" description="We couldn't load this report's data yet. Try refreshing, or return to your workspace.">
               <div className="space-y-3">
                 <p className="text-sm text-brand-text-secondary">Try refreshing to load updated report metadata.</p>
                 <button
@@ -1794,7 +1820,9 @@ export default function ReportPage() {
             </Panel>
           ) : null}
 
-          {showFullReportContent && state.artifactError ? <ErrorBanner title="Artifact JSON unavailable" message={state.artifactError} /> : null}
+          {showFullReportContent && state.artifactError ? (
+            <ErrorBanner title="Report data unavailable" message="We couldn't load this report's data. Try refreshing, or return to your workspace." />
+          ) : null}
         </section>
       ) : null}
 
@@ -1977,7 +2005,7 @@ export default function ReportPage() {
           ) : null}
 
           {showFullReportContent && state.artifactJsonMissing ? (
-            <Panel title="Artifact JSON Unavailable" description="This report does not include a JSON artifact yet.">
+            <Panel title="Report Data Unavailable" description="We couldn't load this report's data yet. Try refreshing, or return to your workspace.">
               <div className="space-y-3">
                 <p className="text-sm text-slate-600">Try refreshing to load updated report metadata.</p>
                 <button
@@ -1993,7 +2021,9 @@ export default function ReportPage() {
 
           {showFullReportContent ? (
             <>
-              {state.artifactError ? <ErrorBanner title="Artifact JSON unavailable" message={state.artifactError} /> : null}
+              {state.artifactError ? (
+                <ErrorBanner title="Report data unavailable" message="We couldn't load this report's data. Try refreshing, or return to your workspace." />
+              ) : null}
 
               <ReportExecutiveNarrative
                 paragraphs={presentation.executiveSummary}
@@ -2034,7 +2064,7 @@ export default function ReportPage() {
                         </div>
                       ) : (
                         <div className="rounded-2xl border border-dashed border-brand-border-strong/70 bg-brand-panel-muted/70 p-4">
-                          <p className="text-sm text-brand-text-secondary">Trend chart data is not available in this report artifact.</p>
+                          <p className="text-sm text-brand-text-secondary">Trend chart data was not included in this export.</p>
                         </div>
                       )}
                     </div>
@@ -2139,8 +2169,8 @@ export default function ReportPage() {
               {presentation.audienceGrowth ? (
                 <section className="space-y-3">
                   <DashboardSectionHeader
-                    title="Audience Growth"
-                    description="Where attention is growing, what to watch, and where to lean next."
+                    title="Audience signals"
+                    description="Where discovery is building, what to watch, and where to point that attention next."
                   />
                   <ReportAudienceGrowthSection model={presentation.audienceGrowth} />
                 </section>

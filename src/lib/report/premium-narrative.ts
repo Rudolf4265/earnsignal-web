@@ -41,6 +41,76 @@ const INTERNAL_OR_RAW_HINTS = [
   "debug",
 ];
 
+function formatWholeDollar(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatNarrativePercentValue(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)}%`;
+}
+
+function formatDirectionalPercent(value: number): string {
+  const magnitude = formatNarrativePercentValue(Math.abs(value));
+  if (value > 0) {
+    return `up ${magnitude}`;
+  }
+  if (value < 0) {
+    return `down ${magnitude}`;
+  }
+  return "flat";
+}
+
+function normalizeNumericProse(value: string): string {
+  return value
+    .replace(/\$-?\d[\d,]*(?:\.\d+)?/g, (match) => {
+      const parsed = Number(match.replace(/[$,]/g, ""));
+      if (!Number.isFinite(parsed)) {
+        return match;
+      }
+
+      const cents = Math.round((Math.abs(parsed) % 1) * 100);
+      return cents === 0 ? formatWholeDollar(parsed) : match;
+    })
+    .replace(/(-?\d+(?:\.\d{2,})?)%/g, (_, raw) => {
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) ? formatNarrativePercentValue(parsed) : `${raw}%`;
+    });
+}
+
+function rewriteMechanicalRevenueSentence(value: string): string | null {
+  const revenueChangeMatch = value.match(
+    /current net revenue is\s+(\$-?\d[\d,]*(?:\.\d+)?),?\s+with a month-over-month change of\s+(-?\d+(?:\.\d+)?)%/i,
+  );
+  if (revenueChangeMatch) {
+    const revenue = Number((revenueChangeMatch[1] ?? "").replace(/[$,]/g, ""));
+    const percent = Number(revenueChangeMatch[2] ?? "");
+    const revenueLabel = Number.isFinite(revenue) ? formatWholeDollar(revenue) : revenueChangeMatch[1];
+    if (!Number.isFinite(percent)) {
+      return `Revenue this cycle is ${revenueLabel}.`;
+    }
+
+    if (Math.abs(percent) < 1) {
+      return `Revenue is holding steady this cycle, ${formatDirectionalPercent(percent)} month over month to ${revenueLabel}.`;
+    }
+
+    return `Revenue moved ${formatDirectionalPercent(percent)} month over month to ${revenueLabel}.`;
+  }
+
+  const revenueOnlyMatch = value.match(/current net revenue is\s+(\$-?\d[\d,]*(?:\.\d+)?)/i);
+  if (revenueOnlyMatch) {
+    const revenue = Number((revenueOnlyMatch[1] ?? "").replace(/[$,]/g, ""));
+    const revenueLabel = Number.isFinite(revenue) ? formatWholeDollar(revenue) : revenueOnlyMatch[1];
+    return `Revenue this cycle is ${revenueLabel}.`;
+  }
+
+  return null;
+}
+
 export function normalizeTrendDirection(value: string | null | undefined): NarrativeTrendDirection {
   const normalized = value?.trim().toLowerCase();
   if (normalized === "up" || normalized === "down" || normalized === "flat") {
@@ -54,7 +124,8 @@ export function polishReportSentence(value: string | null | undefined): string |
     return null;
   }
 
-  const cleaned = value
+  const rewritten = rewriteMechanicalRevenueSentence(value);
+  const cleaned = normalizeNumericProse(rewritten ?? value)
     .replace(/\s+/g, " ")
     .replace(/[_]+/g, " ")
     .replace(/\bcurrent profile (shows|looks)\b/gi, "")
@@ -64,6 +135,10 @@ export function polishReportSentence(value: string | null | undefined): string |
     .replace(/\bthe evidence does not support a single dominant constraint\b/gi, "no single issue clearly outweighs the others")
     .replace(/\bprimary growth constraint\b/gi, "main growth constraint")
     .replace(/\bconfidence is limited because\b/gi, "Confidence is lower because")
+    .replace(/\blatest net revenue increased versus the prior comparable report with limited comparison confidence\b/gi, "Revenue is moving in the right direction, though the comparison window is still short")
+    .replace(/\bactive subscribers increased versus the prior comparable report with limited comparison confidence\b/gi, "Paid subscriber count is improving, but retention history is still the missing layer")
+    .replace(/\bconcentration risk decreased versus the prior comparable report\b/gi, "Platform dependence improved slightly, but the business still leans on a lead platform")
+    .replace(/\bwatch stability index next cycle because this comparison is evidence-limited\b/gi, "Watch whether this holds in the next upload before changing pricing or cadence")
     .replace(/\bwithin the next\s+2\s+weeks\b/gi, "over the next 2 weeks")
     .trim()
     .replace(/^[,;:\- ]+/, "");
@@ -121,6 +196,7 @@ export function isDataCompletenessAction(value: string | null | undefined): bool
 export function stripActionTimeframe(value: string): string {
   return value
     .replace(/\s*(within|over)\s+the\s+next\s+2\s+weeks\.?/gi, "")
+    .replace(/\s*in\s+the\s+next\s+30(?:-60)?\s+days\.?/gi, "")
     .replace(/\s*this\s+month\.?/gi, "")
     .replace(/\s+over\s+the\s+next\s+month\.?/gi, "")
     .replace(/\s+/g, " ")
@@ -131,14 +207,20 @@ export function stripActionTimeframe(value: string): string {
 export function buildRevenueExplanation(input: RevenueExplanationInput): RevenueExplanation {
   const normalizedMovement = input.movementLabel?.toLowerCase() ?? "";
   const normalizedNarrative = input.narrative?.toLowerCase() ?? "";
-  const movementWithoutDirection = input.movementLabel?.replace(/^(up|down)\s+/i, "") ?? null;
+  const percentMatch = input.movementLabel?.match(/(-?\d+(?:\.\d+)?)%/);
+  const rawPercent = percentMatch ? Number(percentMatch[1]) : null;
+  const percentLabel = rawPercent !== null && Number.isFinite(rawPercent) ? formatNarrativePercentValue(Math.abs(rawPercent)) : null;
   const movementSentence =
     input.movementLabel && normalizedMovement.includes("down")
-      ? `Revenue declined ${movementWithoutDirection?.replace(/vs start/i, "from the start of the period").toLowerCase()}.`
+      ? rawPercent !== null && rawPercent > -1
+        ? `Revenue is mostly holding up, but it slipped ${percentLabel} from the start of this window.`
+        : `Revenue is down ${percentLabel ?? ""} from the start of this window.`.replace(/\s+\./, ".")
       : input.movementLabel && normalizedMovement.includes("up")
-        ? `Revenue improved ${movementWithoutDirection?.replace(/vs start/i, "from the start of the period").toLowerCase()}.`
+        ? rawPercent !== null && rawPercent < 1
+          ? `Revenue is holding steady this cycle, up ${percentLabel} from the start of this window.`
+          : `Revenue is up ${percentLabel ?? ""} from the start of this window.`.replace(/\s+\./, ".")
         : input.movementLabel && normalizedMovement.includes("flat")
-          ? "Revenue held mostly steady across this report window."
+          ? "Revenue is holding fairly steady across this window."
           : null;
 
   const whatHappened =
@@ -150,9 +232,9 @@ export function buildRevenueExplanation(input: RevenueExplanationInput): Revenue
     return {
       whatHappened,
       whyItMatters:
-        "The latest period only includes part of the business, so the newest swing is useful context but not a full verdict.",
+        "This latest upload only covers part of the business, so the movement is useful context but not the final read.",
       whatToWatch:
-        "Wait for the next complete pull before making a major strategy change, then act on the pattern that still holds.",
+        "Wait for the next full cycle before making a bigger pricing or cadence change, then act on the pattern that still holds.",
     };
   }
 
@@ -160,9 +242,9 @@ export function buildRevenueExplanation(input: RevenueExplanationInput): Revenue
     return {
       whatHappened,
       whyItMatters:
-        "A slide in revenue matters because it can quickly turn a small retention, offer, or cadence problem into a business problem.",
+        "A softer revenue line usually means retention, offer clarity, or publishing rhythm is doing more damage than it first appears.",
       whatToWatch:
-        "Watch whether the next cycle stabilizes. If it keeps sliding, treat retention and offer clarity as the first priorities.",
+        "Watch whether the next cycle stabilizes. If it does not, treat retention and offer clarity as the first priorities.",
     };
   }
 
@@ -170,17 +252,17 @@ export function buildRevenueExplanation(input: RevenueExplanationInput): Revenue
     return {
       whatHappened,
       whyItMatters:
-        "Growth is healthiest when it is repeatable and not dependent on one platform doing all the work.",
+        "The goal now is to make that improvement repeatable rather than letting one stronger cycle carry too much meaning.",
       whatToWatch:
-        "Look for the same lift next cycle, then reinforce the source or offer that is making the improvement durable.",
+        "Look for the same lift next cycle before you expand the plan, then reinforce the source or offer making the improvement durable.",
     };
   }
 
   return {
     whatHappened,
     whyItMatters:
-      "Steady revenue is useful breathing room, but it should become a deliberate growth test instead of passive maintenance.",
+      "Steady revenue gives you room to make a cleaner strategic choice instead of reacting to noise.",
     whatToWatch:
-      "Use the next cycle to learn whether the business is quietly compounding or simply waiting for a new growth lever.",
+      "Use the next cycle to learn whether the business is quietly compounding or simply waiting for the next growth lever.",
   };
 }

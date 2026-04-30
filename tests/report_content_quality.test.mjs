@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 
 const wowViewModelUrl = pathToFileURL(path.resolve("src/lib/report/wow-summary-view-model.ts")).href;
 const detailPresentationUrl = pathToFileURL(path.resolve("src/lib/report/detail-presentation.ts")).href;
+const premiumNarrativeUrl = pathToFileURL(path.resolve("src/lib/report/premium-narrative.ts")).href;
 const wowComponentPath = path.resolve("app/(app)/app/report/[id]/_components/ReportWowSummary.tsx");
 const reportPagePath = path.resolve("app/(app)/app/report/[id]/page.tsx");
 const detailPresentationPath = path.resolve("src/lib/report/detail-presentation.ts");
@@ -294,4 +295,31 @@ test("audience growth only keeps rows for report sources that were actually incl
     ["YouTube"],
   );
   assert.equal(presentation.audienceGrowth?.diagnosis, null);
+});
+
+test("premium narrative polish removes fake precision and robotic revenue phrasing", async () => {
+  const { polishReportSentence } = await import(premiumNarrativeUrl);
+  const polished = polishReportSentence("Current net revenue is $8344.00, with a month-over-month change of 0.68%.");
+
+  assert.equal(polished, "Revenue is holding steady this cycle, up 0.7% month over month to $8,344.");
+  assert.equal(polished?.includes(".00"), false);
+  assert.equal(polished?.includes("Current net revenue is"), false);
+});
+
+test("report page source avoids artifact fallback language in main customer-facing sections", async () => {
+  const source = await readFile(reportPagePath, "utf8");
+
+  assert.equal(source.includes("Tier-level detail is not present in this artifact."), false);
+  assert.equal(source.includes("Trend chart data is not available in this report artifact."), false);
+  assert.equal(source.includes("stays grounded in the artifact"), false);
+  assert.equal(source.includes("Artifact JSON Unavailable"), false);
+  assert.equal(source.includes("Artifact JSON unavailable"), false);
+  assert.equal(source.includes("JSON artifact yet"), false);
+});
+
+test("reports index source uses creator-facing report data language", async () => {
+  const source = await readFile(path.resolve("app/(app)/app/report/page.tsx"), "utf8");
+
+  assert.equal(source.includes("access report artifacts"), false);
+  assert.equal(source.includes("access report data"), true);
 });

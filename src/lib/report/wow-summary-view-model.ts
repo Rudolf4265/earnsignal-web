@@ -153,7 +153,7 @@ function cleanSentence(value: string | null | undefined): string | null {
 
 function buildKpiContext(snapshotCoverageNote: string | null): string {
   if (snapshotCoverageNote) {
-    return "Read these as the best current business read, not the final word, until every source has caught up.";
+    return "Read these as the best current business view, not the final word, until every source has caught up.";
   }
 
   return "These are the core numbers to keep in view before you decide where to push next.";
@@ -164,7 +164,7 @@ function buildCoverageSummary(snapshotCoverageNote: string | null): string | nul
     return null;
   }
 
-  return "The latest view only covers part of your source mix, so treat sharp swings as directional until the full picture catches up.";
+  return "This latest upload only covers part of your source mix, so treat sharp swings as directional until the full picture catches up.";
 }
 
 function buildPlatformRiskHeadline(context: PlatformRiskContext): string {
@@ -197,7 +197,7 @@ function buildPlatformRiskImplication(context: PlatformRiskContext): string {
 
   if (concentrationScore === null) {
     if (partialRead) {
-      return `${platformLabel} is doing most of the work in this latest read, so avoid treating it like the full business just yet.`;
+      return `${platformLabel} is doing most of the work in this latest upload, so avoid treating it like the full business just yet.`;
     }
     if (balancedRead) {
       return "No single source appears to be carrying the whole business right now.";
@@ -205,15 +205,61 @@ function buildPlatformRiskImplication(context: PlatformRiskContext): string {
     return "Use this as a directional read, not a final verdict on your income mix.";
   }
   if (concentrationScore >= 80) {
-    return `${platformLabel} is carrying most of the business right now, so a dip there would hit income quickly.`;
+    return `${platformLabel} is carrying most of the business right now. The next move is not to replace it, but to build a second engine that can absorb a slowdown there.`;
   }
   if (concentrationScore >= 60) {
-    return `${platformLabel} is still doing most of the heavy lifting, which keeps your income more fragile than it needs to be.`;
+    return `${platformLabel} still sets the floor for the business, which means a second paid channel needs to carry more of the load over time.`;
   }
   if (concentrationScore >= 40) {
     return "You have more than one source working, but one platform still leads the business.";
   }
   return "No single platform is dominating the business right now.";
+}
+
+function rewriteStrengthRiskText(value: string | null | undefined, topPlatform: string | null): string | null {
+  const cleaned = cleanSentence(value);
+  if (!cleaned) {
+    return null;
+  }
+
+  const normalized = cleaned.toLowerCase();
+  const leadPlatform = topPlatform ?? "the lead platform";
+
+  if (normalized.includes("latest net revenue increased versus the prior comparable report with limited comparison confidence")) {
+    return "Revenue is moving in the right direction, though the comparison window is still short.";
+  }
+  if (normalized.includes("latest net revenue increased versus the prior comparable report")) {
+    return "Revenue is moving in the right direction.";
+  }
+  if (normalized.includes("latest net revenue decreased versus the prior comparable report")) {
+    return "Revenue softened, and the next upload will tell you whether it is a real trend or a brief dip.";
+  }
+  if (normalized.includes("active subscribers increased versus the prior comparable report with limited comparison confidence")) {
+    return "Paid subscriber count is improving, but retention history is still the missing layer.";
+  }
+  if (normalized.includes("active subscribers increased versus the prior comparable report")) {
+    return "Paid subscriber count is improving.";
+  }
+  if (normalized.includes("active subscribers decreased versus the prior comparable report")) {
+    return "Paid subscriber count slipped, which makes retention worth watching closely.";
+  }
+  if (normalized.includes("concentration risk decreased versus the prior comparable report")) {
+    return `Platform dependence improved slightly, but ${leadPlatform} still leads the mix.`;
+  }
+  if (normalized.includes("concentration risk increased versus the prior comparable report")) {
+    return `Platform dependence worsened, with ${leadPlatform} carrying even more of the business.`;
+  }
+  if (normalized.includes("watch stability index next cycle because this comparison is evidence-limited")) {
+    return "Watch whether this holds in the next upload before changing pricing or cadence.";
+  }
+  if (normalized.includes("limited comparison confidence")) {
+    return cleaned.replace(/with limited comparison confidence/gi, "").replace(/\s+\./g, ".");
+  }
+  if (normalized.includes("evidence-limited")) {
+    return cleaned.replace(/because this comparison is evidence-limited/gi, "until the next upload fills in the missing history");
+  }
+
+  return cleaned;
 }
 
 function buildMomentumHeadline(revenue: WowTrendDirection, subscribers: WowTrendDirection): string {
@@ -473,10 +519,10 @@ function buildSummarySentence(
   if (diagnosisType === "concentration_pressure" || (concentrationScore !== null && concentrationScore >= 70)) {
     happening =
       revenueTrend === "down"
-        ? "Your business slowed this period and is leaning heavily on a single platform."
-        : "Your business is still leaning heavily on a single platform.";
+        ? `${topPlatform ?? "Your lead platform"} still carries too much of the business, and the latest cycle was softer.`
+        : `${topPlatform ?? "Your lead platform"} still sets the floor for the business.`;
   } else if (diagnosisType === "churn_pressure") {
-    happening = "Supporters are leaving faster than they are being replaced right now.";
+    happening = "Paid supporters are not staying long enough to make the revenue base feel durable.";
   } else if (diagnosisType === "monetization_pressure") {
     happening = "Your audience is showing up, but not enough of that attention is turning into revenue.";
   } else if (diagnosisType === "acquisition_pressure") {
@@ -516,9 +562,9 @@ function buildSummarySentence(
   let why = coverageSummary;
   if (!why) {
     if (concentrationScore !== null && concentrationScore >= 70) {
-      why = `That leaves your income exposed if ${topPlatform ?? "that platform"} slows down again.`;
+      why = `The goal is not to abandon ${topPlatform ?? "that platform"}; it is to let a second channel carry more of the load over time.`;
     } else if (platformRisk.partialRead) {
-      why = "This latest read mostly reflects one source, so avoid treating it like the full business just yet.";
+      why = "This latest upload mostly reflects one source, so avoid treating it like the full business just yet.";
     } else if (diagnosisType === "churn_pressure") {
       why = "That usually puts revenue under pressure even when audience growth is still happening elsewhere.";
     } else if (diagnosisType === "monetization_pressure") {
@@ -667,14 +713,15 @@ function buildStrengthsRisks(
   options?: BuildReportWowSummaryOptions,
 ): WowStrengthsRisksViewModel {
   const comparisonAvailable = (options?.includeContinuitySignals ?? true) && presentation.whatChanged.comparisonAvailable;
+  const platformRisk = resolvePlatformRiskContext(presentation);
 
   if (comparisonAvailable) {
     const strengths = presentation.whatChanged.improved
       .slice(0, 3)
-      .map((item) => ({ id: item.id, text: cleanSentence(item.body) ?? item.body }));
+      .map((item) => ({ id: item.id, text: rewriteStrengthRiskText(item.body, platformRisk.topPlatform) ?? item.body }));
     const risks = [...presentation.whatChanged.worsened.slice(0, 2), ...presentation.whatChanged.watchNext.slice(0, 1)].map((item) => ({
       id: item.id,
-      text: cleanSentence(item.body) ?? item.body,
+      text: rewriteStrengthRiskText(item.body, platformRisk.topPlatform) ?? item.body,
     }));
 
     return { strengths, risks, available: strengths.length > 0 || risks.length > 0 };

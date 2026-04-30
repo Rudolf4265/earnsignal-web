@@ -232,7 +232,7 @@ test("coverage metadata and kpi context flow through to the wow summary model", 
 
   assert.equal(result.coverage.snapshotCoverageNote, "Based on Patreon Jan-Mar and Instagram Feb-Mar snapshots.");
   assert.equal(result.coverage.reportHasBusinessMetrics, false);
-  assert.equal(result.kpiContext?.toLowerCase().includes("current business read"), true);
+  assert.equal(result.kpiContext?.toLowerCase().includes("current business view"), true);
 });
 
 test("summary sentence prefers substantive executive summary copy", async () => {
@@ -351,6 +351,57 @@ test("thin reports may keep validation as the primary opportunity", async () => 
 
   assert.equal(result.opportunity.finding.includes("Confirm the missing source"), true);
   assert.equal(result.nextActions[0]?.title, "Confirm the missing source before changing course");
+});
+
+test("comparison-driven strengths and risks are rewritten into creator-facing language", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const presentation = makePresentation({
+    whatChanged: {
+      comparisonAvailable: true,
+      priorPeriodLabel: "Compared with Jan 1, 2026 to Jan 31, 2026",
+      notice: null,
+      improved: [
+        {
+          id: "rev_up",
+          body: "Latest net revenue increased versus the prior comparable report with limited comparison confidence.",
+          detail: null,
+          stateLabel: null,
+          stateTone: null,
+        },
+      ],
+      worsened: [
+        {
+          id: "subs_up",
+          body: "Active subscribers increased versus the prior comparable report with limited comparison confidence.",
+          detail: null,
+          stateLabel: null,
+          stateTone: null,
+        },
+      ],
+      watchNext: [
+        {
+          id: "watch_stability",
+          body: "Watch stability index next cycle because this comparison is evidence-limited.",
+          detail: null,
+          stateLabel: null,
+          stateTone: null,
+        },
+      ],
+      unavailableBody: null,
+    },
+    platformMix: {
+      notice: null,
+      concentrationScore: 64,
+      platformsConnected: 2,
+      highlights: ["64% of revenue comes from Patreon."],
+    },
+  });
+
+  const result = buildReportWowSummaryViewModel(presentation, makeArtifactModel());
+
+  assert.equal(result.strengthsRisks.strengths[0]?.text, "Revenue is moving in the right direction, though the comparison window is still short.");
+  assert.equal(result.strengthsRisks.risks[0]?.text, "Paid subscriber count is improving, but retention history is still the missing layer.");
+  assert.equal(result.strengthsRisks.risks[1]?.text, "Watch whether this holds in the next upload before changing pricing or cadence.");
 });
 
 test("high-pressure actions are rewritten into decisive premium action titles", async () => {

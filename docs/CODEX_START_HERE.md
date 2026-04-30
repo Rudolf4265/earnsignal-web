@@ -34,6 +34,35 @@ Private creator business intelligence. Creators upload their own data exports, c
 
 ---
 
+## Current Locked State
+
+These product-trust and report-quality behaviors are now intentional and must be preserved:
+
+- **Backend source truth + static manifest freshness guard:** backend/frontend source support drift is guarded, and `src/lib/upload/source-manifest-static.generated.ts` must stay in sync with regenerated backend truth.
+- **Report-tier credit enforcement:** one-time Report-tier credit limits are enforced server-side. Free/unentitled users cannot bypass paid report creation, and free-preview runs do not consume later paid Report-tier credit.
+- **Report-run source snapshots:** generated reports use persisted `ReportRunSource` rows. Worker execution, report detail, and artifact/PDF views must stay tied to the snapped run scope, not current workspace state.
+- **Remembered source defaults:** source defaults come from backend workspace state. Stale client state must not resurrect removed, not-ready, or cleared sources.
+- **Generated report direction:** the report should remain a narrative-first business diagnosis, closer in spirit to `/sample-report` than to a dashboard stack.
+
+---
+
+## Do Not Regress
+
+Future agents must not:
+
+- weaken source-manifest freshness checks or treat the generated manifest as hand-authored truth
+- make Report-tier credit enforcement frontend-only
+- bypass backend enforcement with frontend assumptions about entitlement, source eligibility, or run access
+- rederive report sources from the current workspace during worker execution or report rendering
+- allow stale local state to resurrect removed or no-longer-ready sources
+- reintroduce customer-facing `artifact` or `JSON artifact` language in normal report UI
+- make generated reports more dashboard-like, more card-heavy, or more boxy than the current narrative document direction
+- invent unavailable data, overstate confidence, or add fake precision
+
+For detailed report presentation constraints, read `docs/REPORT_UI_TRUTH.md` before changing report detail, dashboard, or PDF-adjacent surfaces.
+
+---
+
 ## Existing Docs That Are Still Authoritative
 
 | File | What It Documents |

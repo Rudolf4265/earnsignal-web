@@ -30,6 +30,12 @@ const BANNED_VISIBLE_REPORT_PHRASES = [
   "single statement should carry",
 ];
 
+const BANNED_UNSUPPORTED_MULTI_SOURCE_PHRASES = [
+  "spread across a few sources",
+  "each one is softening",
+  "more than one source working",
+];
+
 function stripComments(source) {
   return source
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
@@ -315,6 +321,16 @@ test("report page source avoids artifact fallback language in main customer-faci
   assert.equal(source.includes("Artifact JSON Unavailable"), false);
   assert.equal(source.includes("Artifact JSON unavailable"), false);
   assert.equal(source.includes("JSON artifact yet"), false);
+});
+
+test("report source avoids unsupported raw multi-source fallback phrases", async () => {
+  const wowSource = (await readFile(path.resolve("src/lib/report/wow-summary-view-model.ts"), "utf8")).toLowerCase();
+  const pageSource = (await readFile(reportPagePath, "utf8")).toLowerCase();
+
+  for (const phrase of BANNED_UNSUPPORTED_MULTI_SOURCE_PHRASES) {
+    assert.equal(wowSource.includes(phrase), false, `Found unsupported multi-source phrase in wow summary source: ${phrase}`);
+    assert.equal(pageSource.includes(phrase), false, `Found unsupported multi-source phrase in report page source: ${phrase}`);
+  }
 });
 
 test("reports index source uses creator-facing report data language", async () => {

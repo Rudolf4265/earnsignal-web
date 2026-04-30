@@ -169,6 +169,87 @@ test("platform mix falls back gracefully when concentration data is unavailable"
   assert.equal(result.platformMix.interpretationText.toLowerCase().includes("forming"), true);
 });
 
+test("single-source reports do not reuse unsupported multi-source phrasing", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const presentation = makePresentation({
+    platformMix: {
+      notice: null,
+      concentrationScore: null,
+      platformsConnected: 1,
+      highlights: ["Income is spread across a few sources, but each one is softening at the same time."],
+    },
+  });
+  const artifactModel = makeArtifactModel({
+    diagnosis: {
+      diagnosisType: "churn_pressure",
+      summaryText: "Retention pressure is the clearest issue in the current period.",
+      supportingMetrics: [],
+      primitives: {
+        revenueTrendDirection: "down",
+        activeSubscribersDirection: "down",
+        churnPressureLevel: "high",
+        concentrationPressureLevel: "medium",
+        monetizationEfficiencyLevel: "low",
+        stabilityDirection: "down",
+      },
+    },
+  });
+
+  const result = buildReportWowSummaryViewModel(presentation, artifactModel);
+  const renderedCopy = [
+    result.platformMix.interpretationText,
+    ...result.platformMix.highlights,
+    result.summarySentence ?? "",
+  ].join(" ").toLowerCase();
+
+  assert.equal(renderedCopy.includes("spread across a few sources"), false);
+  assert.equal(renderedCopy.includes("each one"), false);
+  assert.equal(result.platformMix.interpretationText, "This report only shows one income source.");
+  assert.equal(result.platformMix.highlights[0]?.includes("single-source report"), true);
+});
+
+test("audience-only side platforms do not make income sound revenue-diversified", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const presentation = makePresentation({
+    platformMix: {
+      notice: null,
+      concentrationScore: 82,
+      platformsConnected: 2,
+      highlights: [
+        "82% of revenue comes from Patreon.",
+        "YouTube contributes reach, but not enough direct income yet.",
+      ],
+    },
+  });
+  const artifactModel = makeArtifactModel({
+    diagnosis: {
+      diagnosisType: "concentration_pressure",
+      summaryText: "Revenue concentration is still the clearest risk.",
+      supportingMetrics: [],
+      primitives: {
+        revenueTrendDirection: "down",
+        activeSubscribersDirection: "flat",
+        churnPressureLevel: "medium",
+        concentrationPressureLevel: "high",
+        monetizationEfficiencyLevel: "medium",
+        stabilityDirection: "down",
+      },
+    },
+  });
+
+  const result = buildReportWowSummaryViewModel(presentation, artifactModel);
+  const renderedCopy = [
+    result.platformMix.interpretationText,
+    ...result.platformMix.highlights,
+    result.opportunity.finding,
+    result.summarySentence ?? "",
+  ].join(" ").toLowerCase();
+
+  assert.equal(renderedCopy.includes("more than one place"), false);
+  assert.equal(renderedCopy.includes("more than one revenue source working"), false);
+  assert.equal(result.platformMix.interpretationText, "Your income is currently dependent on one platform.");
+});
+
 test("momentum produces a short headline and implication", async () => {
   const { buildReportWowSummaryViewModel } = await loadModule();
   const artifactModel = makeArtifactModel({
@@ -306,6 +387,38 @@ test("healthy multi-source reports lead with a business opportunity instead of m
   assert.equal(opportunityCopy.includes("source coverage"), false);
   assert.equal(result.opportunity.finding.includes("second revenue pillar"), true);
   assert.equal(result.summarySentence?.includes("Patreon still leads"), true);
+});
+
+test("supported multi-source revenue evidence can still produce diversification language", async () => {
+  const { buildReportWowSummaryViewModel } = await loadModule();
+  const presentation = makePresentation({
+    platformMix: {
+      notice: null,
+      concentrationScore: null,
+      platformsConnected: 2,
+      highlights: ["Revenue is more balanced across Patreon and Substack than it was last period."],
+    },
+  });
+  const artifactModel = makeArtifactModel({
+    diagnosis: {
+      diagnosisType: "mixed_pressure",
+      summaryText: "No single issue clearly outweighs the others.",
+      supportingMetrics: [],
+      primitives: {
+        revenueTrendDirection: "up",
+        activeSubscribersDirection: "up",
+        churnPressureLevel: "low",
+        concentrationPressureLevel: "low",
+        monetizationEfficiencyLevel: "medium",
+        stabilityDirection: "up",
+      },
+    },
+  });
+
+  const result = buildReportWowSummaryViewModel(presentation, artifactModel);
+
+  assert.equal(result.platformMix.interpretationText, "Your income is coming from more than one place.");
+  assert.equal(result.platformMix.highlights[0], "No single source appears to be carrying the whole business right now.");
 });
 
 test("thin reports may keep validation as the primary opportunity", async () => {

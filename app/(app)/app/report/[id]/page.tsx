@@ -566,7 +566,7 @@ function buildKeyFindings(model: ReportDetailPresentationModel, wowSummary: Repo
       body:
         concentrationScore >= 60
           ? "Too much of the business still depends on one platform. That keeps the revenue base more fragile than it should be."
-          : "You have more than one source working, but one platform still leads the business.",
+          : "One platform still leads the business, so reducing dependency should stay on the plan.",
     });
   }
 

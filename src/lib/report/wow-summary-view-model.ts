@@ -95,6 +95,7 @@ type PlatformRiskContext = {
   topPlatform: string | null;
   partialRead: boolean;
   balancedRead: boolean;
+  revenueSourceCount: number | null;
 };
 
 function extractTopPlatformFromHighlights(highlights: string[]): string | null {
@@ -125,8 +126,58 @@ function extractConcentrationScoreFromHighlights(highlights: string[]): number |
   return null;
 }
 
+function extractNamedPlatforms(value: string): string[] {
+  const normalized = value.toLowerCase();
+  return KNOWN_PLATFORMS.filter((platform) => normalized.includes(platform.toLowerCase()));
+}
+
+function lineImpliesAudienceContext(value: string): boolean {
+  return /audience|reach|followers|viewers|subscribers|top-of-funnel|discovery|awareness|engagement|content/i.test(value);
+}
+
+function lineRejectsRevenueContribution(value: string): boolean {
+  return /not enough direct income|not enough revenue|does not generate enough revenue|largest audience|smallest revenue|context only|rented/i.test(value);
+}
+
+function lineSupportsRevenueContribution(value: string): boolean {
+  return /revenue|income|paid|share|mix|balanced across|comes from|contributes|represented by|depends on|carrying/i.test(value);
+}
+
+function inferRevenueSourceCountFromHighlights(highlights: string[]): number | null {
+  const contributors = new Set<string>();
+
+  for (const line of highlights) {
+    const mentionedPlatforms = extractNamedPlatforms(line);
+    if (mentionedPlatforms.length === 0) {
+      continue;
+    }
+
+    const revenueSupported = lineSupportsRevenueContribution(line);
+    const audienceOnlyContext = lineImpliesAudienceContext(line) && lineRejectsRevenueContribution(line);
+    if (!revenueSupported || audienceOnlyContext) {
+      continue;
+    }
+
+    for (const platform of mentionedPlatforms) {
+      contributors.add(platform);
+    }
+  }
+
+  return contributors.size > 0 ? contributors.size : null;
+}
+
+function countRevenueSources(presentation: ReportDetailPresentationModel): number | null {
+  const platformShares = presentation.platformMix.platformShares?.filter((row) => row.share > 0 || row.revenue > 0) ?? [];
+  if (platformShares.length > 0) {
+    return platformShares.length;
+  }
+
+  return inferRevenueSourceCountFromHighlights(presentation.platformMix.highlights);
+}
+
 function resolvePlatformRiskContext(presentation: ReportDetailPresentationModel): PlatformRiskContext {
   const combinedHighlights = presentation.platformMix.highlights.join(" ").toLowerCase();
+  const revenueSourceCount = countRevenueSources(presentation);
 
   return {
     concentrationScore: presentation.platformMix.concentrationScore ?? extractConcentrationScoreFromHighlights(presentation.platformMix.highlights),
@@ -135,7 +186,8 @@ function resolvePlatformRiskContext(presentation: ReportDetailPresentationModel)
       /mainly represented|partially represented|only reflects part|partial|leans heavily on one source|one source right now/.test(
         combinedHighlights,
       ),
-    balancedRead: /balanced|spread across|more than one|not heavily concentrated|diversified|few sources/.test(combinedHighlights),
+    balancedRead: revenueSourceCount !== null && revenueSourceCount >= 2,
+    revenueSourceCount,
   };
 }
 
@@ -186,9 +238,11 @@ function buildPlatformRiskHeadline(context: PlatformRiskContext): string {
     return "Most of your income still comes from one platform.";
   }
   if (concentrationScore >= 40) {
-    return "Your income is starting to spread beyond one main platform.";
+    return balancedRead
+      ? "Your income is starting to spread beyond one main platform."
+      : "One platform still leads the revenue mix.";
   }
-  return "Your income is not riding on one place right now.";
+  return balancedRead ? "Your income is not riding on one place right now." : "Platform dependence looks lower in this report.";
 }
 
 function buildPlatformRiskImplication(context: PlatformRiskContext): string {
@@ -211,9 +265,13 @@ function buildPlatformRiskImplication(context: PlatformRiskContext): string {
     return `${platformLabel} still sets the floor for the business, which means a second paid channel needs to carry more of the load over time.`;
   }
   if (concentrationScore >= 40) {
-    return "You have more than one source working, but one platform still leads the business.";
+    return balancedRead
+      ? "You have more than one revenue source working, but one platform still leads the business."
+      : `${platformLabel} still leads enough of the tracked revenue that reducing dependency should stay on the plan.`;
   }
-  return "No single platform is dominating the business right now.";
+  return balancedRead
+    ? "No single platform is dominating the business right now."
+    : "No single platform looks dominant in the available revenue mix.";
 }
 
 function rewriteStrengthRiskText(value: string | null | undefined, topPlatform: string | null): string | null {
@@ -406,8 +464,7 @@ function buildHealthyOpportunity(
   const stableOrGrowingSubscribers = subscriberTrend === "up" || subscriberTrend === "flat" || subscriberTrend === "unknown";
   const concentrationScore = platformRisk.concentrationScore;
   const balanced =
-    platformRisk.balancedRead ||
-    (concentrationScore !== null && concentrationScore < 65 && presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected > 1);
+    platformRisk.balancedRead;
 
   if (!stableOrGrowingRevenue || !stableOrGrowingSubscribers || !balanced) {
     return null;
@@ -417,7 +474,7 @@ function buildHealthyOpportunity(
     return {
       available: true,
       finding: "Make the second revenue pillar harder to ignore.",
-      upsideLabel: "The business already has more than one source working. The next gain is making the second one more dependable.",
+      upsideLabel: "The business already has a meaningful second paid source. The next gain is making it more dependable.",
       action: `Keep ${platformRisk.topPlatform ?? "the leading platform"} steady while using the next campaign to move more demand toward your second paid channel or owned list.`,
     };
   }
@@ -533,6 +590,7 @@ function buildSummarySentence(
   } else if (revenueTrend === "down" || subscriberTrend === "down") {
     happening = "Your business softened this period.";
   } else if (
+    platformRisk.balancedRead &&
     concentrationScore !== null &&
     concentrationScore < 70 &&
     (revenueTrend === "up" || revenueTrend === "flat") &&
@@ -669,7 +727,8 @@ function buildOpportunity(
 function buildPlatformMix(presentation: ReportDetailPresentationModel): WowPlatformMixViewModel {
   const context = resolvePlatformRiskContext(presentation);
   const onlyOneSource = presentation.platformMix.platformsConnected !== null && presentation.platformMix.platformsConnected <= 1;
-  if (onlyOneSource && context.concentrationScore === null) {
+  const onlyOneRevenueSource = context.revenueSourceCount === 1;
+  if ((onlyOneSource || onlyOneRevenueSource) && context.concentrationScore === null) {
     return {
       concentrationScore: null,
       topPlatformLabel: context.topPlatform,

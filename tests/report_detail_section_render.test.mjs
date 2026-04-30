@@ -100,3 +100,11 @@ test("report detail keeps audience scope truthful and renders a restrained empty
   assert.equal(pageSource.includes("Audience signals are not available for the included sources yet."), true);
   assert.equal(pageSource.includes("<ReportAudienceGrowthSection model={audienceSectionModel} emptyMessage={audienceEmptyState} />"), true);
 });
+
+test("report detail source does not contain unsupported multi-source fallback phrasing", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8").then((value) => value.toLowerCase());
+
+  assert.equal(source.includes("more than one source working"), false);
+  assert.equal(source.includes("spread across a few sources"), false);
+  assert.equal(source.includes("each one is softening"), false);
+});

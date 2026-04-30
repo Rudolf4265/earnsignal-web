@@ -603,20 +603,20 @@ function buildSubscriberHighlights(input: {
   const highlights: string[] = [];
 
   if (input.metricSnapshot?.churnRiskAvailability === "unavailable") {
-    highlights.push("Churn-specific conclusions are limited until subscriber history is more complete.");
+    highlights.push("Subscriber churn is not strong enough to diagnose yet. Treat this as a directional read until the next full subscriber export.");
   } else if (input.metricSnapshot?.churnRiskAvailability === "limited") {
-    highlights.push("Churn pressure is directional; use it as a watch item, not a final verdict.");
+    highlights.push("Retention pressure is only directional in this upload, so use it as a watch item rather than a hard call.");
   }
 
   const activeSubscribers = input.metricProvenance.active_subscribers;
   if (activeSubscribers?.availability === "limited" || activeSubscribers?.confidence === "low") {
-    highlights.push("Subscriber totals are usable, but the confidence note means retention interpretation should stay conservative.");
+    highlights.push("Paid subscriber count is useful, but retention history is still the missing layer.");
   }
 
   const cleanedLines = dedupeText(
     input.lines
       .filter((line) => !shouldSuppressRawReportText(line))
-      .filter((line) => !/unavailable for this report|confidence is|limited evidence/i.test(line)),
+      .filter((line) => !/unavailable for this report|confidence is|limited evidence|artifact/i.test(line)),
   );
 
   for (const line of cleanedLines) {
@@ -627,6 +627,33 @@ function buildSubscriberHighlights(input: {
   }
 
   return dedupeText(highlights).slice(0, 3);
+}
+
+function rewriteAudienceNarrativeLine(value: string | null | undefined, platformLabel?: string | null): string | null {
+  const cleaned = polishReportSentence(value);
+  if (!cleaned) {
+    return null;
+  }
+
+  const normalized = cleaned.toLowerCase();
+  const platform = platformLabel ?? "This channel";
+
+  if (
+    normalized.includes("youtube") &&
+    (normalized.includes("audience") || normalized.includes("content evidence") || normalized.includes("contributing"))
+  ) {
+    return "YouTube is useful here as a discovery signal, not a revenue source. Treat it as the top-of-funnel path that should point more viewers toward Patreon or Substack.";
+  }
+
+  if (normalized.includes("do not change your revenue totals")) {
+    return "Audience and engagement signals help explain discovery and conversion paths. They do not change your revenue totals.";
+  }
+
+  if (normalized.includes("strongest audience signal")) {
+    return `${platform} is the clearest discovery signal in this upload, but the goal is turning that attention into owned demand.`;
+  }
+
+  return cleaned;
 }
 
 function buildSubscriberMetrics(input: {
@@ -967,7 +994,7 @@ function buildAudienceGrowthSection(
       id: card.platform ?? `${index}`,
       label: card.label,
       metrics: card.metrics.slice(0, 3),
-      insight: card.insight,
+      insight: rewriteAudienceNarrativeLine(card.insight, card.label),
     }));
 
   const diagnosis =
@@ -977,7 +1004,7 @@ function buildAudienceGrowthSection(
       : null;
   const subtitle =
     audienceGrowth.subtitle && !hasConflictingPlatformMentions(audienceGrowth.subtitle, normalizePlatformsIncluded(platformsIncluded))
-      ? polishReportSentence(audienceGrowth.subtitle) ?? audienceGrowth.subtitle
+      ? rewriteAudienceNarrativeLine(audienceGrowth.subtitle)
       : null;
   const trustworthyDiagnosis =
     diagnosis &&
@@ -994,13 +1021,19 @@ function buildAudienceGrowthSection(
   }
 
   return {
-    title: /signals/i.test(audienceGrowth.title) ? "Audience Growth" : audienceGrowth.title,
+    title: /signals/i.test(audienceGrowth.title) ? "Audience Signals" : audienceGrowth.title,
     subtitle,
     summaryTiles,
     includedSources,
     platformCards,
-    diagnosis: trustworthyDiagnosis,
-    trustNote: audienceGrowth.trustNote,
+    diagnosis: trustworthyDiagnosis
+      ? {
+          strongestSignal: rewriteAudienceNarrativeLine(trustworthyDiagnosis.strongestSignal) ?? trustworthyDiagnosis.strongestSignal,
+          watchout: rewriteAudienceNarrativeLine(trustworthyDiagnosis.watchout) ?? trustworthyDiagnosis.watchout,
+          nextBestMove: rewriteAudienceNarrativeLine(trustworthyDiagnosis.nextBestMove) ?? trustworthyDiagnosis.nextBestMove,
+        }
+      : null,
+    trustNote: rewriteAudienceNarrativeLine(audienceGrowth.trustNote) ?? audienceGrowth.trustNote,
   };
 }
 

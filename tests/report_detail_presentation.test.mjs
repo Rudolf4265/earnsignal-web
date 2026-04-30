@@ -224,14 +224,14 @@ test("buildReportDetailPresentationModel maps typed audience growth signals into
     artifactSignals: null,
   });
 
-  assert.equal(model.audienceGrowth?.title, "Audience Growth");
+  assert.equal(model.audienceGrowth?.title, "Audience Signals");
   assert.equal(model.audienceGrowth?.summaryTiles.length, 4);
   assert.equal(model.audienceGrowth?.summaryTiles[0]?.label, "Creator Score");
   assert.equal(model.audienceGrowth?.summaryTiles[1]?.label, "Sources Used");
   assert.equal(model.audienceGrowth?.includedSources[0]?.label, "Instagram");
   assert.equal(model.audienceGrowth?.platformCards[0]?.metrics.length, 3);
   assert.equal(model.audienceGrowth?.diagnosis?.strongestSignal, "Instagram has the strongest improving audience momentum.");
-  assert.equal(model.audienceGrowth?.trustNote, "Growth signals are based on available audience and engagement data and do not change your revenue totals.");
+  assert.equal(model.audienceGrowth?.trustNote, "Audience and engagement signals help explain discovery and conversion paths. They do not change your revenue totals.");
 });
 
 test("buildReportDetailPresentationModel uses source-based fallback summary wording", async () => {
@@ -459,7 +459,7 @@ test("buildReportDetailPresentationModel surfaces typed limited and unavailable 
   assert.equal(model.heroMetrics.find((metric) => metric.id === "creator_health")?.stateLabel, "Medium confidence");
   assert.equal(model.subscriberHealth.notice?.label, "Unavailable");
   assert.equal(model.subscriberHealth.metrics.some((metric) => metric.id === "churn_risk"), false);
-  assert.equal(model.subscriberHealth.highlights[0], "Churn-specific conclusions are limited until subscriber history is more complete.");
+  assert.equal(model.subscriberHealth.highlights[0], "Subscriber churn is not strong enough to diagnose yet. Treat this as a directional read until the next full subscriber export.");
   assert.equal(model.subscriberHealth.metrics.find((metric) => metric.id === "subscribers")?.stateLabel, "Limited data");
   assert.equal(model.recommendations[0]?.label, "Validate first");
   assert.equal(model.revenueOutlook.notice?.label, "Unavailable");
@@ -952,7 +952,7 @@ test("buildReportDetailPresentationModel cleans raw subscriber and outlook suppo
   assert.equal(model.subscriberHealth.metrics.some((metric) => metric.id === "churn_risk"), false);
   assert.equal(model.subscriberHealth.highlights.some((line) => line.includes("2026-04")), false);
   assert.equal(model.subscriberHealth.highlights.some((line) => line.includes("2025-11")), false);
-  assert.equal(model.subscriberHealth.highlights[0], "Churn-specific conclusions are limited until subscriber history is more complete.");
+  assert.equal(model.subscriberHealth.highlights[0], "Subscriber churn is not strong enough to diagnose yet. Treat this as a directional read until the next full subscriber export.");
   assert.equal(model.subscriberHealth.highlights[1], "Retention held steady enough to keep subscriber interpretation useful.");
   assert.equal(model.revenueOutlook.cards.length, 1);
   assert.equal(model.revenueOutlook.cards[0]?.body, "Base case: revenue holds near the current range while retention evidence matures.");

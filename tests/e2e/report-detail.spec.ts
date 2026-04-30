@@ -223,7 +223,7 @@ test.describe("Report detail route", () => {
     await page.goto("/app/report/rep_contract_error");
 
     await expect(page.getByTestId("report-content")).toBeVisible();
-    await expect(page.getByText("Artifact JSON unavailable")).toBeVisible();
+    await expect(page.getByText("Report data unavailable")).toBeVisible();
     await expect(page.getByText("failed schema validation")).toBeVisible();
     await expect(page.getByText("Fallback report summary.")).toBeVisible();
   });

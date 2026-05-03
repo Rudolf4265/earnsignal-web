@@ -12,7 +12,12 @@ function toBaseUrl(host: string): string {
 }
 
 export const marketingBaseUrl = toBaseUrl(marketingHost);
-export const appBaseUrl = toBaseUrl(appHost);
+
+// NEXT_PUBLIC_APP_URL overrides the derived app host so local dev on localhost:3000
+// does not produce absolute links to app.localhost (which requires /etc/hosts setup).
+// In production this variable is not set and the value is derived from PRIMARY_DOMAIN.
+const _configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "");
+export const appBaseUrl = _configuredAppUrl || toBaseUrl(appHost);
 
 export const stripeSuccessUrl = `${appBaseUrl}/app/billing/success`;
 export const stripeCancelUrl = `${appBaseUrl}/app/billing/cancel`;

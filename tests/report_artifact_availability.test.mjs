@@ -23,6 +23,33 @@ test("hasUsableReportArtifact requires completed status, canonical report_id, an
 
   assert.equal(
     hasUsableReportArtifact({
+      reportId: "rep_upload_alias",
+      status: "report_ready",
+      artifactUrl: "/v1/reports/rep_upload_alias/artifact",
+    }),
+    true,
+  );
+
+  assert.equal(
+    hasUsableReportArtifact({
+      reportId: "rep_generated_alias",
+      status: "generated",
+      artifactUrl: "/v1/reports/rep_generated_alias/artifact",
+    }),
+    true,
+  );
+
+  assert.equal(
+    hasUsableReportArtifact({
+      reportId: "rep_done_alias",
+      status: "done",
+      artifactUrl: "/v1/reports/rep_done_alias/artifact",
+    }),
+    true,
+  );
+
+  assert.equal(
+    hasUsableReportArtifact({
       reportId: "rep_processing",
       status: "processing",
       artifactUrl: "/v1/reports/rep_processing/artifact",

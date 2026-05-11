@@ -38,7 +38,14 @@ import {
 } from "@/src/lib/report/detail-presentation";
 import { getReportViewState, getRequestId, type ReportViewState } from "@/src/lib/report/detail-state";
 import { hasUsableReportArtifact } from "@/src/lib/report/artifact-availability";
-import { formatReportCreatedAt, isInFlightReportStatus, toReportStatusLabel, toReportStatusVariant } from "@/src/lib/report/list-model";
+import {
+  formatReportCreatedAt,
+  isCompletedReportStatus,
+  isFailedReportStatus,
+  isInFlightReportStatus,
+  toReportStatusLabel,
+  toReportStatusVariant,
+} from "@/src/lib/report/list-model";
 import { readReportRouteParamId } from "@/src/lib/report/route-id";
 import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/report/normalize-artifact-to-report-model";
 import { formatReportArtifactContractErrors, patchSparseArtifact, validateReportArtifactContract } from "@/src/lib/report/artifact-contract";
@@ -57,6 +64,7 @@ type ReportPageState = {
   artifactRaw: unknown | null;
   artifactError: string | null;
   artifactJsonMissing: boolean;
+  runFailureMessage: string | null;
   requestId?: string;
 };
 
@@ -68,6 +76,7 @@ const initialState: ReportPageState = {
   artifactRaw: null,
   artifactError: null,
   artifactJsonMissing: false,
+  runFailureMessage: null,
 };
 const REPORT_DETAIL_POLL_INTERVAL_MS = 3_000;
 const reportPlan = getPricingPlan("report");
@@ -136,6 +145,185 @@ function PdfExportLoadingState() {
     >
       <p className="text-xs text-brand-text-secondary">Checking plan access for full PDF export...</p>
     </div>
+  );
+}
+
+type ReportRunTimelineStep = {
+  id: string;
+  label: string;
+};
+
+const reportRunTimelineSteps: ReportRunTimelineStep[] = [
+  { id: "files_received", label: "Files received" },
+  { id: "validating_data", label: "Validating data" },
+  { id: "combining_sources", label: "Combining sources" },
+  { id: "building_diagnosis", label: "Building business diagnosis" },
+  { id: "preparing_report", label: "Preparing report and PDF" },
+];
+
+function getReportRunTimelineStepIndex(status: string): number {
+  const normalized = status.trim().toLowerCase();
+
+  if (normalized === "queued") {
+    return 1;
+  }
+
+  if (normalized === "running") {
+    return 3;
+  }
+
+  if (normalized === "processing") {
+    return 2;
+  }
+
+  return 2;
+}
+
+function ReportRunningState({
+  report,
+  sourceCountLabel,
+}: {
+  report: ReportDetail;
+  sourceCountLabel: string | null;
+}) {
+  const currentStepIndex = getReportRunTimelineStepIndex(report.status);
+  const statusLabel = toReportStatusLabel(report.status);
+
+  return (
+    <section className="mx-auto max-w-[980px] space-y-8" data-testid="report-running">
+      <div className="overflow-hidden rounded-[2rem] border border-brand-border-strong/80 bg-[linear-gradient(155deg,rgba(7,17,38,0.98),rgba(16,32,67,0.96),rgba(13,59,92,0.92))] shadow-brand-card">
+        <div className="relative px-6 py-8 sm:px-10 sm:py-10 lg:px-12">
+          <div className="pointer-events-none absolute -right-24 top-0 h-48 w-48 rounded-full bg-brand-accent-blue/18 blur-3xl" />
+          <div className="pointer-events-none absolute -left-16 bottom-[-3rem] h-44 w-44 rounded-full bg-brand-accent-emerald/14 blur-3xl" />
+          <div className="relative space-y-8">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-3xl space-y-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="inline-flex rounded-full border border-brand-accent-blue/35 bg-brand-accent-blue/12 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-accent-blue">
+                    Report in progress
+                  </span>
+                  <Badge variant="neutral">{statusLabel}</Badge>
+                </div>
+                <div className="space-y-3">
+                  <h1 className="text-[2.1rem] font-semibold leading-[1.05] tracking-[-0.03em] text-brand-text-primary sm:text-[2.7rem]">
+                    Building your report
+                  </h1>
+                  <p className="max-w-2xl text-sm leading-7 text-brand-text-secondary sm:text-[0.98rem]">
+                    Your uploads were received and the report is still being assembled. You do not need to upload the files again.
+                  </p>
+                </div>
+              </div>
+
+              <div className="min-w-[220px] rounded-[1.4rem] border border-brand-border-strong/70 bg-brand-panel/72 p-4 shadow-brand-card">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Current status</p>
+                <p className="mt-2 text-lg font-semibold text-brand-text-primary">{statusLabel}</p>
+                <p className="mt-2 text-sm leading-6 text-brand-text-secondary">
+                  PDF will be available when your report is ready.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1.25fr)_minmax(250px,0.75fr)]">
+              <div className="rounded-[1.5rem] border border-brand-border/75 bg-brand-panel/68 p-5 shadow-brand-card">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Progress</p>
+                <div className="mt-5 space-y-4">
+                  {reportRunTimelineSteps.map((step, index) => {
+                    const stepState = index < currentStepIndex ? "complete" : index === currentStepIndex ? "current" : "upcoming";
+
+                    return (
+                      <div key={step.id} className="flex items-center gap-4">
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
+                            stepState === "complete"
+                              ? "border-brand-accent-emerald/45 bg-brand-accent-emerald/14 text-brand-accent-emerald"
+                              : stepState === "current"
+                                ? "border-brand-accent-blue/45 bg-brand-accent-blue/14 text-brand-accent-blue"
+                                : "border-brand-border/65 bg-brand-panel-muted/55 text-brand-text-muted"
+                          }`}
+                        >
+                          {index + 1}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-brand-text-primary">{step.label}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.14em] text-brand-text-muted">
+                            {stepState === "complete" ? "Done" : stepState === "current" ? "In progress" : "Up next"}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-[1.5rem] border border-brand-border/75 bg-brand-panel/68 p-5 shadow-brand-card">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Included sources</p>
+                  <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-brand-text-primary">
+                    {sourceCountLabel ?? "Detecting sources"}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-brand-text-secondary">
+                    {sourceCountLabel
+                      ? "We are validating the uploaded files and combining them into a single business read."
+                      : "We are confirming the uploaded files before building the final report."}
+                  </p>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-brand-border/75 bg-brand-panel/68 p-5 shadow-brand-card">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">What happens next</p>
+                  <p className="mt-2 text-sm leading-6 text-brand-text-secondary">
+                    This page will refresh automatically as the report moves forward. Leave it open or come back later from Reports.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ReportFailedState({
+  reportId,
+  failureMessage,
+}: {
+  reportId: string;
+  failureMessage: string | null;
+}) {
+  return (
+    <section className="mx-auto max-w-[860px] space-y-6" data-testid="report-failed">
+      <div className="overflow-hidden rounded-[2rem] border border-[rgba(245,158,11,0.35)] bg-[linear-gradient(155deg,rgba(7,17,38,0.98),rgba(58,24,24,0.92),rgba(16,32,67,0.94))] shadow-brand-card">
+        <div className="relative px-6 py-8 sm:px-10 sm:py-10">
+          <div className="pointer-events-none absolute -right-16 top-0 h-40 w-40 rounded-full bg-amber-400/10 blur-3xl" />
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex rounded-full border border-amber-300/35 bg-amber-300/12 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200">
+                Report failed
+              </span>
+              <Badge variant="warn">{toReportStatusLabel("failed")}</Badge>
+            </div>
+            <div className="space-y-3">
+              <h1 className="text-[2rem] font-semibold leading-[1.08] tracking-[-0.03em] text-brand-text-primary sm:text-[2.4rem]">
+                We couldn&apos;t finish this report
+              </h1>
+              <p className="max-w-2xl text-sm leading-7 text-brand-text-secondary">
+                {failureMessage ??
+                  "The uploaded files were received, but the report run did not complete successfully. Return to your workspace to review the source files or start a fresh run."}
+              </p>
+              <p className="text-xs text-brand-text-muted">Report ID: {reportId}</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/app/report" className={buttonClassName({ variant: "secondary", size: "sm", className: "px-4 shadow-brand-card" })}>
+                Back to Reports
+              </Link>
+              <Link href="/app/data" className={buttonClassName({ variant: "primary", size: "sm", className: "px-4 shadow-brand-glow" })}>
+                Review uploads
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1000,6 +1188,20 @@ export default function ReportPage() {
           return;
         }
 
+        if (!isCompletedReportStatus(report.status)) {
+          setState({
+            view: "success",
+            report,
+            artifactModel: null,
+            artifactWarnings: [],
+            artifactRaw: null,
+            artifactError: null,
+            artifactJsonMissing: false,
+            runFailureMessage: null,
+          });
+          return;
+        }
+
         if (!report.artifactJsonUrl) {
           setState({
             view: "success",
@@ -1009,6 +1211,7 @@ export default function ReportPage() {
             artifactRaw: null,
             artifactError: null,
             artifactJsonMissing: true,
+            runFailureMessage: null,
           });
           return;
         }
@@ -1031,6 +1234,7 @@ export default function ReportPage() {
               artifactRaw: artifactPatched,
               artifactError: formatReportArtifactContractErrors(contract.errors),
               artifactJsonMissing: false,
+              runFailureMessage: null,
             });
             return;
           }
@@ -1043,6 +1247,7 @@ export default function ReportPage() {
             artifactRaw: artifactPatched,
             artifactError: null,
             artifactJsonMissing: false,
+            runFailureMessage: null,
           });
         } catch (artifactError) {
           if (cancelled) {
@@ -1057,6 +1262,7 @@ export default function ReportPage() {
             artifactRaw: null,
             artifactError: toArtifactErrorMessage(artifactError),
             artifactJsonMissing: false,
+            runFailureMessage: null,
           });
         }
       } catch (error) {
@@ -1101,12 +1307,20 @@ export default function ReportPage() {
             return current;
           }
 
-          if (current.report.status === nextStatus && current.report.updatedAt === (latestStatus.updatedAt ?? current.report.updatedAt)) {
+          const nextFailureMessage =
+            latestStatus.lastErrorMessage ?? latestStatus.failureReason ?? latestStatus.stalledReason ?? current.runFailureMessage;
+
+          if (
+            current.report.status === nextStatus &&
+            current.report.updatedAt === (latestStatus.updatedAt ?? current.report.updatedAt) &&
+            current.runFailureMessage === nextFailureMessage
+          ) {
             return current;
           }
 
           return {
             ...current,
+            runFailureMessage: nextFailureMessage,
             report: {
               ...current.report,
               status: nextStatus,
@@ -1115,8 +1329,7 @@ export default function ReportPage() {
           };
         });
 
-        const normalizedNextStatus = nextStatus.toLowerCase();
-        if (["ready", "completed", "complete", "success", "succeeded"].includes(normalizedNextStatus)) {
+        if (isCompletedReportStatus(nextStatus)) {
           setReloadNonce((current) => current + 1);
           return;
         }
@@ -1260,6 +1473,9 @@ export default function ReportPage() {
   const status = state.report?.status ?? "unknown";
   const statusLabel = toReportStatusLabel(status);
   const statusVariant = toReportStatusVariant(status);
+  const shouldRenderCompletedReport = state.view === "success" && state.report !== null && presentation !== null && isCompletedReportStatus(status);
+  const shouldRenderFailedReport = state.view === "success" && state.report !== null && isFailedReportStatus(status);
+  const shouldRenderRunningReport = state.view === "success" && state.report !== null && !isCompletedReportStatus(status) && !isFailedReportStatus(status);
   const reportFraming = useMemo(
     () =>
       buildReportFraming({
@@ -1335,7 +1551,15 @@ export default function ReportPage() {
         </div>
       ) : null}
 
-      {state.view === "success" && state.report && presentation ? (
+      {shouldRenderRunningReport && state.report ? (
+        <ReportRunningState report={state.report} sourceCountLabel={sourceCountLabel} />
+      ) : null}
+
+      {shouldRenderFailedReport && state.report ? (
+        <ReportFailedState reportId={state.report.id} failureMessage={state.runFailureMessage} />
+      ) : null}
+
+      {shouldRenderCompletedReport && state.report && presentation ? (
         <section className="mx-auto max-w-[1120px] space-y-10" data-testid="report-content">
           <section className={reportDocumentShellClassName}>
             <div className="mx-auto max-w-[1080px] px-6 py-8 sm:px-10 sm:py-10 lg:px-14 lg:py-12">
@@ -1409,7 +1633,7 @@ export default function ReportPage() {
                       </>
                     ) : (
                       <span className="inline-flex rounded-full border border-[rgba(245,158,11,0.42)] bg-[rgba(245,158,11,0.18)] px-3 py-1.5 text-xs font-medium text-amber-200">
-                        PDF unavailable
+                        PDF not ready yet
                       </span>
                     )
                   ) : pdfAccessMode === "pdf-locked" ? (
@@ -1799,7 +2023,7 @@ export default function ReportPage() {
             ) : null}
           </section>
 
-          {pdfError ? <ErrorBanner title="PDF unavailable" message={pdfError} /> : null}
+          {pdfError ? <ErrorBanner title="PDF not ready yet" message={pdfError} /> : null}
 
           {!showFullReportContent && !isFounder && proSectionGate.wowSummary === "report-locked" && freeTeaserModel ? (
             <ReportFreeTeaser model={freeTeaserModel} />
@@ -1916,7 +2140,7 @@ export default function ReportPage() {
                       </>
                     ) : (
                       <span className="inline-flex rounded-full border border-amber-300/35 bg-amber-300/15 px-3 py-1.5 text-xs font-medium text-amber-100">
-                        PDF unavailable
+                        PDF not ready yet
                       </span>
                     )
                   ) : pdfAccessMode === "pdf-locked" ? (
@@ -1996,7 +2220,7 @@ export default function ReportPage() {
             </div>
           </PanelCard>
 
-          {pdfError ? <ErrorBanner title="PDF unavailable" message={pdfError} /> : null}
+          {pdfError ? <ErrorBanner title="PDF not ready yet" message={pdfError} /> : null}
 
           {showFullReportContent && wowSummary ? (
             <ReportWowSummary model={wowSummary} />

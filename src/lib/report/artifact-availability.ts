@@ -1,6 +1,17 @@
 import { normalizeReportId } from "./id";
 
-const COMPLETED_REPORT_STATUSES = new Set(["ready", "completed", "complete", "success", "succeeded"]);
+// Keep this broader than the current OpenAPI report enums so UI gating stays safe if
+// backend success aliases such as upload/report handoff statuses leak into report reads.
+const COMPLETED_REPORT_STATUSES = new Set([
+  "ready",
+  "report_ready",
+  "generated",
+  "done",
+  "completed",
+  "complete",
+  "success",
+  "succeeded",
+]);
 
 function extractReportIdFromArtifactPath(pathOrUrl: string): string | null {
   let pathname = pathOrUrl;

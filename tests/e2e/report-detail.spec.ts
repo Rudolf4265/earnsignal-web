@@ -30,6 +30,49 @@ test.describe("Report detail route", () => {
     await expect(page.getByTestId("nav-reports")).toHaveAttribute("aria-current", "page");
   });
 
+  test("renders a dedicated build screen for queued reports instead of the final report shell", async ({ page }) => {
+    await page.route("**/v1/reports/rep_building/status", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          report_id: "rep_building",
+          status: "queued",
+          updated_at: "2026-03-01T10:02:00Z",
+        }),
+      });
+    });
+
+    await page.route("**/v1/reports/rep_building", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_building",
+          title: "Combined Report",
+          status: "queued",
+          created_at: "2026-03-01T10:00:00Z",
+          source_count: 3,
+          platforms_included: ["Patreon", "Shopify", "YouTube"],
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_building");
+
+    await expect(page.getByTestId("report-running")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Building your report" })).toBeVisible();
+    await expect(page.getByText("You do not need to upload the files again.")).toBeVisible();
+    await expect(page.getByText("3 sources")).toBeVisible();
+    await expect(page.getByText("Files received")).toBeVisible();
+    await expect(page.getByText("Preparing report and PDF")).toBeVisible();
+    await expect(page.getByTestId("report-content")).toHaveCount(0);
+    await expect(page.getByText("$--", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("--", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("PDF unavailable")).toHaveCount(0);
+    await expect(page.getByText("Key findings")).toHaveCount(0);
+  });
+
   test("auto-refreshes report detail when a running report becomes ready", async ({ page }) => {
     let detailFetchCount = 0;
     let statusPollCount = 0;
@@ -101,6 +144,30 @@ test.describe("Report detail route", () => {
     await expect.poll(() => detailFetchCount).toBeGreaterThan(1);
     await expect(page.getByText("Ready")).toBeVisible();
     await expect(page.getByText("Ready report loaded automatically after processing finished.").first()).toBeVisible();
+  });
+
+  test("renders a failed state without showing the running screen", async ({ page }) => {
+    await page.route("**/v1/reports/rep_failed", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "rep_failed",
+          title: "Combined Report",
+          status: "failed",
+          created_at: "2026-03-01T10:00:00Z",
+          source_count: 2,
+        }),
+      });
+    });
+
+    await page.goto("/app/report/rep_failed");
+
+    await expect(page.getByTestId("report-failed")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "We couldn't finish this report" })).toBeVisible();
+    await expect(page.getByTestId("report-running")).toHaveCount(0);
+    await expect(page.getByTestId("report-content")).toHaveCount(0);
+    await expect(page.getByText("Building your report")).toHaveCount(0);
   });
 
   test("renders body from production report.sections payload shape", async ({ page }) => {

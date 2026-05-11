@@ -60,6 +60,16 @@ test("report detail keeps report access gating and PDF controls wired", async ()
   assert.equal(source.includes('!isFounder && proSectionGate.wowSummary === "report-locked" && freeTeaserModel'), true);
 });
 
+test("report detail defines dedicated running and failed report states and removes the old PDF unavailable copy", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8");
+
+  assert.equal(source.includes('data-testid="report-running"'), true);
+  assert.equal(source.includes('data-testid="report-failed"'), true);
+  assert.equal(source.includes("Building your report"), true);
+  assert.equal(source.includes("You do not need to upload the files again."), true);
+  assert.equal(source.includes("PDF unavailable"), false);
+});
+
 test("report detail hero uses a restrained at-a-glance row instead of a KPI card grid", async () => {
   const source = await readFile(reportDetailPagePath, "utf8");
 

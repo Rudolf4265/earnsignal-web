@@ -10,13 +10,22 @@ async function loadModule(seed = Date.now()) {
 }
 
 test("in-flight report status detection treats queued and running as active", async () => {
-  const { isInFlightReportStatus } = await loadModule(Date.now() + 1);
+  const { isCompletedReportStatus, isFailedReportStatus, isInFlightReportStatus } = await loadModule(Date.now() + 1);
 
   assert.equal(isInFlightReportStatus("queued"), true);
   assert.equal(isInFlightReportStatus("running"), true);
   assert.equal(isInFlightReportStatus("processing"), true);
   assert.equal(isInFlightReportStatus("failed"), false);
   assert.equal(isInFlightReportStatus("ready"), false);
+  assert.equal(isCompletedReportStatus("ready"), true);
+  assert.equal(isCompletedReportStatus("completed"), true);
+  assert.equal(isCompletedReportStatus("report_ready"), true);
+  assert.equal(isCompletedReportStatus("generated"), true);
+  assert.equal(isCompletedReportStatus("done"), true);
+  assert.equal(isCompletedReportStatus("running"), false);
+  assert.equal(isFailedReportStatus("failed"), true);
+  assert.equal(isFailedReportStatus("report_failed"), true);
+  assert.equal(isFailedReportStatus("queued"), false);
 });
 
 test("overlayReportRunStatus replaces stale running state with status endpoint data", async () => {

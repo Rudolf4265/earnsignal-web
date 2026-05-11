@@ -1,6 +1,6 @@
 import { normalizeReportId } from "./id";
 import { buildReportDetailPath } from "./path";
-import { hasUsableReportArtifact } from "./artifact-availability";
+import { hasUsableReportArtifact, isCompletedReportStatus as isCompletedArtifactStatus } from "./artifact-availability";
 import {
   canViewOwnedReportFromEntitlement,
   canViewReportHistoryFromEntitlement,
@@ -74,6 +74,7 @@ export type ReportListExperienceModel = {
   showSourceSummary: boolean;
 };
 
+const FAILED_REPORT_STATUSES = new Set(["failed", "error", "rejected", "validation_failed", "report_failed"]);
 const IN_FLIGHT_REPORT_STATUSES = new Set(["queued", "running", "processing"]);
 const reportWindowFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -299,12 +300,11 @@ export function formatReportAnalysisWindow(
 }
 
 export function toReportStatusVariant(status: string): "good" | "warn" | "neutral" {
-  const normalized = status.toLowerCase();
-  if (["ready", "completed", "complete", "success", "succeeded"].includes(normalized)) {
+  if (isCompletedArtifactStatus(status)) {
     return "good";
   }
 
-  if (["failed", "error", "rejected", "validation_failed", "report_failed"].includes(normalized)) {
+  if (isFailedReportStatus(status)) {
     return "warn";
   }
 
@@ -335,6 +335,12 @@ export function toReportStatusLabel(status: string): string {
 export function isInFlightReportStatus(status: string): boolean {
   return IN_FLIGHT_REPORT_STATUSES.has(status.trim().toLowerCase());
 }
+
+export function isFailedReportStatus(status: string): boolean {
+  return FAILED_REPORT_STATUSES.has(status.trim().toLowerCase());
+}
+
+export { isCompletedReportStatus } from "./artifact-availability";
 
 export function overlayReportRunStatus(
   item: ReportListItem,

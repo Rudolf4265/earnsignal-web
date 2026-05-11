@@ -1,10 +1,20 @@
 import { defineConfig } from "@playwright/test";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 const port = Number.parseInt(process.env.PORT ?? "3100", 10);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://app.earnsigma.com:${port}`;
 const appWorkspaceRoot = path.resolve(__dirname, "../..");
 const webServerUrl = process.env.PLAYWRIGHT_WEB_SERVER_URL ?? `http://127.0.0.1:${port}/`;
+const hasBuiltApp = existsSync(path.join(appWorkspaceRoot, ".next", "BUILD_ID"));
+const webServerCommand =
+  process.platform === "win32"
+    ? hasBuiltApp
+      ? `cmd /c npm run start -- --port ${port}`
+      : `cmd /c npm run dev -- --port ${port} --webpack`
+    : hasBuiltApp
+      ? `npm run start -- --port ${port}`
+      : `npm run dev -- --port ${port} --webpack`;
 
 export default defineConfig({
   testDir: ".",
@@ -23,7 +33,7 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: `npm run dev -- --port ${port} --webpack`,
+    command: webServerCommand,
     cwd: appWorkspaceRoot,
     url: webServerUrl,
     timeout: 120_000,

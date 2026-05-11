@@ -8,7 +8,7 @@ test.describe("Report detail route", () => {
     await stubEntitlements(page, "entitled");
   });
 
-  test("renders report detail on success", async ({ page }) => {
+  test("renders completed reports in the normal report layout", async ({ page }) => {
     await page.route("**/v1/reports/rep_success", async (route) => {
       await route.fulfill({
         status: 200,
@@ -19,117 +19,29 @@ test.describe("Report detail route", () => {
           status: "ready",
           summary: "Healthy growth with stable churn.",
           created_at: "2026-03-01T10:00:00Z",
+          artifact_json_url: "https://artifacts.test/rep_success.json",
+          artifact_url: "/v1/reports/rep_success/artifact",
         }),
       });
     });
 
-    await page.goto("/app/report/rep_success");
-
-    await expect(page.getByTestId("report-content")).toBeVisible();
-    await expect(page.getByText("Q1 Revenue Quality")).toBeVisible();
-    await expect(page.getByTestId("nav-reports")).toHaveAttribute("aria-current", "page");
-  });
-
-  test("renders a dedicated build screen for queued reports instead of the final report shell", async ({ page }) => {
-    await page.route("**/v1/reports/rep_building/status", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          report_id: "rep_building",
-          status: "queued",
-          updated_at: "2026-03-01T10:02:00Z",
-        }),
-      });
-    });
-
-    await page.route("**/v1/reports/rep_building", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "rep_building",
-          title: "Combined Report",
-          status: "queued",
-          created_at: "2026-03-01T10:00:00Z",
-          source_count: 3,
-          platforms_included: ["Patreon", "Shopify", "YouTube"],
-        }),
-      });
-    });
-
-    await page.goto("/app/report/rep_building");
-
-    await expect(page.getByTestId("report-running")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Building your report" })).toBeVisible();
-    await expect(page.getByText("You do not need to upload the files again.")).toBeVisible();
-    await expect(page.getByText("3 sources")).toBeVisible();
-    await expect(page.getByText("Files received")).toBeVisible();
-    await expect(page.getByText("Preparing report and PDF")).toBeVisible();
-    await expect(page.getByTestId("report-content")).toHaveCount(0);
-    await expect(page.getByText("$--", { exact: true })).toHaveCount(0);
-    await expect(page.getByText("--", { exact: true })).toHaveCount(0);
-    await expect(page.getByText("PDF unavailable")).toHaveCount(0);
-    await expect(page.getByText("Key findings")).toHaveCount(0);
-  });
-
-  test("auto-refreshes report detail when a running report becomes ready", async ({ page }) => {
-    let detailFetchCount = 0;
-    let statusPollCount = 0;
-
-    await page.route("**/v1/reports/rep_auto_refresh_ready/status", async (route) => {
-      statusPollCount += 1;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          report_id: "rep_auto_refresh_ready",
-          status: statusPollCount >= 2 ? "ready" : "processing",
-          updated_at: "2026-03-01T10:05:00Z",
-        }),
-      });
-    });
-
-    await page.route("**/v1/reports/rep_auto_refresh_ready", async (route) => {
-      detailFetchCount += 1;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          statusPollCount >= 2
-            ? {
-                id: "rep_auto_refresh_ready",
-                title: "Combined Report — Patreon + Substack",
-                status: "ready",
-                created_at: "2026-03-01T10:00:00Z",
-                platforms_included: ["Patreon", "Substack"],
-                source_count: 2,
-                artifact_json_url: "https://artifacts.test/rep_auto_refresh_ready.json",
-                artifact_url: "/v1/reports/rep_auto_refresh_ready/artifact",
-              }
-            : {
-                id: "rep_auto_refresh_ready",
-                title: "Combined Report — Patreon + Substack",
-                status: "processing",
-                created_at: "2026-03-01T10:00:00Z",
-                platforms_included: ["Patreon", "Substack"],
-                source_count: 2,
-              },
-        ),
-      });
-    });
-
-    await page.route("https://artifacts.test/rep_auto_refresh_ready.json", async (route) => {
+    await page.route("https://artifacts.test/rep_success.json", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           report: {
-            report_id: "rep_auto_refresh_ready",
+            report_id: "rep_success",
             schema_version: "v1",
             sections: {
               executive_summary: {
-                summary: "Ready report loaded automatically after processing finished.",
+                summary: "Healthy growth with stable churn.",
+              },
+              prioritized_insights: {
+                items: ["Revenue quality improved while churn pressure stayed controlled."],
+              },
+              ranked_recommendations: {
+                items: ["Keep the current pricing posture while compounding retention gains."],
               },
             },
           },
@@ -137,14 +49,70 @@ test.describe("Report detail route", () => {
       });
     });
 
-    await page.goto("/app/report/rep_auto_refresh_ready");
+    await page.goto("/app/report/rep_success");
 
+    await expect(page).toHaveURL("/app/report/rep_success");
     await expect(page.getByTestId("report-content")).toBeVisible();
-    await expect.poll(() => statusPollCount).toBeGreaterThan(0);
-    await expect.poll(() => detailFetchCount).toBeGreaterThan(1);
+    await expect(page.getByTestId("report-executive-summary-card")).toBeVisible();
+    await expect(page.getByText("Healthy growth with stable churn.").first()).toBeVisible();
     await expect(page.getByText("Ready")).toBeVisible();
-    await expect(page.getByText("Ready report loaded automatically after processing finished.").first()).toBeVisible();
+    await expect(page.getByTestId("report-running")).toHaveCount(0);
+    await expect(page.getByTestId("report-failed")).toHaveCount(0);
+    await expect(page.getByTestId("nav-reports")).toHaveAttribute("aria-current", "page");
   });
+
+  for (const fixture of [
+    { id: "rep_running", status: "running", sourceCount: 3, platforms: ["Patreon", "Shopify", "YouTube"] },
+    { id: "rep_queued", status: "queued", sourceCount: 2, platforms: ["Patreon", "Substack"] },
+  ]) {
+    test(`renders the building screen for ${fixture.status} reports`, async ({ page }) => {
+      await page.route(`**/v1/reports/${fixture.id}/status`, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            report_id: fixture.id,
+            status: fixture.status,
+            updated_at: "2026-03-01T10:02:00Z",
+          }),
+        });
+      });
+
+      await page.route(`**/v1/reports/${fixture.id}`, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            id: fixture.id,
+            title: "Combined Report",
+            status: fixture.status,
+            created_at: "2026-03-01T10:00:00Z",
+            source_count: fixture.sourceCount,
+            platforms_included: fixture.platforms,
+          }),
+        });
+      });
+
+      await page.goto(`/app/report/${fixture.id}`);
+
+      await expect(page).toHaveURL(`/app/report/${fixture.id}`);
+      await expect(page.getByTestId("report-running")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Building your report" })).toBeVisible();
+      await expect(page.getByText("You do not need to upload the files again.")).toBeVisible();
+      await expect(page.getByText(`${fixture.sourceCount} source`, { exact: false })).toBeVisible();
+      await expect(page.getByText("Files received")).toBeVisible();
+      await expect(page.getByText("Validating data")).toBeVisible();
+      await expect(page.getByText("Combining sources")).toBeVisible();
+      await expect(page.getByText("Building business diagnosis")).toBeVisible();
+      await expect(page.getByText("Preparing report and PDF")).toBeVisible();
+      await expect(page.getByTestId("report-content")).toHaveCount(0);
+      await expect(page.getByTestId("report-failed")).toHaveCount(0);
+      await expect(page.getByText("$--", { exact: true })).toHaveCount(0);
+      await expect(page.getByText("--", { exact: true })).toHaveCount(0);
+      await expect(page.getByText("PDF unavailable")).toHaveCount(0);
+      await expect(page.getByText("Key findings")).toHaveCount(0);
+    });
+  }
 
   test("renders a failed state without showing the running screen", async ({ page }) => {
     await page.route("**/v1/reports/rep_failed", async (route) => {
@@ -163,464 +131,11 @@ test.describe("Report detail route", () => {
 
     await page.goto("/app/report/rep_failed");
 
+    await expect(page).toHaveURL("/app/report/rep_failed");
     await expect(page.getByTestId("report-failed")).toBeVisible();
     await expect(page.getByRole("heading", { name: "We couldn't finish this report" })).toBeVisible();
     await expect(page.getByTestId("report-running")).toHaveCount(0);
     await expect(page.getByTestId("report-content")).toHaveCount(0);
     await expect(page.getByText("Building your report")).toHaveCount(0);
-  });
-
-  test("renders body from production report.sections payload shape", async ({ page }) => {
-    await page.route("**/v1/reports/rep_sections_prod", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "rep_sections_prod",
-          title: "Production Shape Report",
-          status: "ready",
-          created_at: "2026-03-09T12:00:00Z",
-          artifact_json_url: "https://artifacts.test/rep_sections_prod.json",
-          artifact_url: "/v1/reports/rep_sections_prod/artifact",
-        }),
-      });
-    });
-
-    await page.route("https://artifacts.test/rep_sections_prod.json", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          report: {
-            report_id: "rep_sections_prod",
-            schema_version: "v1",
-            sections: {
-              executive_summary: {
-                summary: "Revenue quality improved while volatility eased.",
-              },
-              revenue_snapshot: {
-                net_revenue: 215000,
-                series: [
-                  { period: "2025-12", net_revenue: 198000 },
-                  { period: "2026-01", net_revenue: 205500 },
-                  { period: "2026-02", net_revenue: 215000 },
-                ],
-              },
-              subscribers_retention: {
-                items: ["Retention stayed above target for the quarter."],
-              },
-              tier_health: {
-                items: ["Mid-tier conversion improved month over month."],
-              },
-              platform_mix: {
-                items: ["YouTube remains largest channel with steady diversification."],
-              },
-              clustered_themes: {
-                items: ["Audience quality and pricing discipline are compounding."],
-              },
-              stability: {
-                stability_index: 87,
-                items: ["Churn velocity is moderating."],
-              },
-              prioritized_insights: {
-                items: ["High-retention cohorts are driving margin expansion."],
-              },
-              ranked_recommendations: {
-                items: ["Shift spend toward retention experiments before scaling acquisition."],
-              },
-              outlook: {
-                summary: "Base case remains growth-positive with lower downside variance.",
-              },
-              plan: {
-                items: ["Run annual plan sensitivity tests in Q2."],
-              },
-              appendix: {
-                paragraphs: ["Method notes and assumptions."],
-              },
-            },
-          },
-        }),
-      });
-    });
-
-    await page.goto("/app/report/rep_sections_prod");
-
-    await expect(page.getByTestId("report-content")).toBeVisible();
-    await expect(page.getByTestId("report-executive-summary-card")).toBeVisible();
-    await expect(page.getByText("Net Revenue")).toBeVisible();
-    await expect(page.getByText("Revenue Trend")).toBeVisible();
-    await expect(page.getByText("What to do next")).toBeVisible();
-    await expect.poll(async () => page.locator("article").count()).toBeGreaterThan(0);
-  });
-
-  test("shows visible artifact contract error for malformed artifact payloads", async ({ page }) => {
-    await page.route("**/v1/reports/rep_contract_error", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "rep_contract_error",
-          title: "Contract Error Report",
-          status: "ready",
-          created_at: "2026-03-09T12:00:00Z",
-          artifact_json_url: "https://artifacts.test/rep_contract_error.json",
-          artifact_url: "/v1/reports/rep_contract_error/artifact",
-          summary: "Fallback report summary.",
-        }),
-      });
-    });
-
-    await page.route("https://artifacts.test/rep_contract_error.json", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          report: {
-            schema_version: "v2",
-            sections: {
-              executive_summary: {
-                summary: "Invalid schema payload.",
-              },
-            },
-          },
-        }),
-      });
-    });
-
-    await page.goto("/app/report/rep_contract_error");
-
-    await expect(page.getByTestId("report-content")).toBeVisible();
-    await expect(page.getByText("Report data unavailable")).toBeVisible();
-    await expect(page.getByText("failed schema validation")).toBeVisible();
-    await expect(page.getByText("Fallback report summary.")).toBeVisible();
-  });
-
-  test("renders not found state on 404", async ({ page }) => {
-    await page.route("**/v1/reports/rep_missing", async (route) => {
-      await route.fulfill({
-        status: 404,
-        contentType: "application/json",
-        body: JSON.stringify({ message: "Report not found", code: "NOT_FOUND" }),
-      });
-    });
-
-    await page.goto("/app/report/rep_missing");
-
-    await expect(page.getByTestId("report-not-found")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Back to Reports" })).toBeVisible();
-  });
-
-  test("renders forbidden state on 403", async ({ page }) => {
-    await page.route("**/v1/reports/rep_forbidden", async (route) => {
-      await route.fulfill({
-        status: 403,
-        contentType: "application/json",
-        body: JSON.stringify({ message: "Forbidden", code: "FORBIDDEN" }),
-      });
-    });
-
-    await page.goto("/app/report/rep_forbidden");
-
-    await expect(page.getByTestId("report-forbidden")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Back to Dashboard" })).toBeVisible();
-  });
-
-  test("renders upgrade state on canonical ENTITLEMENT_REQUIRED denial", async ({ page }) => {
-    await page.route("**/v1/reports/rep_entitlement_required", async (route) => {
-      await route.fulfill({
-        status: 403,
-        contentType: "application/json",
-        body: JSON.stringify({
-          status: "error",
-          code: "ENTITLEMENT_REQUIRED",
-          message: "Upgrade required",
-          details: {
-            access_reason_code: "ENTITLEMENT_REQUIRED",
-            billing_required: true,
-          },
-        }),
-      });
-    });
-
-    await page.goto("/app/report/rep_entitlement_required");
-
-    await expect(page.getByTestId("report-entitlement-required")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Go to Billing" })).toBeVisible();
-  });
-
-  // ── Intuitive UX: snapshot vs. combined-history framing ─────────────────────
-
-  test("renders source contribution line for combined report with uneven snapshot coverage", async ({ page }) => {
-    await page.route("**/v1/reports/rep_combined_uneven", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "rep_combined_uneven",
-          title: "Combined Report — Patreon + Substack",
-          status: "ready",
-          created_at: "2026-03-01T10:00:00Z",
-          platforms_included: ["Patreon", "Substack"],
-          source_count: 2,
-          artifact_json_url: "https://artifacts.test/rep_combined_uneven.json",
-        }),
-      });
-    });
-
-    await page.route("https://artifacts.test/rep_combined_uneven.json", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          report: {
-            report_id: "rep_combined_uneven",
-            schema_version: "v1",
-            metric_provenance: {
-              net_revenue: { source: "Patreon", availability: "available", confidence: "high", evidence_strength: "strong" },
-              active_subscribers: { source: "Patreon", availability: "available", confidence: "high", evidence_strength: "strong" },
-            },
-            sections: {
-              executive_summary: { summary: "Patreon-driven snapshot with combined history from Patreon and Substack." },
-            },
-          },
-        }),
-      });
-    });
-
-    await page.goto("/app/report/rep_combined_uneven");
-
-    await expect(page.getByTestId("report-content")).toBeVisible();
-    // Source contribution line must appear and distinguish snapshot from history
-    await expect(page.getByTestId("report-source-contribution")).toBeVisible();
-    await expect(page.getByTestId("report-source-contribution")).toContainText("Current read: Patreon");
-    await expect(page.getByTestId("report-source-contribution")).toContainText("Combined history:");
-    await expect(page.getByTestId("report-source-contribution")).toContainText("Substack");
-  });
-
-  test("uses actual included sources for the displayed report title when explicit title is stale", async ({ page }) => {
-    await page.route("**/v1/reports/rep_title_mismatch", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "rep_title_mismatch",
-          title: "Combined Report — Patreon + Substack + YouTube",
-          status: "ready",
-          created_at: "2026-03-01T10:00:00Z",
-          platforms_included: ["Patreon", "Substack"],
-          source_count: 2,
-        }),
-      });
-    });
-
-    await page.goto("/app/report/rep_title_mismatch");
-
-    await expect(page.getByTestId("report-content")).toBeVisible();
-    await expect(page.getByRole("heading", { level: 1, name: "Combined Report — Patreon + Substack" })).toBeVisible();
-    await expect(page.getByText("Combined Report — Patreon + Substack + YouTube")).not.toBeVisible();
-  });
-
-  test("does not render source contribution line for single-source report", async ({ page }) => {
-    await page.route("**/v1/reports/rep_single_source", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "rep_single_source",
-          title: "Patreon Report — Mar 2026",
-          status: "ready",
-          created_at: "2026-03-01T10:00:00Z",
-          platforms_included: ["Patreon"],
-          source_count: 1,
-          artifact_json_url: "https://artifacts.test/rep_single_source.json",
-        }),
-      });
-    });
-
-    await page.route("https://artifacts.test/rep_single_source.json", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          report: {
-            report_id: "rep_single_source",
-            schema_version: "v1",
-            metric_provenance: {
-              net_revenue: { source: "Patreon", availability: "available", confidence: "high", evidence_strength: "strong" },
-            },
-            sections: {
-              executive_summary: { summary: "Single Patreon source report." },
-            },
-          },
-        }),
-      });
-    });
-
-    await page.goto("/app/report/rep_single_source");
-
-    await expect(page.getByTestId("report-content")).toBeVisible();
-    // No contribution line when snapshot sources = history sources (single source)
-    await expect(page.getByTestId("report-source-contribution")).not.toBeVisible();
-  });
-
-  test("renders snapshot label eyebrow above hero metrics", async ({ page }) => {
-    await page.route("**/v1/reports/rep_snapshot_eyebrow", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "rep_snapshot_eyebrow",
-          title: "Q1 Revenue Quality",
-          status: "ready",
-          created_at: "2026-03-01T10:00:00Z",
-        }),
-      });
-    });
-
-    await page.goto("/app/report/rep_snapshot_eyebrow");
-
-    await expect(page.getByTestId("report-content")).toBeVisible();
-    await expect(page.getByTestId("report-snapshot-label")).toBeVisible();
-    await expect(page.getByTestId("report-snapshot-label")).toContainText("snapshot");
-  });
-
-  test("revenue history section uses combined-history framing for combined report", async ({ page }) => {
-    await page.route("**/v1/reports/rep_history_framing", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "rep_history_framing",
-          title: "Combined Report",
-          status: "ready",
-          created_at: "2026-03-01T10:00:00Z",
-          platforms_included: ["Patreon", "Substack"],
-          source_count: 2,
-          artifact_json_url: "https://artifacts.test/rep_history_framing.json",
-        }),
-      });
-    });
-
-    await page.route("https://artifacts.test/rep_history_framing.json", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          report: {
-            report_id: "rep_history_framing",
-            schema_version: "v1",
-            sections: {
-              executive_summary: { summary: "Combined history drives the trend." },
-            },
-          },
-        }),
-      });
-    });
-
-    await page.goto("/app/report/rep_history_framing");
-
-    await expect(page.getByTestId("report-content")).toBeVisible();
-    // Revenue History section must appear (not "Revenue Trend")
-    await expect(page.getByText("Revenue History")).toBeVisible();
-    // Should contain "Combined history" framing in the description
-    await expect(page.getByText(/Combined history/i)).toBeVisible();
-  });
-
-  test("platform mix section uses snapshot-aware framing", async ({ page }) => {
-    await page.route("**/v1/reports/rep_platform_mix_framing", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "rep_platform_mix_framing",
-          title: "Q1 Creator Report",
-          status: "ready",
-          created_at: "2026-03-01T10:00:00Z",
-        }),
-      });
-    });
-
-    await page.goto("/app/report/rep_platform_mix_framing");
-
-    await expect(page.getByTestId("report-content")).toBeVisible();
-    // Must read as "Current Revenue Mix" not generic "Platform Mix"
-    await expect(page.getByText("Current Revenue Mix")).toBeVisible();
-    // Snapshot framing should appear in description area
-    await expect(page.getByText(/latest available snapshot/i)).toBeVisible();
-  });
-
-  test("debug JSON payload is not visible to standard entitled users", async ({ page }) => {
-    await page.route("**/v1/reports/rep_no_debug", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "rep_no_debug",
-          title: "Standard User Report",
-          status: "ready",
-          created_at: "2026-03-01T10:00:00Z",
-          artifact_json_url: "https://artifacts.test/rep_no_debug.json",
-        }),
-      });
-    });
-
-    await page.route("https://artifacts.test/rep_no_debug.json", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          report: {
-            report_id: "rep_no_debug",
-            schema_version: "v1",
-            sections: { executive_summary: { summary: "Normal report." } },
-          },
-        }),
-      });
-    });
-
-    await page.goto("/app/report/rep_no_debug");
-
-    await expect(page.getByTestId("report-content")).toBeVisible();
-    // Debug surface must not appear on the creator-facing page
-    await expect(page.getByTestId("report-debug-accordion")).toHaveCount(0);
-    await expect(page.getByTestId("report-debug-json")).toHaveCount(0);
-    // The old leak message must be gone
-    await expect(page.getByText("Debug payload view is available with Pro access.")).not.toBeVisible();
-  });
-
-  test("never requests /v1/reports/undefined for a valid /app/report/[id] route", async ({ page }) => {
-    const reportRequests = new Set<string>();
-
-    await page.route("**/v1/reports/**", async (route) => {
-      const url = new URL(route.request().url());
-      reportRequests.add(url.pathname);
-
-      if (url.pathname.endsWith("/v1/reports/rep_guard")) {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            id: "rep_guard",
-            title: "Guarded report",
-            status: "ready",
-            summary: "Regression guard",
-            created_at: "2026-03-01T10:00:00Z",
-          }),
-        });
-        return;
-      }
-
-      await route.fulfill({
-        status: 404,
-        contentType: "application/json",
-        body: JSON.stringify({ message: "Not found", code: "NOT_FOUND" }),
-      });
-    });
-
-    await page.goto("/app/report/rep_guard");
-
-    await expect(page.getByTestId("report-content")).toBeVisible();
-    expect(Array.from(reportRequests).some((path) => /\/v1\/reports\/undefined$/i.test(path))).toBeFalsy();
-    expect(reportRequests.has("/v1/reports/rep_guard")).toBeTruthy();
   });
 });

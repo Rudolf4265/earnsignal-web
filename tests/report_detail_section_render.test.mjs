@@ -66,8 +66,10 @@ test("report detail defines dedicated running and failed report states and remov
   assert.equal(source.includes('data-testid="report-running"'), true);
   assert.equal(source.includes('data-testid="report-failed"'), true);
   assert.equal(source.includes("Building your report"), true);
+  assert.equal(source.includes("These checkpoints are general progress updates rather than exact backend stages."), true);
   assert.equal(source.includes("You do not need to upload the files again."), true);
   assert.equal(source.includes("PDF unavailable"), false);
+  assert.equal(source.toLowerCase().includes("avaliable"), false);
 });
 
 test("report detail hero uses a restrained at-a-glance row instead of a KPI card grid", async () => {
@@ -117,4 +119,11 @@ test("report detail source does not contain unsupported multi-source fallback ph
   assert.equal(source.includes("more than one source working"), false);
   assert.equal(source.includes("spread across a few sources"), false);
   assert.equal(source.includes("each one is softening"), false);
+});
+
+test("report detail methodology delegates legacy coverage copy and mixed source roles to shared helpers", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8");
+
+  assert.equal(source.includes("buildReportSourceRoleLine"), true);
+  assert.equal(source.includes("rewriteReportSnapshotCoverageNote"), true);
 });

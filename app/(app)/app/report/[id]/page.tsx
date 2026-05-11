@@ -49,6 +49,7 @@ import {
 import { readReportRouteParamId } from "@/src/lib/report/route-id";
 import { normalizeArtifactToReportModel, type ReportViewModel } from "@/src/lib/report/normalize-artifact-to-report-model";
 import { formatReportArtifactContractErrors, patchSparseArtifact, validateReportArtifactContract } from "@/src/lib/report/artifact-contract";
+import { buildReportSourceRoleLine, rewriteReportSnapshotCoverageNote } from "@/src/lib/report/detail-copy";
 import { buildReportFraming, formatIncludedSourceCountLabel, normalizePlatformsIncluded } from "@/src/lib/report/source-labeling";
 import { buildReportWowSummaryViewModel, type ReportWowSummaryViewModel } from "@/src/lib/report/wow-summary-view-model";
 import { buildRevenueExplanation, isDataCompletenessAction } from "@/src/lib/report/premium-narrative";
@@ -154,29 +155,28 @@ type ReportRunTimelineStep = {
 };
 
 const reportRunTimelineSteps: ReportRunTimelineStep[] = [
-  { id: "files_received", label: "Files received" },
-  { id: "validating_data", label: "Validating data" },
-  { id: "combining_sources", label: "Combining sources" },
-  { id: "building_diagnosis", label: "Building business diagnosis" },
-  { id: "preparing_report", label: "Preparing report and PDF" },
+  { id: "upload_received", label: "Upload received" },
+  { id: "processing_data", label: "Processing uploaded data" },
+  { id: "building_report", label: "Building your report" },
+  { id: "preparing_downloads", label: "Preparing report output" },
 ];
 
 function getReportRunTimelineStepIndex(status: string): number {
   const normalized = status.trim().toLowerCase();
 
   if (normalized === "queued") {
-    return 1;
+    return 0;
   }
 
   if (normalized === "running") {
-    return 3;
-  }
-
-  if (normalized === "processing") {
     return 2;
   }
 
-  return 2;
+  if (normalized === "processing") {
+    return 1;
+  }
+
+  return 1;
 }
 
 function ReportRunningState({
@@ -226,6 +226,9 @@ function ReportRunningState({
             <div className="grid gap-4 md:grid-cols-[minmax(0,1.25fr)_minmax(250px,0.75fr)]">
               <div className="rounded-[1.5rem] border border-brand-border/75 bg-brand-panel/68 p-5 shadow-brand-card">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-text-muted">Progress</p>
+                <p className="mt-2 text-xs leading-6 text-brand-text-secondary">
+                  These checkpoints are general progress updates rather than exact backend stages.
+                </p>
                 <div className="mt-5 space-y-4">
                   {reportRunTimelineSteps.map((step, index) => {
                     const stepState = index < currentStepIndex ? "complete" : index === currentStepIndex ? "current" : "upcoming";
@@ -1101,11 +1104,14 @@ function buildMethodologyLines(input: {
 }): string[] {
   const appendixText = input.presentation.appendixSections.flatMap((section) => [...section.paragraphs, ...section.bullets]);
   const sourceNames = input.report.platformsIncluded.join(", ");
+  const sourceRoleLine = buildReportSourceRoleLine(input.report.platformsIncluded);
+  const snapshotCoverageLine = rewriteReportSnapshotCoverageNote(input.report.snapshotCoverageNote);
 
   return dedupeLines([
     input.sourceCountLabel ? `Included sources: ${input.sourceCountLabel}${sourceNames ? ` (${sourceNames})` : ""}.` : null,
+    sourceRoleLine,
     input.presentation.displayContext.historyLabel ? `History window: ${input.presentation.displayContext.historyLabel}.` : null,
-    input.report.snapshotCoverageNote,
+    snapshotCoverageLine,
     input.report.youtubeContributionMode === "content_only"
       ? "YouTube contributes content performance only in this report. Revenue from YouTube is not included in business metrics."
       : null,
@@ -1508,6 +1514,7 @@ export default function ReportPage() {
   const actionPlan = presentation && state.report ? buildActionPlan(presentation, wowSummary, state.report) : [];
   const methodologyLines = presentation && state.report ? buildMethodologyLines({ presentation, report: state.report, sourceCountLabel }) : [];
   const audienceEmptyState = presentation && state.report ? buildAudienceEmptyState(state.report, presentation.audienceGrowth) : null;
+  const snapshotCoverageNote = state.report ? rewriteReportSnapshotCoverageNote(state.report.snapshotCoverageNote) : null;
   const audienceSectionModel =
     presentation?.audienceGrowth ?? {
       title: "Audience signals",
@@ -2104,9 +2111,9 @@ export default function ReportPage() {
                       {presentation.displayContext.sourceContributionLine}
                     </p>
                   ) : null}
-                  {state.report.snapshotCoverageNote ? (
+                  {snapshotCoverageNote ? (
                     <p className="text-xs text-brand-text-muted" data-testid="report-snapshot-coverage-note">
-                      {state.report.snapshotCoverageNote}
+                      {snapshotCoverageNote}
                     </p>
                   ) : null}
                   {state.report.youtubeContributionMode === "content_only" ? (

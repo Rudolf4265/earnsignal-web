@@ -1,6 +1,7 @@
 import type { DashboardRevenueTrendPoint } from "../dashboard/artifact-hydration";
 import type { ReportDetail } from "../api/reports";
 import { prioritizeRecommendations } from "./recommendation-prioritization";
+import { rewriteReportSnapshotCoverageNote } from "./detail-copy";
 import {
   buildCanonicalReportTitle,
   buildReportDisplayLabels,
@@ -1207,7 +1208,7 @@ function buildReportDetailPresentationModel(input: BuildReportDetailPresentation
     snapshotLabel: sourceContributionLine ? "Current business read — sources vary" : displayLabels.snapshotLabel,
     historyLabel: displayLabels.historyLabel,
     sourceContributionLine,
-    businessFramingNote: sourceContributionLine ? (input.report.snapshotCoverageNote ?? null) : null,
+    businessFramingNote: sourceContributionLine ? rewriteReportSnapshotCoverageNote(input.report.snapshotCoverageNote) : null,
   };
 
   const heroTitle = readFriendlyReportTitle(input.report);

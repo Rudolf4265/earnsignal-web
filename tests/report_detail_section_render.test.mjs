@@ -57,6 +57,8 @@ test("report detail keeps report access gating and PDF controls wired", async ()
   assert.equal(source.includes('pdfAccessMode === "pdf-unlocked"'), true);
   assert.equal(source.includes('"Open PDF"'), true);
   assert.equal(source.includes('"Download PDF"'), true);
+  assert.equal(source.includes("PDF not ready yet"), true);
+  assert.equal(source.includes('title="Unable to load PDF"'), true);
   assert.equal(source.includes('!isFounder && proSectionGate.wowSummary === "report-locked" && freeTeaserModel'), true);
 });
 
@@ -126,4 +128,14 @@ test("report detail methodology delegates legacy coverage copy and mixed source 
 
   assert.equal(source.includes("buildReportSourceRoleLine"), true);
   assert.equal(source.includes("rewriteReportSnapshotCoverageNote"), true);
+});
+
+test("report detail only fetches artifact json after the report is complete", async () => {
+  const source = await readFile(reportDetailPagePath, "utf8");
+  const completionGuardIndex = source.indexOf("if (!isCompletedReportStatus(report.status)) {");
+  const artifactFetchIndex = source.indexOf("const artifactRaw = await fetchReportArtifactJson(report.artifactJsonUrl);");
+
+  assert.notEqual(completionGuardIndex, -1);
+  assert.notEqual(artifactFetchIndex, -1);
+  assert.equal(completionGuardIndex < artifactFetchIndex, true);
 });

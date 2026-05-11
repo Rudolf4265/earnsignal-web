@@ -9,6 +9,36 @@ test.describe("Report detail route", () => {
   });
 
   test("renders completed reports in the normal report layout", async ({ page }) => {
+    await page.route("**/v1/entitlements", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          effective_plan_tier: "pro",
+          entitlement_source: "stripe",
+          access_granted: true,
+          access_reason_code: "ACTIVE_SUBSCRIPTION",
+          billing_required: false,
+          plan: "plan_b",
+          plan_tier: "pro",
+          status: "active",
+          entitled: true,
+          is_active: true,
+          source: "stripe",
+          can_upload: true,
+          can_generate_report: true,
+          can_view_reports: true,
+          can_download_pdf: true,
+          can_access_dashboard: true,
+          features: {
+            app: true,
+            upload: true,
+            report: true,
+          },
+        }),
+      });
+    });
+
     await page.route("**/v1/reports/rep_success", async (route) => {
       await route.fulfill({
         status: 200,
@@ -56,6 +86,9 @@ test.describe("Report detail route", () => {
     await expect(page.getByTestId("report-executive-summary-card")).toBeVisible();
     await expect(page.getByText("Healthy growth with stable churn.").first()).toBeVisible();
     await expect(page.getByText("Ready")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Open PDF" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Download PDF" })).toBeVisible();
+    await expect(page.getByText("PDF not ready yet")).toHaveCount(0);
     await expect(page.getByTestId("report-running")).toHaveCount(0);
     await expect(page.getByTestId("report-failed")).toHaveCount(0);
     await expect(page.getByTestId("nav-reports")).toHaveAttribute("aria-current", "page");
@@ -100,16 +133,19 @@ test.describe("Report detail route", () => {
       await expect(page.getByRole("heading", { name: "Building your report" })).toBeVisible();
       await expect(page.getByText("You do not need to upload the files again.")).toBeVisible();
       await expect(page.getByText(`${fixture.sourceCount} source`, { exact: false })).toBeVisible();
-      await expect(page.getByText("Files received")).toBeVisible();
-      await expect(page.getByText("Validating data")).toBeVisible();
-      await expect(page.getByText("Combining sources")).toBeVisible();
-      await expect(page.getByText("Building business diagnosis")).toBeVisible();
-      await expect(page.getByText("Preparing report and PDF")).toBeVisible();
+      await expect(page.getByText("Upload received")).toBeVisible();
+      await expect(page.getByText("Processing uploaded data")).toBeVisible();
+      await expect(page.getByText("Building your report")).toHaveCount(2);
+      await expect(page.getByText("Preparing report output")).toBeVisible();
+      await expect(page.getByText("These checkpoints are general progress updates rather than exact backend stages.")).toBeVisible();
       await expect(page.getByTestId("report-content")).toHaveCount(0);
       await expect(page.getByTestId("report-failed")).toHaveCount(0);
       await expect(page.getByText("$--", { exact: true })).toHaveCount(0);
       await expect(page.getByText("--", { exact: true })).toHaveCount(0);
       await expect(page.getByText("PDF unavailable")).toHaveCount(0);
+      await expect(page.getByText("PDF not ready yet")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Open PDF" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Download PDF" })).toHaveCount(0);
       await expect(page.getByText("Key findings")).toHaveCount(0);
     });
   }
@@ -137,5 +173,8 @@ test.describe("Report detail route", () => {
     await expect(page.getByTestId("report-running")).toHaveCount(0);
     await expect(page.getByTestId("report-content")).toHaveCount(0);
     await expect(page.getByText("Building your report")).toHaveCount(0);
+    await expect(page.getByText("PDF not ready yet")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Open PDF" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Download PDF" })).toHaveCount(0);
   });
 });

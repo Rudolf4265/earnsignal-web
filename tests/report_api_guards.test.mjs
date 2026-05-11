@@ -89,6 +89,29 @@ test("getReportErrorMessage maps canonical ENTITLEMENT_REQUIRED to upgrade guida
   );
 });
 
+test("getReportErrorMessage rewrites low-level pdf transport failures into user-friendly copy", async () => {
+  const { getReportErrorMessage } = await loadReportsModule(Date.now() + 31);
+
+  assert.equal(
+    getReportErrorMessage(new Error("PDF endpoint returned non-PDF content (HTTP 200, content-type: text/html).")),
+    "The report PDF is unavailable right now. Try again in a moment.",
+  );
+  assert.equal(
+    getReportErrorMessage(new Error("PDF endpoint did not provide a valid content-length header.")),
+    "The report PDF is unavailable right now. Try again in a moment.",
+  );
+  assert.equal(
+    getReportErrorMessage(new Error("PDF request failed with status 502.")),
+    "The report PDF is unavailable right now. Try again in a moment.",
+  );
+});
+
+test("getReportErrorMessage keeps invalid report id failures readable for PDF actions", async () => {
+  const { getReportErrorMessage } = await loadReportsModule(Date.now() + 32);
+
+  assert.equal(getReportErrorMessage(new Error("Report ID is unavailable for report.artifact.")), "The report PDF is not available yet.");
+});
+
 test("createReportRun uses only the staged workspace run path and returns a canonical report id", async () => {
   const originalFetch = global.fetch;
   process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.test";

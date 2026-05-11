@@ -565,6 +565,21 @@ export async function fetchGrowthReport(): Promise<GrowthReport> {
   });
 }
 
+function isPdfTransportOrValidationErrorMessage(message: string): boolean {
+  const normalized = message.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return (
+    normalized.includes("pdf endpoint returned non-pdf content") ||
+    normalized.includes("pdf endpoint did not provide a valid content-length header") ||
+    normalized.includes("pdf endpoint returned an empty content-length header value") ||
+    normalized.includes("report pdf download returned an empty file") ||
+    normalized.includes("pdf request failed with status")
+  );
+}
+
 export function getReportErrorMessage(error: unknown): string {
   if (isEntitlementRequiredError(error)) {
     return "This action requires Report or Pro access. Continue in Billing to upgrade or restore access.";
@@ -575,8 +590,16 @@ export function getReportErrorMessage(error: unknown): string {
   }
 
   if (error instanceof Error) {
+    if (isPdfTransportOrValidationErrorMessage(error.message)) {
+      return "The report PDF is unavailable right now. Try again in a moment.";
+    }
+
+    if (error.message.includes("Report ID is unavailable")) {
+      return "The report PDF is not available yet.";
+    }
+
     return error.message;
   }
 
-  return "Unable to load report file.";
+  return "Unable to load the report PDF.";
 }

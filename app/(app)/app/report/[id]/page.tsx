@@ -2030,7 +2030,7 @@ export default function ReportPage() {
             ) : null}
           </section>
 
-          {pdfError ? <ErrorBanner title="PDF not ready yet" message={pdfError} /> : null}
+          {pdfError ? <ErrorBanner title="Unable to load PDF" message={pdfError} /> : null}
 
           {!showFullReportContent && !isFounder && proSectionGate.wowSummary === "report-locked" && freeTeaserModel ? (
             <ReportFreeTeaser model={freeTeaserModel} />
@@ -2227,7 +2227,7 @@ export default function ReportPage() {
             </div>
           </PanelCard>
 
-          {pdfError ? <ErrorBanner title="PDF not ready yet" message={pdfError} /> : null}
+          {pdfError ? <ErrorBanner title="Unable to load PDF" message={pdfError} /> : null}
 
           {showFullReportContent && wowSummary ? (
             <ReportWowSummary model={wowSummary} />

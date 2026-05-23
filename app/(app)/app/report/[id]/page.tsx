@@ -56,6 +56,7 @@ import { buildRevenueExplanation, isDataCompletenessAction } from "@/src/lib/rep
 import { ReportAudienceGrowthSection } from "./_components/ReportAudienceGrowthSection";
 import { ReportStrengthsRisksSection } from "./_components/ReportStrengthsRisksSection";
 import { buildReportFreeTeaserViewModel, ReportFreeTeaser } from "./_components/ReportFreeTeaser";
+import { ReportSourceNudge } from "./_components/ReportSourceNudge";
 
 type ReportPageState = {
   view: ReportViewState | "invalid_route";
@@ -1652,6 +1653,12 @@ export default function ReportPage() {
               </div>
 
               {presentation.heroNotice ? <div className="mt-6"><TruthNotice notice={presentation.heroNotice} testId="report-hero-truth-notice" /></div> : null}
+
+              <ReportSourceNudge
+                platformsIncluded={state.report?.platformsIncluded ?? []}
+                sourceCount={state.report?.sourceCount ?? state.report?.metrics.platformsConnected ?? null}
+                netRevenueSource={state.artifactModel?.metricProvenance?.net_revenue?.source ?? null}
+              />
 
               {showFullReportContent ? (
                 <div

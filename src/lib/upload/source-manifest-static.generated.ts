@@ -155,6 +155,32 @@ export const STATIC_SOURCE_MANIFEST_RESPONSE: SourceManifestResponse = {
         "Normalized monthly CSV only",
         "Only the allowlisted TikTok ZIP format is supported alongside this CSV fallback"
       ]
+    },
+    {
+      "platform": "other",
+      "label": "Additional Income",
+      "descriptor": "Sponsorships & brand deals",
+      "accepted_file_types_label": "EarnSigma sponsorship CSV template",
+      "upload_help_text": "Download and fill in the EarnSigma sponsorship template with your brand deal and sponsorship income, then upload it here.",
+      "public_support_status": "supported_now",
+      "report_role": "supporting",
+      "standalone_report_eligible": false,
+      "business_metrics_capable": true,
+      "accepted_extensions": [
+        ".csv"
+      ],
+      "public_contract_ids": [
+        "sponsorship_rollup_csv"
+      ],
+      "data_domains": [
+        "revenue"
+      ],
+      "role_summary": "Brand deal and sponsorship income. Blended into total revenue in your report.",
+      "known_limitations": [
+        "CSV template only — use the EarnSigma sponsorship template",
+        "Only paid and delivered deals are counted as confirmed income",
+        "Cannot generate a standalone report"
+      ]
     }
   ]
 };

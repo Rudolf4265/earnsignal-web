@@ -172,13 +172,14 @@ async function readCsvHeaders(file: File): Promise<string[]> {
 // Substack native subscriber export fingerprint
 // ---------------------------------------------------------------------------
 // Headers from the native Substack subscriber export CSV.
+// Verified against actual Substack export: email,name,subscription_status,plan,created_at,expiry
 const SUBSTACK_SIGNATURE_HEADERS = [
   "email",
-  "subscription type",
-  "subscription started at",
-  "paid at",
+  "subscription_status", // normalises → "subscription status"
   "plan",
-  "free subscription started at",
+  "created_at",          // normalises → "created at"
+  "expiry",
+  "name",
 ];
 const SUBSTACK_MIN_MATCHES = 3;
 

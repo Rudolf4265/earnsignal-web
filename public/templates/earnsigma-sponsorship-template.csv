@@ -1,0 +1,4 @@
+month,campaign_id,campaign_name,brand_name,platform,status,booked_amount,cash_received_amount,currency,cash_received_date,invoice_id,notes
+2026-03,DEAL-001,Q1 Brand Integration,Acme Corp,youtube,paid,5000,5000,USD,2026-03-15,INV-001,YouTube integration video
+2026-03,DEAL-002,Newsletter Sponsorship,Beta Brand,substack,delivered,2500,2500,USD,2026-03-28,INV-002,3x newsletter sponsor slot
+2026-04,DEAL-003,April Campaign,Gamma Inc,instagram,booked,3000,,USD,,,Contracted - payment pending

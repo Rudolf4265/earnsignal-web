@@ -181,7 +181,11 @@ function resolvePlatformRiskContext(presentation: ReportDetailPresentationModel)
 
   return {
     concentrationScore: presentation.platformMix.concentrationScore ?? extractConcentrationScoreFromHighlights(presentation.platformMix.highlights),
-    topPlatform: extractTopPlatformFromHighlights(presentation.platformMix.highlights),
+    topPlatform:
+      extractTopPlatformFromHighlights(presentation.platformMix.highlights) ??
+      (presentation.platformMix.platformShares
+        ?.slice()
+        .sort((a, b) => b.share - a.share)[0]?.platform ?? null),
     partialRead:
       /mainly represented|partially represented|only reflects part|partial|leans heavily on one source|one source right now/.test(
         combinedHighlights,
@@ -538,7 +542,11 @@ function buildKpiCards(
     detail: null,
   };
 
-  const topPlatform = extractTopPlatformFromHighlights(presentation.platformMix.highlights);
+  const topPlatform =
+    extractTopPlatformFromHighlights(presentation.platformMix.highlights) ??
+    (presentation.platformMix.platformShares
+      ?.slice()
+      .sort((a, b) => b.share - a.share)[0]?.platform ?? null);
   const concentrationScore = presentation.platformMix.concentrationScore;
   let topPlatformValue = "--";
 

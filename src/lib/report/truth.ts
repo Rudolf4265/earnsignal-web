@@ -28,6 +28,12 @@ const REASON_LABELS: Record<string, string> = {
   missing_subscriber_snapshot: "subscriber snapshots are missing",
   platform_risk_confidence_limited: "platform risk is based on limited history",
   platform_risk_evidence_unavailable: "platform risk evidence is unavailable",
+  // Churn pipeline reason codes — mapped to plain-language descriptions
+  churn_risk_dampened: "some churn signals were down-weighted due to partial data coverage",
+  churn_risk_unavailable: "churn evidence could not be established from the available data",
+  churn_risk_capped_for_weak_evidence: "the churn score was capped because subscriber evidence is limited",
+  confidence_medium: "the available evidence supports a directional read but not a high-confidence conclusion",
+  watch_churn_next_cycle: "the report-over-report churn comparison needs another cycle to become reliable",
 };
 
 function humanizeToken(value: string): string {

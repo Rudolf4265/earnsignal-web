@@ -24,6 +24,7 @@ import {
 import type { WorkspaceDataSource } from "@/src/lib/api/workspace";
 import { detectPatreonExportType } from "@/src/lib/upload/patreon-csv-detector";
 import { detectInstagramExportType } from "@/src/lib/upload/instagram-csv-detector";
+import { detectPlatformFromFile, PLATFORM_EXPORT_LINKS } from "@/src/lib/upload/platform-detector";
 import { inspectZipArchiveBuffer, isZipUploadCandidate, toZipUploadRejection } from "@/src/lib/upload/zip-intake";
 import { buildReportDetailPathOrIndex } from "@/src/lib/report/path";
 import type { WorkspaceReportState } from "@/src/lib/workspace/report-run-state";
@@ -33,9 +34,9 @@ import StepHeader from "./StepHeader";
 import Stepper from "./Stepper";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 
-type Step = "platform" | "file" | "uploading" | "processing" | "done";
+type Step = "file" | "uploading" | "processing" | "done";
 
-const stepOrder: Step[] = ["platform", "file", "uploading", "processing", "done"];
+const stepOrder: Step[] = ["file", "uploading", "processing", "done"];
 const RESUME_STATUS_TIMEOUT_MS = 2_500;
 
 const readableFileSize = (bytes: number) => {
@@ -301,31 +302,7 @@ function buildUploadErrorPresentation(reasonCode: string | null, fallbackMessage
   };
 }
 
-// Per-platform file guidance shown in the file upload step.
-// All steps map to official export flows — do not invent formats.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PLATFORM_FILE_GUIDANCE: Partial<Record<UploadPlatform, { getFile: string; formatNote: string }>> = {
-  patreon: {
-    getFile: "In Patreon: go to Audience → Members → Export CSV. Use the native Members export only — do not rename or reformat columns.",
-    formatNote: "Native Patreon Members CSV. Columns like Patron Status, Pledge Amount, and Patronage Since Date must be present.",
-  },
-  substack: {
-    getFile: "In Substack: go to Settings → Subscribers → Export. Download the subscriber CSV directly.",
-    formatNote: "Native Substack subscriber CSV export.",
-  },
-  youtube: {
-    getFile: "In YouTube Studio: Analytics -> Advanced mode -> Export -> Download as ZIP. You can also upload the EarnSigma normalized YouTube CSV template.",
-    formatNote: "Normalized YouTube CSV or YouTube Studio ZIP containing Table data.csv, Chart data.csv, and Totals.csv. Google Takeout ZIPs are not supported.",
-  },
-  instagram: {
-    getFile: "In Instagram: Settings -> Your activity -> Download your information. Select JSON format and upload the exact allowlisted insights ZIP.",
-    formatNote: "Normalized monthly CSV or exact allowlisted ZIP with the required past_instagram_insights JSON files.",
-  },
-  tiktok: {
-    getFile: "In TikTok Studio: Analytics -> export Followers, Viewers, or Overview. You can also upload the EarnSigma normalized TikTok monthly CSV template.",
-    formatNote: "Normalized monthly CSV or one exact TikTok ZIP shape: Followers, Viewers, or Overview. Content ZIP is not supported.",
-  },
-};
+
 
 // Extremely subtle brand-tinted dark chips — 9% opacity tint on both light and dark card surfaces.
 // On unselected (white) cards the tint reads as a soft warm/cool cast; on selected (dark navy) cards
@@ -343,7 +320,7 @@ function buildFileInputAccept(card: UploadPlatformCardMetadata | null): string {
     accepted.add("application/zip");
   }
 
-  return accepted.size > 0 ? [...accepted].join(",") : ".csv,text/csv";
+  return accepted.size > 0 ? [...accepted].join(",") : ".csv,.zip,text/csv,application/zip";
 }
 
 function isFileDragPayload(dataTransfer?: DataTransfer | null): boolean {
@@ -378,6 +355,7 @@ const PLATFORM_LOGO_BUBBLE: Record<string, { bg: string; ring: string }> = {
   youtube:   { bg: "bg-[rgba(255,0,0,0.08)]",    ring: "ring-[rgba(255,0,0,0.16)]" },
   instagram: { bg: "bg-[rgba(193,53,132,0.09)]", ring: "ring-[rgba(193,53,132,0.18)]" },
   tiktok:    { bg: "bg-[rgba(37,244,238,0.10)]", ring: "ring-[rgba(37,244,238,0.18)]" },
+  other:     { bg: "bg-[rgba(99,102,241,0.09)]",  ring: "ring-[rgba(99,102,241,0.18)]" },
 };
 
 type UploadPlatformCardProps = {
@@ -396,7 +374,7 @@ function UploadFlowHeader() {
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h2 className="text-2xl font-semibold text-white">Add or replace a source</h2>
-        <p className="mt-1 text-sm text-slate-400">Choose a platform, then upload a supported file.</p>
+        <p className="mt-1 text-sm text-slate-400">Drop or select a file — we'll detect the platform automatically.</p>
       </div>
       <Link href="/app/help#upload-guide" className="text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
         Open upload guide
@@ -420,6 +398,7 @@ function UploadPrivacyLine() {
     </div>
   );
 }
+
 
 function UploadPlatformCard({ label, description, icon, available, selected, onClick, testId, platformId }: UploadPlatformCardProps) {
   const tint = PLATFORM_LOGO_BUBBLE[platformId ?? ""];
@@ -469,106 +448,13 @@ function UploadPlatformCard({ label, description, icon, available, selected, onC
       <div className="space-y-1">
         <p className="text-base font-semibold text-white">{label}</p>
         <p className={`text-sm leading-snug ${selected ? "text-slate-300/85" : "text-slate-400"}`}>{description}</p>
+
       </div>
     </button>
   );
 }
 
-function UploadPlatformPicker({
-  platformSections,
-  showPlatformSectionHeading,
-  platform,
-  onSelect,
-}: {
-  platformSections: Array<{
-    category: string;
-    label: string;
-    items: UploadPlatformCardMetadata[];
-  }>;
-  showPlatformSectionHeading: boolean;
-  platform: UploadPlatform | null;
-  onSelect: (platform: UploadPlatform) => void;
-}) {
-  return (
-    <section className="space-y-4 rounded-[1.75rem] border border-white/8 bg-white/[0.02] p-5" data-testid="upload-platform-guide">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-white">Choose platform</h3>
-          <p className="mt-1 text-sm text-slate-400">Select the source you want to upload.</p>
-        </div>
-        <Link href="/app/help#upload-guide" className="text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
-          Need format rules?
-        </Link>
-      </div>
 
-      {platformSections.map((section) => (
-        <section key={section.category} className="space-y-2" data-testid={`platform-section-${section.category}`}>
-          {showPlatformSectionHeading ? <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{section.label}</h3> : null}
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {section.items.map((item) => {
-              const selected = platform === item.id;
-              return (
-                <UploadPlatformCard
-                  key={item.id}
-                  label={item.label}
-                  description={item.subtitle}
-                  icon={item.icon}
-                  available={item.available}
-                  selected={selected}
-                  onClick={() => {
-                    if (!item.available) return;
-                    onSelect(item.id);
-                  }}
-                  testId={`platform-card-${item.id}`}
-                  platformId={item.id}
-                />
-              );
-            })}
-          </div>
-        </section>
-      ))}
-    </section>
-  );
-}
-
-function UploadPrimaryFooterBar({
-  canContinue,
-  onContinue,
-  onStartOver,
-}: {
-  canContinue: boolean;
-  onContinue: () => void;
-  onStartOver: () => void;
-}) {
-  return (
-    <div
-      className="sticky bottom-0 z-20 -mx-4 border-t border-white/10 bg-[#081325]/95 px-4 py-4 backdrop-blur md:-mx-6 md:px-6"
-      data-testid="upload-primary-footer-bar"
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-sm text-slate-400">Step 1 of 5</span>
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={onStartOver} className="text-sm font-medium text-slate-300 underline underline-offset-4 hover:text-white">
-            Start over
-          </button>
-          <button
-            type="button"
-            disabled={!canContinue}
-            onClick={onContinue}
-            className={[
-              "inline-flex h-12 min-w-[260px] items-center justify-center rounded-2xl px-5 text-base font-semibold transition",
-              canContinue
-                ? "bg-emerald-400 text-slate-950 shadow-[0_0_28px_-10px_rgba(52,211,153,0.95)] hover:bg-emerald-300"
-                : "cursor-not-allowed bg-white/[0.05] text-slate-500",
-            ].join(" ")}
-          >
-            {canContinue ? "Continue to file upload" : "Select platform to continue"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 async function awaitWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<{ timedOut: boolean; value: T | null }> {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
@@ -622,7 +508,7 @@ export default function UploadStepper({
   const pollAbortRef = useRef<AbortController | null>(null);
   const dragDepthRef = useRef(0);
 
-  const [step, setStep] = useState<Step>("platform");
+  const [step, setStep] = useState<Step>("file");
   const [platform, setPlatform] = useState<UploadPlatform | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -639,11 +525,18 @@ export default function UploadStepper({
     status: UploadUiStatus;
     uploadId: string;
   } | null>(null);
+  const [detectionResult, setDetectionResult] = useState<{
+    platform: UploadPlatform | null;
+    confidence: number;
+    label: string;
+    isKnownUnsupported: boolean;
+    unsupportedName?: string;
+  } | null>(null);
+  const [isDetecting, setIsDetecting] = useState(false);
 
   const activeStepIndex = stepOrder.indexOf(step);
   const steps = useMemo(
     () => [
-      { id: "platform", label: "Platform" },
       { id: "file", label: "File" },
       { id: "upload", label: "Upload" },
       { id: "processing", label: "Processing" },
@@ -685,7 +578,7 @@ export default function UploadStepper({
   const fileInputAccept = buildFileInputAccept(selectedPlatformCard);
   const supportsSelectedZipImport = selectedPlatformCard?.acceptedExtensions.includes(".zip") === true;
   const selectedSupportedZip = Boolean(file && supportsSelectedZipImport && isZipUploadCandidate(file));
-  const unsupportedCsvWarning = Boolean(file && !file.name.toLowerCase().endsWith(".csv") && !selectedSupportedZip);
+  const unsupportedCsvWarning = !isDetecting && Boolean(file && !file.name.toLowerCase().endsWith(".csv") && !selectedSupportedZip);
   const selectedWorkspaceSource = useMemo(
     () => workspaceReportState.includedSources.find((source) => source.platform === platform) ?? null,
     [platform, workspaceReportState.includedSources],
@@ -696,6 +589,23 @@ export default function UploadStepper({
 
   const attachSelectedFile = useCallback((nextFile: File | null) => {
     setFile(nextFile);
+    setDetectionResult(null);
+    if (!nextFile) {
+      setPlatform(null);
+      return;
+    }
+    setIsDetecting(true);
+    void detectPlatformFromFile(nextFile)
+      .then((result) => {
+        setDetectionResult(result);
+        setPlatform(result.platform);
+        setIsDetecting(false);
+      })
+      .catch(() => {
+        setDetectionResult(null);
+        setPlatform(null);
+        setIsDetecting(false);
+      });
   }, []);
 
   const clearDragState = useCallback(() => {
@@ -730,8 +640,10 @@ export default function UploadStepper({
 
     stopPolling();
     setPlatform(preferredPlatform);
-    setStep("platform");
+    setStep("file");
     setFile(null);
+    setDetectionResult(null);
+    setIsDetecting(false);
     clearDragState();
     setUploadId(null);
     setStatusMsg(null);
@@ -874,9 +786,11 @@ export default function UploadStepper({
   const resetFlow = useCallback(() => {
     stopPolling();
     clearDragState();
-    setStep("platform");
+    setStep("file");
     setPlatform(null);
     setFile(null);
+    setDetectionResult(null);
+    setIsDetecting(false);
     setUploadId(null);
     setStatusMsg(null);
     setError(null);
@@ -908,7 +822,7 @@ export default function UploadStepper({
     setReasonCode(null);
     setErrorDetails(null);
     onClearRunReportError();
-    setStep("platform");
+    setStep("file");
   }, [onClearRunReportError]);
 
   const copyDiagnostics = async () => {
@@ -1224,7 +1138,7 @@ export default function UploadStepper({
     const resumeRecord = typeof window !== "undefined" ? readUploadResume(window.localStorage) : null;
     const resumeUploadId = resumeRecord?.uploadId ?? null;
     setHasResumeCandidate(Boolean(resumeUploadId));
-    if (!resumeUploadId || step !== "platform" || uploadId) {
+    if (!resumeUploadId || step !== "file" || uploadId) {
       return;
     }
 
@@ -1373,8 +1287,13 @@ export default function UploadStepper({
         </InlineAlert>
       ) : null}
 
-      {step === "platform" ? (
+
+
+      {step === "file" ? (
         <div className="space-y-5">
+          <StepHeader title="Drop or select your file" />
+
+          {/* Resume / terminal upload banners (moved from removed platform step) */}
           {uploadId ? null : hasResumeCandidate ? (
             <InlineAlert variant="info" title="Found an in-progress upload" data-testid="upload-resume-banner">
               We found a recent upload and will automatically check its status.
@@ -1382,11 +1301,7 @@ export default function UploadStepper({
           ) : latestTerminalUpload ? (
             <InlineAlert
               variant={latestTerminalUpload.status === "ready" ? "success" : "info"}
-              title={
-                latestTerminalUpload.status === "ready"
-                  ? "Latest upload is staged"
-                  : "Latest upload validated"
-              }
+              title={latestTerminalUpload.status === "ready" ? "Latest upload is staged" : "Latest upload validated"}
               data-testid="upload-completed-summary"
             >
               <p className="text-xs text-current/80">
@@ -1398,18 +1313,11 @@ export default function UploadStepper({
                     Checking workspace...
                   </span>
                 ) : showWorkspaceViewReport ? (
-                  <Link
-                    href={workspaceCurrentReportHref}
-                    data-testid="upload-completed-view-report"
-                    className="rounded-lg border border-emerald-200/60 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-300/10"
-                  >
+                  <Link href={workspaceCurrentReportHref} data-testid="upload-completed-view-report" className="rounded-lg border border-emerald-200/60 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-300/10">
                     View Report
                   </Link>
                 ) : latestTerminalUpload.status === "validated" || reportAccessBlocked ? (
-                  <Link
-                    href="/app/billing"
-                    className="rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10"
-                  >
+                  <Link href="/app/billing" className="rounded-lg border border-blue-200/60 px-3 py-1.5 text-xs text-blue-100 hover:bg-blue-300/10">
                     Unlock report
                   </Link>
                 ) : null}
@@ -1429,48 +1337,35 @@ export default function UploadStepper({
                 <p className="mt-2 text-xs text-current/75">Review your staged sources below, then run the report from the final step.</p>
               ) : null}
               {showWorkspaceNeedsReportDrivingSource ? (
-                <p className="mt-2 text-xs text-current/75">
-                  {workspaceBlockingReason}
-                </p>
+                <p className="mt-2 text-xs text-current/75">{workspaceBlockingReason}</p>
               ) : null}
             </InlineAlert>
           ) : null}
-          <UploadPlatformPicker
-            platformSections={platformSections}
-            showPlatformSectionHeading={showPlatformSectionHeading || sourceManifest.platforms.length === 0}
-            platform={platform}
-            onSelect={setPlatform}
-          />
 
-          <UploadPrimaryFooterBar
-            canContinue={Boolean(platform)}
-            onContinue={() => {
-              setStep("file");
-              setError(null);
-              setErrorDetails(null);
-            }}
-            onStartOver={resetFlow}
-          />
-        </div>
-      ) : null}
+          {/* Need to export first? — shown only when no file is selected yet */}
+          {!file ? (
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-4">
+              <p className="mb-3 text-sm font-medium text-slate-300">Need to export first?</p>
+              <div className="flex flex-wrap gap-2">
+                {(Object.entries(PLATFORM_EXPORT_LINKS) as Array<[string, { exportUrl: string | null; navPath: string; logoPath: string; label: string }]>).map(([id, meta]) => (
+                  <a
+                    key={id}
+                    href={meta.exportUrl ?? "#"}
+                    target={meta.exportUrl ? "_blank" : undefined}
+                    rel="noopener noreferrer"
+                    title={meta.navPath}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
+                  >
+                    <Image src={meta.logoPath} alt={meta.label} width={14} height={14} className="block h-3.5 w-3.5 object-contain" />
+                    {meta.label} ↗
+                  </a>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-slate-500">Hover a platform to see the exact export path.</p>
+            </div>
+          ) : null}
 
-      {step === "file" ? (
-        <div className="space-y-5">
-          <StepHeader title="Select file" />
-          <div
-            className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-4 text-sm text-slate-400"
-            data-testid="upload-file-guide"
-          >
-            <p className="text-slate-200">
-              {selectedPlatformCard
-                ? `${selectedPlatformCard.label} | ${selectedPlatformCard.acceptedFileTypesLabel ?? "Supported file required"}`
-                : "Supported file required"}
-            </p>
-            <p className="mt-2">Exact file rules, ZIP requirements, and troubleshooting live in the Upload Guide.</p>
-            <Link href="/app/help#upload-guide" className="mt-3 inline-flex text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
-              Open upload guide
-            </Link>
-          </div>
+          {/* Drop zone */}
           <button
             type="button"
             data-testid="upload-drop-zone"
@@ -1525,12 +1420,13 @@ export default function UploadStepper({
             }}
           >
             <p className="text-sm font-medium text-white">Click or drop a file here</p>
+            <p className="mt-1 text-xs text-slate-500">.csv or .zip — platform detected automatically</p>
           </button>
 
           <input
             ref={inputRef}
             type="file"
-            accept={fileInputAccept}
+            accept=".csv,.zip,text/csv,application/zip"
             className="hidden"
             onChange={(event) => {
               const selectedFile = event.target.files?.[0] ?? null;
@@ -1538,7 +1434,95 @@ export default function UploadStepper({
             }}
           />
 
-          {file ? (
+          {/* Detection result / file info */}
+          {isDetecting ? (
+            <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
+              <p className="text-sm text-slate-300">Detecting platform…</p>
+            </div>
+          ) : detectionResult && file ? (
+            detectionResult.isKnownUnsupported ? (
+              <InlineAlert
+                variant="warn"
+                title={`${detectionResult.unsupportedName ?? detectionResult.label} recognized — not yet supported`}
+                data-testid="upload-detection-unsupported"
+              >
+                <p className="text-sm">We recognized this export format, but {detectionResult.unsupportedName ?? detectionResult.label} isn&apos;t supported yet.</p>
+                <p className="mt-1 text-xs text-current/75">
+                  Try a different file, or{" "}
+                  <Link href="/app/help#upload-guide" className="underline">see supported platforms</Link>.
+                </p>
+              </InlineAlert>
+            ) : detectionResult.platform ? (
+              <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4" data-testid="upload-detection-result">
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const tint = PLATFORM_LOGO_BUBBLE[detectionResult.platform] ?? PLATFORM_LOGO_BUBBLE["other"] ?? { bg: "bg-white/[0.05]", ring: "ring-white/10" };
+                    const iconPath = PLATFORM_EXPORT_LINKS[detectionResult.platform]?.logoPath ?? "/platforms/direct-fan.png";
+                    return (
+                      <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${tint.bg} ${tint.ring}`}>
+                        <Image src={iconPath} alt={detectionResult.label} width={18} height={18} className="block h-[18px] w-[18px] object-contain" />
+                      </span>
+                    );
+                  })()}
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">
+                      {PLATFORM_EXPORT_LINKS[detectionResult.platform]?.label ?? detectionResult.label} detected
+                    </p>
+                    <p className="text-xs text-slate-500">{Math.round(detectionResult.confidence * 100)}% confidence</p>
+                  </div>
+                  <span className="ml-auto shrink-0 text-sm text-emerald-400">✓</span>
+                </div>
+                <div className="mt-3 border-t border-white/6 pt-3">
+                  <p className="mb-2 text-xs text-slate-500">Not the right platform? Select manually:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {visiblePlatformCards.filter((c) => c.available).map((card) => (
+                      <button
+                        key={card.id}
+                        type="button"
+                        onClick={() => {
+                          setPlatform(card.id);
+                          setDetectionResult({ ...detectionResult, platform: card.id, label: card.label });
+                        }}
+                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                          platform === card.id
+                            ? "border-blue-400/50 bg-blue-500/[0.12] text-blue-200"
+                            : "border-white/10 bg-white/[0.02] text-slate-400 hover:border-white/20 hover:text-slate-200"
+                        }`}
+                      >
+                        <Image src={card.icon} alt={card.label} width={12} height={12} className="block h-3 w-3 object-contain" />
+                        {card.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4" data-testid="upload-detection-unknown">
+                <p className="mb-2 text-sm font-medium text-slate-300">Platform not recognized — select manually:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {visiblePlatformCards.filter((c) => c.available).map((card) => (
+                    <button
+                      key={card.id}
+                      type="button"
+                      onClick={() => {
+                        setPlatform(card.id);
+                        setDetectionResult({ platform: card.id, confidence: 1, label: card.label, isKnownUnsupported: false });
+                      }}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
+                        platform === card.id
+                          ? "border-blue-400/50 bg-blue-500/[0.12] text-blue-200"
+                          : "border-white/10 bg-white/[0.02] text-slate-400 hover:border-white/20 hover:text-slate-200"
+                      }`}
+                    >
+                      <Image src={card.icon} alt={card.label} width={12} height={12} className="block h-3 w-3 object-contain" />
+                      {card.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          ) : file ? (
             <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3 text-sm text-slate-300">
               <p className="font-medium text-white">{file.name}</p>
               <p className="text-xs text-slate-400">Size: {readableFileSize(file.size)}</p>
@@ -1553,14 +1537,17 @@ export default function UploadStepper({
           ) : null}
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">Exact file rules are in Upload Guide.</span>
+            <span className="text-xs text-slate-500">
+              <Link href="/app/help#upload-guide" className="text-slate-400 underline underline-offset-4 transition hover:text-white">Upload Guide</Link>
+              {" "}for exact format rules.
+            </span>
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setStep("platform")}
+                onClick={resetFlow}
                 className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300 transition hover:bg-white/[0.05] hover:text-white"
               >
-                Back
+                Start over
               </button>
               <button
                 type="button"

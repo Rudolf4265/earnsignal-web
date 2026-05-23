@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { WelcomeModal } from "../WelcomeModal";
+import { fetchOnboardingProfile } from "@/src/lib/api/profile";
 import UploadStepper from "./upload-stepper";
 import ReportWindowChooserDialog from "./report-window-chooser-dialog";
 import { SkeletonBlock } from "../../../_components/ui/skeleton";
@@ -508,10 +510,102 @@ function buildReadyBannerStatus(
   };
 }
 
+function ProGatedSections({ hasProAccess }: { hasProAccess: boolean }) {
+  return (
+    <>
+      {/* Brand deals & sponsorships */}
+      <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.02]" data-testid="pro-section-brand-deals">
+        <div className="flex flex-col gap-3 border-b border-white/8 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-xl font-semibold text-white">Additional earnings</h2>
+            <span className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-400/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-violet-300">
+              Pro
+            </span>
+          </div>
+          {!hasProAccess && (
+            <Link
+              href="/app/billing"
+              className="text-sm font-medium text-violet-400 underline underline-offset-4 transition hover:text-violet-200"
+            >
+              Upgrade to Pro
+            </Link>
+          )}
+        </div>
+
+        <div className="px-5 py-5">
+          <div
+            className={[
+              "flex flex-col gap-3 rounded-2xl border px-4 py-4 md:flex-row md:items-center md:justify-between",
+              hasProAccess
+                ? "border-white/8 bg-white/[0.02]"
+                : "border-white/[0.05] bg-white/[0.01] opacity-60",
+            ].join(" ")}
+          >
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-white">Brand deals &amp; sponsorships</h3>
+              <p className="text-xs leading-relaxed text-slate-400">
+                Import income from bank statements, Stripe exports, or PayPal — we handle the labeling so your report
+                captures your full earnings picture.
+              </p>
+            </div>
+            {hasProAccess ? (
+              <button
+                type="button"
+                disabled
+                className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-slate-400"
+              >
+                Coming soon
+              </button>
+            ) : (
+              <Link
+                href="/app/billing"
+                className="shrink-0 rounded-xl border border-violet-400/30 bg-violet-400/[0.06] px-4 py-2 text-sm font-medium text-violet-300 transition hover:bg-violet-400/10 hover:text-violet-200"
+              >
+                Unlock with Pro
+              </Link>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Tax preparation */}
+      <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.02]" data-testid="pro-section-tax">
+        <div className="flex flex-col gap-3 border-b border-white/8 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-xl font-semibold text-white">Tax preparation</h2>
+            <span className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-400/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-violet-300">
+              Pro
+            </span>
+            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-medium text-slate-400">
+              Coming soon
+            </span>
+          </div>
+        </div>
+
+        <div className="px-5 py-5">
+          <div className="flex flex-col gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.01] px-4 py-4 opacity-60 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-white">Estimated tax summary</h3>
+              <p className="text-xs leading-relaxed text-slate-400">
+                Quarterly tax estimates based on your actual earnings, plus an accountant-ready PDF you can hand off
+                directly.
+              </p>
+            </div>
+            <span className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-slate-500">
+              Q3 2026
+            </span>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
 export default function DataUploadPage() {
   const router = useRouter();
   const entitlementState = useEntitlementState();
   const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
+  const [welcomeModalOpen, setWelcomeModalOpen] = useState(false);
   const [sourceManifest, setSourceManifest] = useState<NormalizedSourceManifest | null>(null);
   const [visiblePlatformCards, setVisiblePlatformCards] = useState<UploadPlatformCardMetadata[] | null>(null);
   const [sourceManifestLoading, setSourceManifestLoading] = useState(true);
@@ -678,6 +772,27 @@ export default function DataUploadPage() {
     workspaceDataSourcesRef.current = workspaceDataSources;
   }, [workspaceDataSources]);
 
+  // Check whether the welcome modal should be shown on first load.
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkOnboarding = async () => {
+      try {
+        const state = await fetchOnboardingProfile();
+        if (!cancelled && !state.onboarding_completed) {
+          setWelcomeModalOpen(true);
+        }
+      } catch {
+        // Non-fatal: if the fetch fails we just don't show the modal.
+      }
+    };
+
+    void checkOnboarding();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     let active = true;
 
@@ -766,6 +881,12 @@ export default function DataUploadPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
+      {welcomeModalOpen && (
+        <WelcomeModal
+          onDismiss={() => setWelcomeModalOpen(false)}
+        />
+      )}
+
       <DataPageHeader />
 
       <div id="workspace-uploader">
@@ -835,6 +956,8 @@ export default function DataUploadPage() {
         onRunReport={handleRunReport}
         onViewReports={() => router.push("/app/report")}
       />
+
+      <ProGatedSections hasProAccess={entitlementState.hasProAccess} />
 
       <HelpSection sourceManifestError={sourceManifestError} />
 

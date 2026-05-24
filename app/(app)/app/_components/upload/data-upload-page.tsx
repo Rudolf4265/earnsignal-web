@@ -31,10 +31,7 @@ import {
 } from "@/src/lib/upload/platform-metadata";
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
 
-type DataPageHeaderProps = {
-  title?: string;
-  subtitle?: string;
-};
+type UploadPhase = 1 | 2 | 3;
 
 type ReadyToRunBannerProps = {
   loading: boolean;
@@ -61,17 +58,170 @@ type SourceListSectionProps = {
   onUploadAction: (platform: UploadPlatform) => void;
 };
 
-function DataPageHeader({
-  title = "Your Report Workspace",
-  subtitle = "This report uses your staged sources.",
-}: DataPageHeaderProps) {
+// ─── Platform logos shown in Phase 1 intro ───────────────────────────────────
+
+const WIZARD_PLATFORMS = [
+  { id: "patreon", label: "Patreon", logo: "/platforms/patreon.svg" },
+  { id: "substack", label: "Substack", logo: "/platforms/substack.svg" },
+  { id: "youtube", label: "YouTube", logo: "/platforms/youtube.png" },
+  { id: "instagram", label: "Instagram", logo: "/platforms/instagram.svg" },
+  { id: "tiktok", label: "TikTok", logo: "/platforms/tiktok.svg" },
+] as const;
+
+// ─── Wizard progress bar ─────────────────────────────────────────────────────
+
+function WizardProgressBar({
+  phase,
+  onNavigateBack,
+}: {
+  phase: UploadPhase;
+  onNavigateBack: (p: UploadPhase) => void;
+}) {
+  const steps: { label: string; phase: UploadPhase }[] = [
+    { label: "Your platforms", phase: 1 },
+    { label: "Additional income", phase: 2 },
+    { label: "Review & run", phase: 3 },
+  ];
+
   return (
-    <section className="space-y-2">
-      <h1 className="text-3xl font-semibold text-white">{title}</h1>
-      <p className="max-w-3xl text-sm leading-6 text-slate-300">{subtitle}</p>
+    <nav aria-label="Upload steps" className="flex items-center gap-0">
+      {steps.map(({ label, phase: stepPhase }, i) => {
+        const isDone = stepPhase < phase;
+        const isActive = stepPhase === phase;
+        return (
+          <div key={stepPhase} className="flex min-w-0 flex-1 items-center">
+            <button
+              type="button"
+              disabled={!isDone}
+              onClick={() => isDone && onNavigateBack(stepPhase)}
+              className={[
+                "flex items-center gap-2 text-left focus:outline-none",
+                isDone ? "cursor-pointer" : "cursor-default",
+              ].join(" ")}
+              aria-current={isActive ? "step" : undefined}
+            >
+              <span
+                className={[
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors",
+                  isDone
+                    ? "bg-brand-accent-emerald text-white"
+                    : isActive
+                      ? "bg-brand-accent-emerald text-white"
+                      : "border border-white/20 bg-white/[0.04] text-slate-500",
+                ].join(" ")}
+              >
+                {isDone ? (
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : (
+                  stepPhase
+                )}
+              </span>
+              <span
+                className={[
+                  "hidden text-xs font-medium sm:block",
+                  isActive ? "text-white" : isDone ? "text-slate-300" : "text-slate-500",
+                ].join(" ")}
+              >
+                {label}
+              </span>
+            </button>
+            {i < steps.length - 1 && (
+              <div
+                className={[
+                  "mx-3 h-px flex-1",
+                  stepPhase < phase ? "bg-brand-accent-emerald/50" : "bg-white/10",
+                ].join(" ")}
+                aria-hidden="true"
+              />
+            )}
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+// ─── Phase 1 intro: copy + platform logo pills ───────────────────────────────
+
+function Phase1Intro() {
+  return (
+    <div className="space-y-3">
+      <div>
+        <h2 className="text-xl font-semibold text-white">Drop your platform files</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-400">
+          Drop any export file below — we detect the platform automatically. We support:
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {WIZARD_PLATFORMS.map((p) => (
+          <div
+            key={p.id}
+            className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5"
+          >
+            <Image
+              src={p.logo}
+              alt=""
+              width={14}
+              height={14}
+              className="h-3.5 w-3.5 object-contain"
+            />
+            <span className="text-xs font-medium text-slate-300">{p.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Phase 2: income gate ────────────────────────────────────────────────────
+
+function IncomeGate({
+  answer,
+  onAnswer,
+}: {
+  answer: "yes" | "no" | null;
+  onAnswer: (v: "yes" | "no") => void;
+}) {
+  return (
+    <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.02] p-5">
+      <h2 className="text-xl font-semibold text-white">Any additional income?</h2>
+      <p className="mt-1 text-sm leading-6 text-slate-400">
+        Think sponsorships, brand deals, or direct payments — income not tied to a platform account.
+        This gets blended into your total earnings in the report.
+      </p>
+      <div className="mt-4 flex gap-3">
+        <button
+          type="button"
+          onClick={() => onAnswer("yes")}
+          className={[
+            "flex-1 rounded-2xl border px-4 py-3 text-sm font-semibold transition",
+            answer === "yes"
+              ? "border-brand-accent-teal/50 bg-brand-accent-teal/10 text-teal-300"
+              : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07] hover:text-white",
+          ].join(" ")}
+        >
+          Yes — upload a CSV
+        </button>
+        <button
+          type="button"
+          onClick={() => onAnswer("no")}
+          className={[
+            "flex-1 rounded-2xl border px-4 py-3 text-sm font-semibold transition",
+            answer === "no"
+              ? "border-white/20 bg-white/[0.07] text-white"
+              : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07] hover:text-white",
+          ].join(" ")}
+        >
+          No, skip this step
+        </button>
+      </div>
     </section>
   );
 }
+
+// ─── Ready to run banner ─────────────────────────────────────────────────────
 
 function ReadyToRunBanner({
   loading,
@@ -144,6 +294,8 @@ function ReadyToRunBanner({
     </section>
   );
 }
+
+// ─── Source list ─────────────────────────────────────────────────────────────
 
 function renderAction(action: SourceListAction | undefined, onUploadAction: (platform: UploadPlatform) => void, variant: "primary" | "secondary") {
   if (!action) {
@@ -510,101 +662,19 @@ function buildReadyBannerStatus(
   };
 }
 
-function ProGatedSections({ hasProAccess }: { hasProAccess: boolean }) {
-  return (
-    <>
-      {/* Brand deals & sponsorships */}
-      <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.02]" data-testid="pro-section-brand-deals">
-        <div className="flex flex-col gap-3 border-b border-white/8 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-xl font-semibold text-white">Additional earnings</h2>
-            <span className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-400/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-violet-300">
-              Pro
-            </span>
-          </div>
-          {!hasProAccess && (
-            <Link
-              href="/app/billing"
-              className="text-sm font-medium text-violet-400 underline underline-offset-4 transition hover:text-violet-200"
-            >
-              Upgrade to Pro
-            </Link>
-          )}
-        </div>
-
-        <div className="px-5 py-5">
-          <div
-            className={[
-              "flex flex-col gap-3 rounded-2xl border px-4 py-4 md:flex-row md:items-center md:justify-between",
-              hasProAccess
-                ? "border-white/8 bg-white/[0.02]"
-                : "border-white/[0.05] bg-white/[0.01] opacity-60",
-            ].join(" ")}
-          >
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-white">Brand deals &amp; sponsorships</h3>
-              <p className="text-xs leading-relaxed text-slate-400">
-                Import income from bank statements, Stripe exports, or PayPal — we handle the labeling so your report
-                captures your full earnings picture.
-              </p>
-            </div>
-            {hasProAccess ? (
-              <button
-                type="button"
-                disabled
-                className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-slate-400"
-              >
-                Coming soon
-              </button>
-            ) : (
-              <Link
-                href="/app/billing"
-                className="shrink-0 rounded-xl border border-violet-400/30 bg-violet-400/[0.06] px-4 py-2 text-sm font-medium text-violet-300 transition hover:bg-violet-400/10 hover:text-violet-200"
-              >
-                Unlock with Pro
-              </Link>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Tax preparation */}
-      <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.02]" data-testid="pro-section-tax">
-        <div className="flex flex-col gap-3 border-b border-white/8 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-xl font-semibold text-white">Tax preparation</h2>
-            <span className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-400/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-violet-300">
-              Pro
-            </span>
-            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-medium text-slate-400">
-              Coming soon
-            </span>
-          </div>
-        </div>
-
-        <div className="px-5 py-5">
-          <div className="flex flex-col gap-3 rounded-2xl border border-white/[0.05] bg-white/[0.01] px-4 py-4 opacity-60 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-white">Estimated tax summary</h3>
-              <p className="text-xs leading-relaxed text-slate-400">
-                Quarterly tax estimates based on your actual earnings, plus an accountant-ready PDF you can hand off
-                directly.
-              </p>
-            </div>
-            <span className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-slate-500">
-              Q3 2026
-            </span>
-          </div>
-        </div>
-      </section>
-    </>
-  );
-}
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function DataUploadPage() {
   const router = useRouter();
   const entitlementState = useEntitlementState();
   const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
+
+  // ── Wizard phase state ──────────────────────────────────────────────────────
+  const [uploadPhase, setUploadPhase] = useState<UploadPhase>(1);
+  const [incomeAnswer, setIncomeAnswer] = useState<"yes" | "no" | null>(null);
+  const [incomeUploaderNonce, setIncomeUploaderNonce] = useState(0);
+
+  // ── Existing state ──────────────────────────────────────────────────────────
   const [welcomeModalOpen, setWelcomeModalOpen] = useState(false);
   const [sourceManifest, setSourceManifest] = useState<NormalizedSourceManifest | null>(null);
   const [visiblePlatformCards, setVisiblePlatformCards] = useState<UploadPlatformCardMetadata[] | null>(null);
@@ -618,6 +688,9 @@ export default function DataUploadPage() {
   const [runReportPending, setRunReportPending] = useState(false);
   const [runReportError, setRunReportError] = useState<string | null>(null);
   const [analysisWindowDialogOpen, setAnalysisWindowDialogOpen] = useState(false);
+  const [clearDataPending, setClearDataPending] = useState(false);
+  const [clearDataConfirming, setClearDataConfirming] = useState(false);
+  const [clearDataError, setClearDataError] = useState<string | null>(null);
 
   const workspaceReportState = useMemo(
     () =>
@@ -730,10 +803,12 @@ export default function DataUploadPage() {
     workspaceReportState.isLoading,
   ]);
 
+  // When clicking "Upload" on a source row in Phase 3, go back to Phase 1
   const handleUploadAction = useCallback((platform: UploadPlatform) => {
     clearCurrentReport();
     setPreferredPlatform(platform);
     setPreferredPlatformNonce((current) => current + 1);
+    setUploadPhase(1);
 
     if (typeof document !== "undefined") {
       requestAnimationFrame(() => {
@@ -743,6 +818,7 @@ export default function DataUploadPage() {
   }, [clearCurrentReport]);
 
   const handleAddSource = useCallback(() => {
+    setUploadPhase(1);
     if (typeof document !== "undefined") {
       requestAnimationFrame(() => {
         document.getElementById("workspace-uploader")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -750,16 +826,13 @@ export default function DataUploadPage() {
     }
   }, []);
 
-  const [clearDataPending, setClearDataPending] = useState(false);
-  const [clearDataConfirming, setClearDataConfirming] = useState(false);
-  const [clearDataError, setClearDataError] = useState<string | null>(null);
-
   const handleClearData = useCallback(async () => {
     setClearDataPending(true);
     setClearDataError(null);
     try {
       await clearWorkspaceData();
       setClearDataConfirming(false);
+      setUploadPhase(1);
       await refreshWorkspaceDataSources({ preserveCurrent: false });
     } catch {
       setClearDataError("Failed to clear data. Please try again.");
@@ -772,7 +845,6 @@ export default function DataUploadPage() {
     workspaceDataSourcesRef.current = workspaceDataSources;
   }, [workspaceDataSources]);
 
-  // Check whether the welcome modal should be shown on first load.
   useEffect(() => {
     let cancelled = false;
 
@@ -783,7 +855,7 @@ export default function DataUploadPage() {
           setWelcomeModalOpen(true);
         }
       } catch {
-        // Non-fatal: if the fetch fails we just don't show the modal.
+        // Non-fatal
       }
     };
 
@@ -856,8 +928,21 @@ export default function DataUploadPage() {
     [visiblePlatformCards, workspaceDataSources],
   );
 
+  // All connected sources (used by ReadyToRunBanner)
   const connectedCount = useMemo(
     () => sourceListItems.filter((item) => item.status !== "not_connected").length,
+    [sourceListItems],
+  );
+
+  // Platform sources only (excludes "other"/Additional Income) — gates Phase 1 → 2
+  const platformConnectedCount = useMemo(
+    () => sourceListItems.filter((item) => item.id !== "other" && item.status !== "not_connected").length,
+    [sourceListItems],
+  );
+
+  // Whether Additional Income has been uploaded — gates Phase 2 → 3 when answer is "yes"
+  const incomeSourceConnected = useMemo(
+    () => sourceListItems.some((item) => item.id === "other" && item.status !== "not_connected"),
     [sourceListItems],
   );
 
@@ -879,35 +964,189 @@ export default function DataUploadPage() {
 
   const readyBannerNote = workspaceReportState.canRunReport ? reportWindowPolicy.summaryNote ?? readyBanner.note : readyBanner.note;
 
+  const canProceedPhase2 =
+    incomeAnswer === "no" || (incomeAnswer === "yes" && incomeSourceConnected);
+
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       {welcomeModalOpen && (
-        <WelcomeModal
-          onDismiss={() => setWelcomeModalOpen(false)}
-        />
+        <WelcomeModal onDismiss={() => setWelcomeModalOpen(false)} />
       )}
 
-      <DataPageHeader />
+      {/* Page title — Phase 1 only */}
+      {uploadPhase === 1 && (
+        <section className="space-y-2">
+          <h1 className="text-3xl font-semibold text-white">Your Report Workspace</h1>
+          <p className="max-w-3xl text-sm leading-6 text-slate-300">
+            Upload your platform data, add any additional income, then run your report.
+          </p>
+        </section>
+      )}
 
-      <div id="workspace-uploader">
-        {sourceManifestLoading ? (
-          <UploadFlowSkeleton />
-        ) : sourceManifest && visiblePlatformCards ? (
-          <UploadStepper
-            sourceManifest={sourceManifest}
-            visiblePlatformCards={visiblePlatformCards}
-            workspaceReportState={workspaceReportState}
-            refreshWorkspaceDataSources={() => refreshWorkspaceDataSources({ preserveCurrent: true })}
-            clearCurrentReport={clearCurrentReport}
-            onClearRunReportError={clearRunReportError}
-            preferredPlatform={preferredPlatform}
-            preferredPlatformNonce={preferredPlatformNonce}
+      {/* Wizard progress bar — always visible */}
+      <WizardProgressBar
+        phase={uploadPhase}
+        onNavigateBack={(p) => setUploadPhase(p)}
+      />
+
+      {/* ── Phase 1: Upload platforms ─────────────────────────────────────── */}
+      {uploadPhase === 1 && (
+        <>
+          <Phase1Intro />
+
+          <div id="workspace-uploader">
+            {sourceManifestLoading ? (
+              <UploadFlowSkeleton />
+            ) : sourceManifest && visiblePlatformCards ? (
+              <UploadStepper
+                key="phase-1-stepper"
+                sourceManifest={sourceManifest}
+                visiblePlatformCards={visiblePlatformCards}
+                workspaceReportState={workspaceReportState}
+                refreshWorkspaceDataSources={() => refreshWorkspaceDataSources({ preserveCurrent: true })}
+                clearCurrentReport={clearCurrentReport}
+                onClearRunReportError={clearRunReportError}
+                preferredPlatform={preferredPlatform}
+                preferredPlatformNonce={preferredPlatformNonce}
+              />
+            ) : (
+              <ManifestUnavailableCard />
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-400">
+              {platformConnectedCount > 0
+                ? `${platformConnectedCount} platform ${platformConnectedCount === 1 ? "source" : "sources"} ready`
+                : "Upload at least one platform file to continue"}
+            </p>
+            <button
+              type="button"
+              disabled={platformConnectedCount === 0}
+              onClick={() => setUploadPhase(2)}
+              className={buttonClassName({
+                variant: "primary",
+                className:
+                  "rounded-xl disabled:border-white/10 disabled:bg-white/[0.08] disabled:text-slate-500",
+              })}
+            >
+              Done with platforms →
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── Phase 2: Additional income ────────────────────────────────────── */}
+      {uploadPhase === 2 && (
+        <>
+          <IncomeGate
+            answer={incomeAnswer}
+            onAnswer={(v) => {
+              setIncomeAnswer(v);
+              if (v === "yes") {
+                setIncomeUploaderNonce((n) => n + 1);
+              }
+            }}
           />
-        ) : (
-          <ManifestUnavailableCard />
-        )}
-      </div>
 
+          {incomeAnswer === "yes" && (
+            <div id="workspace-uploader">
+              {sourceManifestLoading ? (
+                <UploadFlowSkeleton />
+              ) : sourceManifest && visiblePlatformCards ? (
+                <UploadStepper
+                  key="phase-2-stepper"
+                  sourceManifest={sourceManifest}
+                  visiblePlatformCards={visiblePlatformCards}
+                  workspaceReportState={workspaceReportState}
+                  refreshWorkspaceDataSources={() => refreshWorkspaceDataSources({ preserveCurrent: true })}
+                  clearCurrentReport={clearCurrentReport}
+                  onClearRunReportError={clearRunReportError}
+                  preferredPlatform={"other" as UploadPlatform}
+                  preferredPlatformNonce={incomeUploaderNonce}
+                />
+              ) : (
+                <ManifestUnavailableCard />
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setUploadPhase(1)}
+              className={buttonClassName({
+                variant: "secondary",
+                className: "border-white/10 bg-white/[0.05] text-slate-200 hover:bg-white/[0.08] hover:text-white",
+              })}
+            >
+              ← Back
+            </button>
+            <button
+              type="button"
+              disabled={!canProceedPhase2}
+              onClick={() => setUploadPhase(3)}
+              className={buttonClassName({
+                variant: "primary",
+                className:
+                  "rounded-xl disabled:border-white/10 disabled:bg-white/[0.08] disabled:text-slate-500",
+              })}
+            >
+              Review sources →
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── Phase 3: Review & run ─────────────────────────────────────────── */}
+      {uploadPhase === 3 && (
+        <>
+          <section className="space-y-1">
+            <h2 className="text-2xl font-semibold text-white">Review & run</h2>
+            <p className="text-sm text-slate-400">
+              Here's everything you've staged — run the report when you're ready.
+            </p>
+          </section>
+
+          <SourceListSection
+            items={sourceListItems}
+            loading={workspaceDataSources === "loading" || sourceManifestLoading}
+            hasManifest={Boolean(sourceManifest && visiblePlatformCards)}
+            onAddSource={handleAddSource}
+            onUploadAction={handleUploadAction}
+          />
+
+          {runReportError ? (
+            <p className="text-sm text-rose-300" data-testid="staged-run-report-error">
+              {runReportError}
+            </p>
+          ) : null}
+
+          <ReadyToRunBanner
+            loading={workspaceReportState.isLoading}
+            ready={workspaceReportState.canRunReport}
+            statusLabel={readyBanner.statusLabel}
+            connectedCount={connectedCount}
+            note={readyBannerNote}
+            runLabel={reportWindowPolicy.runCtaLabel}
+            runDisabled={runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport || reportAccessBlocked}
+            onRunReport={handleRunReport}
+            onViewReports={() => router.push("/app/report")}
+          />
+
+          <div>
+            <button
+              type="button"
+              onClick={() => setUploadPhase(2)}
+              className="text-sm font-medium text-slate-400 underline underline-offset-4 transition hover:text-white"
+            >
+              ← Back to additional income
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ── Always-mounted dialog ─────────────────────────────────────────── */}
       <ReportWindowChooserDialog
         open={analysisWindowDialogOpen}
         busy={runReportPending}
@@ -930,34 +1169,6 @@ export default function DataUploadPage() {
           )
         }
       />
-
-      <SourceListSection
-        items={sourceListItems}
-        loading={workspaceDataSources === "loading" || sourceManifestLoading}
-        hasManifest={Boolean(sourceManifest && visiblePlatformCards)}
-        onAddSource={handleAddSource}
-        onUploadAction={handleUploadAction}
-      />
-
-      {runReportError ? (
-        <p className="text-sm text-rose-300" data-testid="staged-run-report-error">
-          {runReportError}
-        </p>
-      ) : null}
-
-      <ReadyToRunBanner
-        loading={workspaceReportState.isLoading}
-        ready={workspaceReportState.canRunReport}
-        statusLabel={readyBanner.statusLabel}
-        connectedCount={connectedCount}
-        note={readyBannerNote}
-        runLabel={reportWindowPolicy.runCtaLabel}
-        runDisabled={runReportPending || workspaceReportState.isLoading || !workspaceReportState.canRunReport || reportAccessBlocked}
-        onRunReport={handleRunReport}
-        onViewReports={() => router.push("/app/report")}
-      />
-
-      <ProGatedSections hasProAccess={entitlementState.hasProAccess} />
 
       <HelpSection sourceManifestError={sourceManifestError} />
 

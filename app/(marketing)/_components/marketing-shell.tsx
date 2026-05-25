@@ -57,14 +57,29 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
         id="about"
         className="border-t border-brand-border/45 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.065),transparent_42%)] py-10 text-sm text-brand-text-muted"
       >
-        <Container className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <span>&#169; {new Date().getFullYear()} Oakline Ventures LLC &middot; Your data is never sold or used to train AI models.</span>
-          <div className="flex flex-wrap gap-4 sm:gap-6">
-            {footerLinks.map((item) => (
-              <Link key={item.key} href={item.href} className="transition hover:text-brand-text-primary">
-                {item.label}
+        <Container className="flex flex-col gap-8">
+          {/* Top row: logo + tagline on left, nav links on right */}
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex flex-col gap-2">
+              <Link href="/" aria-label={BRAND_NAME}>
+                <Logo
+                  iconClassName="h-7 w-7"
+                  labelClassName="text-sm font-semibold text-brand-text-primary"
+                />
               </Link>
-            ))}
+              <p className="text-xs text-brand-text-muted">Revenue intelligence for creator teams.</p>
+            </div>
+            <div className="flex flex-wrap gap-4 sm:gap-6">
+              {footerLinks.map((item) => (
+                <Link key={item.key} href={item.href} className="transition hover:text-brand-text-primary">
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+          {/* Bottom row: copyright */}
+          <div className="border-t border-brand-border/30 pt-5 text-xs">
+            &#169; {new Date().getFullYear()} Oakline Ventures LLC &middot; Your data is never sold or used to train AI models.
           </div>
         </Container>
       </footer>

@@ -369,7 +369,22 @@ type UploadPlatformCardProps = {
   platformId?: string;
 };
 
-function UploadFlowHeader() {
+function UploadFlowHeader({ incomeMode = false }: { incomeMode?: boolean }) {
+  if (incomeMode) {
+    return (
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-white">Upload your additional income</h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Drop a CSV with sponsorships, brand deals, or other income not tied to a platform account.
+          </p>
+        </div>
+        <Link href="/app/help#upload-guide" className="text-sm font-medium text-slate-300 underline underline-offset-4 transition hover:text-white">
+          CSV format guide
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
@@ -491,6 +506,8 @@ type UploadStepperProps = {
   onClearRunReportError: () => void;
   preferredPlatform?: UploadPlatform | null;
   preferredPlatformNonce?: number;
+  /** When true, suppresses platform-detection UI and shows income-specific copy. */
+  incomeMode?: boolean;
 };
 
 export default function UploadStepper({
@@ -502,6 +519,7 @@ export default function UploadStepper({
   onClearRunReportError,
   preferredPlatform = null,
   preferredPlatformNonce = 0,
+  incomeMode = false,
 }: UploadStepperProps) {
   const entitlementState = useEntitlementState();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -1208,7 +1226,7 @@ export default function UploadStepper({
 
   return (
     <section className="space-y-6 rounded-[1.75rem] border border-white/8 bg-[#081325]/95 p-5 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.95)] backdrop-blur md:p-6">
-      <UploadFlowHeader />
+      <UploadFlowHeader incomeMode={incomeMode} />
       <Stepper steps={steps} activeIndex={activeStepIndex} />
       <UploadPrivacyLine />
 
@@ -1342,8 +1360,8 @@ export default function UploadStepper({
             </InlineAlert>
           ) : null}
 
-          {/* Supported platforms — shown only when no file is selected yet */}
-          {!file ? (
+          {/* Supported platforms — shown only when no file is selected yet, and not in income mode */}
+          {!file && !incomeMode ? (
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-4">
               <p className="mb-3 text-sm font-medium text-slate-300">Drop a file for any of these platforms:</p>
               <div className="flex flex-wrap gap-2">

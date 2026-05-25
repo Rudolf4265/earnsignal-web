@@ -149,8 +149,15 @@ function Phase1Intro() {
   return (
     <div className="space-y-3">
       <div>
-        <h2 className="text-xl font-semibold text-white">Drop your platform files</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-400">
+        <div className="flex items-center gap-2 mb-1.5">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-accent-teal shrink-0" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <h2 className="text-xl font-semibold text-white">Connect your platforms</h2>
+        </div>
+        <p className="text-sm leading-6 text-slate-400">
           Drop any export file below — we detect the platform automatically. We support:
         </p>
       </div>
@@ -186,8 +193,14 @@ function IncomeGate({
 }) {
   return (
     <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.02] p-5">
-      <h2 className="text-xl font-semibold text-white">Any additional income?</h2>
-      <p className="mt-1 text-sm leading-6 text-slate-400">
+      <div className="flex items-center gap-2 mb-1.5">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-accent-teal shrink-0" aria-hidden="true">
+          <line x1="12" y1="1" x2="12" y2="23" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+        <h2 className="text-xl font-semibold text-white">Additional income</h2>
+      </div>
+      <p className="text-sm leading-6 text-slate-400">
         Think sponsorships, brand deals, or direct payments — income not tied to a platform account.
         This gets blended into your total earnings in the report.
       </p>
@@ -1064,6 +1077,7 @@ export default function DataUploadPage() {
                   onClearRunReportError={clearRunReportError}
                   preferredPlatform={"other" as UploadPlatform}
                   preferredPlatformNonce={incomeUploaderNonce}
+                  incomeMode={true}
                 />
               ) : (
                 <ManifestUnavailableCard />
@@ -1092,7 +1106,7 @@ export default function DataUploadPage() {
                   "rounded-xl disabled:border-white/10 disabled:bg-white/[0.08] disabled:text-slate-500",
               })}
             >
-              Review sources →
+              Continue →
             </button>
           </div>
         </>

@@ -1,4 +1,4 @@
-export const APP_NAV_LINK_IDS = ["dashboard", "data", "reports", "billing", "settings", "admin"] as const;
+export const APP_NAV_LINK_IDS = ["dashboard", "data", "reports", "tax", "billing", "settings", "admin"] as const;
 
 export type AppNavLinkId = (typeof APP_NAV_LINK_IDS)[number];
 
@@ -10,6 +10,7 @@ export const APP_NAV_LINKS = [
   { id: "dashboard", href: "/app/dashboard", label: "Dashboard" },
   { id: "data", href: "/app/data", label: "Data" },
   { id: "reports", href: "/app/report", label: "Reports" },
+  { id: "tax", href: "/app/tax", label: "Tax" },
   { id: "billing", href: "/app/billing", label: "Billing" },
   { id: "settings", href: "/app/settings", label: "Settings" },
 ] as const;

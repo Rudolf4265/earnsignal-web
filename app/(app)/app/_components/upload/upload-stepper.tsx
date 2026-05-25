@@ -1342,10 +1342,10 @@ export default function UploadStepper({
             </InlineAlert>
           ) : null}
 
-          {/* Need to export first? — shown only when no file is selected yet */}
+          {/* Supported platforms — shown only when no file is selected yet */}
           {!file ? (
             <div className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-4">
-              <p className="mb-3 text-sm font-medium text-slate-300">Need to export first?</p>
+              <p className="mb-3 text-sm font-medium text-slate-300">Drop a file for any of these platforms:</p>
               <div className="flex flex-wrap gap-2">
                 {(Object.entries(PLATFORM_EXPORT_LINKS) as Array<[string, { exportUrl: string | null; navPath: string; logoPath: string; label: string }]>).map(([id, meta]) => (
                   <a
@@ -1357,11 +1357,11 @@ export default function UploadStepper({
                     className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
                   >
                     <Image src={meta.logoPath} alt={meta.label} width={14} height={14} className="block h-3.5 w-3.5 object-contain" />
-                    {meta.label} ↗
+                    {meta.label}
                   </a>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-slate-500">Hover a platform to see the exact export path.</p>
+              <p className="mt-2 text-xs text-slate-500">Hover a platform to see how to export. Platform is detected automatically when you drop.</p>
             </div>
           ) : null}
 
@@ -1473,53 +1473,14 @@ export default function UploadStepper({
                   </div>
                   <span className="ml-auto shrink-0 text-sm text-emerald-400">✓</span>
                 </div>
-                <div className="mt-3 border-t border-white/6 pt-3">
-                  <p className="mb-2 text-xs text-slate-500">Not the right platform? Select manually:</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {visiblePlatformCards.filter((c) => c.available).map((card) => (
-                      <button
-                        key={card.id}
-                        type="button"
-                        onClick={() => {
-                          setPlatform(card.id);
-                          setDetectionResult({ ...detectionResult, platform: card.id, label: card.label });
-                        }}
-                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-                          platform === card.id
-                            ? "border-blue-400/50 bg-blue-500/[0.12] text-blue-200"
-                            : "border-white/10 bg-white/[0.02] text-slate-400 hover:border-white/20 hover:text-slate-200"
-                        }`}
-                      >
-                        <Image src={card.icon} alt={card.label} width={12} height={12} className="block h-3 w-3 object-contain" />
-                        {card.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             ) : (
               <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4" data-testid="upload-detection-unknown">
-                <p className="mb-2 text-sm font-medium text-slate-300">Platform not recognized — select manually:</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {visiblePlatformCards.filter((c) => c.available).map((card) => (
-                    <button
-                      key={card.id}
-                      type="button"
-                      onClick={() => {
-                        setPlatform(card.id);
-                        setDetectionResult({ platform: card.id, confidence: 1, label: card.label, isKnownUnsupported: false });
-                      }}
-                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition ${
-                        platform === card.id
-                          ? "border-blue-400/50 bg-blue-500/[0.12] text-blue-200"
-                          : "border-white/10 bg-white/[0.02] text-slate-400 hover:border-white/20 hover:text-slate-200"
-                      }`}
-                    >
-                      <Image src={card.icon} alt={card.label} width={12} height={12} className="block h-3 w-3 object-contain" />
-                      {card.label}
-                    </button>
-                  ))}
-                </div>
+                <p className="text-sm font-medium text-slate-300">Format not recognized</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Make sure you&apos;re uploading a supported export.{" "}
+                  <Link href="/app/help#upload-guide" className="text-slate-400 underline underline-offset-2 transition hover:text-white">See upload guide</Link>.
+                </p>
               </div>
             )
           ) : file ? (

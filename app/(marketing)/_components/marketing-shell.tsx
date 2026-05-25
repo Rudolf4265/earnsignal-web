@@ -58,7 +58,7 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
         className="border-t border-brand-border/45 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.065),transparent_42%)] py-10 text-sm text-brand-text-muted"
       >
         <Container className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <span>(c) {new Date().getFullYear()} {BRAND_NAME}</span>
+          <span>&#169; {new Date().getFullYear()} Oakline Ventures LLC &middot; Your data is never sold or used to train AI models.</span>
           <div className="flex flex-wrap gap-4 sm:gap-6">
             {footerLinks.map((item) => (
               <Link key={item.key} href={item.href} className="transition hover:text-brand-text-primary">

@@ -182,6 +182,13 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {users.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="px-2 py-6 text-center text-sm text-gray-400">
+                        No users found.
+                      </td>
+                    </tr>
+                  ) : null}
                   {users.map((user) => (
                     <tr key={user.creatorId} className="border-t border-white/10">
                       <td className="px-2 py-2">{user.email ?? "No email on record"}</td>

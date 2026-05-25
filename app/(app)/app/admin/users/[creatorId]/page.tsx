@@ -28,6 +28,16 @@ function formatTimestamp(value: string | null): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
+/** Convert an ISO timestamp to "YYYY-MM-DDTHH:MM" for datetime-local inputs.
+ *  Returns "" for null/undefined/invalid. */
+function toDatetimeLocalString(isoString: string | null | undefined): string {
+  if (!isoString) {
+    return "";
+  }
+  // Slice to 16 chars: "2026-06-01T12:00" — strips seconds and timezone offset.
+  return isoString.slice(0, 16);
+}
+
 export default function AdminUserDetailPage() {
   const params = useParams<{ creatorId: string }>();
   const creatorId = params.creatorId;
@@ -62,7 +72,7 @@ export default function AdminUserDetailPage() {
         }
 
         setUser(data);
-        setCompUntilDraft(data.compUntil ?? "");
+        setCompUntilDraft(toDatetimeLocalString(data.compUntil));
         setLastUpdated(data.lastUpdatedAt ?? data.fetchedAtIso);
       } catch (err) {
         if (!isMounted) {
@@ -172,7 +182,9 @@ export default function AdminUserDetailPage() {
 
             try {
               const updated = await updateAdminUserBlocked(user.creatorId, nextBlocked);
-              setUser((current) => (current ? { ...current, ...updated } : current));
+              // Only propagate `blocked` — the sparse AdminUserRow response would
+              // nullify every other detail field if spread wholesale.
+              setUser((current) => (current ? { ...current, blocked: updated.blocked } : current));
               setLastUpdated(new Date().toISOString());
             } catch (err) {
               setUser(previous);
@@ -238,12 +250,14 @@ export default function AdminUserDetailPage() {
 
             try {
               const updated = await updateAdminUserCompUntil(user.creatorId, normalized);
-              setUser((current) => (current ? { ...current, ...updated } : current));
-              setCompUntilDraft(updated.compUntil ?? "");
+              // Only propagate compUntil — spreading the sparse AdminUserRow would
+              // nullify every other detail field.
+              setUser((current) => (current ? { ...current, compUntil: updated.compUntil } : current));
+              setCompUntilDraft(toDatetimeLocalString(updated.compUntil));
               setLastUpdated(new Date().toISOString());
             } catch (err) {
               setUser(previous);
-              setCompUntilDraft(previous.compUntil ?? "");
+              setCompUntilDraft(toDatetimeLocalString(previous.compUntil));
               setError({ message: err instanceof Error ? err.message : "Failed to update comp_until.", requestId: isApiError(err) ? err.requestId : undefined });
             } finally {
               setIsSaving(false);

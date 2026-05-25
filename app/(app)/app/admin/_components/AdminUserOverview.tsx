@@ -60,7 +60,8 @@ function downloadOverviewCsv(data: AdminUserOverviewData): void {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  // Defer revoke so the browser has time to start the download.
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
 function OverviewTile({

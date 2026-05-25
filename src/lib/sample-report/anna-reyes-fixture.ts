@@ -144,10 +144,10 @@ export const ANNA_REYES_FIXTURE = {
     },
     {
       id: "stability",
-      headline: "Income Stability Score: 74 / 100 — Healthy.",
+      headline: "EarnScore: 74 / 100 — Strong.",
       body: "89% of revenue is recurring with low variance. The foundation is solid — the risk is in distribution, not volume.",
       metric: "74",
-      metricLabel: "stability score",
+      metricLabel: "EarnScore",
       tone: "positive",
     },
     {

@@ -122,13 +122,23 @@ const sections: ReadonlyArray<LegalPageSection> = [
   {
     title: "Your control",
     content: (
-      <p>
-        You decide what data to upload. You can stop uploading data, close your account subject to the applicable terms, or contact{" "}
-        <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="text-brand-accent-teal transition hover:text-white">
-          {LEGAL_CONTACT_EMAIL}
-        </a>{" "}
-        for data-related requests.
-      </p>
+      <>
+        <p>
+          You decide what data to upload. You can stop uploading data, close your account subject to the applicable terms, or contact{" "}
+          <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="text-brand-accent-teal transition hover:text-white">
+            {LEGAL_CONTACT_EMAIL}
+          </a>{" "}
+          for data-related requests.
+        </p>
+        <LegalBulletList
+          items={[
+            "Access — request a copy of the information we hold about your account.",
+            "Correction — ask us to correct inaccurate or incomplete information.",
+            "Deletion — request deletion of your uploaded files, derived outputs, or account data. We process deletion requests within 30 days, subject to legal and operational retention requirements.",
+            "Portability — request a copy of your data in a structured format where technically feasible.",
+          ]}
+        />
+      </>
     ),
   },
   {

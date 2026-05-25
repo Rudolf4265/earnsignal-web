@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import {
   LEGAL_COMPANY_NAME,
   LEGAL_CONTACT_EMAIL,
-  LEGAL_PLACEHOLDER_DATE,
+  LEGAL_EFFECTIVE_DATE,
+  LEGAL_LAST_UPDATED,
   LegalBulletList,
   LegalCallout,
   LegalPage,
@@ -100,17 +101,44 @@ const sections: ReadonlyArray<LegalPageSection> = [
     content: (
       <>
         <p>
-          Depending on applicable law, you may have rights to request access to, correction of, deletion of, portability of, or objection to
-          certain processing of your personal information. We may need to verify your identity before completing a request.
+          Depending on where you are located and applicable law, you may have certain rights regarding your personal information. We honor
+          these rights regardless of whether they are required in your jurisdiction.
+        </p>
+        <LegalBulletList
+          items={[
+            "Access — request a copy of the personal information we hold about you.",
+            "Correction — ask us to correct inaccurate or incomplete information.",
+            "Deletion — request that we delete your personal information, subject to certain legal and operational exceptions.",
+            "Portability — request that we provide your personal information in a structured, machine-readable format where technically feasible.",
+            "Restriction — ask us to limit how we process your information in certain circumstances.",
+            "Objection — object to processing based on legitimate interests where applicable law permits.",
+            "Non-discrimination — we will not discriminate against you for exercising any of these rights.",
+          ]}
+        />
+        <p>
+          California residents may also exercise rights under the California Consumer Privacy Act (CCPA/CPRA), including the right to know,
+          delete, and opt out of sale. We do not sell personal information.
         </p>
         <p>
           To submit a privacy or data request, contact{" "}
           <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="text-brand-accent-teal transition hover:text-white">
             {LEGAL_CONTACT_EMAIL}
           </a>
-          .
+          . We will respond within 30 days or as required by applicable law. We may need to verify your identity before completing a request.
         </p>
       </>
+    ),
+  },
+  {
+    title: "Data Breach Notification",
+    content: (
+      <p>
+        In the event of a security incident involving your personal information, we will notify affected users and relevant authorities as
+        required by applicable law. Where required, we will notify supervisory authorities within 72 hours of becoming aware of a breach.
+        We will also notify affected individuals without undue delay when the breach is likely to result in a high risk to their rights and
+        freedoms. Notifications will describe the nature of the incident, the categories of information involved, steps we are taking, and
+        what you can do to protect yourself.
+      </p>
     ),
   },
   {
@@ -182,8 +210,8 @@ export default function PrivacyPage() {
       asideLabel="Document details"
       asideTitle="Current policy information"
       asideItems={[
-        { label: "Effective Date", value: LEGAL_PLACEHOLDER_DATE },
-        { label: "Last Updated", value: LEGAL_PLACEHOLDER_DATE },
+        { label: "Effective Date", value: LEGAL_EFFECTIVE_DATE },
+        { label: "Last Updated", value: LEGAL_LAST_UPDATED },
         { label: "Company", value: LEGAL_COMPANY_NAME },
         {
           label: "Contact",

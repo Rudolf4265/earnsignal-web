@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import {
   LEGAL_COMPANY_NAME,
   LEGAL_CONTACT_EMAIL,
-  LEGAL_PLACEHOLDER_DATE,
+  LEGAL_EFFECTIVE_DATE,
+  LEGAL_LAST_UPDATED,
   LegalBulletList,
   LegalCallout,
   LegalPage,
@@ -203,9 +204,9 @@ const sections: ReadonlyArray<LegalPageSection> = [
     title: "Governing Law and Disputes",
     content: (
       <p>
-        These Terms and any dispute arising out of or relating to the Services will be governed by the laws of [State], without regard to its
-        conflict of laws principles. The parties agree to the exclusive jurisdiction and venue of the state or federal courts located in
-        [County, State].
+        These Terms and any dispute arising out of or relating to the Services will be governed by the laws of the State of Illinois,
+        without regard to its conflict of laws principles. The parties agree to the exclusive jurisdiction and venue of the state or federal
+        courts located in the State of Illinois, and each party waives any objection to such jurisdiction and venue.
       </p>
     ),
   },
@@ -251,8 +252,8 @@ export default function TermsPage() {
       asideLabel="Document details"
       asideTitle="Current terms information"
       asideItems={[
-        { label: "Effective Date", value: LEGAL_PLACEHOLDER_DATE },
-        { label: "Last Updated", value: LEGAL_PLACEHOLDER_DATE },
+        { label: "Effective Date", value: LEGAL_EFFECTIVE_DATE },
+        { label: "Last Updated", value: LEGAL_LAST_UPDATED },
         { label: "Company", value: LEGAL_COMPANY_NAME },
         {
           label: "Contact",

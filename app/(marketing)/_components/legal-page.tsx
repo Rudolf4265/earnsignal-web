@@ -2,9 +2,12 @@ import type { ReactNode } from "react";
 import { Card, Container, Section, cn } from "@earnsigma/ui";
 import { MarketingShell } from "./marketing-shell";
 
+/** @deprecated Use LEGAL_EFFECTIVE_DATE / LEGAL_LAST_UPDATED instead */
 export const LEGAL_PLACEHOLDER_DATE = "[Month Day, Year]";
-export const LEGAL_COMPANY_NAME = "Oakline Ventures LLC";
-export const LEGAL_CONTACT_EMAIL = "admin@earnsigma.com";
+export const LEGAL_EFFECTIVE_DATE = "January 1, 2026";
+export const LEGAL_LAST_UPDATED   = "May 24, 2026";
+export const LEGAL_COMPANY_NAME   = "Oakline Ventures LLC";
+export const LEGAL_CONTACT_EMAIL  = "admin@earnsigma.com";
 
 type LegalAsideItem = {
   label: string;

@@ -149,9 +149,9 @@ function ExecutiveSummarySection() {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <SampleStatTile
-                label="Income Stability Score"
+                label="EarnScore"
                 value={`${F.incomeStabilityScore} / 100`}
-                badge="Healthy"
+                badge="Strong"
                 tone="positive"
                 meterPct={F.incomeStabilityScore}
               />
@@ -247,14 +247,14 @@ function IncomeStabilitySection() {
   return (
     <SampleReportSection>
       <Container>
-        <SectionLabel>Income Stability</SectionLabel>
-        <SectionHeading className="mb-10">How resilient is your income?</SectionHeading>
+        <SectionLabel>EarnScore</SectionLabel>
+        <SectionHeading className="mb-10">How strong is your earning foundation?</SectionHeading>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           {/* Score ring */}
           <div className={cn(CARD_CLASS, "flex flex-col items-center text-center")}>
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-brand-text-muted">
-              Income Stability Score
+              EarnScore
             </p>
             <svg
               width="140"
@@ -262,7 +262,7 @@ function IncomeStabilitySection() {
               viewBox="0 0 140 140"
               className="mt-5"
               role="img"
-              aria-label={`Income Stability Score: ${score} out of 100. Rating: Healthy.`}
+              aria-label={`EarnScore: ${score} out of 100. Rating: Strong.`}
             >
               <circle cx="70" cy="70" r={r} fill="none" stroke="rgba(52,211,153,0.12)" strokeWidth="14" />
               <circle
@@ -280,7 +280,7 @@ function IncomeStabilitySection() {
                 {score}
               </text>
               <text x="70" y="82" textAnchor="middle" fill="var(--es-color-accent-emerald)" fontSize="11" fontFamily="inherit">
-                Healthy
+                Strong
               </text>
             </svg>
             <p className="mt-4 max-w-[22ch] text-sm text-brand-text-secondary">

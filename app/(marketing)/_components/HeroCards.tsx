@@ -1,25 +1,42 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { Logo } from '@earnsigma/ui'
 
+// Badge colors mapped to brand CSS variables
 const INSIGHTS = [
   {
     label: 'Platform Exposure',
     value: '71%',
     suffix: 'Patreon',
-    badge: { text: 'Risk', bg: 'rgba(59,130,246,0.14)', border: 'rgba(59,130,246,0.28)', color: '#60a5fa' },
+    badge: {
+      text: 'Risk',
+      bg: 'rgba(59,130,246,0.14)',
+      border: 'rgba(59,130,246,0.28)',
+      color: 'var(--es-color-accent-blue)',       // #3B82F6
+    },
   },
   {
     label: 'Churn Window',
     value: 'Month 4',
     suffix: '$8 tier',
-    badge: { text: 'Watch', bg: 'rgba(245,158,11,0.13)', border: 'rgba(245,158,11,0.28)', color: '#fbbf24' },
+    badge: {
+      text: 'Watch',
+      bg: 'rgba(245,158,11,0.13)',
+      border: 'rgba(245,158,11,0.28)',
+      color: '#fbbf24',                            // amber — not in brand palette, kept as-is
+    },
   },
   {
     label: 'Pricing Signal',
     value: '2.1×',
     suffix: 'retention',
-    badge: { text: 'Opportunity', bg: 'rgba(13,148,136,0.13)', border: 'rgba(13,148,136,0.28)', color: '#2dd4bf' },
+    badge: {
+      text: 'Opportunity',
+      bg: 'rgba(47,217,197,0.13)',
+      border: 'rgba(47,217,197,0.28)',
+      color: 'var(--es-color-accent-teal)',        // #2FD9C5
+    },
   },
 ] as const
 
@@ -92,30 +109,22 @@ export function HeroCards() {
           <div
             className="border backdrop-blur-xl rounded-[20px] p-6"
             style={{
-              background: 'rgba(13,27,68,0.96)',
-              borderColor: 'rgba(255,255,255,0.11)',
-              boxShadow: '0 0 0 1px rgba(37,99,235,.15), 0 16px 48px rgba(0,0,0,.5)',
+              background: 'var(--es-color-panel)',          // #102043 — brand panel
+              borderColor: 'var(--es-color-border)',         // rgba(148,163,184,0.28)
+              boxShadow: 'var(--es-shadow-card), 0 0 0 1px rgba(96,165,250,0.12)',
             }}
           >
             {/* Card header — EarnSigma branding */}
             <div
               className="flex items-center justify-between mb-5 pb-4"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ borderBottom: '1px solid var(--es-color-border)' }}
             >
-              <div className="flex items-center gap-2">
-                <div
-                  className="flex items-center justify-center rounded-[5px]"
-                  style={{ width: 20, height: 20, background: '#2563eb' }}
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-                    <path d="M5 1L9 9H1L5 1Z" fill="white" opacity="0.9" />
-                  </svg>
-                </div>
-                <span className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                  EarnSigma
-                </span>
-              </div>
-              <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <Logo
+                iconClassName="h-5 w-5"
+                labelClassName="text-sm font-semibold"
+                priority
+              />
+              <span className="text-[11px]" style={{ color: 'var(--es-color-text-muted)' }}>
                 Creator Report · May 2026
               </span>
             </div>
@@ -124,23 +133,25 @@ export function HeroCards() {
             <div className="text-center mb-5">
               <p
                 className="text-[10px] font-semibold mb-3"
-                style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.13em', textTransform: 'uppercase' }}
+                style={{ color: 'var(--es-color-text-muted)', letterSpacing: '0.13em', textTransform: 'uppercase' }}
               >
                 EarnScore
               </p>
               <div className="relative inline-block">
                 <svg viewBox="0 0 200 115" width="200" height="115" aria-hidden="true">
+                  {/* Track */}
                   <path
                     d="M 20 105 A 80 80 0 0 1 180 105"
                     fill="none"
-                    stroke="rgba(255,255,255,0.08)"
+                    stroke="var(--es-color-border)"
                     strokeWidth="10"
                     strokeLinecap="round"
                   />
+                  {/* Fill — brand emerald */}
                   <path
                     d="M 20 105 A 80 80 0 0 1 180 105"
                     fill="none"
-                    stroke="#22c55e"
+                    stroke="var(--es-color-accent-emerald)"
                     strokeWidth="10"
                     strokeLinecap="round"
                     strokeDasharray={`${gaugeValue} ${ARC_LEN}`}
@@ -152,12 +163,12 @@ export function HeroCards() {
                   style={{ bottom: 4, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}
                 >
                   <span
-                    className="font-extrabold text-white"
-                    style={{ fontSize: 46, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
+                    className="font-extrabold"
+                    style={{ fontSize: 46, lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: 'var(--es-color-text-primary)' }}
                   >
                     {score}
                   </span>
-                  <span className="font-normal" style={{ fontSize: 17, color: 'rgba(255,255,255,0.4)' }}>
+                  <span className="font-normal" style={{ fontSize: 17, color: 'var(--es-color-text-muted)' }}>
                     {' '}/ 100
                   </span>
                 </div>
@@ -166,9 +177,9 @@ export function HeroCards() {
                 <span
                   className="text-[11px] font-bold px-3 py-1 rounded-full"
                   style={{
-                    background: 'rgba(34,197,94,0.14)',
-                    color: '#4ade80',
-                    border: '1px solid rgba(34,197,94,0.28)',
+                    background: 'rgba(52,211,153,0.14)',
+                    color: 'var(--es-color-accent-emerald)',  // #34D399
+                    border: '1px solid rgba(52,211,153,0.30)',
                   }}
                 >
                   Strong
@@ -183,7 +194,7 @@ export function HeroCards() {
                   key={insight.label}
                   className="flex items-center justify-between rounded-[10px] px-3.5 py-2.5"
                   style={{
-                    background: 'rgba(255,255,255,0.04)',
+                    background: 'var(--es-color-panel-muted)',   // #132950
                     opacity: rows[i] ? 1 : 0,
                     transform: rows[i] ? 'translateX(0)' : 'translateX(8px)',
                     transition: 'opacity 0.5s ease, transform 0.5s ease',
@@ -192,13 +203,13 @@ export function HeroCards() {
                   <div>
                     <p
                       className="text-[9px] font-semibold"
-                      style={{ color: 'rgba(255,255,255,0.37)', letterSpacing: '0.1em', textTransform: 'uppercase' }}
+                      style={{ color: 'var(--es-color-text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}
                     >
                       {insight.label}
                     </p>
-                    <p className="text-sm font-semibold text-white mt-0.5">
+                    <p className="text-sm font-semibold mt-0.5" style={{ color: 'var(--es-color-text-primary)' }}>
                       {insight.value}{' '}
-                      <span className="font-normal" style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                      <span className="font-normal" style={{ fontSize: 12, color: 'var(--es-color-text-secondary)' }}>
                         {insight.suffix}
                       </span>
                     </p>
@@ -218,14 +229,14 @@ export function HeroCards() {
             </div>
 
             {/* Next best action footer */}
-            <div className="mt-4 pt-3.5" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="mt-4 pt-3.5" style={{ borderTop: '1px solid var(--es-color-border)' }}>
               <p
                 className="text-[9px] font-semibold mb-1"
-                style={{ color: 'rgba(255,255,255,0.35)', letterSpacing: '0.1em', textTransform: 'uppercase' }}
+                style={{ color: 'var(--es-color-text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' }}
               >
                 Next best action
               </p>
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--es-color-text-secondary)' }}>
                 Test a clearer mid-tier offer before buying more audience.
               </p>
             </div>

@@ -202,7 +202,13 @@ export function normalizeSourceManifestResponse(raw: SourceManifestResponse | nu
     return null;
   }
 
-  const normalizedPlatforms = raw.platforms.map((platform) => normalizeManifestPlatform(platform));
+  // Filter to only platforms in PLATFORM_ORDER before normalization.
+  // Platforms not in PLATFORM_ORDER (e.g. "other" / Additional Income) are handled
+  // separately in the upload flow and should not block manifest validation.
+  const knownPlatforms = raw.platforms.filter(
+    (p) => p?.platform && (PLATFORM_ORDER as readonly string[]).includes(p.platform),
+  );
+  const normalizedPlatforms = knownPlatforms.map((platform) => normalizeManifestPlatform(platform));
   if (normalizedPlatforms.some((platform) => platform === null)) {
     return null;
   }

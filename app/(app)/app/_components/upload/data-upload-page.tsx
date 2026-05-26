@@ -12,7 +12,7 @@ import { SkeletonBlock } from "../../../_components/ui/skeleton";
 import { buttonClassName } from "@/src/components/ui/button";
 import { StatusPill } from "@/src/components/ui/status-pill";
 import { createReportRun, getReportErrorMessage, type CreateReportRunAnalysisWindow } from "@/src/lib/api/reports";
-import { clearWorkspaceData, fetchWorkspaceDataSources, type WorkspaceDataSourcesResponse } from "@/src/lib/api/workspace";
+import { clearWorkspaceData, fetchWorkspaceDataSources, removeWorkspaceSource, type WorkspaceDataSourcesResponse } from "@/src/lib/api/workspace";
 import { getSourceManifest, type UploadPlatform } from "@/src/lib/api/upload";
 import { buildWorkspaceReportState } from "@/src/lib/workspace/report-run-state";
 import { resolveWorkspaceReportWindowPolicy } from "@/src/lib/workspace/report-window-policy";
@@ -48,6 +48,7 @@ type ReadyToRunBannerProps = {
 type SourceRowProps = {
   item: SourceListItem;
   onUploadAction: (platform: UploadPlatform) => void;
+  onRemove?: (platform: UploadPlatform) => void;
 };
 
 type SourceListSectionProps = {
@@ -56,6 +57,7 @@ type SourceListSectionProps = {
   hasManifest: boolean;
   onAddSource: () => void;
   onUploadAction: (platform: UploadPlatform) => void;
+  onRemove?: (platform: UploadPlatform) => void;
 };
 
 // ─── Platform logos shown in Phase 1 intro ───────────────────────────────────
@@ -145,7 +147,7 @@ function WizardProgressBar({
 
 // ─── Phase 1 intro: copy + platform logo pills ───────────────────────────────
 
-function Phase1Intro() {
+function Phase1Intro({ connectedPlatformIds }: { connectedPlatformIds?: ReadonlySet<string> }) {
   return (
     <div className="space-y-3">
       <div>
@@ -162,21 +164,36 @@ function Phase1Intro() {
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
-        {WIZARD_PLATFORMS.map((p) => (
-          <div
-            key={p.id}
-            className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5"
-          >
-            <Image
-              src={p.logo}
-              alt=""
-              width={14}
-              height={14}
-              className="h-3.5 w-3.5 object-contain"
-            />
-            <span className="text-xs font-medium text-slate-300">{p.label}</span>
-          </div>
-        ))}
+        {WIZARD_PLATFORMS.map((p) => {
+          const isConnected = connectedPlatformIds?.has(p.id) ?? false;
+          return (
+            <div
+              key={p.id}
+              className={[
+                "flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors",
+                isConnected
+                  ? "border-brand-accent-teal/50 bg-brand-accent-teal/10"
+                  : "border-white/10 bg-white/[0.04]",
+              ].join(" ")}
+            >
+              <Image
+                src={p.logo}
+                alt=""
+                width={14}
+                height={14}
+                className="h-3.5 w-3.5 object-contain"
+              />
+              <span className={["text-xs font-medium", isConnected ? "text-teal-300" : "text-slate-300"].join(" ")}>
+                {p.label}
+              </span>
+              {isConnected && (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" className="text-brand-accent-teal shrink-0">
+                  <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -353,7 +370,7 @@ function renderAction(action: SourceListAction | undefined, onUploadAction: (pla
   );
 }
 
-function SourceRow({ item, onUploadAction }: SourceRowProps) {
+function SourceRow({ item, onUploadAction, onRemove }: SourceRowProps) {
   const metaLabel =
     item.status === "fix_needed"
       ? item.issueLabel || "Needs review"
@@ -382,6 +399,16 @@ function SourceRow({ item, onUploadAction }: SourceRowProps) {
         </StatusPill>
         {renderAction(item.primaryAction, onUploadAction, "primary")}
         {renderAction(item.secondaryAction, onUploadAction, "secondary")}
+        {onRemove && (
+          <button
+            type="button"
+            onClick={() => onRemove(item.id)}
+            className="text-sm font-medium text-rose-400/70 underline underline-offset-4 transition hover:text-rose-300"
+            aria-label={`Remove ${item.name} source`}
+          >
+            Remove
+          </button>
+        )}
       </div>
     </div>
   );
@@ -449,6 +476,7 @@ function SourceListSection({
   hasManifest,
   onAddSource,
   onUploadAction,
+  onRemove,
 }: SourceListSectionProps) {
   return (
     <section className="rounded-[1.75rem] border border-white/8 bg-white/[0.02]" data-testid="workspace-source-list-section">
@@ -478,7 +506,7 @@ function SourceListSection({
         items.length > 0 ? (
           <div className="divide-y divide-white/8">
             {items.map((item) => (
-              <SourceRow key={item.id} item={item} onUploadAction={onUploadAction} />
+              <SourceRow key={item.id} item={item} onUploadAction={onUploadAction} onRemove={onRemove} />
             ))}
           </div>
         ) : (
@@ -854,6 +882,15 @@ export default function DataUploadPage() {
     }
   }, [refreshWorkspaceDataSources]);
 
+  const handleRemoveSource = useCallback(async (platform: UploadPlatform) => {
+    try {
+      await removeWorkspaceSource(platform);
+      await refreshWorkspaceDataSources({ preserveCurrent: true });
+    } catch {
+      // Non-fatal: workspace will still refresh on the next natural poll
+    }
+  }, [refreshWorkspaceDataSources]);
+
   useEffect(() => {
     workspaceDataSourcesRef.current = workspaceDataSources;
   }, [workspaceDataSources]);
@@ -1005,7 +1042,13 @@ export default function DataUploadPage() {
       {/* ── Phase 1: Upload platforms ─────────────────────────────────────── */}
       {uploadPhase === 1 && (
         <>
-          <Phase1Intro />
+          <Phase1Intro
+            connectedPlatformIds={new Set(
+              sourceListItems
+                .filter((item) => item.id !== "other" && item.status !== "not_connected")
+                .map((item) => item.id),
+            )}
+          />
 
           <div id="workspace-uploader">
             {sourceManifestLoading ? (
@@ -1128,6 +1171,7 @@ export default function DataUploadPage() {
             hasManifest={Boolean(sourceManifest && visiblePlatformCards)}
             onAddSource={handleAddSource}
             onUploadAction={handleUploadAction}
+            onRemove={(platform) => void handleRemoveSource(platform)}
           />
 
           {runReportError ? (

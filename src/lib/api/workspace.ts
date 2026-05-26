@@ -275,3 +275,19 @@ export async function clearWorkspaceData(): Promise<ClearWorkspaceDataResult> {
     message: typeof data.message === "string" ? data.message : "",
   };
 }
+
+/**
+ * Remove a single staged source from this creator's workspace.
+ * Deletes the staged source row so it no longer appears in workspace or
+ * counts towards report eligibility. Returns the updated workspace state.
+ */
+export async function removeWorkspaceSource(platform: UploadPlatform): Promise<WorkspaceDataSourcesResponse> {
+  const data = await apiFetchJson<RawWorkspaceDataSourcesResponse>(
+    "workspace.removeSource",
+    `/v1/workspace/sources/${encodeURIComponent(platform)}`,
+    {
+      method: "DELETE",
+    },
+  );
+  return normalizeWorkspaceDataSourcesResponse(data);
+}

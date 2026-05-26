@@ -27,9 +27,11 @@ import { buildDashboardRevenueTrendViewModel } from "@/src/lib/dashboard/revenue
 import {
   buildReportDetailSectionGatingModel,
   canAccessFullReportPdf,
+  canRenderReportDetailProContent,
   canRenderReportDetailReportContent,
   resolveReportDetailPdfAccessMode,
 } from "@/src/lib/report/detail-gating";
+import { ProGate } from "@/src/components/ui/pro-gate";
 import { isFounderFromEntitlement } from "@/src/lib/entitlements/model";
 import {
   buildReportDetailPresentationModel,
@@ -1914,6 +1916,11 @@ export default function ReportPage() {
                   </DocumentSection>
                 ) : null}
 
+                <ProGate
+                  mode={proSectionGate.opportunity}
+                  feature="strengths, risks, opportunities, and action plan"
+                  className="space-y-0"
+                >
                 {wowSummary ? (
                   <DocumentSection
                     number="7"
@@ -2011,7 +2018,9 @@ export default function ReportPage() {
                   </div>
                 </DocumentSection>
 
-                <DocumentSection
+                </ProGate>
+
+                                <DocumentSection
                   number="10"
                   title="Methodology"
                   subtitle="Included sources, current coverage, and what this report can and cannot measure."

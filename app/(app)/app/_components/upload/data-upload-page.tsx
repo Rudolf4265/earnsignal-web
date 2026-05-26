@@ -30,6 +30,8 @@ import {
   type UploadPlatformCardMetadata,
 } from "@/src/lib/upload/platform-metadata";
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
+import { PlatformPayoutsSection } from "@/src/components/upload/platform-payouts-section";
+import type { ReportDetailProSectionMode } from "@/src/lib/report/detail-gating";
 
 type UploadPhase = 1 | 2 | 3;
 
@@ -709,6 +711,11 @@ export default function DataUploadPage() {
   const router = useRouter();
   const entitlementState = useEntitlementState();
   const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;
+  const platformPayoutsMode: ReportDetailProSectionMode = entitlementState.loading
+    ? "loading-safe"
+    : entitlementState.hasProAccess || entitlementState.isFounder
+      ? "pro-unlocked"
+      : "pro-locked";
 
   // ── Wizard phase state ──────────────────────────────────────────────────────
   const [uploadPhase, setUploadPhase] = useState<UploadPhase>(1);
@@ -1127,6 +1134,8 @@ export default function DataUploadPage() {
               )}
             </div>
           )}
+
+          <PlatformPayoutsSection mode={platformPayoutsMode} />
 
           <div className="flex items-center justify-between">
             <button

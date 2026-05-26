@@ -797,6 +797,197 @@ function MethodologySection() {
    KEY FINDINGS CARDS
    Screenshot-ready, reusable from the fixture
 ══════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   ADVISOR INSIGHT CARDS  (LLM-generated intelligence layer)
+══════════════════════════════════════════════════════════════════ */
+function AdvisorInsightSection() {
+  const ai = F.advisorInsight;
+
+  return (
+    <SampleReportSection>
+      <Container>
+        <SectionLabel>Advisor Intelligence</SectionLabel>
+        <SectionHeading className="mb-3">What the AI found in your data</SectionHeading>
+        <p className="mb-10 text-base text-brand-text-secondary">
+          These cards are generated fresh for every report — synthesised directly from your uploaded numbers,
+          not pulled from a template.
+        </p>
+
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {/* Business Snapshot */}
+          <div
+            className={CARD_CLASS + " flex flex-col gap-4"}
+            style={{ borderLeftColor: "var(--es-color-accent-teal)", borderLeftWidth: 3 }}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span
+                className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--es-color-accent-teal) 40%, transparent)",
+                  backgroundColor: "color-mix(in srgb, var(--es-color-accent-teal) 8%, transparent)",
+                  color: "var(--es-color-accent-teal)",
+                }}
+              >
+                Business Snapshot
+              </span>
+              {ai.businessSnapshot.confidence && (
+                <span
+                  className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em]"
+                  style={{
+                    borderColor: "color-mix(in srgb, var(--es-color-accent-emerald) 35%, transparent)",
+                    backgroundColor: "color-mix(in srgb, var(--es-color-accent-emerald) 8%, transparent)",
+                    color: "var(--es-color-accent-emerald)",
+                  }}
+                >
+                  {ai.businessSnapshot.confidence} confidence
+                </span>
+              )}
+            </div>
+
+            <h3 className="text-base font-semibold leading-snug text-white">
+              {ai.businessSnapshot.headline}
+            </h3>
+
+            <p className="text-sm leading-relaxed text-brand-text-secondary">
+              {ai.businessSnapshot.summary}
+            </p>
+
+            <ul className="space-y-2">
+              {ai.businessSnapshot.bullets.map((b, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                  <svg
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    style={{ color: "var(--es-color-accent-teal)" }}
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M3 8l3.5 3.5L13 4.5"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-auto pt-1">
+              <span
+                className="inline-flex cursor-default items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--es-color-accent-teal) 30%, transparent)",
+                  color: "var(--es-color-accent-teal)",
+                }}
+              >
+                <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <path d="M6 1v4.5M6 7v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                {ai.businessSnapshot.actionLabel}
+              </span>
+            </div>
+          </div>
+
+          {/* Biggest Opportunity */}
+          <div
+            className={CARD_CLASS + " flex flex-col gap-4"}
+            style={{ borderLeftColor: "var(--es-color-accent-emerald)", borderLeftWidth: 3 }}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--es-color-accent-emerald) 40%, transparent)",
+                  backgroundColor: "color-mix(in srgb, var(--es-color-accent-emerald) 8%, transparent)",
+                  color: "var(--es-color-accent-emerald)",
+                }}
+              >
+                Biggest Opportunity
+              </span>
+            </div>
+
+            <h3 className="text-base font-semibold leading-snug text-white">
+              {ai.biggestOpportunity.headline}
+            </h3>
+
+            <p className="text-sm leading-relaxed text-brand-text-secondary">
+              {ai.biggestOpportunity.summary}
+            </p>
+
+            <ul className="space-y-2">
+              {ai.biggestOpportunity.bullets.map((b, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm text-brand-text-secondary">
+                  <svg
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    style={{ color: "var(--es-color-accent-emerald)" }}
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M3 8l3.5 3.5L13 4.5"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-auto pt-1">
+              <span
+                className="inline-flex cursor-default items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--es-color-accent-emerald) 30%, transparent)",
+                  color: "var(--es-color-accent-emerald)",
+                }}
+              >
+                <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <path d="M2 6h8M7 3.5L9.5 6 7 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                {ai.biggestOpportunity.actionLabel}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Risk — full width */}
+        <div
+          className={CARD_CLASS + " mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-6"}
+          style={{ borderLeftColor: "#f87171", borderLeftWidth: 3 }}
+        >
+          <div className="shrink-0">
+            <span
+              className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
+              style={{
+                borderColor: "rgba(248,113,113,0.4)",
+                backgroundColor: "rgba(248,113,113,0.08)",
+                color: "#f87171",
+              }}
+            >
+              Top Risk
+            </span>
+          </div>
+          <div>
+            <h3 className="text-base font-semibold leading-snug text-white">
+              {ai.topRisk.headline}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-brand-text-secondary">
+              {ai.topRisk.summary}
+            </p>
+          </div>
+        </div>
+      </Container>
+    </SampleReportSection>
+  );
+}
+
 function FindingsCardsSection() {
   return (
     <SampleReportSection>
@@ -879,6 +1070,7 @@ export function SampleReportPage() {
     <div className="sample-report-root">
       <CoverSection />
       <ExecutiveSummarySection />
+      <AdvisorInsightSection />
       <FindingsCardsSection />
       <RevenueOverviewSection />
       <IncomeStabilitySection />

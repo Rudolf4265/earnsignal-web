@@ -34,6 +34,24 @@ export type SampleAction = {
   expectedImpact: string;
 };
 
+
+export type SampleAdvisorCard = {
+  headline: string;
+  summary: string;
+  bullets: readonly string[];
+  actionLabel: string;
+  confidence?: "high" | "medium" | "directional";
+};
+
+export type SampleYouTubeGrowth = {
+  subscriberCount: number;
+  subscriberGained: number;
+  totalViews: number;
+  avgWatchTimeMins: number;
+  topVideoTitle: string;
+  topVideoViews: number;
+};
+
 export const ANNA_REYES_FIXTURE = {
   creatorName: "Anna Reyes",
   creatorType: "Fiction writer",
@@ -212,6 +230,45 @@ export const ANNA_REYES_FIXTURE = {
       expectedImpact: "80–140 new Substack subscribers",
     },
   ] satisfies SampleAction[],
+
+  // Advisor insight cards — mirrors the LLM-generated output format from creator_insight_engine.py
+  advisorInsight: {
+    businessSnapshot: {
+      headline: "Substack growth is accelerating while Patreon holds — your foundation is stronger than any single dashboard shows.",
+      summary: "Anna runs a three-platform fiction business at $4,280/month with a 74 EarnScore, putting her in the upper third of creators at this revenue tier. The income is recurring, predictable, and growing. The risk isn't the total — it's distribution: 71% concentrated on one platform, and one tier driving 42% of all cancellations.",
+      bullets: [
+        "Recurring revenue share is 89% — unusually strong for this revenue tier",
+        "Substack posted its sharpest 30-day growth of the period",
+        "The $8 Supporter tier carries the highest churn and the most fixable leverage",
+      ] as const,
+      actionLabel: "Jump to subscriber health",
+      confidence: "high" as const,
+    } satisfies SampleAdvisorCard,
+    biggestOpportunity: {
+      headline: "Restructuring the $8 tier is worth +$770/month without acquiring a single new subscriber.",
+      summary: "287 subscribers sit at 42% annual churn — nearly double the healthy threshold. Most cancel within 60 days. The price point is caught between risk-free and essential. A targeted restructure is projected to recover $770/month in net revenue within 90 days.",
+      bullets: [
+        "287 active subscribers currently at the highest-risk price point",
+        "$8 tier churn is 2.3× higher than the $5 Reader tier",
+        "+18% revenue recovery modeled from merge-up or a clearly defined perk refresh",
+      ] as const,
+      actionLabel: "See the restructure projection",
+    } satisfies Omit<SampleAdvisorCard, "confidence">,
+    topRisk: {
+      headline: "Patreon at 71% concentration is above the threshold where a single policy change becomes a business event.",
+      summary: "At 71% revenue concentration, a Patreon fee increase, policy shift, or outage directly affects 71 cents of every dollar. Substack's growth is the natural hedge — accelerating it is the most important strategic move in the next 6 months.",
+    },
+  },
+
+  // YouTube channel growth (audience data — separate from ad revenue)
+  youtubeGrowth: {
+    subscriberCount: 28400,
+    subscriberGained: 340,
+    totalViews: 48200,
+    avgWatchTimeMins: 6.2,
+    topVideoTitle: "Writing a Novel in 30 Days — Real Talk",
+    topVideoViews: 8900,
+  } satisfies SampleYouTubeGrowth,
 } as const;
 
 export type AnnaReyesFixture = typeof ANNA_REYES_FIXTURE;

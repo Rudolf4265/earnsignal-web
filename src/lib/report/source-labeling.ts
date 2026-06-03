@@ -169,7 +169,8 @@ export function buildCanonicalReportTitle(input: {
 
   if (platformsIncluded.length >= 2 && platformsIncluded.length <= 3) {
     if (sourceCount === null || sourceCount === platformsIncluded.length) {
-      return `Combined Report — ${platformsIncluded.join(" + ")}`;
+      const platformStr = platformsIncluded.join(" + ");
+      return periodLabel ? `Combined Report — ${platformStr} · ${periodLabel}` : `Combined Report — ${platformStr}`;
     }
   }
 

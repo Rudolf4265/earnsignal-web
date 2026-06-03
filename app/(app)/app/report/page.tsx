@@ -15,6 +15,7 @@ import { isApiError, isEntitlementRequiredError } from "@/src/lib/api/client";
 import {
   downloadReportArtifactPdf,
   fetchReportsList,
+  patchReportName,
   fetchReportRunStatus,
   getReportErrorMessage,
   type ReportListItem,
@@ -84,6 +85,8 @@ export default function ReportsPage() {
   const [downloadEntitlementRequired, setDownloadEntitlementRequired] = useState(false);
   const [downloadRequestId, setDownloadRequestId] = useState<string | undefined>(undefined);
   const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
+  const [editingReportId, setEditingReportId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState<string>("");
 
   const reportRows = useMemo(() => toReportListRows(state.items), [state.items]);
   const reportListExperience = useMemo(
@@ -259,6 +262,27 @@ export default function ReportsPage() {
     [downloadingReportId, entitlementState.canDownloadPdf, entitlementState.isFounder],
   );
 
+
+  const handleSaveName = useCallback(
+    async (reportId: string) => {
+      const trimmed = editingName.trim();
+      // Optimistically update state
+      setState((prev) => ({
+        ...prev,
+        items: prev.items.map((item) =>
+          item.reportId === reportId ? { ...item, runName: trimmed || null } : item,
+        ),
+      }));
+      setEditingReportId(null);
+      try {
+        await patchReportName(reportId, trimmed || null);
+      } catch {
+        // On error just leave the optimistic value — non-critical
+      }
+    },
+    [editingName],
+  );
+
   return (
     <FeatureGuard feature="report">
       <div className="space-y-6">
@@ -364,8 +388,39 @@ export default function ReportsPage() {
                       key={row.id}
                       className="grid grid-cols-[minmax(14rem,1.7fr)_10rem_9rem_minmax(15rem,1fr)] items-center border-t border-brand-border bg-brand-panel px-4 py-3 transition hover:bg-brand-panel-muted/70"
                     >
-                      <div className="min-w-[12rem] pr-4">
-                        <p className="text-sm font-semibold text-brand-text-primary">{row.title}</p>
+                      <div className="group min-w-[12rem] pr-4">
+                        {editingReportId === row.reportId ? (
+                          <input
+                            autoFocus
+                            type="text"
+                            value={editingName}
+                            maxLength={255}
+                            placeholder={row.title}
+                            className="w-full rounded border border-brand-accent-blue bg-brand-bg-elevated px-2 py-1 text-sm font-semibold text-brand-text-primary outline-none focus:ring-1 focus:ring-brand-accent-blue"
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onBlur={() => { void handleSaveName(row.reportId ?? ""); }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") { void handleSaveName(row.reportId ?? ""); }
+                              if (e.key === "Escape") { setEditingReportId(null); }
+                            }}
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-brand-text-primary">{row.title}</p>
+                            {row.reportId ? (
+                              <button
+                                type="button"
+                                title="Rename report"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-brand-text-muted hover:text-brand-text-primary"
+                                onClick={() => { setEditingReportId(row.reportId); setEditingName(row.runName ?? ""); }}
+                              >
+                                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M11.586 1.586a2 2 0 1 1 2.828 2.828L5.414 13.414 2 14l.586-3.414L11.586 1.586Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                            ) : null}
+                          </div>
+                        )}
                         {reportListExperience.showSourceSummary && (row.sourceCountLabel || row.platformSummary) ? (
                           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-brand-text-muted" data-testid="report-list-source-summary">
                             {row.sourceCountLabel ? <span>{row.sourceCountLabel}</span> : null}

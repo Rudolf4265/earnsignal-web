@@ -34,6 +34,7 @@ export type ReportListItem = {
   reportKind: ReportKind;
   coverageStart: string | null;
   coverageEnd: string | null;
+  runName: string | null;
 };
 
 export type ReportListResult = {
@@ -60,6 +61,7 @@ export type ReportListRow = {
   platformSummary: string | null;
   analysisWindowLabel: string | null;
   reportKind: ReportKind;
+  runName: string | null;
 };
 
 export type ReportListExperienceKind = "free" | "purchased_reports" | "report_history";
@@ -186,6 +188,7 @@ function normalizeItem(raw: unknown): ReportListItem | null {
     platformsIncluded,
     sourceCount: readPositiveCount(record.source_count) ?? readPositiveCount(record.sourceCount),
   });
+  const runName = readString(record.run_name) ?? readString(record.runName);
   const title = buildCanonicalReportTitle({
     createdAt,
     coverageEnd,
@@ -210,6 +213,7 @@ function normalizeItem(raw: unknown): ReportListItem | null {
     reportKind: resolveReportKind({ platformsIncluded, sourceCount }),
     coverageStart,
     coverageEnd,
+    runName,
   };
 }
 
@@ -379,7 +383,8 @@ export function toReportListRows(items: ReportListItem[]): ReportListRow[] {
     return {
       id: rowId,
       reportId: item.reportId,
-      title: item.title,
+      title: item.runName || item.title,
+      runName: item.runName,
       status: normalizedStatus,
       statusLabel: toReportStatusLabel(normalizedStatus),
       statusVariant: toReportStatusVariant(normalizedStatus),

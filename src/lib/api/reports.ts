@@ -457,6 +457,14 @@ export async function downloadReportArtifactPdf(report: Pick<ReportListItem, "re
 // Growth Report
 // ---------------------------------------------------------------------------
 
+export async function patchReportName(reportId: string, runName: string | null): Promise<void> {
+  await apiFetchJson<unknown>("report.patch_name", `/v1/reports/${encodeURIComponent(reportId)}/name`, {
+    method: "PATCH",
+    body: JSON.stringify({ run_name: runName ?? null }),
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export type GrowthReportAudienceMonthEntry = {
   month: string;
   followers_gained: number;

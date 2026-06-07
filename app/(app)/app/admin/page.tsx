@@ -128,6 +128,15 @@ export default function AdminUsersPage() {
         <p className="text-sm text-gray-300">Email-first account operations for access, entitlement, and health checks.</p>
       </header>
 
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/app/admin/feedback"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border px-3 py-1.5 text-xs font-medium text-brand-text-secondary transition hover:border-brand-border-strong hover:bg-brand-panel-muted/60 hover:text-brand-text-primary"
+        >
+          Feedback dashboard →
+        </Link>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-4">
           <form

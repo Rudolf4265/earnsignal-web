@@ -57,6 +57,7 @@ import { buildReportWowSummaryViewModel, type ReportWowSummaryViewModel } from "
 import { buildRevenueExplanation, isDataCompletenessAction } from "@/src/lib/report/premium-narrative";
 import { ReportAudienceGrowthSection } from "./_components/ReportAudienceGrowthSection";
 import { ReportStrengthsRisksSection } from "./_components/ReportStrengthsRisksSection";
+import { PostReportFeedbackCard } from "./_components/PostReportFeedbackCard";
 import { buildReportFreeTeaserViewModel, ReportFreeTeaser } from "./_components/ReportFreeTeaser";
 import { ReportSourceNudge } from "./_components/ReportSourceNudge";
 
@@ -2069,6 +2070,10 @@ export default function ReportPage() {
 
           {showFullReportContent && state.artifactError ? (
             <ErrorBanner title="Report data unavailable" message="We couldn't load this report's data. Try refreshing, or return to your workspace." />
+          ) : null}
+
+          {shouldRenderCompletedReport && state.report ? (
+            <PostReportFeedbackCard reportRunId={state.report.id} />
           ) : null}
         </section>
       ) : null}

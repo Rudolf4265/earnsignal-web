@@ -9,6 +9,7 @@ import { buildLoginHref } from "@/src/lib/gating/app-gate";
 import { AppGateProvider, useAppGate } from "./_components/app-gate-provider";
 import { EntitlementsErrorCallout, GateLoadingShell, SessionExpiredCallout } from "./_components/gate-callouts";
 import { WorkspaceNav } from "./_components/workspace-nav";
+import { SidebarFeedbackButton } from "./_components/SidebarFeedbackButton";
 
 function AppLayoutFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -86,7 +87,11 @@ function AppLayoutFrame({ children }: { children: React.ReactNode }) {
           activeLinkClassName="border-brand-border-strong bg-[var(--es-gradient-nav-active)] text-brand-text-primary shadow-brand-glow"
         />
 
-        <div className="mt-6 border-t border-brand-border pt-4 md:mt-auto md:pt-6">
+        <div className="mt-4">
+          <SidebarFeedbackButton />
+        </div>
+
+        <div className="mt-4 border-t border-brand-border pt-4 md:mt-auto md:pt-6">
           <p className="truncate text-xs text-brand-text-muted">{session?.user?.email ?? "Signed in"}</p>
           <button
             type="button"

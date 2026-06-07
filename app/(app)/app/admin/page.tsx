@@ -135,6 +135,12 @@ export default function AdminUsersPage() {
         >
           Feedback dashboard →
         </Link>
+        <Link
+          href="/app/admin/llm-quality"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-brand-border px-3 py-1.5 text-xs font-medium text-brand-text-secondary transition hover:border-brand-border-strong hover:bg-brand-panel-muted/60 hover:text-brand-text-primary"
+        >
+          LLM Quality →
+        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">

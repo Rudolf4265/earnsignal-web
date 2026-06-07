@@ -81,6 +81,39 @@ const sections: ReadonlyArray<LegalPageSection> = [
     ),
   },
   {
+    title: "Benchmark Data and Aggregation",
+    content: (
+      <>
+        <p>
+          To improve the quality and calibration of industry benchmarks shown in our reports and analytics, we may aggregate
+          anonymised performance data derived from Customer Content submitted across the Services. This aggregated data is used
+          solely to compute industry reference ranges and cohort comparisons for the benefit of all creators using EarnSigma.
+        </p>
+        <LegalBulletList
+          items={[
+            "Aggregated data contains no creator identifiers. We strip all account IDs, names, and personally identifiable information before any aggregation occurs.",
+            "A minimum cohort size of ten (10) contributors is required before any aggregate figure is computed or surfaced. No data from a cohort smaller than this threshold is used.",
+            "Individual metrics are never exposed through benchmark outputs. Only statistical summaries (medians, ranges, and percentiles) are published within the Services.",
+            "Participation in benchmark aggregation is enabled by default and disclosed in these Terms. You may opt out at any time by contacting us at the address below.",
+          ]}
+        />
+        <p>
+          Opting out prevents your data from contributing to future aggregate cohorts. It does not affect reports or analytics
+          you have already received, and it does not affect any other aspect of your use of the Services.
+        </p>
+        <LegalCallout label="Your control" tone="teal">
+          <p>
+            To opt out of benchmark aggregation, contact{" "}
+            <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="text-brand-accent-teal transition hover:text-white">
+              {LEGAL_CONTACT_EMAIL}
+            </a>
+            . We will update your preferences within 5 business days.
+          </p>
+        </LegalCallout>
+      </>
+    ),
+  },
+  {
     title: "Our Intellectual Property",
     content: (
       <p>

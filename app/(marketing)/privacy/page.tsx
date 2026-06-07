@@ -61,6 +61,26 @@ const sections: ReadonlyArray<LegalPageSection> = [
     ),
   },
   {
+    title: "Benchmark Aggregation",
+    content: (
+      <>
+        <p>
+          We may aggregate anonymised, de-identified performance data derived from Customer Content to compute industry benchmark
+          ranges used in our reports and analytics tools. This processing is described in our Terms of Service under
+          the "Benchmark Data and Aggregation" section. Key privacy protections include:
+        </p>
+        <LegalBulletList
+          items={[
+            "No creator identifiers are retained in aggregated outputs.",
+            "Cohorts require a minimum of 10 contributors before any aggregate is computed.",
+            "Only statistical summaries (medians, ranges, percentiles) are surfaced, never individual values.",
+            "You may opt out at any time by contacting us at the address below.",
+          ]}
+        />
+      </>
+    ),
+  },
+  {
     title: "How We Share Information",
     content: (
       <>

@@ -32,7 +32,6 @@ import {
 import { useEntitlementState } from "../../../_components/use-entitlement-state";
 import { PlatformPayoutsSection } from "@/src/components/upload/platform-payouts-section";
 import type { ReportDetailProSectionMode } from "@/src/lib/report/detail-gating";
-import { BuildScreenFeedbackCard } from "./BuildScreenFeedbackCard";
 
 type UploadPhase = 1 | 2 | 3;
 
@@ -1184,7 +1183,6 @@ export default function DataUploadPage() {
             onRemove={(platform) => void handleRemoveSource(platform)}
           />
 
-          <BuildScreenFeedbackCard />
 
           {runReportError ? (
             <p className="text-sm text-rose-300" data-testid="staged-run-report-error">

@@ -60,6 +60,7 @@ import { ReportStrengthsRisksSection } from "./_components/ReportStrengthsRisksS
 import { PostReportFeedbackCard } from "./_components/PostReportFeedbackCard";
 import { buildReportFreeTeaserViewModel, ReportFreeTeaser } from "./_components/ReportFreeTeaser";
 import { ReportSourceNudge } from "./_components/ReportSourceNudge";
+import { BuildScreenFeedbackCard } from "../../_components/upload/BuildScreenFeedbackCard";
 
 type ReportPageState = {
   view: ReportViewState | "invalid_route";
@@ -286,6 +287,7 @@ function ReportRunningState({
           </div>
         </div>
       </div>
+      <BuildScreenFeedbackCard />
     </section>
   );
 }

@@ -1,33 +1,31 @@
 "use client";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppGate } from "../../_components/app-gate-provider";
 import { useEntitlementState } from "../../_components/use-entitlement-state";
-import { CreatorHealthCard } from "../_components/dashboard/CreatorHealthCard";
 import { DashboardHeader } from "../_components/dashboard/DashboardHeader";
-import { DashboardKpiRow } from "../_components/dashboard/DashboardKpiRow";
+import { DashboardKpiStrip } from "../_components/dashboard/DashboardKpiStrip";
 import { DashboardOnboardingSection } from "../_components/dashboard/DashboardOnboardingSection";
-import { DashboardTopGrid } from "../_components/dashboard/DashboardTopGrid";
-import { DashboardUtilitySection } from "../_components/dashboard/DashboardUtilitySection";
-import { GrowDashboardSection } from "../_components/dashboard/GrowDashboardSection";
-import { NextBestMoveCard } from "../_components/dashboard/NextBestMoveCard";
+import { DashboardWhatsHappening, type AudienceRow, type WhatsHappeningSignal } from "../_components/dashboard/DashboardWhatsHappening";
+import { DashboardNextMoveSection } from "../_components/dashboard/DashboardNextMoveSection";
 import { RevenueTrendSection } from "../_components/dashboard/RevenueTrendSection";
-import { SignalsPanel, type SignalItem } from "../_components/dashboard/SignalsPanel";
 import { ErrorBanner } from "@/src/components/ui/error-banner";
 import { isApiError } from "@/src/lib/api/client";
-import { fetchGrowthReport, fetchReportArtifactJson, fetchReportDetail, fetchReportsList, type GrowthReport, type ReportDetail, type ReportListResult } from "@/src/lib/api/reports";
+import {
+  fetchGrowthReport,
+  fetchReportArtifactJson,
+  fetchReportDetail,
+  fetchReportsList,
+  type GrowthReport,
+  type ReportDetail,
+  type ReportListResult,
+} from "@/src/lib/api/reports";
 import { decideDashboardPrimaryCta } from "@/src/lib/dashboard/primary-cta";
 import { hydrateDashboardFromArtifact, type DashboardArtifactHydrationResult } from "@/src/lib/dashboard/artifact-hydration";
-import { buildDashboardKpiItems } from "@/src/lib/dashboard/kpi-row";
 import { findFirstCompletedReport, loadLatestDashboardReport } from "@/src/lib/dashboard/latest-report";
 import { buildDashboardInsights } from "@/src/lib/dashboard/insights";
-import { buildDashboardDiagnosisViewModel } from "@/src/lib/dashboard/diagnosis";
 import { buildDashboardActionCardsViewModel } from "@/src/lib/dashboard/action-cards";
 import { buildDashboardRevenueTrendViewModel } from "@/src/lib/dashboard/revenue-trend";
 import { buildEarnDashboardModel } from "@/src/lib/dashboard/earn-model";
-import { adaptGrowDashboardSource } from "@/src/lib/dashboard/grow-adapter";
-import { buildGrowDashboardModel } from "@/src/lib/dashboard/grow-model";
-import { buildDashboardModeSearch, parseDashboardMode } from "@/src/lib/dashboard/mode";
 import { formatReportArtifactContractErrors } from "@/src/lib/report/artifact-contract";
 import { getLatestUploadStatus } from "@/src/lib/api/upload";
 import { mapUploadStatus, type UploadStatusView } from "@/src/lib/upload/status";
@@ -84,8 +82,16 @@ type DashboardLastKnownGood = Pick<
 let lastKnownGoodDashboardState: DashboardLastKnownGood | null = null;
 let dashboardLoadInFlight: Promise<DashboardLoadResult> | null = null;
 
-function hasRenderableDashboardState(state: Pick<DashboardState, "latestUpload" | "latestReport" | "latestArtifact" | "latestReportRow" | "hasReports">): boolean {
-  return state.latestUpload !== null || state.latestReport !== null || state.latestArtifact !== null || state.latestReportRow !== null || state.hasReports !== null;
+function hasRenderableDashboardState(
+  state: Pick<DashboardState, "latestUpload" | "latestReport" | "latestArtifact" | "latestReportRow" | "hasReports">,
+): boolean {
+  return (
+    state.latestUpload !== null ||
+    state.latestReport !== null ||
+    state.latestArtifact !== null ||
+    state.latestReportRow !== null ||
+    state.hasReports !== null
+  );
 }
 
 function canPersistDashboardResult(result: DashboardLoadResult): boolean {
@@ -157,19 +163,22 @@ async function loadDashboardData(options?: { forceRefresh?: boolean }): Promise<
           latestArtifactError = formatReportArtifactContractErrors(latestArtifact.contractErrors);
         }
       } catch (artifactError) {
-        latestArtifactError = artifactError instanceof Error ? artifactError.message : "Unable to load latest report artifact.";
+        latestArtifactError =
+          artifactError instanceof Error ? artifactError.message : "Unable to load latest report artifact.";
       }
     }
 
     const firstCompletedReport = reports ? findFirstCompletedReport(reports.items) : null;
     const latestReportRow =
-      latestReport ? buildLatestReportRow(latestReport) : firstCompletedReport?.reportId
-        ? {
-            id: firstCompletedReport.reportId,
-            date: formatDate(firstCompletedReport.createdAt),
-            status: firstCompletedReport.status || "unknown",
-          }
-        : null;
+      latestReport
+        ? buildLatestReportRow(latestReport)
+        : firstCompletedReport?.reportId
+          ? {
+              id: firstCompletedReport.reportId,
+              date: formatDate(firstCompletedReport.createdAt),
+              status: firstCompletedReport.status || "unknown",
+            }
+          : null;
 
     const hasReports = reports ? computeHasReportsFromListResult(reports) : latestReport ? true : null;
 
@@ -217,14 +226,6 @@ async function loadDashboardData(options?: { forceRefresh?: boolean }): Promise<
   }
 }
 
-function formatNumber(value: number | null): string {
-  if (value === null) {
-    return "--";
-  }
-
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
-}
-
 function formatDate(value?: string | null, fallback = "Not available"): string {
   if (!value) {
     return fallback;
@@ -242,99 +243,22 @@ function formatDate(value?: string | null, fallback = "Not available"): string {
   }).format(date);
 }
 
-function toBadgeVariant(status: string): "good" | "warn" | "neutral" {
-  const normalized = status.toLowerCase();
-  if (["ready", "completed", "complete", "success", "succeeded"].includes(normalized)) {
-    return "good";
-  }
-
-  if (["failed", "error", "rejected", "validation_failed", "report_failed"].includes(normalized)) {
-    return "warn";
-  }
-
-  return "neutral";
-}
-
-function toBadgeLabel(status: string): string {
-  const normalized = status.toLowerCase();
-  if (normalized === "ready") {
-    return "Ready";
-  }
-
-  if (normalized === "processing") {
-    return "Processing";
-  }
-
-  if (!status.trim()) {
-    return "Unknown";
-  }
-
-  return status
-    .split(/[_\s-]+/)
-    .filter((part) => part.length > 0)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(" ");
-}
-
-function toPlanBadgeVariant(status: string | null, entitled: boolean): "good" | "warn" | "neutral" {
-  const normalized = (status ?? "").toLowerCase();
-  if (entitled && (normalized === "active" || normalized === "trialing")) {
-    return "good";
-  }
-
-  if (!entitled || ["inactive", "past_due", "canceled", "cancelled", "incomplete", "unpaid"].includes(normalized)) {
-    return "warn";
-  }
-
-  return "neutral";
-}
-
-function buildCreatorTrajectoryLabel(score: number | null, stateLabel: string | null): string | null {
-  if (score === null) {
-    return "Trajectory appears after the next complete report.";
-  }
-
-  if (stateLabel) {
-    return "Trajectory is provisional while evidence is still limited.";
-  }
-
-  if (score >= 85) {
-    return "Strong and improving.";
-  }
-
-  if (score >= 70) {
-    return "Healthy and stable.";
-  }
-
-  if (score >= 55) {
-    return "Mixed. Watch the next cycle closely.";
-  }
-
-  return "At risk and needs attention.";
-}
-
-function toSignalTone(variant: "positive" | "warning" | "neutral"): SignalItem["tone"] {
-  if (variant === "positive") {
-    return "positive";
-  }
-
-  if (variant === "warning") {
-    return "warning";
-  }
-
+function toInsightTone(variant: "positive" | "warning" | "neutral"): WhatsHappeningSignal["tone"] {
+  if (variant === "positive") return "positive";
+  if (variant === "warning") return "warning";
   return "neutral";
 }
 
 export default function DashboardPage() {
   const { state: gateState, entitlements, isLoading: authLoading } = useAppGate();
   const entitlementState = useEntitlementState();
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const [state, setState] = useState<DashboardState>(() => getInitialDashboardState());
   const [refreshNonce, setRefreshNonce] = useState(0);
-  const latestReportHref = useMemo(() => buildReportDetailPathOrIndex(state.latestReportRow?.id), [state.latestReportRow?.id]);
-  const dashboardMode = parseDashboardMode(searchParams.get("mode"));
+
+  const latestReportHref = useMemo(
+    () => buildReportDetailPathOrIndex(state.latestReportRow?.id),
+    [state.latestReportRow?.id],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -392,8 +316,12 @@ export default function DashboardPage() {
     setRefreshNonce((prev) => prev + 1);
   }, []);
 
+  // ── Derived values ──────────────────────────────────────────────────────────
+
   const keySignals = useMemo(() => {
-    const values = state.latestArtifact?.keySignals.length ? state.latestArtifact.keySignals : (state.latestReport?.keySignals ?? []);
+    const values = state.latestArtifact?.keySignals.length
+      ? state.latestArtifact.keySignals
+      : (state.latestReport?.keySignals ?? []);
     return values;
   }, [state.latestArtifact, state.latestReport]);
 
@@ -408,6 +336,7 @@ export default function DashboardPage() {
     () => state.latestArtifact?.trendPreview ?? state.latestReport?.summary ?? null,
     [state.latestArtifact, state.latestReport],
   );
+
   const revenueTrend = useMemo(
     () =>
       buildDashboardRevenueTrendViewModel({
@@ -416,11 +345,10 @@ export default function DashboardPage() {
     [state.latestArtifact],
   );
 
-  const planTier = entitlementState.effectivePlanTier;
-  const planStatus = entitlements?.status ?? "inactive";
   const entitled = entitlementState.accessGranted;
   const hasProDashboardTreatment = entitlementState.hasProAccess || entitlementState.isFounder;
-  const showReportSnapshotBanner = entitled && !hasProDashboardTreatment && planTier === "report";
+  const showReportSnapshotBanner =
+    entitled && !hasProDashboardTreatment && entitlementState.effectivePlanTier === "report";
 
   const primaryCta = useMemo(
     () =>
@@ -438,9 +366,6 @@ export default function DashboardPage() {
     netRevenue: artifactKpis?.netRevenue ?? reportMetrics?.netRevenue ?? null,
     subscribers: artifactKpis?.subscribers ?? reportMetrics?.subscribers ?? null,
     stabilityIndex: artifactKpis?.stabilityIndex ?? reportMetrics?.stabilityIndex ?? null,
-    churnVelocity: artifactKpis?.churnVelocity ?? null,
-    coverageMonths: reportMetrics?.coverageMonths ?? null,
-    platformsConnected: reportMetrics?.platformsConnected ?? null,
   };
 
   const earnDashboardModel = useMemo(
@@ -464,16 +389,6 @@ export default function DashboardPage() {
       state.latestArtifact?.subscriberDeltaText,
     ],
   );
-  const growDashboardModel = useMemo(() => {
-    const growSource = adaptGrowDashboardSource({
-      latestArtifact: state.latestArtifact,
-      latestReport: state.latestReport,
-      latestUpload: state.latestUpload,
-      growthReport: state.growthReport,
-    });
-
-    return growSource ? buildGrowDashboardModel(growSource) : null;
-  }, [state.latestArtifact, state.latestReport, state.latestUpload, state.growthReport]);
 
   const insightCards = useMemo(
     () =>
@@ -482,16 +397,6 @@ export default function DashboardPage() {
         signals: state.latestArtifact?.model?.signals ?? [],
       }),
     [keySignals, state.latestArtifact?.model?.signals],
-  );
-
-  const diagnosisViewModel = useMemo(
-    () =>
-      buildDashboardDiagnosisViewModel({
-        diagnosis: state.latestArtifact?.diagnosis ?? state.latestReport?.diagnosis ?? null,
-        whatChanged: state.latestArtifact?.whatChanged ?? state.latestReport?.whatChanged ?? null,
-        hasReport: state.latestReport !== null,
-      }),
-    [state.latestArtifact?.diagnosis, state.latestArtifact?.whatChanged, state.latestReport],
   );
 
   const actionCardsSection = useMemo(
@@ -516,126 +421,64 @@ export default function DashboardPage() {
     ],
   );
 
-  const dashboardKpis = useMemo(
-    () =>
-      buildDashboardKpiItems({
-        netRevenue: kpis.netRevenue,
-        subscribers: kpis.subscribers,
-        stabilityIndex: kpis.stabilityIndex,
-        revenueDeltaText: state.latestArtifact?.revenueDeltaText ?? null,
-        subscriberDeltaText: state.latestArtifact?.subscriberDeltaText ?? null,
-        stabilityLabel: earnDashboardModel.creatorHealth.stateLabel,
-      }),
-    [
-      earnDashboardModel.creatorHealth.stateLabel,
-      kpis.netRevenue,
-      kpis.stabilityIndex,
-      kpis.subscribers,
-      state.latestArtifact?.revenueDeltaText,
-      state.latestArtifact?.subscriberDeltaText,
-    ],
-  );
-
-  const signalItems = useMemo<SignalItem[]>(
+  const whatsHappeningSignals = useMemo<WhatsHappeningSignal[]>(
     () =>
       insightCards.slice(0, 3).map((insight) => ({
         id: insight.id,
-        tone: toSignalTone(insight.variant),
-        label: insight.title,
+        tone: toInsightTone(insight.variant),
         title: insight.title,
         body: insight.body,
-        lowConfidence: Boolean(insight.stateLabel),
-        sourceLabel: insight.stateLabel ?? undefined,
       })),
     [insightCards],
   );
 
-  const biggestConstraint = useMemo(() => {
-    if (!diagnosisViewModel.hasTypedDiagnosis && state.latestReport === null) {
-      return null;
+  const audienceRows = useMemo<AudienceRow[]>(() => {
+    const rows: AudienceRow[] = [];
+    const signals = state.growthReport?.audience_signals as
+      | Record<string, Array<{ followers_gained?: number; month?: string }>>
+      | undefined;
+    if (!signals) return rows;
+
+    const platforms: Array<{ key: string; label: string }> = [
+      { key: "instagram", label: "Instagram" },
+      { key: "tiktok", label: "TikTok" },
+      { key: "youtube", label: "YouTube" },
+    ];
+
+    for (const { key, label } of platforms) {
+      const arr = signals[key];
+      if (!arr?.length) continue;
+      const last = arr.at(-1);
+      if (!last || last.followers_gained == null) continue;
+      rows.push({
+        platform: label,
+        followersGained: last.followers_gained,
+        period: last.month ?? "",
+      });
+      if (rows.length >= 2) break;
     }
 
-    const body = diagnosisViewModel.summary ?? diagnosisViewModel.unavailableBody;
-    if (!body) {
-      return null;
-    }
+    return rows;
+  }, [state.growthReport]);
 
-    return {
-      title: diagnosisViewModel.heading,
-      body,
-    };
-  }, [diagnosisViewModel, state.latestReport]);
+  // ── Header / UI values ──────────────────────────────────────────────────────
 
-  const nextBestMove = useMemo(() => {
-    if (actionCardsSection.mode === "loading") {
-      return {
-        title: "Loading your next best move",
-        description: "Checking access to tailored recommendations from the latest report.",
-        confidenceLabel: undefined,
-        ctaLabel: undefined,
-        ctaHref: undefined,
-        loading: true,
-      };
-    }
+  const showDashboardOnboarding = state.hasReports !== true;
 
-    if (actionCardsSection.mode === "locked") {
-      return {
-        title: "Unlock prioritized next actions.",
-        description: "Upgrade to Pro to unlock tailored next steps based on your revenue, subscriber, and diagnosis signals.",
-        confidenceLabel: "Pro feature",
-        ctaLabel: "Upgrade to Pro",
-        ctaHref: "/app/billing",
-        loading: false,
-      };
-    }
-
-    const featuredCard = actionCardsSection.cards[0] ?? null;
-    return {
-      title: featuredCard?.body ?? fallbackProActions[0],
-      description: featuredCard?.detail ?? "Keep this as the clearest near-term move from your latest report.",
-      confidenceLabel:
-        featuredCard?.stateLabel ??
-        (featuredCard?.label && !featuredCard.label.startsWith("Recommendation") ? featuredCard.label : undefined),
-      ctaLabel: undefined,
-      ctaHref: undefined,
-      loading: false,
-    };
-  }, [actionCardsSection.cards, actionCardsSection.mode]);
-
-  const platformsConnected = kpis.platformsConnected ?? (state.latestUpload ? 1 : 0);
-  const hasSocialAnalytics =
-    (state.growthReport?.growth_snapshot.sources_available.length ?? 0) > 0;
-  const growGuidanceLimited =
-    dashboardMode === "grow" &&
-    (!growDashboardModel || growDashboardModel.availability !== "structured" || !growDashboardModel.creatorScore) &&
-    !hasSocialAnalytics;
-  // Suppress onboarding in grow mode when social analytics are connected — the
-  // GrowDashboardSection renders a social analytics teaser instead.
-  const showDashboardOnboarding =
-    (state.hasReports !== true || growGuidanceLimited) &&
-    !(dashboardMode === "grow" && hasSocialAnalytics);
-  const workspaceReadiness = state.latestUpload
-    ? state.hasReports === true
-      ? "Uploads are connected and at least one report is ready."
-      : state.hasReports === false
-        ? "Your upload is connected. Generate the first report to unlock measured dashboard detail."
-        : "Your upload is connected. Checking the latest report availability."
-    : state.hasReports === true
-      ? "Reports are available from earlier uploads. Add a fresh supported upload when you want to refresh the workspace."
-      : state.hasReports === false
-        ? "This workspace is still empty. Upload a supported file to populate Earn."
-        : "Checking workspace data availability.";
   const dashboardSnapshotLabel = state.latestReportRow
     ? `Latest snapshot: ${state.latestReportRow.date}.`
     : state.loading
       ? "Loading your latest dashboard snapshot."
       : "Run a report to unlock your latest dashboard snapshot.";
+
   const dashboardHeaderNote =
     state.latestReport?.snapshotCoverageNote ??
     (state.latestReport?.reportHasBusinessMetrics === false
       ? "Your latest report does not include strong business metrics. Connect a revenue or subscriber source to strengthen earnings analysis."
       : null);
+
   const dashboardPlanBadgeLabel = hasProDashboardTreatment ? "Pro" : null;
+
   const dashboardTierBanner = showReportSnapshotBanner
     ? {
         variant: "snapshot" as const,
@@ -644,82 +487,63 @@ export default function DashboardPage() {
         testId: "dashboard-report-snapshot-banner",
       }
     : null;
-  const handleModeChange = useCallback(
-    (nextMode: "earn" | "grow") => {
-      const query = buildDashboardModeSearch(searchParams, nextMode);
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    },
-    [pathname, router, searchParams],
-  );
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="space-y-5">
       <DashboardHeader
         snapshotLabel={dashboardSnapshotLabel}
         note={dashboardHeaderNote}
-        mode={dashboardMode}
         planBadgeLabel={dashboardPlanBadgeLabel}
         tierBanner={dashboardTierBanner}
         latestReportHref={latestReportHref}
-        onModeChange={handleModeChange}
         refreshing={state.refreshing}
         refreshDisabled={state.loading || state.refreshing}
         onRefresh={refresh}
       />
 
-      {state.error || state.latestArtifactError ? (
+      {(state.error || state.latestArtifactError) && (
         <div className="space-y-3">
           {state.error ? <ErrorBanner title="Data refresh failed" message={state.error} /> : null}
-          {state.latestArtifactError ? <ErrorBanner title="Latest report artifact mismatch" message={state.latestArtifactError} /> : null}
+          {state.latestArtifactError ? (
+            <ErrorBanner title="Latest report artifact mismatch" message={state.latestArtifactError} />
+          ) : null}
         </div>
-      ) : null}
+      )}
+
+      {/* Strip 1 — KPI cards */}
+      <DashboardKpiStrip
+        netRevenue={kpis.netRevenue}
+        subscribers={kpis.subscribers}
+        earnScore={earnDashboardModel.creatorHealth.score}
+        earnScoreStateLabel={earnDashboardModel.creatorHealth.stateLabel}
+        revenueDeltaText={state.latestArtifact?.revenueDeltaText}
+        subscriberDeltaText={state.latestArtifact?.subscriberDeltaText}
+        loading={state.loading}
+      />
 
       {showDashboardOnboarding ? (
         <DashboardOnboardingSection
-          mode={dashboardMode}
+          mode="earn"
           hasUpload={state.latestUpload !== null}
           hasReports={state.hasReports}
-          growGuidanceLimited={growGuidanceLimited}
+          growGuidanceLimited={false}
           ctaLabel={primaryCta.label}
           ctaHref={primaryCta.href}
         />
-      ) : null}
-
-      {dashboardMode === "earn" ? (
+      ) : (
         <>
-          {/* Top executive summary: rows 1–3 grouped tighter */}
-          <DashboardTopGrid>
-            <CreatorHealthCard
-              score={earnDashboardModel.creatorHealth.score}
-              trajectoryLabel={buildCreatorTrajectoryLabel(earnDashboardModel.creatorHealth.score, earnDashboardModel.creatorHealth.stateLabel)}
-              latestReport={
-                state.latestReportRow
-                  ? {
-                      id: state.latestReportRow.id,
-                      dateLabel: state.latestReportRow.date,
-                      statusLabel: toBadgeLabel(state.latestReportRow.status),
-                      summary: state.latestArtifact?.trendPreview ?? state.latestReport?.summary ?? undefined,
-                    }
-                  : null
-              }
-              reportHref={latestReportHref}
-              loading={state.loading}
-            />
-
-            <SignalsPanel signals={signalItems} biggestConstraint={biggestConstraint} loading={state.loading} />
-          </DashboardTopGrid>
-
-          <NextBestMoveCard
-            title={nextBestMove.title}
-            description={nextBestMove.description}
-            confidenceLabel={nextBestMove.confidenceLabel}
-            ctaLabel={nextBestMove.ctaLabel}
-            ctaHref={nextBestMove.ctaHref}
-            loading={nextBestMove.loading}
+          {/* Strip 2 — What's happening */}
+          <DashboardWhatsHappening
+            headline={trendPreview}
+            signals={whatsHappeningSignals}
+            audienceRows={audienceRows}
+            latestReportHref={latestReportHref}
+            loading={state.loading}
           />
 
-          <DashboardKpiRow items={dashboardKpis} loading={state.loading} />
-
+          {/* Strip 3 — Revenue trend */}
           <RevenueTrendSection
             trend={revenueTrend}
             trendPreview={trendPreview}
@@ -728,53 +552,11 @@ export default function DashboardPage() {
             ctaHref={primaryCta.href}
           />
 
-          <DashboardUtilitySection
-            entitled={entitled}
-            planTier={planTier}
-            planStatusLabel={toBadgeLabel(planStatus)}
-            planStatusVariant={toPlanBadgeVariant(planStatus, entitled)}
-            loading={state.loading}
-            workspaceReadiness={workspaceReadiness}
-            reportsCheckError={state.reportsCheckError}
-            platformsConnectedLabel={platformsConnected > 0 ? `${formatNumber(platformsConnected)} connected` : "No connected platforms yet"}
-            coverageLabel={kpis.coverageMonths !== null ? `${formatNumber(kpis.coverageMonths)} months` : "Coverage appears after reporting starts"}
-            lastUploadLabel={formatDate(state.latestUpload?.updatedAt ?? state.latestReport?.createdAt)}
-            latestReportRow={state.latestReportRow}
-            latestReportHref={latestReportHref}
-            latestReportStatusLabel={toBadgeLabel(state.latestReportRow?.status ?? "unknown")}
-            latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
-            ctaLabel={primaryCta.label}
-            ctaHref={primaryCta.href}
-          />
-        </>
-      ) : (
-        <>
-          <GrowDashboardSection
-            model={growDashboardModel}
-            growthReport={state.growthReport}
-            loading={state.loading}
-            actionMode={actionCardsSection.mode}
-            ctaLabel={primaryCta.label}
-            ctaHref={primaryCta.href}
-          />
-
-          <DashboardUtilitySection
-            entitled={entitled}
-            planTier={planTier}
-            planStatusLabel={toBadgeLabel(planStatus)}
-            planStatusVariant={toPlanBadgeVariant(planStatus, entitled)}
-            loading={state.loading}
-            workspaceReadiness={workspaceReadiness}
-            reportsCheckError={state.reportsCheckError}
-            platformsConnectedLabel={platformsConnected > 0 ? `${formatNumber(platformsConnected)} connected` : "No connected platforms yet"}
-            coverageLabel={kpis.coverageMonths !== null ? `${formatNumber(kpis.coverageMonths)} months` : "Coverage appears after reporting starts"}
-            lastUploadLabel={formatDate(state.latestUpload?.updatedAt ?? state.latestReport?.createdAt)}
-            latestReportRow={state.latestReportRow}
-            latestReportHref={latestReportHref}
-            latestReportStatusLabel={toBadgeLabel(state.latestReportRow?.status ?? "unknown")}
-            latestReportStatusVariant={toBadgeVariant(state.latestReportRow?.status ?? "unknown")}
-            ctaLabel={primaryCta.label}
-            ctaHref={primaryCta.href}
+          {/* Strip 4 — Next Move */}
+          <DashboardNextMoveSection
+            mode={actionCardsSection.mode}
+            topCard={actionCardsSection.cards[0] ?? null}
+            upgradeHref={primaryCta.href}
           />
         </>
       )}

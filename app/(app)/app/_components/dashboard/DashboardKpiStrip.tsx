@@ -3,63 +3,63 @@
 import { useEffect, useRef, useState } from "react";
 import { SkeletonBlock } from "../../../_components/ui/skeleton";
 
-// ── Arc constants ────────────────────────────────────────────────────────────
-const GAUGE_R = 76;
-const GAUGE_CX = 100;
-const GAUGE_CY = 98;
-// Semicircle: left → CCW through top → right (sweep-flag=0 in SVG = CCW on screen = arc through top)
-const ARC_PATH = `M ${GAUGE_CX - GAUGE_R} ${GAUGE_CY} A ${GAUGE_R} ${GAUGE_R} 0 0 0 ${GAUGE_CX + GAUGE_R} ${GAUGE_CY}`;
-const ARC_LENGTH = Math.PI * GAUGE_R; // ≈ 238.8
+// ── Arc constants — matched exactly to HeroCards.tsx marketing gauge ──────────
+// viewBox "0 0 200 115", path M 20 105 A 80 80 0 0 1 180 105, ARC_LEN = π×80 ≈ 252
+const ARC_LEN = 252;
 
-// ── Count-up animation hook ──────────────────────────────────────────────────
+// ── Score color helpers ───────────────────────────────────────────────────────
 
-function useCountUp(target: number | null, duration = 520): number | null {
-  const [value, setValue] = useState<number | null>(null);
-  const prevTarget = useRef<number | null>(null);
+type ScoreColors = {
+  fill: string;
+  pillBg: string;
+  pillBorder: string;
+  pillText: string;
+  bandLabel: string;
+};
 
-  useEffect(() => {
-    if (target === null) { setValue(null); prevTarget.current = null; return; }
-    if (prevTarget.current === target) return;
-    prevTarget.current = target;
-
-    const start = performance.now();
-    let frame: number;
-
-    function animate(now: number) {
-      const progress = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(target! * eased));
-      if (progress < 1) { frame = requestAnimationFrame(animate); }
-      else { setValue(target!); }
-    }
-
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, [target, duration]);
-
-  return value;
+function scoreColors(score: number | null): ScoreColors {
+  if (score === null)
+    return {
+      fill: "rgba(148,163,184,0.35)",
+      pillBg: "rgba(148,163,184,0.10)",
+      pillBorder: "rgba(148,163,184,0.28)",
+      pillText: "var(--es-color-text-muted)",
+      bandLabel: "Run a report to unlock",
+    };
+  if (score >= 85)
+    return {
+      fill: "var(--es-color-accent-emerald)",
+      pillBg: "rgba(52,211,153,0.14)",
+      pillBorder: "rgba(52,211,153,0.30)",
+      pillText: "var(--es-color-accent-emerald)",
+      bandLabel: "Strong",
+    };
+  if (score >= 70)
+    return {
+      fill: "var(--es-color-accent-teal)",
+      pillBg: "rgba(47,217,197,0.13)",
+      pillBorder: "rgba(47,217,197,0.28)",
+      pillText: "var(--es-color-accent-teal)",
+      bandLabel: "Healthy",
+    };
+  if (score >= 55)
+    return {
+      fill: "#fbbf24",
+      pillBg: "rgba(245,158,11,0.13)",
+      pillBorder: "rgba(245,158,11,0.28)",
+      pillText: "#fbbf24",
+      bandLabel: "Mixed — watch closely",
+    };
+  return {
+    fill: "#fb7185",
+    pillBg: "rgba(251,113,133,0.13)",
+    pillBorder: "rgba(251,113,133,0.28)",
+    pillText: "#fb7185",
+    bandLabel: "At risk",
+  };
 }
 
-// ── Score helpers ────────────────────────────────────────────────────────────
-
-function scoreColor(score: number | null) {
-  if (score === null) return { text: "text-brand-text-muted", glow: "transparent", stop: "#64748b" };
-  if (score >= 85) return { text: "text-emerald-300", glow: "rgba(52,211,153,0.45)", stop: "#34d399" };
-  if (score >= 70) return { text: "text-blue-300",    glow: "rgba(96,165,250,0.45)", stop: "#60a5fa" };
-  if (score >= 55) return { text: "text-amber-300",   glow: "rgba(251,191,36,0.40)", stop: "#fbbf24" };
-  return            { text: "text-rose-300",    glow: "rgba(251,113,133,0.40)", stop: "#fb7185" };
-}
-
-function scoreLabel(score: number | null, stateLabel: string | null): string {
-  if (score === null) return "Run a report to unlock";
-  if (stateLabel) return stateLabel;
-  if (score >= 85) return "Strong";
-  if (score >= 70) return "Healthy";
-  if (score >= 55) return "Mixed — watch closely";
-  return "At risk";
-}
-
-// ── EarnScore gauge ──────────────────────────────────────────────────────────
+// ── EarnScore gauge ───────────────────────────────────────────────────────────
 
 type EarnScoreGaugeProps = {
   score: number | null;
@@ -68,138 +68,126 @@ type EarnScoreGaugeProps = {
 };
 
 function EarnScoreGauge({ score, stateLabel, loading }: EarnScoreGaugeProps) {
-  const [fillOffset, setFillOffset] = useState(ARC_LENGTH);
-  const rafRef = useRef<number | undefined>(undefined);
+  const [gaugeValue, setGaugeValue] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
-    if (rafRef.current !== undefined) cancelAnimationFrame(rafRef.current);
-
+    if (timerRef.current !== undefined) clearTimeout(timerRef.current);
     if (score === null || loading) {
-      setFillOffset(ARC_LENGTH);
+      setGaugeValue(0);
       return;
     }
-
-    const targetOffset = ARC_LENGTH * (1 - score / 100);
-    const startTime = performance.now();
-    const duration = 950;
-
-    function animate(now: number) {
-      const t = Math.min((now - startTime) / duration, 1);
-      // spring-like: easeOutCubic with slight overshoot
-      const eased = t < 0.5
-        ? 4 * t * t * t
-        : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      setFillOffset(ARC_LENGTH + (targetOffset - ARC_LENGTH) * eased);
-      if (t < 1) rafRef.current = requestAnimationFrame(animate);
-    }
-
-    // Tiny delay so element mounts before animation begins
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = requestAnimationFrame(animate);
-    });
-
-    return () => { if (rafRef.current !== undefined) cancelAnimationFrame(rafRef.current); };
+    // Same approach as HeroCards.tsx: delay 300ms then trigger CSS transition
+    timerRef.current = setTimeout(() => {
+      setGaugeValue(Math.round((ARC_LEN * score) / 100));
+    }, 300);
+    return () => {
+      if (timerRef.current !== undefined) clearTimeout(timerRef.current);
+    };
   }, [score, loading]);
 
-  const sc = scoreColor(score);
-  const label = scoreLabel(score, stateLabel);
+  const sc = scoreColors(score);
+  const displayScore = score !== null ? Math.round(score) : null;
+  // stateLabel from backend ("Medium confidence") takes priority over band label
+  const confidenceLabel = stateLabel ?? sc.bandLabel;
 
   return (
     <article
-      className="relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-brand-border-strong/60 bg-[linear-gradient(145deg,rgba(6,16,40,0.99),rgba(10,26,62,0.98),rgba(8,20,52,0.99))] p-6 shadow-[0_0_40px_rgba(14,30,72,0.6),0_1px_0_rgba(255,255,255,0.04)_inset]"
+      className="relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-brand-border/70 bg-brand-panel p-5 shadow-brand-card"
       data-testid="dashboard-earnscore-gauge"
     >
-      {/* Ambient glow blobs */}
-      <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-blue-600/10 blur-3xl" />
-      <div className="pointer-events-none absolute -right-10 bottom-0 h-48 w-48 rounded-full bg-emerald-500/8 blur-3xl" />
-
-      <p className="relative text-[10px] font-bold uppercase tracking-[0.22em] text-brand-text-muted">
+      <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-brand-text-muted">
         EarnScore
       </p>
 
-      <div className="relative mt-2 flex flex-1 flex-col items-center justify-center">
-        {loading ? (
-          <div className="flex flex-col items-center gap-3 py-4">
-            <SkeletonBlock className="h-[80px] w-[180px] rounded-full bg-brand-border/35" />
-            <SkeletonBlock className="h-12 w-14 bg-brand-border/30" />
-            <SkeletonBlock className="h-3.5 w-28 bg-brand-border/25" />
-          </div>
-        ) : (
-          <>
-            {/* SVG gauge — drop-shadow applied via CSS on the wrapper */}
-            <div style={{ filter: score !== null ? `drop-shadow(0 0 12px ${sc.glow})` : "none" }}>
-              <svg
-                viewBox="0 0 200 100"
-                className="w-full max-w-[230px]"
-                role="img"
-                aria-label={score !== null ? `EarnScore: ${Math.round(score)} out of 100` : "EarnScore not available"}
+      {loading ? (
+        <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-3 py-4">
+          <SkeletonBlock className="h-[80px] w-[180px] rounded-full bg-brand-border/35" />
+          <SkeletonBlock className="h-8 w-14 bg-brand-border/30" />
+          <SkeletonBlock className="h-3.5 w-28 bg-brand-border/25" />
+        </div>
+      ) : (
+        <div className="flex flex-1 flex-col items-center justify-center">
+          {/* SVG gauge — identical arc path to HeroCards.tsx */}
+          <svg
+            viewBox="0 0 200 115"
+            className="w-full max-w-[220px]"
+            role="img"
+            aria-label={
+              displayScore !== null
+                ? `EarnScore: ${displayScore} out of 100 — ${confidenceLabel}`
+                : "EarnScore not yet available"
+            }
+          >
+            {/* Track */}
+            <path
+              d="M 20 105 A 80 80 0 0 1 180 105"
+              fill="none"
+              stroke="var(--es-color-border)"
+              strokeWidth="11"
+              strokeLinecap="round"
+            />
+            {/* Fill — CSS transition, same as HeroCards.tsx */}
+            <path
+              d="M 20 105 A 80 80 0 0 1 180 105"
+              fill="none"
+              stroke={sc.fill}
+              strokeWidth="11"
+              strokeLinecap="round"
+              strokeDasharray={`${gaugeValue} ${ARC_LEN}`}
+              style={{ transition: "stroke-dasharray 1.9s cubic-bezier(0.4,0,0.2,1)" }}
+            />
+            {/* Score number + confidence label inside SVG, same layout as HeroCards */}
+            <text
+              x="100"
+              y="88"
+              textAnchor="middle"
+              fontSize="44"
+              fontWeight="700"
+              fill="var(--es-color-text-primary)"
+              fontFamily="Inter,system-ui,sans-serif"
+            >
+              {displayScore !== null ? String(displayScore) : "—"}
+            </text>
+            <text
+              x="100"
+              y="108"
+              textAnchor="middle"
+              fontSize="11"
+              fill="var(--es-color-text-muted)"
+              fontFamily="Inter,system-ui,sans-serif"
+            >
+              {confidenceLabel}
+            </text>
+          </svg>
+
+          {/* Strength badge below gauge */}
+          {displayScore !== null && (
+            <div className="mt-3">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold"
+                style={{
+                  background: sc.pillBg,
+                  border: `1px solid ${sc.pillBorder}`,
+                  color: sc.pillText,
+                }}
               >
-                <defs>
-                  <linearGradient id="es-grad" x1="0%" x2="100%" y1="0%" y2="0%">
-                    <stop offset="0%"   stopColor="#fb7185" stopOpacity="1" />
-                    <stop offset="33%"  stopColor="#fbbf24" stopOpacity="1" />
-                    <stop offset="66%"  stopColor="#60a5fa" stopOpacity="1" />
-                    <stop offset="100%" stopColor="#34d399" stopOpacity="1" />
-                  </linearGradient>
-                </defs>
-
-                {/* Outer halo track — very subtle depth */}
-                <path
-                  d={ARC_PATH}
-                  fill="none"
-                  stroke="rgba(255,255,255,0.04)"
-                  strokeWidth={24}
-                  strokeLinecap="round"
-                />
-
-                {/* Background track */}
-                <path
-                  d={ARC_PATH}
-                  fill="none"
-                  stroke="rgba(255,255,255,0.10)"
-                  strokeWidth={16}
-                  strokeLinecap="round"
-                />
-
-                {/* Active fill arc — no filter here, drop-shadow on wrapper div instead */}
-                {score !== null && (
-                  <path
-                    d={ARC_PATH}
-                    fill="none"
-                    stroke="url(#es-grad)"
-                    strokeWidth={16}
-                    strokeLinecap="round"
-                    strokeDasharray={`${ARC_LENGTH} ${ARC_LENGTH}`}
-                    strokeDashoffset={fillOffset}
-                  />
-                )}
-              </svg>
+                {sc.bandLabel}
+              </span>
             </div>
-
-            {/* Score + label — positioned to overlap the arc's open bottom */}
-            <div className="-mt-4 text-center">
-              {score !== null ? (
-                <p
-                  className={`text-[52px] font-semibold leading-none tracking-tight ${sc.text}`}
-                  style={{ textShadow: `0 0 24px ${sc.glow}` }}
-                >
-                  {Math.round(score)}
-                </p>
-              ) : (
-                <p className="text-4xl font-semibold text-brand-text-muted">—</p>
-              )}
-              <p className="mt-2 text-[13px] font-medium text-brand-text-secondary">{label}</p>
-            </div>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </article>
   );
 }
 
-// ── Delta helpers ────────────────────────────────────────────────────────────
+// ── Delta pill helpers ────────────────────────────────────────────────────────
 
-function parseDelta(deltaText: string | null | undefined): { dir: "up" | "down" | "flat"; display: string } {
+function parseDelta(deltaText: string | null | undefined): {
+  dir: "up" | "down" | "flat";
+  display: string;
+} {
   if (!deltaText) return { dir: "flat", display: "No prior baseline" };
   const t = deltaText.toLowerCase();
   if (t.includes("up") || t.startsWith("+")) return { dir: "up", display: deltaText };
@@ -208,13 +196,13 @@ function parseDelta(deltaText: string | null | undefined): { dir: "up" | "down" 
   return { dir: "flat", display: deltaText };
 }
 
-const deltaConfig = {
-  up:   { border: "border-t-emerald-400/70", text: "text-emerald-300", dot: "bg-emerald-400", arrow: "↑" },
-  down: { border: "border-t-amber-400/70",   text: "text-amber-300",   dot: "bg-amber-400",   arrow: "↓" },
-  flat: { border: "border-t-brand-border-strong/40", text: "text-brand-text-muted", dot: "bg-brand-text-muted", arrow: "→" },
-};
+const DELTA_PILL = {
+  up:   { bg: "rgba(52,211,153,0.12)",  border: "rgba(52,211,153,0.28)",  color: "var(--es-color-accent-emerald)", prefix: "↑ " },
+  down: { bg: "rgba(245,158,11,0.13)",  border: "rgba(245,158,11,0.28)",  color: "#fbbf24",                        prefix: "↓ " },
+  flat: { bg: "rgba(148,163,184,0.10)", border: "rgba(148,163,184,0.22)", color: "var(--es-color-text-muted)",     prefix: "" },
+} as const;
 
-// ── Metric KPI card ──────────────────────────────────────────────────────────
+// ── Metric KPI card ───────────────────────────────────────────────────────────
 
 type MetricKpiCardProps = {
   label: string;
@@ -226,87 +214,111 @@ type MetricKpiCardProps = {
 
 function MetricKpiCard({ label, value, deltaText, loading, testId }: MetricKpiCardProps) {
   const { dir, display } = parseDelta(deltaText);
-  const cfg = deltaConfig[dir];
+  const pill = DELTA_PILL[dir];
 
   return (
     <article
-      className={`relative flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-brand-border/60 bg-[linear-gradient(155deg,rgba(14,28,60,0.96),rgba(20,44,90,0.85),rgba(14,28,60,0.96))] shadow-[0_0_32px_rgba(14,28,64,0.5),0_1px_0_rgba(255,255,255,0.04)_inset] border-t-2 ${cfg.border}`}
+      className="relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-brand-border/70 bg-brand-panel p-5 shadow-brand-card"
       data-testid={testId}
     >
-      {/* Top accent shimmer */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,255,255,0.025),transparent)]" />
+      <p className="text-[10px] font-bold uppercase tracking-[0.20em] text-brand-text-muted">
+        {label}
+      </p>
 
-      <div className="relative flex h-full flex-col justify-between p-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.20em] text-brand-text-muted">{label}</p>
-
-        {loading ? (
-          <div className="mt-4 space-y-2">
-            <SkeletonBlock className="h-10 w-28 bg-brand-border/45" />
-            <SkeletonBlock className="h-3 w-24 bg-brand-border/35" />
-          </div>
-        ) : (
-          <div className="mt-auto pt-5">
-            <p className="text-[38px] font-semibold leading-none tracking-tight text-brand-text-primary">{value}</p>
-            <p className={`mt-3 flex items-center gap-1.5 text-[12px] font-medium ${cfg.text}`}>
-              <span className={`inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full ${cfg.dot}`} aria-hidden="true" />
-              {display}
-            </p>
-          </div>
-        )}
-      </div>
+      {loading ? (
+        <div className="mt-4 space-y-3">
+          <SkeletonBlock className="h-10 w-28 bg-brand-border/45" />
+          <SkeletonBlock className="h-6 w-24 bg-brand-border/35" />
+        </div>
+      ) : (
+        <div className="mt-3 flex flex-1 flex-col justify-between">
+          <p className="text-[40px] font-semibold leading-none tracking-tight text-brand-text-primary">
+            {value}
+          </p>
+          <span
+            className="mt-4 inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-bold"
+            style={{
+              background: pill.bg,
+              border: `1px solid ${pill.border}`,
+              color: pill.color,
+            }}
+          >
+            {pill.prefix}
+            {display}
+          </span>
+        </div>
+      )}
     </article>
   );
 }
 
-// ── Tax coming-soon card ─────────────────────────────────────────────────────
+// ── Tax coming-soon card ──────────────────────────────────────────────────────
 
 function TaxComingSoonCard() {
   return (
     <article
-      className="relative flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-brand-border/40 bg-[linear-gradient(155deg,rgba(10,20,44,0.96),rgba(14,28,60,0.88))] shadow-brand-card border-t-2 border-t-brand-border/30"
+      className="relative flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-brand-border/50 bg-brand-panel p-5 shadow-brand-card"
       data-testid="dashboard-kpi-tax"
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,255,255,0.015),transparent)]" />
+      <p className="text-[10px] font-bold uppercase tracking-[0.20em] text-brand-text-muted">
+        Est. Tax Liability
+      </p>
 
-      <div className="relative flex h-full flex-col justify-between p-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.20em] text-brand-text-muted">Est. Tax Liability</p>
-
-        <div className="mt-auto pt-5">
-          {/* Frosted placeholder number */}
-          <div className="relative">
-            <p className="select-none text-[38px] font-semibold leading-none tracking-tight text-brand-text-primary opacity-[0.12] blur-[8px]">
-              $4,872
-            </p>
-            <div className="absolute inset-0 flex items-center">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-border-strong/50 bg-brand-panel/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-brand-text-secondary backdrop-blur-sm">
-                <svg viewBox="0 0 16 16" className="h-3 w-3 flex-shrink-0 fill-current opacity-50" aria-hidden="true">
-                  <path d="M8 1a4 4 0 0 1 4 4v1h.5A1.5 1.5 0 0 1 14 7.5v6A1.5 1.5 0 0 1 12.5 15h-9A1.5 1.5 0 0 1 2 13.5v-6A1.5 1.5 0 0 1 3.5 6H4V5a4 4 0 0 1 4-4zm0 1.5A2.5 2.5 0 0 0 5.5 5v1h5V5A2.5 2.5 0 0 0 8 2.5z" />
-                </svg>
-                Coming soon
-              </span>
-            </div>
-          </div>
-          <p className="mt-4 text-[11px] leading-relaxed text-brand-text-muted">
-            Accurate estimates based on your actual income data.
+      <div className="mt-3 flex flex-1 flex-col justify-between">
+        <div className="relative">
+          <p
+            className="select-none text-[40px] font-semibold leading-none tracking-tight text-brand-text-primary"
+            style={{ opacity: 0.12, filter: "blur(8px)" }}
+          >
+            $4,872
           </p>
+          <div className="absolute inset-0 flex items-center">
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em]"
+              style={{
+                background: "rgba(96,165,250,0.10)",
+                border: "1px solid rgba(96,165,250,0.22)",
+                color: "#60a5fa",
+              }}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                className="h-3 w-3 flex-shrink-0 fill-current"
+                style={{ opacity: 0.7 }}
+                aria-hidden="true"
+              >
+                <path d="M8 1a4 4 0 0 1 4 4v1h.5A1.5 1.5 0 0 1 14 7.5v6A1.5 1.5 0 0 1 12.5 15h-9A1.5 1.5 0 0 1 2 13.5v-6A1.5 1.5 0 0 1 3.5 6H4V5a4 4 0 0 1 4-4zm0 1.5A2.5 2.5 0 0 0 5.5 5v1h5V5A2.5 2.5 0 0 0 8 2.5z" />
+              </svg>
+              Coming soon
+            </span>
+          </div>
         </div>
+        <p className="mt-4 text-[11px] leading-relaxed text-brand-text-muted">
+          Accurate estimates based on your actual income data.
+        </p>
       </div>
     </article>
   );
 }
 
-// ── DashboardKpiStrip ────────────────────────────────────────────────────────
+// ── Formatters ────────────────────────────────────────────────────────────────
 
 function fmt(currency: boolean) {
   return (v: number | null) => {
     if (v === null) return "—";
     return currency
-      ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v)
+      ? new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0,
+        }).format(v)
       : new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v);
   };
 }
 const fmtRevenue = fmt(true);
 const fmtSubs = fmt(false);
+
+// ── DashboardKpiStrip ─────────────────────────────────────────────────────────
 
 export type DashboardKpiStripProps = {
   netRevenue: number | null;
@@ -327,25 +339,26 @@ export function DashboardKpiStrip({
   subscriberDeltaText,
   loading,
 }: DashboardKpiStripProps) {
-  const animRevenue = useCountUp(netRevenue);
-  const animSubs = useCountUp(subscribers);
-
   return (
     <section
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[1.8fr_1fr_1fr_1fr]"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1.8fr_1fr_1fr_1fr]"
       data-testid="dashboard-kpi-strip"
     >
-      <EarnScoreGauge score={earnScore} stateLabel={earnScoreStateLabel} loading={loading} />
+      <EarnScoreGauge
+        score={earnScore}
+        stateLabel={earnScoreStateLabel}
+        loading={loading}
+      />
       <MetricKpiCard
         label="Net Revenue"
-        value={fmtRevenue(animRevenue ?? netRevenue)}
+        value={fmtRevenue(netRevenue)}
         deltaText={revenueDeltaText}
         loading={loading}
         testId="dashboard-kpi-revenue"
       />
       <MetricKpiCard
         label="Paid Subscribers"
-        value={fmtSubs(animSubs ?? subscribers)}
+        value={fmtSubs(subscribers)}
         deltaText={subscriberDeltaText}
         loading={loading}
         testId="dashboard-kpi-subscribers"

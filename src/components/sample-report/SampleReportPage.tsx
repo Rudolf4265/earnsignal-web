@@ -123,9 +123,9 @@ function ExecutiveSummarySection() {
               <strong className="font-semibold text-white">
                 heavily concentrated on Patreon ({F.patreonConcentrationPct}%)
               </strong>{" "}
-              and losing{" "}
+              with{" "}
               <strong className="font-semibold text-white">
-                {F.supporterTierChurnPct}% of its churn from a single tier
+                {F.supporterTierChurnPct}% of its churn coming from a single tier
               </strong>
               .
             </p>
@@ -645,7 +645,7 @@ function OpportunitiesSection() {
         <p className="mb-10 text-base text-brand-text-secondary">
           Total projected upside:{" "}
           <strong className="font-semibold text-white">
-            +${totalMonthly}/month (+{F.projectedUpsidePct}%)
+            +${totalMonthly}/month (+{Math.round((totalMonthly / F.avgMonthlyRevenue) * 100)}%)
           </strong>{" "}
           — with only the first being low-effort.
         </p>

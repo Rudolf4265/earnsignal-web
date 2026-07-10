@@ -139,7 +139,7 @@ export const ANNA_REYES_FIXTURE = {
     {
       id: "tier-restructure",
       headline: "A tier restructure could lift revenue by 18%.",
-      body: "Replacing the $8 tier with a $12 tier — with one clearly defined benefit — is projected to add ~$520/month within 90 days.",
+      body: "Replacing the $8 tier with a $12 tier — with one clearly defined benefit — is projected to add ~$770/month within 90 days.",
       metric: "+18%",
       metricLabel: "projected uplift",
       tone: "opportunity",
@@ -183,7 +183,7 @@ export const ANNA_REYES_FIXTURE = {
     {
       n: "01",
       title: "Restructure the $8 tier",
-      projectedMonthly: 520,
+      projectedMonthly: 770,
       difficulty: 1 as const,
       timelineDays: 30,
       rationale:
@@ -215,7 +215,7 @@ export const ANNA_REYES_FIXTURE = {
       n: "01",
       title: "Close signups to the $8 tier this week.",
       body: "Keep existing supporters grandfathered. Open a new $12 tier with a clearly defined benefit — monthly mailbag, early chapter access.",
-      expectedImpact: "+$520/month within 90 days",
+      expectedImpact: "+$770/month within 90 days",
     },
     {
       n: "02",

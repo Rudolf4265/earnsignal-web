@@ -645,7 +645,7 @@ function OpportunitiesSection() {
         <p className="mb-10 text-base text-brand-text-secondary">
           Total projected upside:{" "}
           <strong className="font-semibold text-white">
-            +${totalMonthly}/month (+{Math.round((totalMonthly / F.avgMonthlyRevenue) * 100)}%)
+            +${totalMonthly.toLocaleString()}/month (+{Math.round((totalMonthly / F.avgMonthlyRevenue) * 100)}%)
           </strong>{" "}
           — with only the first being low-effort.
         </p>

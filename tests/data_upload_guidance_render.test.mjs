@@ -12,7 +12,6 @@ test("data upload page keeps the main workspace simple while upload flow stays m
     readFile(uploadStepperPath, "utf8"),
   ]);
 
-  assert.equal(source.includes("DataPageHeader"), true);
   assert.equal(source.includes("ReadyToRunBanner"), true);
   assert.equal(source.includes("SourceListSection"), true);
   assert.equal(source.includes("HelpSection"), true);
@@ -34,7 +33,7 @@ test("data upload page keeps the main workspace simple while upload flow stays m
   assert.equal(source.includes("ready for this report"), true);
   assert.equal(source.includes("View all reports"), true);
   assert.equal(source.includes("Your data sources"), true);
-  assert.equal(source.includes("This report uses your staged sources."), true);
+  assert.equal(source.includes("Here's everything you've staged — run the report when you're ready."), true);
   assert.equal(source.includes("Review the sources you have already added and keep your next report ready."), true);
   assert.equal(source.includes("No sources added yet"), true);
   assert.equal(source.includes("Add your first source"), true);
@@ -54,18 +53,20 @@ test("data upload page keeps the main workspace simple while upload flow stays m
   assert.equal(source.includes("Accepted format:"), false);
   assert.equal(source.includes("Manage details in Settings"), false);
   assert.equal(source.includes("What this report is based on"), false);
-  assert.equal(source.includes("connected sources"), false);
+  assert.equal(source.includes("Connected sources"), false);
 
   assert.equal(uploadStepperSource.includes("UploadFlowHeader"), true);
   assert.equal(uploadStepperSource.includes("UploadPrivacyLine"), true);
-  assert.equal(uploadStepperSource.includes("UploadPlatformPicker"), true);
-  assert.equal(uploadStepperSource.includes("UploadPrimaryFooterBar"), true);
   assert.equal(uploadStepperSource.includes("Your data stays private"), true);
   assert.equal(uploadStepperSource.includes('data-testid="upload-drop-zone"'), true);
   assert.equal(uploadStepperSource.includes("Click or drop a file here"), true);
   assert.equal(uploadStepperSource.includes("Drag and drop is supported by your browser as well."), false);
   assert.equal(uploadStepperSource.includes("Upload a supported "), false);
-  assert.equal(uploadStepperSource.includes("selectedPlatformCard.label} |"), true);
+  // Manual platform picker and its sticky footer were intentionally removed
+  // in favor of automatic platform detection from the dropped file.
+  assert.equal(uploadStepperSource.includes("UploadPlatformPicker"), false);
+  assert.equal(uploadStepperSource.includes("UploadPrimaryFooterBar"), false);
+  assert.equal(uploadStepperSource.includes("detectPlatformFromFile"), true);
   assert.equal(uploadStepperSource.includes("<TrustMicrocopy"), false);
   assert.equal(uploadStepperSource.includes('testId="upload-trust-strip"'), false);
 });

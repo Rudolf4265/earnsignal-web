@@ -35,7 +35,6 @@ test("upload stepper surfaces canonical workspace guidance instead of frontend-o
 
   assert.equal(source.includes("sourceManifest.eligibilityRule"), false);
   assert.equal(source.includes("selectedPlatformCard.contributionLabel"), false);
-  assert.equal(source.includes("selectedPlatformCard.acceptedFileTypesLabel"), true);
   assert.equal(source.includes("selectedPlatformCard?.guidance"), false);
   assert.equal(source.includes("selectedPlatformCard?.roleSummary"), false);
   assert.equal(source.includes("getPlatformRoleDetail(selectedPlatformCard.platformRole)"), false);

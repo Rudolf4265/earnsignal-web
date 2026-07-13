@@ -14,14 +14,14 @@ test("dashboard header supports Pro badge and continuity treatment without chang
   assert.equal(source.includes('variant: "snapshot" | "pro";'), true);
   assert.equal(source.includes('data-testid={tierBanner.testId}'), true);
   assert.equal(source.includes('tierBanner.variant === "pro"'), true);
-  assert.equal(source.includes("View reports"), true);
+  assert.equal(source.includes("View latest report"), true);
   assert.equal(source.includes("Refresh"), true);
 });
 
 test("dashboard header keeps a single compact banner slot for Report snapshot framing", async () => {
   const source = await readFile(dashboardHeaderPath, "utf8");
 
-  assert.equal(source.includes("Track your latest report snapshot without digging through raw reporting detail."), true);
+  assert.equal(source.includes("Your creator intelligence snapshot — revenue, score, and what to do next."), true);
   assert.equal(source.includes("tierBanner.eyebrow"), true);
   assert.equal(source.includes("tierBanner.body"), true);
   assert.equal(source.includes('variant: "snapshot" | "pro";'), true);

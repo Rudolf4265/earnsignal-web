@@ -12,8 +12,7 @@ test("upload stepper keeps Upload & Validate as the primary file-step CTA", asyn
   assert.equal(source.includes("entitlementState.canUpload &&"), true);
   assert.equal(source.includes("entitlementState.canValidateUpload;"), true);
   assert.equal(source.includes("const reportAccessBlocked = !entitlementState.loading && !entitlementState.canGenerateReport;"), true);
-  assert.equal(source.includes('data-testid="upload-file-guide"'), true);
-  assert.equal(source.includes("selectedPlatformCard.label} | ${selectedPlatformCard.acceptedFileTypesLabel"), true);
+  assert.equal(source.includes("Drop or select a file — we'll detect the platform automatically."), true);
   assert.equal(source.includes("/app/help#upload-guide"), true);
   assert.equal(source.includes('data-testid="upload-drop-zone"'), true);
   assert.equal(source.includes("disabled={!uploadReady}"), true);
@@ -21,16 +20,18 @@ test("upload stepper keeps Upload & Validate as the primary file-step CTA", asyn
   assert.equal(source.includes("Upload & Validate"), true);
 });
 
-test("upload platform step uses a sticky primary footer CTA", async () => {
+test("upload flow starts at the file drop step with automatic platform detection", async () => {
   const source = await readFile(uploadStepperPath, "utf8");
 
-  assert.equal(source.includes("UploadPrimaryFooterBar"), true);
-  assert.equal(source.includes('data-testid="upload-primary-footer-bar"'), true);
-  assert.equal(source.includes("sticky bottom-0"), true);
-  assert.equal(source.includes("Continue to file upload"), true);
-  assert.equal(source.includes("bg-emerald-400 text-slate-950 shadow-[0_0_28px_-10px_rgba(52,211,153,0.95)] hover:bg-emerald-300"), true);
-  assert.equal(source.includes("bg-brand-blue text-white shadow-[0_0_28px_-10px_rgba(59,130,246,0.95)] hover:bg-brand-blue/90"), false);
-  assert.equal(source.includes("Step 1 of 5"), true);
+  // The manual platform-picker step (and its sticky footer CTA) was
+  // intentionally removed; the flow now starts at the file drop zone and
+  // detects the platform from the file itself.
+  assert.equal(source.includes("detectPlatformFromFile"), true);
+  assert.equal(source.includes('data-testid="upload-detection-result"'), true);
+  assert.equal(source.includes('data-testid="upload-detection-unknown"'), true);
+  assert.equal(source.includes('data-testid="upload-detection-unsupported"'), true);
+  assert.equal(source.includes("UploadPrimaryFooterBar"), false);
+  assert.equal(source.includes("Continue to file upload"), false);
   assert.equal(source.includes("Source types"), false);
 });
 

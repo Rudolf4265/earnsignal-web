@@ -33,8 +33,8 @@ test("privacy page includes core policy copy and contact routing", async () => {
   assert.equal(source.includes("EarnSigma does not use uploaded Customer Content to train public AI models."), true);
   assert.equal(source.includes("LEGAL_COMPANY_NAME"), true);
   assert.equal(source.includes("LEGAL_CONTACT_EMAIL"), true);
-  assert.equal(legalSource.includes('LEGAL_COMPANY_NAME = "Oakline Ventures LLC"'), true);
-  assert.equal(legalSource.includes('LEGAL_CONTACT_EMAIL = "admin@earnsigma.com"'), true);
+  assert.match(legalSource, /LEGAL_COMPANY_NAME\s*=\s*"Oakline Ventures LLC"/);
+  assert.match(legalSource, /LEGAL_CONTACT_EMAIL\s*=\s*"admin@earnsigma\.com"/);
 });
 
 test("terms page includes title and legal contact details", async () => {
@@ -65,15 +65,17 @@ test("data privacy page keeps the marketing shell and trust commitments", async 
   assert.equal(source.includes("treated as confidential business information"), true);
 });
 
-test("marketing home page includes the trust strip and data privacy link", async () => {
+test("marketing home page includes trust framing and the data privacy destination stays wired", async () => {
   const [source, trustSource] = await Promise.all([
     readFile(marketingPagePath, "utf8"),
     readFile(trustMicrocopyPath, "utf8"),
   ]);
 
-  assert.equal(source.includes("<TrustMicrocopy"), true);
-  assert.equal(source.includes('testId="marketing-trust-strip"'), true);
-  assert.equal(source.includes("MARKETING_TRUST_MICROCOPY_BODY"), true);
+  // The homepage rewrite replaced the TrustMicrocopy strip with hero trust
+  // pills; the Data Use & Privacy destination remains linked via the shared
+  // trust microcopy component and the marketing footer.
+  assert.equal(source.includes("Private uploads"), true);
+  assert.equal(source.includes("Never used to train AI models"), true);
   assert.equal(trustSource.includes('TRUST_MICROCOPY_HEADING = "Your data stays private"'), true);
   assert.equal(trustSource.includes("MARKETING_TRUST_MICROCOPY_BODY"), true);
   assert.equal(

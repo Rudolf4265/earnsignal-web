@@ -49,11 +49,11 @@ test("marketing page leads with present-state product truth", async () => {
 
   assert.equal(pageSource.includes("Patreon, Substack, YouTube, Instagram, and TikTok"), true);
   assert.equal(pageSource.includes("private business diagnosis with clear next steps"), true);
-  assert.equal(pageSource.includes("No spreadsheet stitching"), true);
   assert.equal(pageSource.includes("Diagnosis, not another dashboard."), true);
-  assert.equal(pageSource.includes("Confirm your data before payment"), true);
-  assert.equal(pageSource.includes("Only your own exports are used"), true);
-  assert.equal(pageSource.includes("formatPricingPlanPrice(reportPlan)"), true);
+  // Hero trust framing now lives in the trust-pill row.
+  assert.equal(pageSource.includes("Free validation"), true);
+  assert.equal(pageSource.includes("No public estimates"), true);
+  assert.equal(pageSource.includes("formatPricingPlanPrice(proPlan)"), true);
   assert.equal(pageSource.includes("Launch pricing"), true);
   assert.equal(sectionsSource.includes("EXAMPLE DIAGNOSTICS"), true);
   assert.equal(sectionsSource.includes("Anonymized sample findings that mirror the current report categories."), true);

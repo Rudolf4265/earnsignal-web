@@ -16,9 +16,11 @@ test("marketing hero keeps the private business diagnosis positioning", async ()
   assert.equal(source.includes("Get My Free Preview"), true);
   assert.equal(source.includes("Patreon, Substack, YouTube, Instagram, and TikTok"), true);
   assert.equal(source.includes("private business diagnosis with clear next steps"), true);
-  assert.equal(source.includes("No spreadsheet stitching"), true);
-  assert.equal(source.includes("Confirm your data before payment"), true);
-  assert.equal(source.includes("Only your own exports are used"), true);
+  // Hero trust framing now lives in the trust-pill row.
+  assert.equal(source.includes("Free validation"), true);
+  assert.equal(source.includes("Private uploads"), true);
+  assert.equal(source.includes("No public estimates"), true);
+  assert.equal(source.includes("Never used to train AI models"), true);
   assert.equal(source.includes("upload anything"), false);
 });
 
@@ -51,18 +53,21 @@ test("supported-today section is visual, logo-based, and includes a non-supporte
 });
 
 test("homepage sample output and early diagnostics align with the sample-report information architecture", async () => {
-  const [homeSource, sectionsSource, featuresSource] = await Promise.all([
+  const sampleReportTabsPath = path.resolve("app/(marketing)/_components/SampleReportTabs.tsx");
+  const [homeSource, sectionsSource, featuresSource, sampleTabsSource] = await Promise.all([
     readFile(marketingPagePath, "utf8"),
     readFile(marketingSectionsPath, "utf8"),
     readFile(featuresPagePath, "utf8"),
+    readFile(sampleReportTabsPath, "utf8"),
   ]);
 
-  assert.equal(homeSource.includes("What a real EarnSigma report actually shows"), true);
-  assert.equal(homeSource.includes("Plain language. Specific findings. Not just data"), true);
-  assert.equal(homeSource.includes("Anonymized example findings"), true);
-  assert.equal(homeSource.includes("You&apos;re losing 42% of churn from your $8 tier."), true);
-  assert.equal(homeSource.includes("Your top 5% of supporters drive 46% of revenue."), true);
-  assert.equal(homeSource.includes("Raising a mid-tier offer could increase revenue by +18%."), true);
+  // Sample-output content moved into the SampleReportTabs component in the
+  // marketing page rewrite; the homepage renders it as a section.
+  assert.equal(homeSource.includes("<SampleReportTabs />"), true);
+  assert.equal(sampleTabsSource.includes('data-testid="marketing-sample-report-tabs"'), true);
+  assert.equal(sampleTabsSource.includes("SAMPLE OUTPUT"), true);
+  assert.equal(sampleTabsSource.includes("Cancellations from $8 tier"), true);
+  assert.equal(sampleTabsSource.includes("Modelled upside: +18% monthly revenue"), true);
   assert.equal(homeSource.includes("<MarketingDataRevealsSection />"), false);
   assert.equal(homeSource.includes("<MarketingSupportedTodaySection />"), true);
   assert.equal(sectionsSource.includes("EXAMPLE DIAGNOSTICS"), true);

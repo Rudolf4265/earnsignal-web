@@ -28,7 +28,7 @@ test("canonical report title names two-source combined reports in business order
     platformsIncluded: ["substack", "patreon"],
   });
 
-  assert.equal(title, "Combined Report — Patreon + Substack");
+  assert.equal(title, "Combined Report — Patreon + Substack · Mar 2026");
 });
 
 test("canonical report title names three-source combined reports in business order", async () => {
@@ -39,7 +39,7 @@ test("canonical report title names three-source combined reports in business ord
     platformsIncluded: ["youtube", "substack", "patreon"],
   });
 
-  assert.equal(title, "Combined Report — Patreon + Substack + YouTube");
+  assert.equal(title, "Combined Report — Patreon + Substack + YouTube · Mar 2026");
 });
 
 test("canonical report title switches to count-based naming for four or more sources", async () => {

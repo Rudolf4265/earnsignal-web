@@ -117,7 +117,12 @@ test("instagram ZIP normalization matches the direct normalized CSV contract", a
     "Permalink,Description,Post type,Publish time,Impressions,Reach,Likes,Comments,Shares,Saves,Profile visits,Follows",
     "https://www.instagram.com/p/zip123/,\"Quoted, caption\",Reel,2026-02-01 09:30,1200,1000,80,12,9,15,22,3",
   ].join("\n");
-  const archive = createSyntheticZip([{ name: "content/instagram_content_export.csv", data: rawCsv, compressionMethod: 8 }]);
+  const archive = createSyntheticZip([
+    // connections/ marks the archive as a native Instagram export ZIP (5c30a8d),
+    // the only shape the bounded extractor accepts now.
+    { name: "connections/followers_1.json", data: "{}" },
+    { name: "content/instagram_content_export.csv", data: rawCsv, compressionMethod: 8 },
+  ]);
 
   const inspection = inspectZipArchiveBuffer(archive, { name: "instagram.zip", size: archive.byteLength });
   const result = await extractInstagramZipBufferToUploadArtifact(archive, {
@@ -125,20 +130,21 @@ test("instagram ZIP normalization matches the direct normalized CSV contract", a
     fileName: "instagram.zip",
   });
 
+  assert.equal(inspection.kind, "supported_shape_instagram_native_zip");
   assert.equal(result.ok, true);
   assert.equal(result.normalizedCsvText, expectedCsv);
 });
 
-test("tiktok ZIP normalization matches the direct normalized CSV contract", async () => {
+test("tiktok native zips pass through without client-side CSV normalization", async () => {
+  // 5c30a8d retired the TikTok csv-in-zip normalization flow: supported TikTok ZIPs
+  // are the native Followers/Viewers/Overview analytics exports, uploaded raw and
+  // parsed by the backend. The frontend must not produce a normalized CSV artifact
+  // for them, so there is no ZIP-to-CSV parity contract to satisfy client-side.
   const rawCsv = [
-    "Date,Views,Like count,Comment count,Share count,Profile activity,New followers",
-    "2026-02-01,1500,120,14,11,45,6",
-  ].join("\n");
-  const expectedCsv = [
     "Date,Video views,Likes,Comments,Shares,Profile views,Followers gained",
     "2026-02-01,1500,120,14,11,45,6",
   ].join("\n");
-  const archive = createSyntheticZip([{ name: "tiktok data/tiktok_performance_export.csv", data: rawCsv, compressionMethod: 8 }]);
+  const archive = createSyntheticZip([{ name: "Overview.csv", data: rawCsv, compressionMethod: 8 }]);
 
   const inspection = inspectZipArchiveBuffer(archive, { name: "tiktok.zip", size: archive.byteLength });
   const result = await extractTiktokZipBufferToUploadArtifact(archive, {
@@ -146,6 +152,7 @@ test("tiktok ZIP normalization matches the direct normalized CSV contract", asyn
     fileName: "tiktok.zip",
   });
 
-  assert.equal(result.ok, true);
-  assert.equal(result.normalizedCsvText, expectedCsv);
+  assert.equal(inspection.kind, "supported_shape_tiktok_native_zip");
+  assert.equal(result.ok, false);
+  assert.equal(result.reasonCode, "tiktok_required_file_missing");
 });

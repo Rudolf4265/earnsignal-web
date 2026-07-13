@@ -91,13 +91,14 @@ test("report detail only renders one revenue overview heading and keeps opportun
   assert.equal(source.includes('testId="report-methodology"'), true);
 });
 
-test("audience growth component is reduced to summary copy, rows, and muted source chips", async () => {
+test("audience growth component renders summary tiles, platform stat cards, and muted source chips", async () => {
   const source = await readFile(audienceSectionPath, "utf8");
 
   assert.equal(source.includes('data-testid="report-audience-growth-summary"'), true);
-  assert.equal(source.includes('data-testid="report-audience-growth-rows"'), true);
+  assert.equal(source.includes('data-testid="report-audience-growth-tiles"'), true);
+  assert.equal(source.includes('data-testid="report-audience-growth-cards"'), true);
   assert.equal(source.includes('data-testid="report-audience-growth-empty"'), true);
-  assert.equal(source.includes('data-testid="report-audience-growth-cards"'), false);
+  assert.equal(source.includes('data-testid="report-audience-growth-rows"'), false);
   assert.equal(source.includes('data-testid="report-audience-growth-sources"'), true);
   assert.equal(source.includes("cursor-default"), true);
   assert.equal(source.includes("select-none"), true);

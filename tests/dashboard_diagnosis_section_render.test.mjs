@@ -3,18 +3,21 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 
-const dashboardPagePath = path.resolve("app/(app)/app/page.tsx");
+const dashboardPagePath = path.resolve("app/(app)/app/dashboard/page.tsx");
 const diagnosisSectionPath = path.resolve("app/(app)/app/_components/dashboard/DiagnosisSection.tsx");
 
 test("dashboard page still builds typed diagnosis and comparison context from report truth", async () => {
   const source = await readFile(dashboardPagePath, "utf8");
 
-  assert.equal(source.includes("buildDashboardDiagnosisViewModel"), true);
+  // The flat dashboard redesign routes typed diagnosis evidence through the
+  // action-cards view model into the Next Move strip instead of a dedicated
+  // DiagnosisSection, but it must still come from report truth.
+  assert.equal(source.includes("buildDashboardActionCardsViewModel"), true);
   assert.equal(source.includes("diagnosis: state.latestArtifact?.diagnosis ?? state.latestReport?.diagnosis ?? null"), true);
   assert.equal(source.includes("whatChanged: state.latestArtifact?.whatChanged ?? state.latestReport?.whatChanged ?? null"), true);
-  assert.equal(source.includes("hasReport: state.latestReport !== null"), true);
-  assert.equal(source.includes("diagnosisNotice={diagnosisViewModel.notice}"), true);
-  assert.equal(source.includes("diagnosis={diagnosisViewModel}"), true);
+  assert.equal(source.includes("<DashboardNextMoveSection"), true);
+  assert.equal(source.includes("mode={actionCardsSection.mode}"), true);
+  assert.equal(source.includes("topCard={actionCardsSection.cards[0] ?? null}"), true);
 });
 
 test("diagnosis section includes loading-safe, honest summary, unavailable, notice, and bounded context branches", async () => {

@@ -221,7 +221,7 @@ test("report detail normalization keeps deterministic source ordering from mixed
     platforms_included: ["youtube", "patreon", "youtube"],
   });
 
-  assert.equal(result.title, "Combined Report — Patreon + YouTube");
+  assert.equal(result.title, "Combined Report — Patreon + YouTube · Mar 2026");
   assert.deepEqual(result.platformsIncluded, ["Patreon", "YouTube"]);
   assert.equal(result.sourceCount, 2);
   assert.equal(result.reportKind, "combined");

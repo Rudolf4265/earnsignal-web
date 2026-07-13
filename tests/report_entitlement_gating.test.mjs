@@ -277,10 +277,15 @@ test("pro-only sections remain at pro-locked for report-tier user", async () => 
       plan: "report",
       plan_tier: "report",
       planTier: "report",
+      // Canonical backend payload shape: access granted always carries a
+      // concrete entitlement source (see creator_optimizer entitlements.py —
+      // an owned report resolves source="owned_report", never "none").
+      entitlementSource: "owned_report",
       accessGranted: true,
       isActive: true,
       canViewReports: true,
       canDownloadPdf: true,
+      can_access_pro_comparisons_or_future_pro_features: false,
     }),
   });
 

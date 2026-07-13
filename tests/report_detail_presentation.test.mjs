@@ -278,7 +278,7 @@ test("buildReportDetailPresentationModel falls back to canonical title when expl
     artifactSignals: null,
   });
 
-  assert.equal(model.heroTitle, "Combined Report — Patreon + Substack");
+  assert.equal(model.heroTitle, "Combined Report — Patreon + Substack · Mar 2026");
 });
 
 test("buildReportDetailPresentationModel maps platform-risk insight tone into hero signal when no score exists", async () => {

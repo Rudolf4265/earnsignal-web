@@ -3,45 +3,42 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 
-const dashboardPagePath = path.resolve("app/(app)/app/page.tsx");
+const dashboardPagePath = path.resolve("app/(app)/app/dashboard/page.tsx");
 const dashboardOnboardingPath = path.resolve("app/(app)/app/_components/dashboard/DashboardOnboardingSection.tsx");
 const modeSwitchPath = path.resolve("src/components/dashboard/mode-switch.tsx");
 const growSectionPath = path.resolve("app/(app)/app/_components/dashboard/GrowDashboardSection.tsx");
 const growthReportPagePath = path.resolve("app/(app)/app/report/growth/page.tsx");
 
-test("dashboard page wires additive Earn and Grow mode branching without disturbing the existing earn path", async () => {
+test("dashboard page wires the flat single-view strips without a mode split", async () => {
   const source = await readFile(dashboardPagePath, "utf8");
 
-  assert.equal(source.includes("const dashboardMode = parseDashboardMode(searchParams.get(\"mode\"));"), true);
   assert.equal(source.includes("<DashboardHeader"), true);
-  assert.equal(source.includes("mode={dashboardMode}"), true);
   assert.equal(source.includes("planBadgeLabel={dashboardPlanBadgeLabel}"), true);
   assert.equal(source.includes("tierBanner={dashboardTierBanner}"), true);
-  assert.equal(source.includes("buildDashboardModeSearch(searchParams, nextMode)"), true);
-  assert.equal(source.includes("{dashboardMode === \"earn\" ? ("), true);
-  assert.equal(source.includes("<DashboardTopGrid"), true);
-  assert.equal(source.includes("<DashboardKpiRow"), true);
-  assert.equal(source.includes("<NextBestMoveCard"), true);
-  assert.equal(source.includes("buildDashboardKpiItems"), true);
-  assert.equal(source.includes("<GrowDashboardSection"), true);
+  assert.equal(source.includes("<DashboardKpiStrip"), true);
+  assert.equal(source.includes("<DashboardWhatsHappening"), true);
+  assert.equal(source.includes("<RevenueTrendSection"), true);
+  assert.equal(source.includes("<DashboardNextMoveSection"), true);
   assert.equal(source.includes("const primaryCta = useMemo("), true);
-  assert.equal(source.includes("const latestReportHref = useMemo(() => buildReportDetailPathOrIndex(state.latestReportRow?.id), [state.latestReportRow?.id]);"), true);
-  assert.equal(source.includes("const showDashboardOnboarding ="), true);
-  assert.equal(source.includes("state.hasReports !== true || growGuidanceLimited"), true);
+  assert.equal(source.includes("buildReportDetailPathOrIndex(state.latestReportRow?.id)"), true);
+  assert.equal(source.includes("const showDashboardOnboarding = state.hasReports !== true;"), true);
   assert.equal(source.includes("<DashboardOnboardingSection"), true);
+  // The Earn/Grow mode split was intentionally removed in the flat dashboard redesign.
+  assert.equal(source.includes("parseDashboardMode"), false);
+  assert.equal(source.includes("buildDashboardModeSearch"), false);
+  assert.equal(source.includes("<GrowDashboardSection"), false);
 });
 
 test("dashboard page derives report snapshot and Pro continuity header treatment from entitlements", async () => {
   const source = await readFile(dashboardPagePath, "utf8");
 
   assert.equal(source.includes("const hasProDashboardTreatment = entitlementState.hasProAccess || entitlementState.isFounder;"), true);
-  assert.equal(source.includes('const showReportSnapshotBanner = entitled && !hasProDashboardTreatment && planTier === "report";'), true);
+  assert.equal(source.includes("entitled && !hasProDashboardTreatment"), true);
+  assert.equal(source.includes('entitlementState.effectivePlanTier === "report"'), true);
   assert.equal(source.includes('const dashboardPlanBadgeLabel = hasProDashboardTreatment ? "Pro" : null;'), true);
+  assert.equal(source.includes('eyebrow: "Snapshot companion"'), true);
   assert.equal(source.includes('body: "This dashboard reflects your purchased report snapshot. Upgrade to Pro for ongoing intelligence, comparisons, and monitoring."'), true);
   assert.equal(source.includes('testId: "dashboard-report-snapshot-banner"'), true);
-  assert.equal(source.includes('eyebrow: "Pro command center"'), true);
-  assert.equal(source.includes('body: "Full-history intelligence, comparisons, and monitoring stay connected across fresh runs."'), true);
-  assert.equal(source.includes('testId: "dashboard-pro-continuity-card"'), true);
 });
 
 test("dashboard mode switch exposes explicit Earn and Grow tab controls", async () => {
@@ -89,8 +86,8 @@ test("dashboard onboarding section explains the product, modes, and next-step gu
 test("dashboard page empty-state readiness copy stays aligned with supported upload wording", async () => {
   const source = await readFile(dashboardPagePath, "utf8");
 
-  assert.equal(source.includes("Add a fresh supported upload when you want to refresh the workspace."), true);
-  assert.equal(source.includes("Upload a supported file to populate Earn."), true);
+  assert.equal(source.includes("Run a report to unlock your latest dashboard snapshot."), true);
+  assert.equal(source.includes("Loading your latest dashboard snapshot."), true);
   assert.equal(source.includes("fresh supported CSV"), false);
 });
 

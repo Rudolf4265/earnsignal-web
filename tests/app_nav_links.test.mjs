@@ -28,6 +28,6 @@ test("app navigation link IDs map to stable nav test IDs", async () => {
 
   assert.deepEqual(
     APP_NAV_LINKS.map((link) => getAppNavTestId(link.id)),
-    ["nav-dashboard", "nav-data", "nav-reports", "nav-billing", "nav-settings"],
+    ["nav-dashboard", "nav-data", "nav-reports", "nav-tax", "nav-billing", "nav-settings"],
   );
 });

@@ -101,7 +101,7 @@ test("report list row mapping formats created_at, status badge, source summaries
   const rows = toReportListRows(page.items);
   assert.equal(rows.length, 2);
 
-  assert.equal(rows[0].title, "Combined Report — Patreon + Substack");
+  assert.equal(rows[0].title, "Combined Report — Patreon + Substack · Feb 2026");
   assert.equal(rows[0].statusLabel, "Ready");
   assert.equal(rows[0].statusVariant, "good");
   assert.equal(rows[0].createdAtLabel, "Mar 01, 2026");
@@ -264,7 +264,7 @@ test("report list normalization produces deterministic titles and source metadat
     has_more: false,
   });
 
-  assert.equal(page.items[0].title, "Combined Report — Patreon + Substack + YouTube");
+  assert.equal(page.items[0].title, "Combined Report — Patreon + Substack + YouTube · Mar 2026");
   assert.deepEqual(page.items[0].platformsIncluded, ["Patreon", "Substack", "YouTube"]);
   assert.equal(page.items[0].sourceCount, 3);
 

@@ -114,6 +114,9 @@ test("allowlisted instagram content csv zip is extracted and normalized into the
     "\"https://www.instagram.com/p/zip123/\",\"Quoted, caption\",Reel,2026-02-01 09:30,1200,1000,80,12,9,15,22,3",
   ].join("\n");
   const archive = createSyntheticZip([
+    // connections/ marks the archive as a native Instagram export ZIP (5c30a8d),
+    // which is the only shape the bounded extractor accepts now.
+    { name: "connections/followers_1.json", data: "{}" },
     {
       name: "content/instagram_content_export.csv",
       data: rawCsv,
@@ -127,6 +130,7 @@ test("allowlisted instagram content csv zip is extracted and normalized into the
     fileName: "instagram.zip",
   });
 
+  assert.equal(inspection.kind, "supported_shape_instagram_native_zip");
   assert.equal(result.ok, true);
   assert.equal(result.detectedExportType, "instagram_content_export");
   assert.equal(result.sourceEntryPath, "content/instagram_content_export.csv");
@@ -156,7 +160,7 @@ test("supported-shape instagram zips without the allowlisted csv fail determinis
     fileName: "instagram.zip",
   });
 
-  assert.equal(inspection.kind, "supported_shape_instagram_candidate");
+  assert.equal(inspection.kind, "supported_shape_instagram_native_zip");
   assert.deepEqual(result, {
     ok: false,
     reasonCode: "instagram_required_file_missing",
@@ -167,6 +171,8 @@ test("supported-shape instagram zips without the allowlisted csv fail determinis
 
 test("supported-shape instagram zips with invalid allowlisted csv content fail deterministically", async () => {
   const archive = createSyntheticZip([
+    // connections/ marks the archive as a native Instagram export ZIP (5c30a8d).
+    { name: "connections/followers_1.json", data: "{}" },
     {
       name: "content/instagram_content_export.csv",
       data: "Date,Reach,Impressions\n2026-02-01,100,200\n",
@@ -185,10 +191,8 @@ test("supported-shape instagram zips with invalid allowlisted csv content fail d
 
 test("unsupported and tiktok zip candidates do not enter instagram success path", async () => {
   const unsupportedArchive = createSyntheticZip([{ name: "notes/readme.txt", data: "hello" }]);
-  const tiktokArchive = createSyntheticZip([
-    { name: "tiktok data/profile/User Info.txt", data: "name: test" },
-    { name: "tiktok data/activity/Like List.txt", data: "like list" },
-  ]);
+  // A native TikTok analytics ZIP (exact Overview export shape, 5c30a8d).
+  const tiktokArchive = createSyntheticZip([{ name: "Overview.csv", data: "Date,Video views\n2026-02-01,1500\n" }]);
 
   const unsupportedInspection = inspectZipArchiveBuffer(unsupportedArchive, { name: "unsupported.zip", size: unsupportedArchive.byteLength });
   const tiktokInspection = inspectZipArchiveBuffer(tiktokArchive, { name: "tiktok.zip", size: tiktokArchive.byteLength });
@@ -204,7 +208,7 @@ test("unsupported and tiktok zip candidates do not enter instagram success path"
   assert.equal(toZipUploadRejection(unsupportedInspection)?.reasonCode, "unsupported_archive_shape");
   assert.equal(unsupportedResult.ok, false);
   assert.equal(unsupportedResult.reasonCode, "instagram_supported_shape_but_unparseable");
-  assert.equal(tiktokInspection.kind, "supported_shape_tiktok_candidate");
+  assert.equal(tiktokInspection.kind, "supported_shape_tiktok_native_zip");
   assert.equal(tiktokResult.ok, false);
   assert.equal(tiktokResult.reasonCode, "instagram_supported_shape_but_unparseable");
 });

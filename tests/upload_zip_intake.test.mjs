@@ -164,55 +164,61 @@ test("inspectZipArchiveBuffer rejects bounded oversize and entry-count violation
   assert.equal(tooLarge.reasonCode, "archive_too_large");
 });
 
-test("inspectZipArchiveBuffer classifies bounded instagram candidate shapes", () => {
+test("inspectZipArchiveBuffer classifies native instagram export shapes", () => {
   const archive = createSyntheticZip([
     { name: "content/posts_1.json" },
     { name: "connections/followers_1.json" },
   ]);
   const result = inspectZipArchiveBuffer(archive, { name: "instagram.zip", size: archive.byteLength });
 
-  assert.equal(result.kind, "supported_shape_instagram_candidate");
+  assert.equal(result.kind, "supported_shape_instagram_native_zip");
   assert.equal(result.candidatePlatform, "instagram");
   assert.equal(result.reasonCode, null);
-  assert.deepEqual(
-    result.matchedPatterns.sort(),
-    ["file:followers_1.json", "file:posts_1.json", "path:connections/", "path:content/"],
-  );
+  assert.deepEqual(result.matchedPatterns.sort(), ["path:connections/"]);
 });
 
-test("inspectZipArchiveBuffer also classifies allowlisted instagram csv-in-zip shapes", () => {
+test("inspectZipArchiveBuffer no longer classifies retired instagram csv-in-zip shapes as supported", () => {
   const archive = createSyntheticZip([{ name: "content/instagram_content_export.csv" }]);
   const result = inspectZipArchiveBuffer(archive, { name: "instagram.zip", size: archive.byteLength });
 
-  assert.equal(result.kind, "supported_shape_instagram_candidate");
-  assert.equal(result.candidatePlatform, "instagram");
-  assert.equal(result.matchedPatterns.includes("file:content/instagram_content_export.csv"), true);
+  assert.equal(result.kind, "unsupported_archive");
+  assert.equal(result.reasonCode, "unsupported_archive_shape");
 });
 
-test("inspectZipArchiveBuffer classifies bounded tiktok candidate shapes", () => {
-  const archive = createSyntheticZip([
-    { name: "tiktok data/profile/User Info.txt" },
-    { name: "tiktok data/activity/Like List.txt" },
+test("inspectZipArchiveBuffer classifies native tiktok analytics export shapes", () => {
+  const overviewArchive = createSyntheticZip([{ name: "Overview.csv" }]);
+  const followersArchive = createSyntheticZip([
+    { name: "FollowerHistory.csv" },
+    { name: "FollowerGender.csv" },
+    { name: "FollowerTopTerritories.csv" },
+    { name: "FollowerActivity.csv" },
   ]);
-  const result = inspectZipArchiveBuffer(archive, { name: "tiktok.zip", size: archive.byteLength });
 
-  assert.equal(result.kind, "supported_shape_tiktok_candidate");
-  assert.equal(result.candidatePlatform, "tiktok");
-  assert.equal(result.reasonCode, null);
+  const overview = inspectZipArchiveBuffer(overviewArchive, { name: "tiktok-overview.zip", size: overviewArchive.byteLength });
+  const followers = inspectZipArchiveBuffer(followersArchive, { name: "tiktok-followers.zip", size: followersArchive.byteLength });
+
+  assert.equal(overview.kind, "supported_shape_tiktok_native_zip");
+  assert.equal(overview.candidatePlatform, "tiktok");
+  assert.equal(overview.reasonCode, null);
+  assert.deepEqual(overview.matchedPatterns, ["shape:overview_export_zip"]);
+  assert.equal(followers.kind, "supported_shape_tiktok_native_zip");
+  assert.equal(followers.candidatePlatform, "tiktok");
+  assert.deepEqual(followers.matchedPatterns, ["shape:followers_export_zip"]);
 });
 
-test("inspectZipArchiveBuffer also classifies allowlisted tiktok csv-in-zip shapes", () => {
+test("inspectZipArchiveBuffer no longer classifies retired tiktok csv-in-zip shapes as supported", () => {
   const archive = createSyntheticZip([{ name: "tiktok data/tiktok_performance_export.csv" }]);
   const result = inspectZipArchiveBuffer(archive, { name: "tiktok.zip", size: archive.byteLength });
 
-  assert.equal(result.kind, "supported_shape_tiktok_candidate");
-  assert.equal(result.candidatePlatform, "tiktok");
-  assert.equal(result.matchedPatterns.includes("file:tiktok data/tiktok_performance_export.csv"), true);
+  assert.equal(result.kind, "unsupported_archive");
+  assert.equal(result.reasonCode, "unsupported_archive_shape");
 });
 
-test("inspectZipArchiveBuffer rejects unsupported and ambiguous archive shapes deterministically", () => {
+test("inspectZipArchiveBuffer rejects unsupported archive shapes deterministically", () => {
   const unsupportedArchive = createSyntheticZip([{ name: "notes/readme.txt" }]);
-  const ambiguousArchive = createSyntheticZip([
+  const tiktokContentArchive = createSyntheticZip([{ name: "Content.csv" }]);
+  const takeoutArchive = createSyntheticZip([{ name: "Takeout/YouTube and YouTube Music/history/watch-history.json" }]);
+  const mixedLegacyArchive = createSyntheticZip([
     { name: "content/posts_1.json" },
     { name: "connections/followers_1.json" },
     { name: "tiktok data/profile/User Info.txt" },
@@ -220,35 +226,52 @@ test("inspectZipArchiveBuffer rejects unsupported and ambiguous archive shapes d
   ]);
 
   const unsupported = inspectZipArchiveBuffer(unsupportedArchive, { name: "random.zip", size: unsupportedArchive.byteLength });
-  const ambiguous = inspectZipArchiveBuffer(ambiguousArchive, { name: "mixed.zip", size: ambiguousArchive.byteLength });
+  const tiktokContent = inspectZipArchiveBuffer(tiktokContentArchive, { name: "tiktok-content.zip", size: tiktokContentArchive.byteLength });
+  const takeout = inspectZipArchiveBuffer(takeoutArchive, { name: "takeout.zip", size: takeoutArchive.byteLength });
+  const mixedLegacy = inspectZipArchiveBuffer(mixedLegacyArchive, { name: "mixed.zip", size: mixedLegacyArchive.byteLength });
 
   assert.equal(unsupported.kind, "unsupported_archive");
   assert.equal(unsupported.reasonCode, "unsupported_archive_shape");
-  assert.equal(ambiguous.kind, "ambiguous_archive");
-  assert.equal(ambiguous.reasonCode, "ambiguous_archive_shape");
+  assert.equal(tiktokContent.kind, "unsupported_archive");
+  assert.equal(tiktokContent.reasonCode, "tiktok_content_export_not_supported");
+  assert.equal(takeout.kind, "unsupported_archive");
+  assert.equal(takeout.reasonCode, "youtube_takeout_not_supported");
+  // TikTok native detection requires exact entry sets, so mixed legacy archives
+  // resolve deterministically to the instagram native shape instead of ambiguity.
+  assert.equal(mixedLegacy.kind, "supported_shape_instagram_native_zip");
+  assert.equal(mixedLegacy.reasonCode, null);
 });
 
-test("inspectZipUploadFile and rejection mapping keep candidate zips out of the ingestion-success path", async () => {
-  const archive = createSyntheticZip([
+test("inspectZipUploadFile passes native zips through and rejection mapping only fires for rejected shapes", async () => {
+  const nativeArchive = createSyntheticZip([
     { name: "content/posts_1.json" },
     { name: "connections/followers_1.json" },
   ]);
+  const unsupportedArchive = createSyntheticZip([{ name: "notes/readme.txt" }]);
 
-  const result = await inspectZipUploadFile({
+  const nativeResult = await inspectZipUploadFile({
     name: "instagram.zip",
     type: "application/zip",
-    size: archive.byteLength,
+    size: nativeArchive.byteLength,
     async arrayBuffer() {
-      return archive;
+      return nativeArchive;
     },
   });
-  const rejection = toZipUploadRejection(result);
-
-  assert.equal(result.kind, "supported_shape_instagram_candidate");
-  assert.deepEqual(rejection, {
-    reasonCode: "zip_not_importable",
-    message: "This ZIP format is not yet importable. Upload a supported CSV instead.",
+  const unsupportedResult = await inspectZipUploadFile({
+    name: "random.zip",
+    type: "application/zip",
+    size: unsupportedArchive.byteLength,
+    async arrayBuffer() {
+      return unsupportedArchive;
+    },
   });
-  assert.equal(rejection.message.includes("Instagram"), false);
-  assert.equal(rejection.message.includes("TikTok"), false);
+
+  // Native export ZIPs are the supported ingestion path now: no rejection is produced
+  // and the raw archive passes through to the backend.
+  assert.equal(nativeResult.kind, "supported_shape_instagram_native_zip");
+  assert.equal(toZipUploadRejection(nativeResult), null);
+
+  const rejection = toZipUploadRejection(unsupportedResult);
+  assert.equal(unsupportedResult.kind, "unsupported_archive");
+  assert.equal(rejection?.reasonCode, "unsupported_archive_shape");
 });

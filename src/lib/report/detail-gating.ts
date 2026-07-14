@@ -16,12 +16,10 @@ export type ReportDetailSectionGatingModel = {
   growthRecommendations: ReportDetailProSectionMode;
   revenueOutlook: ReportDetailProSectionMode;
   platformRiskExplanation: ReportDetailProSectionMode;
-  // Pro-only sections — Report-tier users see ProGate blur + upgrade CTA.
-  opportunity: ReportDetailProSectionMode;
-  strengthsRisks: ReportDetailProSectionMode;
-  nextActions: ReportDetailProSectionMode;
-  // Report-tier visible sections.
   wowSummary: ReportDetailReportSectionMode;
+  opportunity: ReportDetailReportSectionMode;
+  strengthsRisks: ReportDetailReportSectionMode;
+  nextActions: ReportDetailReportSectionMode;
 };
 
 export type BuildReportDetailSectionGatingInput = {
@@ -75,12 +73,10 @@ export function buildReportDetailSectionGatingModel(input: BuildReportDetailSect
     growthRecommendations: proMode,
     revenueOutlook: proMode,
     platformRiskExplanation: proMode,
-    // These sections are Pro-only — Report-tier users see a ProGate blur + upgrade CTA.
-    opportunity: proMode,
-    strengthsRisks: proMode,
-    nextActions: proMode,
-    // wowSummary (business snapshot overview) remains visible at Report tier.
     wowSummary: reportMode,
+    opportunity: reportMode,
+    strengthsRisks: reportMode,
+    nextActions: reportMode,
   };
 }
 

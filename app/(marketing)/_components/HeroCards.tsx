@@ -16,10 +16,13 @@ const INSIGHTS = [
       color: 'var(--es-color-accent-blue)',       // #3B82F6
     },
   },
+  // Illustrative values, but only for metrics the product actually computes
+  // (audit 2026-08: the previous "Churn Window" and "Pricing Signal" cards had
+  // no computed counterpart anywhere in the backend).
   {
-    label: 'Churn Window',
-    value: 'Month 4',
-    suffix: '$8 tier',
+    label: 'Stability Index',
+    value: '74',
+    suffix: 'of 100',
     badge: {
       text: 'Watch',
       bg: 'rgba(245,158,11,0.13)',
@@ -28,9 +31,9 @@ const INSIGHTS = [
     },
   },
   {
-    label: 'Pricing Signal',
-    value: '2.1×',
-    suffix: 'retention',
+    label: 'Tier Signal',
+    value: 'Entry-heavy',
+    suffix: 'upgrade room',
     badge: {
       text: 'Opportunity',
       bg: 'rgba(47,217,197,0.13)',

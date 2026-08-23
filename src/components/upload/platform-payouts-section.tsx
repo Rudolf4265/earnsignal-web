@@ -155,7 +155,7 @@ export function PlatformPayoutsSection({ mode }: PlatformPayoutsSectionProps) {
 
       <ProGate
         mode={mode}
-        feature="platform income monitoring"
+        feature="platform payout income"
         upgradeHref="/app/billing"
         className="min-h-[200px]"
       >

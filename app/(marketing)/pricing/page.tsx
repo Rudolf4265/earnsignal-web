@@ -20,12 +20,18 @@ const comparisonRows: Array<{ label: string; free: boolean; report: boolean; pro
   { label: "Revenue concentration and health scores", free: false, report: true, pro: true },
   { label: "Downloadable PDF", free: false, report: true, pro: true },
   { label: "Owned report access", free: false, report: true, pro: true },
-  { label: "Biggest opportunity and top risk", free: false, report: false, pro: true },
-  { label: "Strengths, risks, and next 3 actions", free: false, report: false, pro: true },
+  // Audit 2026-08 (docs/AUDIT_2026_08_claims_vs_reality.md in creator_optimizer):
+  // opportunity/strengths/actions belong to the $25 Report tier — the plan card
+  // above, the homepage, and the entitlement gating all agree; this matrix was
+  // the outlier. IG/TikTok rows must say audience/engagement, never "income":
+  // those schemas hold no revenue columns. History wording reflects what ships:
+  // automatic what-changed comparison against the previous report.
+  { label: "Biggest opportunity and top risk", free: false, report: true, pro: true },
+  { label: "Strengths, risks, and next 3 actions", free: false, report: true, pro: true },
   { label: "Unlimited report runs", free: false, report: false, pro: true },
-  { label: "Platform income monitoring (TikTok, IG)", free: false, report: false, pro: true },
-  { label: "Report history and period comparisons", free: false, report: false, pro: true },
-  { label: "Ongoing dashboard monitoring", free: false, report: false, pro: true },
+  { label: "Include TikTok & Instagram payout income (self-reported)", free: false, report: false, pro: true },
+  { label: "Report history with what-changed comparison to your previous report", free: false, report: false, pro: true },
+  { label: "Always-current dashboard across your uploads", free: false, report: false, pro: true },
 ];
 
 function resolvePlanCta(key: string): string {
@@ -185,7 +191,7 @@ export default function PricingPage() {
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-brand-text-secondary sm:text-base">
               A Report gives you a point-in-time diagnosis you keep. Pro keeps your business health visible as it
-              evolves — full history, period comparisons, and ongoing monitoring.
+              evolves — full history, what-changed comparisons against your previous report, and an always-current dashboard.
             </p>
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               <div className="rounded-xl border border-brand-border/65 bg-brand-panel/60 p-5">

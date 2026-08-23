@@ -137,7 +137,7 @@ export default function MarketingHomePage() {
                   "Free validation",
                   "Private uploads",
                   "No public estimates",
-                  "Never used to train AI models",
+                  "Never used to train public AI models",
                 ].map((pill) => (
                   <span
                     key={pill}
